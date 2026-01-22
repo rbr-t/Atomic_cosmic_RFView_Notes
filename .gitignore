@@ -1,0 +1,22 @@
+# R and RStudio files
+.Rhistory
+.RData
+.Rproj.user
+*.Rproj
+
+# R Markdown cache and temporary files
+*_cache/
+*_files/
+
+# Temporary files
+.DS_Store
+Thumbs.db
+*~
+
+# Package related
+packrat/
+renv/
+.Rprofile
+
+# Keep the rendered HTML output
+# !Atomic_Cosmic_RFView.html
