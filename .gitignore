@@ -18,5 +18,5 @@ packrat/
 renv/
 .Rprofile
 
-# Keep the rendered HTML output
-# !Atomic_Cosmic_RFView.html
+# Allow the rendered HTML output
+!Atomic_Cosmic_RFView.html

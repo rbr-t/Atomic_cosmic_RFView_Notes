@@ -33,33 +33,85 @@ To render these notes, you need:
   - `ggplot2`
   - `rmarkdown`
 
-## Installation
+## Installation & Setup
 
-Install the required R packages:
+### Quick Start (Recommended)
 
-```r
-install.packages(c("flexdashboard", "knitr", "ggplot2", "rmarkdown"))
+Run the automated setup script:
+
+```bash
+Rscript setup.R
 ```
+
+This will:
+1. Check for required packages
+2. Install missing packages automatically
+3. Set up user library paths
+4. Install flexdashboard from GitHub if needed
+
+### Manual Installation
+
+If the setup script doesn't work, install packages manually:
+
+**Method 1: System Packages (Ubuntu/Debian)**
+```bash
+sudo apt-get update
+sudo apt-get install r-cran-rmarkdown r-cran-knitr r-cran-ggplot2 r-cran-remotes
+```
+
+Then install flexdashboard:
+```bash
+Rscript -e "remotes::install_github('rstudio/flexdashboard')"
+```
+
+**Method 2: From CRAN (if accessible)**
+```r
+install.packages(c("rmarkdown", "knitr", "ggplot2", "flexdashboard"))
+```
+
+**Method 3: In RStudio**
+1. Go to Tools → Install Packages
+2. Type: `flexdashboard, knitr, ggplot2, rmarkdown`
+3. Click Install
+
+### Troubleshooting
+
+If you encounter issues, see **TROUBLESHOOTING.md** for detailed solutions.
 
 ## Usage
 
-### Rendering the Document
+### Quick Render (Easiest)
+
+Use the render script with built-in diagnostics:
+
+```bash
+Rscript render_document.R
+```
+
+This will:
+- Check all requirements
+- Show helpful error messages if something is missing
+- Render the document if everything is OK
+
+### Alternative Rendering Methods
 
 **Option 1: In RStudio**
 1. Open `Atomic_Cosmic_RFView.Rmd` in RStudio
 2. Click the "Knit" button, or press `Ctrl+Shift+K` (Windows/Linux) or `Cmd+Shift+K` (Mac)
 
-**Option 2: From R Console**
-```r
-rmarkdown::render("Atomic_Cosmic_RFView.Rmd")
-```
-
-**Option 3: From Command Line**
+**Option 2: Direct Command**
 ```bash
 Rscript -e "rmarkdown::render('Atomic_Cosmic_RFView.Rmd')"
 ```
 
-The output will be an HTML file (`Atomic_Cosmic_RFView.html`) that can be opened in any web browser.
+**Option 3: From R Console**
+```r
+rmarkdown::render("Atomic_Cosmic_RFView.Rmd")
+```
+
+### Output
+
+The rendering process will create `Atomic_Cosmic_RFView.html` (~7-8 MB), a self-contained HTML file that can be opened in any web browser.
 
 ### Viewing the Document
 
