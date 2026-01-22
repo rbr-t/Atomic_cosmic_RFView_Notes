@@ -9,7 +9,7 @@ cat("==================================================\n\n")
 
 # Function to install if not already installed
 install_if_missing <- function(pkg) {
-  if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
     cat(sprintf("Installing %s...\n", pkg))
     install.packages(pkg, repos = "https://cloud.r-project.org/", 
                      dependencies = TRUE, quiet = FALSE)
