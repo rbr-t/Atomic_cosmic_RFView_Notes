@@ -1,0 +1,25 @@
+---
+title: "Test Tabset Structure"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+# Main Topic {.tabset .tabset-pills}
+
+## Tab 1
+
+### Chapter in Tab 1
+
+Content for chapter
+
+#### Sub-chapter
+
+More content
+
+## Tab 2
+
+### Chapter in Tab 2  
+
+Different content

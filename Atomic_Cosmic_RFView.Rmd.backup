@@ -1,0 +1,2698 @@
+---
+title: "RF Engineering: From Atomic to Cosmic Perspective"
+author: "RF Engineering Teaching Notes"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 4
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+    number_sections: false
+    css: styles.css
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(ggplot2)
+
+# Set global chunk options
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 8,
+  fig.height = 6
+)
+```
+
+<style>
+/* Main tab styling */
+.nav-tabs {
+  font-size: 16px;
+  border-bottom: 2px solid #dee2e6;
+  margin-bottom: 20px;
+}
+
+.nav-tabs > li > a {
+  padding: 12px 20px;
+  margin-right: 5px;
+  border-radius: 4px 4px 0 0;
+}
+
+.nav-tabs > li.active > a {
+  background-color: #2780e3;
+  color: white;
+  border-color: #2780e3;
+}
+
+.nav-tabs > li > a:hover {
+  background-color: #f8f9fa;
+}
+
+/* Content area with floating TOC */
+.tab-content {
+  position: relative;
+}
+
+.tab-pane {
+  padding: 20px;
+  max-width: 100%;
+}
+
+/* Floating TOC for each tab */
+.toc-float {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 250px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+.toc-float h4 {
+  margin-top: 0;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  border-bottom: 2px solid #2780e3;
+  padding-bottom: 8px;
+}
+
+.toc-float ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 10px 0 0 0;
+}
+
+.toc-float ul ul {
+  padding-left: 15px;
+  margin-top: 5px;
+}
+
+.toc-float li {
+  margin: 5px 0;
+}
+
+.toc-float a {
+  color: #2780e3;
+  text-decoration: none;
+  font-size: 13px;
+  line-height: 1.4;
+  display: block;
+}
+
+.toc-float a:hover {
+  color: #1a5cb8;
+  text-decoration: underline;
+}
+
+/* Main content with space for TOC */
+.tab-pane > div {
+  margin-right: 280px;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .toc-float {
+    display: none;
+  }
+  .tab-pane > div {
+    margin-right: 0;
+  }
+}
+
+/* Icons in tabs */
+.nav-tabs i {
+  margin-right: 8px;
+}
+
+/* Nested tabs styling */
+.tab-content .nav-pills {
+  margin: 20px 0;
+}
+
+.nav-pills > li > a {
+  padding: 8px 15px;
+  margin: 2px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.nav-pills > li.active > a {
+  background-color: #2780e3;
+}
+
+/* Heading styles */
+h1, h2, h3, h4 {
+  color: #2c3e50;
+}
+
+h3 {
+  margin-top: 30px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+h4 {
+  margin-top: 20px;
+  color: #34495e;
+}
+
+/* Code styling */
+pre {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+/* Table styling */
+table {
+  margin: 20px 0;
+}
+
+/* Figure captions */
+.figure {
+  margin: 20px 0;
+  text-align: center;
+}
+
+p.caption {
+  font-style: italic;
+  color: #666;
+  margin-top: 10px;
+}
+</style>
+
+<script>
+// Generate floating TOC for each tab
+document.addEventListener('DOMContentLoaded', function() {
+  // Function to create TOC for a tab
+  function createTOC(tabPane) {
+    // Find all h3, h4 headers in the tab
+    const headers = tabPane.querySelectorAll('h3, h4');
+    if (headers.length === 0) return;
+    
+    // Create TOC container
+    const tocDiv = document.createElement('div');
+    tocDiv.className = 'toc-float';
+    
+    const tocTitle = document.createElement('h4');
+    tocTitle.textContent = 'Contents';
+    tocDiv.appendChild(tocTitle);
+    
+    const tocList = document.createElement('ul');
+    let currentH3List = null;
+    
+    headers.forEach(function(header, index) {
+      // Add ID if not present
+      if (!header.id) {
+        header.id = 'header-' + index;
+      }
+      
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + header.id;
+      a.textContent = header.textContent.replace(/^#+\s*/, '');
+      
+      if (header.tagName === 'H3') {
+        tocList.appendChild(li);
+        li.appendChild(a);
+        currentH3List = document.createElement('ul');
+        li.appendChild(currentH3List);
+      } else if (header.tagName === 'H4' && currentH3List) {
+        const subLi = document.createElement('li');
+        subLi.appendChild(a);
+        currentH3List.appendChild(subLi);
+      }
+    });
+    
+    tocDiv.appendChild(tocList);
+    
+    // Insert TOC at the beginning of tab pane
+    tabPane.insertBefore(tocDiv, tabPane.firstChild);
+  }
+  
+  // Create TOC for each main tab pane
+  const mainTabs = document.querySelectorAll('.tab-content > .tab-pane');
+  mainTabs.forEach(createTOC);
+});
+</script>
+
+## <i class="fa fa-atom"></i> Atomic & Quantum Level {.tabset .tabset-pills}
+
+### Introduction to Quantum RF
+
+#### What is an Atom?
+
+**Precise Definition:**
+
+An atom is a quantum-electrodynamic bound system consisting of:
+
+1. **Nucleus** (~99.94% of atomic mass, ~10⁻¹⁵ m scale)
+   - **Protons**: Charge +e, mass 938.27 MeV/c²
+   - **Neutrons**: Charge 0, mass 939.57 MeV/c²
+   - Bound by **strong nuclear force** (range ~1-2 fm)
+
+2. **Electrons** (define chemistry and electrical behavior, ~10⁻¹⁰ m scale)
+   - Charge -e = -1.602×10⁻¹⁹ C
+   - Mass 0.511 MeV/c² (1/1836 of proton)
+   - Exist in **quantized states**, not classical orbits
+
+**Scale Separation:**
+
+The nucleus-to-atom ratio is like a sub-micron bond wire inside a football stadium. Most of the atom is empty space, but electrons create a probability cloud governed by quantum mechanics.
+
+**RF Engineering Perspective:**
+
+From an electromagnetic viewpoint, an atom is a quantized electric dipole system with:
+
+- Nonlinear response
+- Saturation effects
+- Frequency-selective absorption/emission
+- Transition frequencies from RF/microwave through X-ray
+
+#### Atomic Structure and Quantum States
+
+**Electron Configuration:**
+
+Electrons occupy orbitals defined by quantum numbers:
+
+| Quantum Number | Symbol | Meaning | RF Analogy |
+|----------------|--------|---------|------------|
+| Principal | n | Energy level | Mode index |
+| Orbital | l | Angular momentum | Field distribution |
+| Magnetic | m_l | Orientation | Mode polarization |
+| Spin | m_s | Intrinsic angular momentum | ±½ |
+
+**Key Point**: Each orbital holds maximum 2 electrons (Pauli Exclusion Principle)
+
+#### Electromagnetic Wave Generation
+
+At the quantum level, electromagnetic waves are generated through:
+
+1. **Electronic Transitions**: Electrons moving between quantized energy levels
+2. **Accelerating Charges**: Create EM fields via Maxwell's equations
+3. **Quantum Coherence**: Phase relationships in quantum systems
+4. **Atomic Resonances**: Hyperfine transitions (e.g., Cs-133 at 9.19 GHz)
+
+```{r quantum-spectrum, fig.cap="RF Spectrum Position in Electromagnetic Spectrum"}
+# Create a comprehensive visualization of the EM spectrum
+freq <- c(3e9, 3e10, 3e11, 3e12, 3e13, 3e14, 3e15, 3e16, 3e17, 3e18)
+wavelength <- 3e8 / freq
+names <- c("RF/Microwave", "Millimeter", "Far IR", "Mid IR", "Near IR", 
+           "Visible", "UV", "X-Ray", "Gamma", "Cosmic")
+
+df <- data.frame(
+  frequency = freq,
+  wavelength = wavelength,
+  band = names,
+  energy = 6.626e-34 * freq / 1.6e-19  # in eV
+)
+
+ggplot(df, aes(x = log10(frequency), y = 1, fill = band)) +
+  geom_tile(height = 0.5) +
+  geom_text(aes(label = band), angle = 45, hjust = 0, size = 3) +
+  scale_fill_viridis_d() +
+  labs(
+    title = "Electromagnetic Spectrum - From Atomic to Cosmic",
+    subtitle = "RF occupies the lowest energy portion",
+    x = "Log10(Frequency in Hz)",
+    y = "",
+    caption = "Note: RF photons at 1 GHz have energy ~4×10⁻⁶ eV (non-ionizing)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    legend.position = "none"
+  )
+```
+
+```{r atomic-structure, fig.cap="Atomic Scale and Nucleus Comparison"}
+# Visualize atomic scale separation
+components <- c("Nucleus", "Atom", "Nucleus:Atom\nRatio")
+size_m <- c(1e-15, 1e-10, 1e-15/1e-10)
+log_size <- log10(c(1e-15, 1e-10, 1e5))
+
+df_scale <- data.frame(
+  component = components[1:2],
+  size = c(1e-15, 1e-10),
+  label = c("~1 fm\n(femtometer)", "~1 Å\n(Angstrom)")
+)
+
+ggplot(df_scale, aes(x = component, y = log10(size), fill = component)) +
+  geom_col() +
+  geom_text(aes(label = label), vjust = -0.5, size = 4) +
+  labs(
+    title = "Atomic Scale Separation",
+    subtitle = "Nucleus is 100,000× smaller than atom",
+    x = "",
+    y = "Log10(Size in meters)",
+    caption = "Most of the atom is 'empty space' filled with electron probability clouds"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+### Quantum Properties
+
+#### Wave-Particle Duality in RF
+
+RF waves exhibit both wave and particle properties:
+
+- **Wave Properties**: Interference, diffraction, polarization
+- **Particle Properties**: Discrete energy quanta (photons)
+- **Coherence**: Phase relationships critical for RF applications
+
+#### Pauli Exclusion Principle (PEP)
+
+**Precise Statement:**
+
+No two identical fermions (electrons, protons, neutrons) can occupy the same quantum state simultaneously.
+
+**Why It Exists:**
+
+- Rooted in relativistic quantum field theory
+- Consequence of spin-statistics theorem
+- Fundamental symmetry of nature (not just an observation)
+
+**Consequences for RF Engineering:**
+
+1. **Atomic Structure**: Electron shells exist because of PEP
+2. **Matter Has Size**: Without PEP, all electrons would collapse to lowest state
+3. **Band Structure**: Foundation of semiconductor physics
+4. **Conductors vs Insulators**: Fermi energy and band gaps
+5. **Degeneracy Pressure**: Prevents stellar collapse (white dwarfs, neutron stars)
+
+**Critical Insight:**
+
+The Pauli Exclusion Principle is why:
+
+- Matter doesn't collapse
+- Chemistry exists
+- Semiconductors work
+- Your power amplifier has a defined structure
+
+Without PEP: No solid matter, no circuits, no RF engineering.
+
+#### Fermionic Spin
+
+**What Spin Is NOT:**
+
+- ❌ Not literal rotation
+- ❌ Not classical angular momentum
+
+**What Spin IS:**
+
+- Intrinsic quantum degree of freedom
+- For fermions: spin = ½ (in units of ℏ)
+- Requires 720° rotation to return to same quantum state
+- Determines particle statistics and behavior
+
+**Why Spin Matters:**
+
+- Couples to magnetic fields
+- Determines fermion vs boson behavior
+- Responsible for magnetism and band structure
+- Critical for stability of matter
+
+```{r pauli-demonstration, fig.cap="Electron Shell Filling via Pauli Exclusion"}
+# Demonstrate electron configuration for first few elements
+elements <- c("H", "He", "Li", "Be", "B", "C", "N", "O")
+electrons <- c(1, 2, 3, 4, 5, 6, 7, 8)
+shells <- data.frame(
+  element = rep(elements, each = 3),
+  shell = rep(c("1s", "2s", "2p"), length(elements)),
+  count = c(
+    1, 0, 0,  # H
+    2, 0, 0,  # He
+    2, 1, 0,  # Li
+    2, 2, 0,  # Be
+    2, 2, 1,  # B
+    2, 2, 2,  # C
+    2, 2, 3,  # N
+    2, 2, 4   # O
+  ),
+  max_capacity = rep(c(2, 2, 6), length(elements))
+)
+
+shells$element <- factor(shells$element, levels = elements)
+shells$shell <- factor(shells$shell, levels = c("1s", "2s", "2p"))
+
+ggplot(shells, aes(x = element, y = count, fill = shell)) +
+  geom_col(position = "stack") +
+  geom_hline(yintercept = c(2, 4, 10), linetype = "dashed", alpha = 0.3) +
+  labs(
+    title = "Electron Shell Filling - Pauli Exclusion in Action",
+    subtitle = "Each orbital holds maximum 2 electrons with opposite spin",
+    x = "Element",
+    y = "Number of Electrons",
+    fill = "Orbital"
+  ) +
+  theme_minimal()
+```
+
+#### Energy Levels and Transitions
+
+**Bohr Model Application:**
+
+For hydrogen atom:
+$$E_n = -\frac{13.6 \text{ eV}}{n^2}$$
+
+**RF Photon Energy:**
+
+At 1 GHz:
+$$E = h\nu = (6.626 \times 10^{-34})(10^9) = 6.626 \times 10^{-25} \text{ J} \approx 4.14 \times 10^{-6} \text{ eV}$$
+
+This extremely low energy explains why RF is non-ionizing radiation.
+
+**Energy Scale Comparison:**
+
+- **RF (1 GHz)**: 4×10⁻⁶ eV
+- **Visible Light**: 2-3 eV
+- **X-rays**: keV range
+- **Ionization Energy (Hydrogen)**: 13.6 eV
+
+RF photons cannot ionize atoms - they lack sufficient energy.
+
+### Atomic Interactions
+
+#### RF Interaction with Atoms
+
+**Key Mechanisms:**
+
+1. **Resonant Absorption**: Atoms absorb RF at specific frequencies
+2. **Stimulated Emission**: Foundation for masers (microwave amplification)
+3. **Magnetic Resonance**: Nuclear and electron spin interactions
+
+#### Fundamental Forces
+
+**The Four Fundamental Forces:**
+
+| Force | Acts On | Mediator | Range | Relative Strength | Role |
+|-------|---------|----------|-------|-------------------|------|
+| **Strong** | Quarks (color charge) | Gluons | ~1 fm | 1 | Nuclear binding |
+| **Electromagnetic** | Electric charge | Photons | Infinite | 10⁻² | Atoms, chemistry, RF |
+| **Weak** | Weak isospin | W/Z bosons | ~10⁻¹⁸ m | 10⁻⁶ | Beta decay |
+| **Gravity** | Mass-energy | Graviton? | Infinite | 10⁻³⁹ | Cosmic structure |
+
+**Why Gravity is Weak at Atomic Scale:**
+
+Gravity couples to mass-energy extremely weakly compared to charge:
+
+$$\frac{F_{gravity}}{F_{EM}} \approx 10^{-36} \text{ (between two electrons)}$$
+
+At atomic scales:
+- EM force dominates completely
+- Gravity is negligible
+- Can be safely ignored
+
+**Is Gravity a Quantum Field?**
+
+Current status: Unknown
+
+- EM, weak, strong: Successfully quantized
+- Gravity: Currently described by General Relativity (classical)
+- Attempts: String theory, loop quantum gravity, gravitons
+- No experimental confirmation yet
+
+#### Quantum Fields
+
+**What is a Quantum Field?**
+
+At the deepest level, reality consists of quantum fields. Particles are excitations of these fields.
+
+**Known Quantum Fields (Standard Model):**
+
+1. **Electron Field**: Excitations = electrons
+2. **Quark Fields**: Up, down, strange, charm, top, bottom
+   - Come in "colors": red, green, blue (not visual colors)
+   - Never exist in isolation (confinement)
+   - Combine to form protons (uud) and neutrons (udd)
+
+3. **Gluon Field**: Strong force mediator
+4. **Photon Field**: Electromagnetic force (RF lives here!)
+5. **W/Z Fields**: Weak force mediators
+6. **Higgs Field**: Gives mass to particles
+
+**Evidence for Fields:**
+
+- Particle accelerators (LHC discovered Higgs boson in 2012)
+- Scattering experiments
+- Decay rates
+- QED precision tests (accurate to 12 decimal places!)
+
+#### Coulomb Force and Charge
+
+**Coulomb Repulsion:**
+
+The electromagnetic repulsive force between like charges:
+
+$$F = k\frac{q_1 q_2}{r^2}$$
+
+- Like charges → repulsion
+- Opposite charges → attraction
+
+**Role in Nuclei:**
+
+- Protons repel each other (Coulomb repulsion)
+- Strong force overcomes this at short distances (~1 fm)
+- Balance determines nuclear stability
+
+#### Why EM Fields Exist
+
+**Electric Field:**
+
+An electric field exists because charge is a source term in Maxwell's equations:
+
+$$\nabla \cdot \vec{E} = \frac{\rho}{\epsilon_0}$$
+
+An electron:
+- Is a point excitation of the electron field
+- Couples to the electromagnetic field
+- Generates an electric field (no deeper mechanism - this is fundamental)
+
+**Magnetic Field:**
+
+Magnetic fields arise because:
+- Moving charge = current
+- Relativity couples electricity and magnetism
+
+**Critical Insight:**
+
+In one reference frame you see an electric field. In a moving frame, you see a magnetic field. 
+
+Magnetism is essentially **relativistic electricity**.
+
+```{r fundamental-forces, fig.cap="Fundamental Forces - Relative Strengths"}
+# Visualize fundamental force strengths (log scale)
+forces <- data.frame(
+  force = c("Strong", "Electromagnetic", "Weak", "Gravity"),
+  relative_strength = c(1, 1e-2, 1e-6, 1e-39),
+  range_m = c(1e-15, Inf, 1e-18, Inf),
+  range_label = c("1 fm", "∞", "0.001 fm", "∞")
+)
+
+forces$force <- factor(forces$force, 
+                       levels = c("Strong", "Electromagnetic", "Weak", "Gravity"))
+
+ggplot(forces, aes(x = force, y = log10(relative_strength), fill = force)) +
+  geom_col() +
+  geom_text(aes(label = sprintf("Range: %s", range_label)), 
+            vjust = -0.5, size = 3) +
+  labs(
+    title = "Fundamental Forces of Nature",
+    subtitle = "Relative strength comparison (log scale)",
+    x = "Force",
+    y = "Log10(Relative Strength)",
+    caption = "Gravity is 10^39 times weaker than strong force!"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+#### Applications
+
+- **Atomic Clocks**: Using cesium-133 hyperfine transitions (9.192 GHz)
+- **Quantum Computing**: Superconducting qubits operate at microwave frequencies
+- **Magnetic Resonance Imaging (MRI)**: RF pulses interact with hydrogen nuclei
+- **Masers**: Microwave amplification by stimulated emission
+
+```{r atomic-clock, fig.cap="Atomic Clock Frequency Standard"}
+# Visualization of atomic clock frequency stability
+time_sec <- seq(0, 100, by = 0.1)
+ideal_freq <- 9.192e9
+drift_ppm <- 1e-14  # parts per million for atomic clock
+
+set.seed(42)
+frequency <- ideal_freq + ideal_freq * drift_ppm * rnorm(length(time_sec))
+
+df_clock <- data.frame(
+  time = time_sec,
+  frequency = frequency,
+  deviation = (frequency - ideal_freq) / ideal_freq * 1e15
+)
+
+ggplot(df_clock, aes(x = time, y = deviation)) +
+  geom_line(color = "blue", alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Atomic Clock Frequency Stability",
+    subtitle = "Cesium-133 hyperfine transition = 9.192 GHz (defines the second)",
+    x = "Time (seconds)",
+    y = "Frequency Deviation (×10⁻¹⁵)",
+    caption = "Modern atomic clocks drift less than 1 second in 100 million years"
+  ) +
+  theme_minimal()
+```
+
+### References & Resources
+
+#### Key References
+
+For further reading on quantum aspects of RF:
+
+- Pozar, D. M. (2011). *Microwave Engineering*. 4th Edition
+- Griffiths, D. J. (2017). *Introduction to Quantum Mechanics*
+- Feynman, R. P. (1985). *QED: The Strange Theory of Light and Matter*
+
+#### Online Resources
+
+- NIST Atomic Clock Resources
+- IEEE Quantum Electronics publications
+- MIT OpenCourseWare: Electromagnetic Theory
+
+
+## <i class="fa fa-dna"></i> Molecular & Material Level {.tabset .tabset-pills}
+
+### Material Properties
+
+#### RF Materials Science
+
+Understanding materials at the molecular level is crucial for RF engineering:
+
+**Dielectric Materials:**
+
+- Permittivity: $\epsilon = \epsilon_0 \epsilon_r$
+- Loss tangent: $\tan\delta = \frac{\epsilon''}{\epsilon'}$
+- Polarization mechanisms
+
+**Magnetic Materials:**
+
+- Permeability: $\mu = \mu_0 \mu_r$
+- Ferrites for RF applications
+- Magnetic losses at high frequencies
+
+#### Band Structure (Foundation of Semiconductors)
+
+**What is Band Structure?**
+
+When atoms form a solid:
+
+1. Atomic electron orbitals overlap
+2. Discrete energy levels broaden into continuous bands
+3. Two critical bands emerge:
+   - **Valence Band**: Highest occupied states
+   - **Conduction Band**: Lowest empty states
+
+**The Band Gap:**
+
+The energy difference between valence and conduction bands determines material type:
+
+| Material Type | Band Gap | Electron Behavior | Examples |
+|---------------|----------|-------------------|----------|
+| **Conductor** | No gap (overlap) | Free electrons | Cu, Au, Al |
+| **Semiconductor** | Small gap (0.5-3 eV) | Thermally excited | Si, GaAs, GaN |
+| **Insulator** | Large gap (>4 eV) | No conduction | SiO₂, Al₂O₃ |
+
+**Why Band Structure Matters for RF:**
+
+- Determines conductivity
+- Controls RF losses
+- Enables semiconductor devices (transistors, diodes)
+- Foundation of solid-state RF electronics
+
+```{r band-structure, fig.cap="Band Structure Comparison"}
+# Visualize band structure for different materials
+materials <- c("Conductor\n(Metal)", "Semiconductor\n(Si)", "Insulator\n(SiO₂)")
+valence_top <- c(0, 0, 0)
+conduction_bottom <- c(0, 1.1, 9)  # eV
+fermi_level <- c(0, 0.55, 4.5)
+
+# Create data for plotting
+df_bands <- data.frame(
+  material = rep(materials, each = 2),
+  band = rep(c("Valence", "Conduction"), 3),
+  energy = c(
+    0, 0,      # Conductor (overlap)
+    0, 1.1,    # Semiconductor
+    0, 9       # Insulator
+  ),
+  x_start = rep(1:3, each = 2) - 0.3,
+  x_end = rep(1:3, each = 2) + 0.3
+)
+
+ggplot() +
+  geom_rect(data = df_bands, 
+            aes(xmin = x_start, xmax = x_end, 
+                ymin = energy - 0.3, ymax = energy + 0.3,
+                fill = band), alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5) +
+  annotate("text", x = 1:3, y = -1, label = materials, size = 3.5) +
+  annotate("text", x = 2, y = 0.55, label = "Band Gap\n1.1 eV", size = 3, color = "red") +
+  annotate("text", x = 3, y = 4.5, label = "Band Gap\n9 eV", size = 3, color = "red") +
+  scale_fill_manual(values = c("Valence" = "blue", "Conduction" = "red")) +
+  labs(
+    title = "Band Structure Determines Material Properties",
+    subtitle = "Gap size controls electrical conductivity",
+    x = "",
+    y = "Energy (eV)",
+    fill = "Band"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+```
+
+#### Quasiparticles: Phonons, Plasmons, and Magnons
+
+These are **emergent collective excitations** - not fundamental particles, but useful concepts for understanding material behavior.
+
+**1. Phonons (Quantized Lattice Vibrations)**
+
+- Collective motion of atoms in a crystal lattice
+- Carry thermal energy
+- Cause electron scattering
+
+**Impact on RF:**
+
+- Thermal conductivity
+- Phase noise in oscillators
+- Temperature-dependent losses
+- Limit device performance
+
+**2. Plasmons (Quantized Electron Density Oscillations)**
+
+- Collective oscillation of free electron gas
+- Important in metals at optical/RF frequencies
+- Can have very high frequencies
+
+**RF Applications:**
+
+- Surface plasmon resonance
+- Metamaterials
+- Plasmonic antennas
+- Novel RF devices
+
+**3. Magnons (Quantized Spin Waves)**
+
+- Collective excitation of electron spins
+- Propagate in magnetic materials
+- Important for ferrites
+
+**RF Applications:**
+
+- Magnetic materials in circulators
+- Isolators
+- Filters
+- Spintronics (emerging field)
+
+```{r quasiparticles, fig.cap="Quasiparticles in Condensed Matter"}
+# Visualize quasiparticle properties
+quasiparticles <- data.frame(
+  type = c("Phonon", "Plasmon", "Magnon"),
+  typical_freq_GHz = c(10, 1000, 10),  # representative values
+  application = c("Thermal\nManagement", "Metamaterials\nAntennas", "Magnetic\nDevices"),
+  material = c("Crystals", "Metals", "Ferrites")
+)
+
+ggplot(quasiparticles, aes(x = type, y = log10(typical_freq_GHz), fill = type)) +
+  geom_col() +
+  geom_text(aes(label = application), vjust = -0.5, size = 3) +
+  labs(
+    title = "Quasiparticles in RF Materials",
+    subtitle = "Emergent collective excitations",
+    x = "Quasiparticle Type",
+    y = "Log10(Typical Frequency in GHz)",
+    caption = "These are not fundamental particles but useful models of collective behavior"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+#### Nuclear Fusion and Element Formation
+
+**Can Elements be Transformed?**
+
+**Chemically**: No
+- Chemical reactions only rearrange electrons
+- Nuclei remain unchanged
+- Elements retain identity
+
+**Nuclear Level**: Yes
+- Nuclear fusion combines light nuclei
+- Nuclear fission splits heavy nuclei
+- Radioactive decay changes proton count
+
+**Stellar Nucleosynthesis:**
+
+Stars are cosmic forges creating elements:
+
+1. **Hydrogen Fusion** (Main sequence stars)
+   - 4H → He + energy
+   - Powers the Sun
+
+2. **Helium Fusion** (Red giants)
+   - 3He → C (triple-alpha process)
+
+3. **Carbon to Iron** (Massive stars)
+   - Successive fusion up to Fe-56
+   - Iron is most stable nucleus
+
+4. **Beyond Iron** (Supernovae)
+   - Requires energy input (endothermic)
+   - Rapid neutron capture (r-process)
+   - Creates heavy elements (Au, U, etc.)
+
+**Key Insight:** Most elements in your RF circuit were forged in stars!
+
+```{r dielectric-properties, fig.cap="Dielectric Constant vs Frequency"}
+# Common RF materials dielectric properties
+materials <- c("Air", "PTFE (Teflon)", "FR-4", "Alumina", "Silicon", "GaAs")
+epsilon_r <- c(1.0, 2.1, 4.5, 9.8, 11.9, 12.9)
+loss_tangent <- c(0, 0.0002, 0.02, 0.0001, 0.015, 0.006)
+
+df_materials <- data.frame(
+  Material = materials,
+  Epsilon_r = epsilon_r,
+  Loss_Tangent = loss_tangent
+)
+
+ggplot(df_materials, aes(x = reorder(Material, Epsilon_r), y = Epsilon_r, fill = Loss_Tangent)) +
+  geom_col() +
+  scale_fill_gradient(low = "green", high = "red", name = "Loss Tangent") +
+  coord_flip() +
+  labs(
+    title = "Dielectric Properties of Common RF Materials",
+    subtitle = "Higher εᵣ = smaller wavelength, but watch for losses!",
+    x = "Material",
+    y = "Relative Permittivity (εᵣ)"
+  ) +
+  theme_minimal()
+```
+
+### Substrate Materials
+
+#### PCB Substrates for RF
+
+**Common Substrates:**
+
+1. **FR-4**: General purpose, εᵣ ≈ 4.5
+   - Low cost
+   - Moderate loss
+   - Good for < 2 GHz
+
+2. **Rogers Materials**: High-performance RF
+   - RO4003C: εᵣ = 3.38, low loss
+   - RO4350B: εᵣ = 3.48, excellent stability
+   - Good for microwave frequencies
+
+3. **PTFE-based**: Ultra-low loss
+   - RT/duroid: εᵣ = 2.2-10.2
+   - Excellent thermal stability
+
+#### Substrate Selection Criteria
+
+Key parameters for RF substrate selection:
+
+- Dielectric constant (εᵣ)
+- Loss tangent (tan δ)
+- Thermal coefficient of εᵣ
+- Copper adhesion
+- Cost vs. performance
+
+### Conductors & Semiconductors
+
+#### Conductor Properties and Current Flow
+
+**What is Current? (Precise Definition)**
+
+$$I = \frac{dQ}{dt}$$
+
+Electric current is the **rate of flow of electric charge** through a cross-section.
+
+**In metals:**
+- Charge carriers = electrons
+- Electrons drift under applied electric field
+- Drift velocity: typically mm/s to μm/s
+
+**Critical Distinction:**
+
+| Quantity | Speed | What It Does |
+|----------|-------|-------------|
+| Electron drift | ~mm/s | Slow local movement |
+| EM field propagation | ~c (0.6-0.9c in cable) | Fast energy transport |
+| Signal velocity | ~c | Information propagates |
+
+**The Truth About Conductors:**
+
+1. Electrons already exist everywhere in the conductor
+2. Source establishes electric field
+3. Field causes local drift
+4. Energy flows in the **field around the wire**, not in the wire!
+
+**Charge vs. Electron:**
+
+- **Charge**: A property (like mass)
+- **Electron**: A particle that carries charge
+
+**Analogy:** Current is not "cars" - it's "traffic flow"
+
+#### Skin Effect:**
+
+At high frequencies, current flows near the conductor surface:
+
+$$\delta = \sqrt{\frac{2}{\omega\mu\sigma}}$$
+
+where:
+- δ is skin depth
+- ω is angular frequency
+- μ is permeability
+- σ is conductivity
+
+**Physical Mechanism:**
+
+- NOT electrons avoiding the center
+- Fields penetrate conductors
+- Induced currents oppose penetration
+- Exponential decay from surface
+
+```{r current-vs-energy, fig.cap="Current vs Energy Flow"}
+# Demonstrate the difference between electron drift and energy flow
+time_s <- seq(0, 1, by = 0.01)
+
+# Electron drift (very slow)
+electron_position_mm <- time_s * 0.1  # 0.1 mm/s drift velocity
+
+# EM signal (fast)
+em_position_km <- time_s * 200000  # 200,000 km/s (2/3 c in cable)
+
+df_flow <- data.frame(
+  time = rep(time_s, 2),
+  position = c(electron_position_mm, em_position_km / 1e6),  # normalize
+  type = rep(c("Electron Drift (mm)", "EM Wave (10^5 km)"), each = length(time_s)),
+  scale = rep(c("Microscopic", "Macroscopic"), each = length(time_s))
+)
+
+# Separate plots due to huge scale difference
+ggplot(df_flow[df_flow$type == "Electron Drift (mm)", ], 
+       aes(x = time, y = position)) +
+  geom_line(color = "blue", linewidth = 1.5) +
+  labs(
+    title = "Electron Drift vs EM Wave Propagation",
+    subtitle = "Electron drift: 0.1 mm/s | EM wave: 200,000 km/s (2/3 c)",
+    x = "Time (seconds)",
+    y = "Electron Position (mm)",
+    caption = "Energy flows in the EM field at ~c, NOT with slow electron drift!"
+  ) +
+  theme_minimal()
+```
+
+```{r skin-effect-detailed, fig.cap="Skin Depth vs Frequency for Copper"}
+# Calculate skin depth for copper
+freq_hz <- 10^seq(6, 11, by = 0.1)  # 1 MHz to 100 GHz
+mu_0 <- 4 * pi * 1e-7
+sigma_copper <- 5.96e7  # S/m for copper
+
+skin_depth_m <- sqrt(2 / (2 * pi * freq_hz * mu_0 * sigma_copper))
+skin_depth_um <- skin_depth_m * 1e6
+
+df_skin <- data.frame(
+  frequency_GHz = freq_hz / 1e9,
+  skin_depth_um = skin_depth_um
+)
+
+ggplot(df_skin, aes(x = frequency_GHz, y = skin_depth_um)) +
+  geom_line(color = "red", linewidth = 1) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    title = "Skin Depth in Copper vs Frequency",
+    x = "Frequency (GHz)",
+    y = "Skin Depth (μm)"
+  ) +
+  theme_minimal() +
+  annotation_logticks()
+```
+
+#### Semiconductor RF Devices
+
+**Key Materials:**
+
+- **Silicon (Si)**: CMOS RF circuits
+- **Gallium Arsenide (GaAs)**: High-frequency amplifiers
+- **Gallium Nitride (GaN)**: High-power RF
+- **Silicon Germanium (SiGe)**: BiCMOS applications
+
+### Crystal Structures
+
+#### Crystalline vs Amorphous
+
+**Impact on RF Properties:**
+
+1. **Single Crystal**: Best performance
+   - Low defects
+   - Consistent properties
+   - High electron mobility
+
+2. **Polycrystalline**: Moderate performance
+   - Grain boundaries
+   - Variable properties
+
+3. **Amorphous**: Lower performance
+   - Disordered structure
+   - Higher losses
+
+#### Molecular Bonding
+
+Types of bonds affecting RF properties:
+
+- **Covalent**: Strong, directional (semiconductors)
+- **Ionic**: Strong, non-directional (ceramics)
+- **Metallic**: Free electrons (conductors)
+- **Van der Waals**: Weak (polymers)
+
+
+## <i class="fa fa-microchip"></i> Device Level {.tabset .tabset-pills}
+
+### Passive Components
+
+#### RF Passive Components
+
+**Resistors:**
+- Power handling
+- Parasitic effects at RF
+- Termination and matching
+
+**Capacitors:**
+- Series resonant frequency (SRF)
+- Q factor
+- Temperature stability
+
+**Inductors:**
+- Self-resonant frequency
+- Q factor
+- Core materials
+
+```{r component-models, fig.cap="Equivalent Circuit Models"}
+# Create a visualization showing impedance vs frequency for different components
+freq_MHz <- seq(0.1, 1000, by = 0.5)
+
+# Ideal vs real capacitor (10 pF with 1 nH ESL)
+C <- 10e-12
+L_esl <- 1e-9
+Z_cap_ideal <- 1 / (2 * pi * freq_MHz * 1e6 * C)
+Z_cap_real <- abs(2 * pi * freq_MHz * 1e6 * L_esl - 1 / (2 * pi * freq_MHz * 1e6 * C))
+
+# Ideal vs real inductor (10 nH with 0.5 pF parasitic C)
+L <- 10e-9
+C_par <- 0.5e-12
+Z_ind_ideal <- 2 * pi * freq_MHz * 1e6 * L
+f_res <- 1 / (2 * pi * sqrt(L * C_par)) / 1e6
+
+df_impedance <- data.frame(
+  frequency = rep(freq_MHz, 2),
+  impedance = c(Z_cap_ideal, Z_ind_ideal),
+  component = rep(c("Capacitor (10 pF)", "Inductor (10 nH)"), each = length(freq_MHz))
+)
+
+ggplot(df_impedance, aes(x = frequency, y = impedance, color = component)) +
+  geom_line(linewidth = 1) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    title = "Ideal Component Impedance vs Frequency",
+    x = "Frequency (MHz)",
+    y = "Impedance (Ω)",
+    color = "Component"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+### Active Components
+
+#### RF Transistors
+
+**Types:**
+
+1. **BJT (Bipolar Junction Transistor)**
+   - Good linearity
+   - Lower noise at lower frequencies
+   - Current controlled
+
+2. **FET (Field Effect Transistor)**
+   - **MOSFET**: CMOS integration
+   - **JFET**: Low noise
+   - **HEMT**: High-frequency performance
+
+3. **HBT (Heterojunction Bipolar Transistor)**
+   - SiGe HBT
+   - GaAs HBT
+
+**Key Parameters:**
+
+- fT (transition frequency)
+- fmax (maximum oscillation frequency)
+- Noise figure (NF)
+- Power gain
+- Linearity (IP3)
+
+#### RF Amplifiers
+
+**Amplifier Classes:**
+
+- **Class A**: Linear, inefficient (~50%)
+- **Class B**: Push-pull, ~78% efficiency
+- **Class AB**: Compromise
+- **Class C**: High efficiency, nonlinear
+- **Class E/F**: Switch-mode, very high efficiency
+
+**Design Considerations:**
+
+- Stability (K-factor, μ-factor)
+- Matching networks (input/output)
+- Bias networks
+- Thermal management
+
+### Transmission Lines
+
+#### Maxwell's Equations - The Foundation
+
+**The Four Equations (Vacuum Form):**
+
+1. **Gauss's Law (Electric)**:
+$$\nabla \cdot \vec{E} = \frac{\rho}{\epsilon_0}$$
+*Charges create electric fields*
+
+2. **Gauss's Law (Magnetic)**:
+$$\nabla \cdot \vec{B} = 0$$
+*No magnetic monopoles*
+
+3. **Faraday's Law**:
+$$\nabla \times \vec{E} = -\frac{\partial \vec{B}}{\partial t}$$
+*Changing magnetic field creates electric field*
+
+4. **Ampère-Maxwell Law**:
+$$\nabla \times \vec{B} = \mu_0 \vec{J} + \mu_0\epsilon_0 \frac{\partial \vec{E}}{\partial t}$$
+*Currents and changing electric fields create magnetic fields*
+
+**Critical Insight:** The last term (Maxwell's addition) makes EM waves possible!
+
+#### EM Waves from Maxwell's Equations
+
+**In empty space** (ρ = 0, J = 0):
+
+Taking curl of Faraday's law and substituting Ampère-Maxwell:
+
+$$\nabla^2 \vec{E} = \mu_0\epsilon_0 \frac{\partial^2 \vec{E}}{\partial t^2}$$
+
+**This is a wave equation!**
+
+Wave speed:
+$$v = \frac{1}{\sqrt{\mu_0\epsilon_0}} = c = 3 \times 10^8 \text{ m/s}$$
+
+**Key Facts:**
+
+- Light is an electromagnetic wave
+- No particles required
+- Self-sustaining oscillation of E and B fields
+- Each field creates the other
+
+```{r em-wave-animation, fig.cap="EM Wave Structure"}
+# Visualize EM wave with E and B fields
+z <- seq(0, 4*pi, length.out = 200)
+t <- 0  # snapshot in time
+
+E_field <- sin(z - t)
+B_field <- sin(z - t)
+
+df_em <- data.frame(
+  position = rep(z, 2),
+  amplitude = c(E_field, B_field),
+  field = rep(c("E-field", "B-field"), each = length(z))
+)
+
+ggplot(df_em, aes(x = position, y = amplitude, color = field)) +
+  geom_line(linewidth = 1.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.3) +
+  annotate("text", x = pi/2, y = 0.8, label = "E ⊥ B ⊥ direction", size = 4) +
+  labs(
+    title = "Electromagnetic Wave Structure",
+    subtitle = "E and B fields oscillate perpendicular to each other and propagation direction",
+    x = "Position (wavelengths)",
+    y = "Field Amplitude (normalized)",
+    color = "Field"
+  ) +
+  theme_minimal()
+```
+
+#### Energy and Power in EM Waves
+
+**Energy Density:**
+
+$$u = \frac{1}{2}\epsilon_0 E^2 + \frac{1}{2\mu_0}B^2$$
+
+**Poynting Vector (Energy Flow):**
+
+$$\vec{S} = \vec{E} \times \vec{H}$$
+
+where $\vec{H} = \vec{B}/\mu_0$
+
+**Critical Insight:** 
+
+👉 **Energy flows in space, not in electrons!**
+
+**Power Flow:**
+
+Power crossing a surface:
+$$P = \int \vec{S} \cdot d\vec{A}$$
+
+#### Current vs. Field - The Truth
+
+**What Current Really Does:**
+
+1. Source establishes electric field
+2. Field rearranges surface charges
+3. Fields propagate at ~c
+4. Electrons respond locally (slow drift, mm/s)
+5. Energy flows in field around wire
+
+**The Wire:**
+
+- Guides the field
+- Sets boundary conditions
+- Provides charge continuity
+
+**Electrons do NOT carry energy down the wire!**
+
+The electromagnetic field does.
+
+#### Why EM Waves Radiate (or Don't)
+
+**Radiation occurs when:**
+
+- Charges are accelerated non-uniformly
+- Current distribution changes in time and space
+- Geometry allows coupling to free space (antenna)
+
+**A straight DC wire:**
+
+- Has EM fields (near field)
+- Does NOT radiate
+
+**An antenna:**
+
+- Forces charge acceleration
+- Launches propagating EM waves (far field)
+
+**Key Takeaway:**
+
+Current flow always creates EM fields.
+Radiation only occurs when those fields detach from conductor and propagate freely.
+
+```{r poynting-vector, fig.cap="Energy Flow in Coaxial Cable"}
+# Visualize Poynting vector in coax
+theta <- seq(0, 2*pi, length.out = 100)
+
+# Inner conductor radius normalized to 1
+r_inner <- 1
+r_outer <- 3
+
+# Create field lines
+r_field <- seq(r_inner, r_outer, length.out = 20)
+
+df_coax <- data.frame(
+  x_inner = r_inner * cos(theta),
+  y_inner = r_inner * sin(theta),
+  x_outer = r_outer * cos(theta),
+  y_outer = r_outer * sin(theta)
+)
+
+ggplot() +
+  geom_path(data = df_coax, aes(x = x_inner, y = y_inner), linewidth = 2, color = "red") +
+  geom_path(data = df_coax, aes(x = x_outer, y = y_outer), linewidth = 2, color = "blue") +
+  annotate("text", x = 0, y = 0, label = "Center\nConductor", size = 3, color = "red") +
+  annotate("text", x = 0, y = 3.5, label = "Outer Shield", size = 3, color = "blue") +
+  annotate("text", x = 2, y = 0, label = "⊗ Poynting Vector\n(Energy flows here)", size = 4) +
+  annotate("segment", x = 1.5, xend = 2.5, y = 0, yend = 0, 
+           arrow = arrow(length = unit(0.3, "cm")), linewidth = 1.5, color = "green") +
+  coord_fixed() +
+  labs(
+    title = "Energy Flow in Coaxial Cable",
+    subtitle = "Power flows in the dielectric, NOT in the conductors!",
+    x = "",
+    y = ""
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+```
+
+#### Transmission Line Theory
+
+**Fundamental Concept:**
+
+A transmission line is a **guided electromagnetic wave structure** where conductors and dielectrics impose boundary conditions that shape how energy propagates through space.
+
+**NOT:** "Wires with current"
+**IS:** "Field guiding structure"
+
+**Characteristic Impedance:**
+
+$$Z_0 = \sqrt{\frac{L'}{C'}} = \sqrt{\frac{\mu}{\epsilon}} \cdot f(\text{geometry})$$
+
+This is the **ratio of electric to magnetic field amplitudes** for a propagating mode.
+
+- Not resistance
+- Not material loss
+- A field ratio
+
+**Types:**
+
+1. **Microstrip**: Common PCB implementation
+2. **Stripline**: Symmetric, lower radiation
+3. **Coaxial**: Shielded, broadband
+4. **Waveguide**: High power, low loss at mm-wave
+
+**Propagation constant:**
+
+$$\gamma = \alpha + j\beta = \sqrt{(R + j\omega L)(G + j\omega C)}$$
+
+where:
+- α is attenuation constant
+- β is phase constant
+
+```{r transmission-line, fig.cap="Microstrip Characteristic Impedance"}
+# Calculate microstrip Z0 vs width for different substrates
+w_mm <- seq(0.1, 5, by = 0.05)
+h <- 1.6  # substrate thickness in mm
+
+# Simplified microstrip formula for Z0
+calc_Z0 <- function(w, h, er) {
+  w_eff <- w / h
+  if (w_eff < 1) {
+    Z0 <- (60 / sqrt(er)) * log(8/w_eff + w_eff/4)
+  } else {
+    Z0 <- (120 * pi) / (sqrt(er) * (w_eff + 1.393 + 0.667 * log(w_eff + 1.444)))
+  }
+  return(Z0)
+}
+
+# Calculate for different substrate materials
+Z0_fr4 <- sapply(w_mm, function(w) calc_Z0(w, h, 4.5))
+Z0_rogers <- sapply(w_mm, function(w) calc_Z0(w, h, 3.38))
+Z0_alumina <- sapply(w_mm, function(w) calc_Z0(w, h, 9.8))
+
+df_z0 <- data.frame(
+  width = rep(w_mm, 3),
+  Z0 = c(Z0_fr4, Z0_rogers, Z0_alumina),
+  substrate = rep(c("FR-4 (εᵣ=4.5)", "Rogers (εᵣ=3.38)", "Alumina (εᵣ=9.8)"), 
+                  each = length(w_mm))
+)
+
+ggplot(df_z0, aes(x = width, y = Z0, color = substrate)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 50, linetype = "dashed", alpha = 0.5) +
+  annotate("text", x = 4, y = 52, label = "50 Ω standard", size = 3) +
+  labs(
+    title = "Microstrip Characteristic Impedance",
+    subtitle = "h = 1.6 mm substrate thickness",
+    x = "Trace Width (mm)",
+    y = "Characteristic Impedance (Ω)",
+    color = "Substrate"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+#### Why Reflections Happen
+
+Reflections occur when **boundary conditions change** and fields cannot satisfy Maxwell's equations smoothly.
+
+**Load Mismatch:**
+
+- Alters E/H ratio
+- Forces part of wave to reflect
+- Not electrons bouncing!
+
+**Reflection Coefficient:**
+
+$$\Gamma = \frac{Z_L - Z_0}{Z_L + Z_0}$$
+
+**Standing Wave Ratio:**
+
+$$SWR = \frac{1 + |\Gamma|}{1 - |\Gamma|}$$
+
+#### Skin Effect Reinterpreted
+
+Skin effect is not electrons avoiding the center.
+
+**It is:**
+
+- Fields penetrating conductors
+- Induced currents opposing penetration
+- Exponential decay set by conductivity and frequency
+
+**Skin Depth:**
+
+$$\delta = \sqrt{\frac{2}{\omega\mu\sigma}}$$
+
+where:
+- δ is skin depth
+- ω is angular frequency
+- μ is permeability
+- σ is conductivity
+
+```{r skin-effect, fig.cap="Skin Depth vs Frequency for Copper"}
+# Calculate skin depth for copper
+freq_hz <- 10^seq(6, 11, by = 0.1)  # 1 MHz to 100 GHz
+mu_0 <- 4 * pi * 1e-7
+sigma_copper <- 5.96e7  # S/m for copper
+
+skin_depth_m <- sqrt(2 / (2 * pi * freq_hz * mu_0 * sigma_copper))
+skin_depth_um <- skin_depth_m * 1e6
+
+df_skin <- data.frame(
+  frequency_GHz = freq_hz / 1e9,
+  skin_depth_um = skin_depth_um
+)
+
+ggplot(df_skin, aes(x = frequency_GHz, y = skin_depth_um)) +
+  geom_line(color = "red", linewidth = 1) +
+  scale_x_log10() +
+  scale_y_log10() +
+  annotate("text", x = 1, y = 5, label = "At 10 GHz:\nδ ≈ 0.66 μm", size = 3) +
+  labs(
+    title = "Skin Depth in Copper vs Frequency",
+    subtitle = "Current concentrates near surface at high frequencies",
+    x = "Frequency (GHz)",
+    y = "Skin Depth (μm)",
+    caption = "This is why PCB surface finish matters at RF!"
+  ) +
+  theme_minimal() +
+  annotation_logticks()
+```
+
+#### "Free Energy" Myth Destroyed
+
+**Why perpetual/free energy is impossible:**
+
+1. **Energy to generate EM waves comes from source** (battery, generator)
+2. **Source loses energy** transferred into EM fields
+3. **Conservation of energy** - fundamental law
+4. **Maxwell's equations** explicitly encode energy conservation
+5. **Radiation resistance** - antennas extract energy from source
+
+**EM waves propagate** but don't multiply or self-sustain.
+
+**Once launched:**
+
+- Waves propagate
+- They do NOT amplify themselves
+- No feedback without external source
+- Maxwell's equations are linear (no gain mechanism)
+
+**One sentence that ends the debate:**
+
+An EM wave is a one-time transfer of energy from a source into the electromagnetic field, constrained by conservation laws - no configuration can create energy without paying for it at the source.
+
+### Antennas
+
+#### Antenna Fundamentals
+
+**Key Parameters:**
+
+- **Gain**: Directivity × Efficiency
+- **Directivity**: Power concentration
+- **Radiation Pattern**: Spatial distribution
+- **Impedance**: Matching to feedline
+- **Bandwidth**: Operating frequency range
+- **Polarization**: E-field orientation
+
+**Friis Transmission Equation:**
+
+$$P_r = P_t G_t G_r \left(\frac{\lambda}{4\pi d}\right)^2$$
+
+#### Common Antenna Types
+
+1. **Dipole**: λ/2 length, omnidirectional
+2. **Monopole**: λ/4 with ground plane
+3. **Patch**: Planar, directional
+4. **Horn**: Broadband, high gain
+5. **Parabolic**: Very high gain
+6. **Array**: Beam steering capability
+
+```{r antenna-patterns, fig.cap="Dipole Antenna Radiation Pattern"}
+# Generate radiation pattern for half-wave dipole
+theta <- seq(0, 2*pi, by = 0.01)
+# Dipole pattern: |cos((pi/2)*cos(theta))/sin(theta)|
+pattern <- abs(cos((pi/2) * cos(theta)) / sin(theta))
+pattern[is.nan(pattern)] <- 0
+pattern[is.infinite(pattern)] <- 0
+
+# Normalize
+pattern <- pattern / max(pattern, na.rm = TRUE)
+
+# Convert to Cartesian
+x <- pattern * cos(theta)
+y <- pattern * sin(theta)
+
+df_pattern <- data.frame(x = x, y = y, theta = theta)
+
+ggplot(df_pattern, aes(x = x, y = y)) +
+  geom_path(color = "blue", linewidth = 1) +
+  geom_hline(yintercept = 0, alpha = 0.3) +
+  geom_vline(xintercept = 0, alpha = 0.3) +
+  coord_fixed() +
+  labs(
+    title = "Half-Wave Dipole Radiation Pattern",
+    subtitle = "E-plane (normalized)",
+    x = "Relative Gain",
+    y = "Relative Gain"
+  ) +
+  theme_minimal()
+```
+
+### Filters & Matching
+
+#### RF Filters
+
+**Filter Types:**
+
+1. **Low-Pass**: Passes DC to fc
+2. **High-Pass**: Passes fc to ∞
+3. **Band-Pass**: Passes f1 to f2
+4. **Band-Stop**: Rejects f1 to f2
+
+**Implementation:**
+
+- Lumped element (L, C)
+- Distributed element (transmission line)
+- Cavity resonators
+- SAW/BAW filters
+- Ceramic filters
+
+#### Impedance Matching
+
+**Why Match?**
+
+- Maximum power transfer
+- Minimize reflections
+- Improve noise figure
+
+**Matching Methods:**
+
+1. **L-Match**: 2 elements
+2. **Pi-Match**: 3 elements, more flexibility
+3. **T-Match**: 3 elements
+4. **Stub Matching**: Transmission line based
+
+**Smith Chart:**
+
+- Graphical impedance matching tool
+- Plots reflection coefficient
+- Facilitates matching network design
+
+
+## <i class="fa fa-network-wired"></i> System Level {.tabset .tabset-pills}
+
+### RF Systems
+
+#### Complete RF System Architecture
+
+**Transmitter Chain:**
+
+```
+Data → Baseband → Modulator → Upconverter → PA → Filter → Antenna
+```
+
+**Receiver Chain:**
+
+```
+Antenna → Filter → LNA → Downconverter → Demodulator → Baseband → Data
+```
+
+**Key Subsystems:**
+
+1. **Frequency Generation**: PLLs, VCOs, synthesizers
+2. **Signal Processing**: Modulation/demodulation
+3. **Power Amplification**: Transmit chain
+4. **Low Noise Amplification**: Receive chain
+5. **Filtering**: Selectivity and interference rejection
+
+#### System Link Budget
+
+**Link Budget Equation:**
+
+$$P_{rx} = P_{tx} + G_{tx} - L_{path} - L_{misc} + G_{rx} \text{ (in dB)}$$
+
+**Path Loss (Free Space):**
+
+$$L_{path} = 20\log_{10}(d) + 20\log_{10}(f) + 20\log_{10}\left(\frac{4\pi}{c}\right)$$
+
+**Receiver Sensitivity:**
+
+$$P_{sens} = kTB + NF + SNR_{req}$$
+
+```{r link-budget, fig.cap="Link Budget Analysis"}
+# Calculate link budget for different distances
+distance_km <- seq(1, 100, by = 1)
+freq_GHz <- 2.4
+Pt_dBm <- 20  # 100 mW
+Gt_dBi <- 10
+Gr_dBi <- 10
+L_misc_dB <- 5  # cables, connectors, etc.
+
+# Free space path loss
+FSPL_dB <- 20*log10(distance_km) + 20*log10(freq_GHz) + 92.45
+
+# Received power
+Pr_dBm <- Pt_dBm + Gt_dBi + Gr_dBi - FSPL_dB - L_misc_dB
+
+# Sensitivity (example)
+sensitivity_dBm <- -90
+
+df_link <- data.frame(
+  distance_km = distance_km,
+  received_power = Pr_dBm,
+  margin = Pr_dBm - sensitivity_dBm
+)
+
+ggplot(df_link, aes(x = distance_km, y = received_power)) +
+  geom_line(color = "blue", linewidth = 1) +
+  geom_hline(yintercept = sensitivity_dBm, linetype = "dashed", color = "red") +
+  geom_ribbon(aes(ymin = sensitivity_dBm, ymax = received_power), 
+              fill = "green", alpha = 0.2) +
+  labs(
+    title = "RF Link Budget vs Distance",
+    subtitle = paste("2.4 GHz, Pt =", Pt_dBm, "dBm, Gt = Gr =", Gt_dBi, "dBi"),
+    x = "Distance (km)",
+    y = "Received Power (dBm)",
+    caption = "Red line: Receiver sensitivity (-90 dBm)"
+  ) +
+  theme_minimal()
+```
+
+### Modulation Schemes
+
+#### Digital Modulation
+
+**Common Schemes:**
+
+1. **ASK (Amplitude Shift Keying)**
+   - On-Off Keying (OOK)
+   - Simple, prone to noise
+
+2. **FSK (Frequency Shift Keying)**
+   - Bluetooth, LoRa
+   - Better noise immunity
+
+3. **PSK (Phase Shift Keying)**
+   - BPSK: 1 bit/symbol
+   - QPSK: 2 bits/symbol
+   - 8PSK: 3 bits/symbol
+
+4. **QAM (Quadrature Amplitude Modulation)**
+   - 16-QAM, 64-QAM, 256-QAM
+   - High spectral efficiency
+   - Requires good SNR
+
+#### Spectral Efficiency
+
+**Comparison:**
+
+| Modulation | Bits/Symbol | Bandwidth Efficiency |
+|------------|-------------|----------------------|
+| BPSK       | 1           | 1 bit/s/Hz          |
+| QPSK       | 2           | 2 bit/s/Hz          |
+| 16-QAM     | 4           | 4 bit/s/Hz          |
+| 64-QAM     | 6           | 6 bit/s/Hz          |
+
+**Trade-offs:**
+
+- Higher order → More data rate
+- Higher order → More sensitive to noise
+- Higher order → More power consumption
+
+### Communication Standards
+
+#### Wireless Standards
+
+**Cellular:**
+
+- **2G**: GSM (900/1800 MHz)
+- **3G**: UMTS/WCDMA (2.1 GHz)
+- **4G**: LTE (multiple bands)
+- **5G**: Sub-6 GHz and mmWave (24-100 GHz)
+
+**WiFi (IEEE 802.11):**
+
+- 802.11b/g/n: 2.4 GHz
+- 802.11a/n/ac: 5 GHz
+- 802.11ax (WiFi 6): 2.4/5 GHz
+- 802.11be (WiFi 7): 2.4/5/6 GHz
+
+**IoT:**
+
+- **Bluetooth**: 2.4 GHz ISM band
+- **Zigbee**: 2.4 GHz IEEE 802.15.4
+- **LoRa**: Sub-GHz (433/868/915 MHz)
+- **NB-IoT**: Licensed cellular bands
+
+```{r spectrum-allocation, fig.cap="Common Wireless Bands"}
+# Wireless bands visualization
+bands <- data.frame(
+  name = c("FM Radio", "TV", "GSM-900", "GPS", "GSM-1800", "WiFi 2.4", 
+           "LTE", "WiFi 5", "5G mmWave"),
+  start_MHz = c(88, 470, 890, 1575, 1710, 2400, 2500, 5150, 28000),
+  end_MHz = c(108, 862, 960, 1610, 1880, 2483, 2690, 5850, 29000),
+  type = c("Broadcast", "Broadcast", "Cellular", "Navigation", "Cellular", 
+           "WiFi", "Cellular", "WiFi", "Cellular")
+)
+
+ggplot(bands, aes(xmin = start_MHz, xmax = end_MHz, ymin = 0, ymax = 1, fill = type)) +
+  geom_rect(alpha = 0.7) +
+  geom_text(aes(x = (start_MHz + end_MHz)/2, y = 0.5, label = name), 
+            angle = 0, size = 3) +
+  scale_x_log10() +
+  labs(
+    title = "Common Wireless Frequency Bands",
+    x = "Frequency (MHz)",
+    y = "",
+    fill = "Type"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+```
+
+### Radar Systems
+
+#### Radar Fundamentals
+
+**Radar Equation:**
+
+$$P_r = \frac{P_t G^2 \lambda^2 \sigma}{(4\pi)^3 R^4}$$
+
+where:
+- Pt: Transmitted power
+- G: Antenna gain
+- λ: Wavelength
+- σ: Radar cross section
+- R: Range
+
+**Types of Radar:**
+
+1. **Pulse Radar**: Range measurement
+2. **Doppler Radar**: Velocity measurement
+3. **FMCW**: Continuous wave, range/velocity
+4. **SAR**: Synthetic Aperture Radar
+5. **Phased Array**: Electronic beam steering
+
+#### Radar Applications
+
+**Military:**
+- Air defense
+- Target tracking
+- Navigation
+
+**Civilian:**
+- Weather monitoring
+- Air traffic control
+- Automotive (collision avoidance)
+- Speed enforcement
+
+**Range Resolution:**
+
+$$\Delta R = \frac{c}{2B}$$
+
+where B is the bandwidth.
+
+### System Performance
+
+#### Key Performance Metrics
+
+**Noise Figure (NF):**
+
+Degradation of SNR through a system:
+$$NF = 10\log_{10}\left(\frac{SNR_{in}}{SNR_{out}}\right)$$
+
+**Cascaded Noise Figure (Friis):**
+
+$$F_{total} = F_1 + \frac{F_2-1}{G_1} + \frac{F_3-1}{G_1G_2} + ...$$
+
+**Dynamic Range:**
+
+- **Spurious-Free Dynamic Range (SFDR)**
+- **Intermodulation products**: IP2, IP3
+- **1-dB Compression Point**: P1dB
+
+**Sensitivity:**
+
+$$P_{sens} = -174 \text{ dBm/Hz} + 10\log_{10}(B) + NF + SNR_{req}$$
+
+```{r noise-figure, fig.cap="Cascaded System Noise Figure"}
+# Example receiver chain
+stages <- c("LNA", "Mixer", "IF Amp", "Demod")
+gains_dB <- c(20, -7, 30, 0)
+NF_dB <- c(1.5, 8, 4, 10)
+
+# Calculate cascaded NF
+gains_linear <- 10^(gains_dB/10)
+F <- 10^(NF_dB/10)
+
+F_cascade <- numeric(length(F))
+F_cascade[1] <- F[1]
+for (i in 2:length(F)) {
+  G_prod <- prod(gains_linear[1:(i-1)])
+  F_cascade[i] <- F_cascade[i-1] + (F[i] - 1) / G_prod
+}
+
+NF_cascade_dB <- 10 * log10(F_cascade)
+
+df_nf <- data.frame(
+  stage = factor(stages, levels = stages),
+  stage_NF = NF_dB,
+  cumulative_NF = NF_cascade_dB,
+  gain = gains_dB
+)
+
+ggplot(df_nf, aes(x = stage)) +
+  geom_col(aes(y = stage_NF, fill = "Stage NF"), alpha = 0.6, position = "dodge") +
+  geom_line(aes(y = cumulative_NF, group = 1, color = "Cumulative NF"), linewidth = 1.5) +
+  geom_point(aes(y = cumulative_NF, color = "Cumulative NF"), size = 3) +
+  labs(
+    title = "Receiver Chain Noise Figure Analysis",
+    x = "Stage",
+    y = "Noise Figure (dB)",
+    fill = "",
+    color = ""
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+
+## <i class="fa fa-globe"></i> Terrestrial Level {.tabset .tabset-pills}
+
+### Network Infrastructure
+
+#### Terrestrial RF Networks
+
+**Cellular Network Architecture:**
+
+1. **User Equipment (UE)**: Mobile devices
+2. **Base Stations (eNodeB/gNB)**: Cell towers
+3. **Backhaul**: Fiber/microwave links
+4. **Core Network**: Switching and routing
+
+**Coverage Types:**
+
+- **Macrocells**: Large area, outdoor
+- **Microcells**: Urban, hotspots
+- **Picocells**: Indoor, small area
+- **Femtocells**: Home, enterprise
+
+```{r cell-coverage, fig.cap="Cellular Coverage Patterns"}
+# Simulate hexagonal cell pattern
+library(ggplot2)
+
+# Generate hexagonal cell centers
+hex_centers <- data.frame(
+  x = c(0, rep(c(-1.5, -1.5, 0, 1.5, 1.5, 0), 1),
+        rep(c(-3, -3, -1.5, -1.5, 0, 1.5, 1.5, 3, 3, 1.5, 1.5, 0), 0.5)),
+  y = c(0, rep(c(sqrt(3)/2, -sqrt(3)/2, -sqrt(3), -sqrt(3)/2, sqrt(3)/2, sqrt(3)), 1),
+        rep(c(sqrt(3), 0, 1.5*sqrt(3), 0, 2*sqrt(3), 1.5*sqrt(3), 0, sqrt(3), 0, -sqrt(3), -1.5*sqrt(3), -2*sqrt(3)), 0.5))
+)
+
+# Create hexagons
+create_hexagon <- function(cx, cy, size = 1) {
+  angles <- seq(0, 2*pi, length.out = 7)
+  data.frame(
+    x = cx + size * cos(angles),
+    y = cy + size * sin(angles),
+    cell = paste(cx, cy, sep = "_")
+  )
+}
+
+hex_polygons <- do.call(rbind, lapply(1:nrow(hex_centers), function(i) {
+  create_hexagon(hex_centers$x[i], hex_centers$y[i], 1)
+}))
+
+ggplot() +
+  geom_polygon(data = hex_polygons, aes(x = x, y = y, group = cell), 
+               fill = "lightblue", color = "blue", alpha = 0.3, linewidth = 1) +
+  geom_point(data = hex_centers, aes(x = x, y = y), 
+             color = "red", size = 4, shape = 17) +
+  coord_fixed() +
+  labs(
+    title = "Hexagonal Cell Pattern in Cellular Networks",
+    subtitle = "Red triangles represent base stations",
+    x = "",
+    y = ""
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+```
+
+### Propagation Models
+
+#### Terrestrial Propagation
+
+**Path Loss Models:**
+
+1. **Free Space**: Line of sight
+   $$L_{fs} = 20\log_{10}(d) + 20\log_{10}(f) + 92.45 \text{ dB}$$
+
+2. **Okumura-Hata**: Urban/suburban
+   - Empirical model
+   - 150 MHz - 1.5 GHz
+   - Up to 20 km range
+
+3. **COST-231**: Extended Hata
+   - 1.5 - 2 GHz
+   - Urban environments
+
+4. **ITU Models**: Various scenarios
+
+**Propagation Effects:**
+
+- **Reflection**: From buildings, ground
+- **Diffraction**: Over obstacles
+- **Scattering**: From rough surfaces
+- **Multipath**: Multiple signal paths
+- **Fading**: Time-varying channel
+
+```{r propagation-loss, fig.cap="Comparison of Path Loss Models"}
+# Compare different propagation models
+distance_km <- seq(0.1, 20, by = 0.1)
+freq_MHz <- 900
+h_bs <- 30  # base station height (m)
+h_ms <- 1.5  # mobile height (m)
+
+# Free space
+fspl <- 20*log10(distance_km*1000) + 20*log10(freq_MHz) - 27.55
+
+# Simplified Okumura-Hata (urban)
+a_hm <- (1.1*log10(freq_MHz) - 0.7)*h_ms - (1.56*log10(freq_MHz) - 0.8)
+L_urban <- 69.55 + 26.16*log10(freq_MHz) - 13.82*log10(h_bs) - a_hm + 
+  (44.9 - 6.55*log10(h_bs))*log10(distance_km)
+
+# Two-ray ground reflection (simplified)
+two_ray <- 40*log10(distance_km*1000) - (10*log10(h_bs^2 * h_ms^2))
+
+df_prop <- data.frame(
+  distance = rep(distance_km, 3),
+  loss = c(fspl, L_urban, pmin(two_ray, 200)),
+  model = rep(c("Free Space", "Okumura-Hata (Urban)", "Two-Ray Ground"), 
+              each = length(distance_km))
+)
+
+ggplot(df_prop[df_prop$distance <= 20, ], aes(x = distance, y = loss, color = model)) +
+  geom_line(linewidth = 1) +
+  labs(
+    title = "Path Loss vs Distance (900 MHz)",
+    x = "Distance (km)",
+    y = "Path Loss (dB)",
+    color = "Model"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+### Spectrum Management
+
+#### Frequency Allocation
+
+**Regulatory Bodies:**
+
+- **ITU**: International Telecommunication Union
+- **FCC**: Federal Communications Commission (US)
+- **ETSI**: European Telecommunications Standards Institute
+- **National regulators**: Country-specific
+
+**Spectrum Bands:**
+
+1. **Licensed**: Exclusive use, cellular operators
+2. **Unlicensed**: Shared, WiFi, Bluetooth (ISM bands)
+3. **Licensed Shared**: CBRS, dynamic access
+
+**ISM Bands (Industrial, Scientific, Medical):**
+
+- 433 MHz (Region 1)
+- 915 MHz (Region 2)
+- 2.4 GHz (Global)
+- 5.8 GHz (Global)
+
+#### Interference Management
+
+**Co-channel Interference:**
+
+- Same frequency, different cells
+- Frequency reuse patterns
+
+**Adjacent Channel Interference:**
+
+- Nearby frequencies
+- Filter requirements
+- Spectral masks
+
+**Intermodulation:**
+
+- Non-linear mixing
+- 3rd order products most critical
+
+### Backhaul & Distribution
+
+#### Wireless Backhaul
+
+**Microwave Links:**
+
+- Point-to-point
+- 6-42 GHz typical
+- Line of sight required
+- High capacity (up to 10 Gbps)
+
+**mmWave Backhaul:**
+
+- E-band (71-76, 81-86 GHz)
+- V-band (57-64 GHz)
+- Very high capacity
+- Short range (< 5 km)
+
+**Satellite Backhaul:**
+
+- Remote/rural areas
+- Higher latency
+- Expensive
+
+```{r backhaul-capacity, fig.cap="Backhaul Technology Comparison"}
+# Backhaul technologies
+tech <- c("Fiber", "Microwave\n(18 GHz)", "Microwave\n(80 GHz)", 
+          "mmWave\n(E-band)", "Satellite")
+capacity_Gbps <- c(100, 1.5, 10, 10, 0.5)
+cost <- c(5, 2, 3, 4, 3)  # relative
+range_km <- c(100, 50, 15, 5, 1000)
+
+df_backhaul <- data.frame(
+  technology = factor(tech, levels = tech),
+  capacity = capacity_Gbps,
+  cost = cost,
+  range = range_km
+)
+
+ggplot(df_backhaul, aes(x = technology, y = capacity, fill = technology)) +
+  geom_col() +
+  labs(
+    title = "Backhaul Technology Capacity Comparison",
+    x = "Technology",
+    y = "Typical Capacity (Gbps)",
+    fill = "Technology"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+### Smart Cities & IoT
+
+#### IoT Connectivity
+
+**LPWAN (Low Power Wide Area Networks):**
+
+1. **LoRaWAN**:
+   - Long range (2-15 km)
+   - Low power
+   - Unlicensed band
+   - Low data rate (0.3-50 kbps)
+
+2. **NB-IoT**:
+   - Cellular infrastructure
+   - Licensed spectrum
+   - Better coverage
+   - Higher reliability
+
+3. **Sigfox**:
+   - Ultra-narrow band
+   - Very low power
+   - Limited messages/day
+
+**Applications:**
+
+- Smart metering
+- Environmental monitoring
+- Asset tracking
+- Smart agriculture
+- Industrial IoT
+
+#### 5G and Beyond
+
+**5G Features:**
+
+- **eMBB**: Enhanced Mobile Broadband (> 1 Gbps)
+- **URLLC**: Ultra-Reliable Low Latency (< 1 ms)
+- **mMTC**: Massive Machine Type Communications
+
+**Technologies:**
+
+- Massive MIMO
+- Beamforming
+- Network slicing
+- Edge computing
+
+
+## <i class="fa fa-rocket"></i> Cosmic Level {.tabset .tabset-pills}
+
+### Space Communications
+
+#### Satellite Communication Systems
+
+**Orbits:**
+
+1. **LEO (Low Earth Orbit)**: 160-2000 km
+   - Low latency (~25 ms)
+   - Fast movement
+   - Starlink, OneWeb
+
+2. **MEO (Medium Earth Orbit)**: 2000-35786 km
+   - GPS, Galileo, GLONASS
+   - ~6000 km typical
+
+3. **GEO (Geostationary)**: 35786 km
+   - Fixed position relative to Earth
+   - High latency (~250 ms)
+   - Traditional comsats
+
+**Frequency Bands:**
+
+- **L-band**: 1-2 GHz (mobile satcom)
+- **S-band**: 2-4 GHz (weather, communications)
+- **C-band**: 4-8 GHz (fixed satcom)
+- **X-band**: 8-12 GHz (military, space)
+- **Ku-band**: 12-18 GHz (broadcast, VSAT)
+- **Ka-band**: 26-40 GHz (high-throughput)
+
+```{r satellite-orbits, fig.cap="Satellite Orbit Comparison"}
+# Orbit parameters
+orbits <- data.frame(
+  type = c("LEO", "MEO (GPS)", "GEO"),
+  altitude_km = c(550, 20200, 35786),
+  latency_ms = c(2.7, 134, 238),
+  coverage_percent = c(1, 38, 42)
+)
+
+ggplot(orbits, aes(x = type, y = altitude_km, fill = type)) +
+  geom_col() +
+  geom_text(aes(label = paste(altitude_km, "km")), vjust = -0.5) +
+  scale_y_log10() +
+  labs(
+    title = "Satellite Orbit Altitudes",
+    x = "Orbit Type",
+    y = "Altitude (km, log scale)",
+    fill = "Orbit"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+#### Deep Space Communications
+
+**NASA Deep Space Network (DSN):**
+
+- 70m parabolic antennas
+- X-band (7-8 GHz) and Ka-band (32 GHz)
+- Support for Mars, Jupiter, beyond
+
+**Link Budget Challenges:**
+
+- Enormous distances
+- Very low received power (femtowatts)
+- Large antennas required
+- Error correction critical
+
+**Example: Mars Communication**
+
+At closest approach (~55 million km):
+- Path loss: ~310 dB at 8 GHz
+- One-way light time: ~3 minutes
+- Data rates: Few kbps to ~250 Mbps (Mars orbit)
+
+### Radio Astronomy
+
+#### Radio Telescopes
+
+**Science Goals:**
+
+- Study cosmic microwave background
+- Observe distant galaxies
+- Detect pulsars and quasars
+- Search for extraterrestrial intelligence (SETI)
+
+**Famous Instruments:**
+
+1. **Arecibo** (collapsed 2020): 305m dish
+2. **Green Bank Telescope**: 100m, steerable
+3. **Very Large Array (VLA)**: 27×25m dishes
+4. **ALMA**: 66 antennas, 12-7m, Chile
+5. **Square Kilometre Array (SKA)**: Under construction
+
+**Frequencies:**
+
+- HI line: 1420 MHz (neutral hydrogen)
+- OH lines: 1612, 1665, 1667, 1720 MHz
+- Water maser: 22 GHz
+- Wide spectral coverage for continuum
+
+```{r radio-spectrum-astro, fig.cap="Radio Astronomy Frequency Bands"}
+# Radio astronomy bands
+astro_bands <- data.frame(
+  name = c("HI Line", "OH Lines", "Methanol", "Water", "Ammonia", "CMB Peak"),
+  frequency_MHz = c(1420, 1665, 6668, 22235, 23694, 160000),
+  type = c("Spectral Line", "Spectral Line", "Spectral Line", 
+           "Spectral Line", "Spectral Line", "Continuum")
+)
+
+ggplot(astro_bands, aes(x = frequency_MHz, y = 1, color = type, size = 3)) +
+  geom_point() +
+  geom_text(aes(label = name), angle = 45, hjust = -0.1, size = 3) +
+  scale_x_log10() +
+  labs(
+    title = "Important Radio Astronomy Frequencies",
+    x = "Frequency (MHz, log scale)",
+    y = "",
+    color = "Type"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    legend.position = "bottom"
+  )
+```
+
+#### Interferometry
+
+**Principle:**
+
+Combine signals from multiple antennas to create a virtual large aperture.
+
+**Resolution:**
+
+$$\theta = \frac{\lambda}{D}$$
+
+where D is the baseline (antenna separation).
+
+**Very Long Baseline Interferometry (VLBI):**
+
+- Earth-scale baselines
+- Extremely high resolution
+- Requires precise timing (atomic clocks)
+- Event Horizon Telescope (EHT)
+
+### Navigation Systems
+
+#### Global Navigation Satellite Systems (GNSS)
+
+**Major Systems:**
+
+1. **GPS** (US):
+   - L1: 1575.42 MHz
+   - L2: 1227.60 MHz
+   - L5: 1176.45 MHz
+   - 31 satellites
+
+2. **GLONASS** (Russia):
+   - L1: ~1602 MHz
+   - L2: ~1246 MHz
+   - 24 satellites
+
+3. **Galileo** (EU):
+   - E1: 1575.42 MHz
+   - E5: 1191.795 MHz
+   - E6: 1278.75 MHz
+
+4. **BeiDou** (China):
+   - Multiple frequencies
+   - Regional + global
+
+**Positioning Principle:**
+
+Trilateration using time-of-arrival from multiple satellites:
+- 4 satellites minimum (3D position + time)
+- Speed of light × time delay = distance
+
+**Accuracy:**
+
+- Standard: 5-10m
+- DGPS: 1-3m
+- RTK: cm-level
+
+```{r gnss-accuracy, fig.cap="GNSS Accuracy Evolution"}
+# GNSS accuracy over time
+years <- seq(1995, 2025, by = 5)
+gps_accuracy <- c(100, 20, 10, 5, 3, 2, 1.5)
+
+df_gnss <- data.frame(
+  year = years,
+  accuracy_m = gps_accuracy,
+  technology = c("Selective Availability ON", "SA OFF", "Modernization", 
+                 "L5 Signal", "Multi-GNSS", "PPP", "RTK Mainstream")
+)
+
+ggplot(df_gnss, aes(x = year, y = accuracy_m)) +
+  geom_line(color = "blue", linewidth = 1) +
+  geom_point(size = 3, color = "red") +
+  geom_text(aes(label = technology), angle = 45, hjust = -0.1, size = 3) +
+  scale_y_log10() +
+  labs(
+    title = "GPS Accuracy Improvement Over Time",
+    x = "Year",
+    y = "Typical Accuracy (meters, log scale)"
+  ) +
+  theme_minimal()
+```
+
+### Cosmic Radio Sources
+
+#### Natural Radio Emissions
+
+**Sources:**
+
+1. **Sun**: Solar radio bursts
+2. **Jupiter**: Decametric emissions
+3. **Pulsars**: Rotating neutron stars
+4. **Quasars**: Active galactic nuclei
+5. **CMB**: Cosmic Microwave Background (2.725 K)
+
+**Cosmic Microwave Background:**
+
+- Relic radiation from Big Bang
+- Peak at ~160 GHz (1.9 mm)
+- Temperature: 2.725 K
+- Blackbody spectrum
+
+**Fast Radio Bursts (FRBs):**
+
+- Millisecond-duration pulses
+- Extragalactic origin
+- Extreme energies
+- Mystery: what creates them?
+
+#### Radio Frequency Interference (RFI)
+
+**Challenge for Radio Astronomy:**
+
+- Terrestrial transmitters
+- Satellite downlinks
+- Unintentional emissions
+- Power line noise
+
+**Mitigation:**
+
+- Radio quiet zones
+- Spectral filtering
+- RFI excision algorithms
+- Space-based observatories
+
+### Future of RF Technology
+
+#### Spacetime and Cosmic Perspective
+
+**What is Spacetime?**
+
+Spacetime is a four-dimensional geometric structure that unifies:
+
+- 3 dimensions of space (x, y, z)
+- 1 dimension of time (t)
+
+Into a single mathematical object where all physical events occur.
+
+**Quantifying Spacetime:**
+
+**Special Relativity (flat spacetime):**
+
+$$ds^2 = -c^2 dt^2 + dx^2 + dy^2 + dz^2$$
+
+**General Relativity (curved spacetime):**
+
+- Uses metric tensor $g_{\mu\nu}$
+- Curvature described by Einstein field equations
+- Mass-energy tells spacetime how to curve
+- Spacetime curvature tells matter how to move
+
+**Universal Representation:**
+
+Yes - all known physical phenomena occur in spacetime. However:
+
+- At Planck scale (~10⁻³⁵ m), spacetime may break down
+- Quantum gravity may reveal deeper structure
+
+#### Temperature in RF and Physics
+
+**What is Temperature? (Precise Definition)**
+
+Temperature is the **average energy per degree of freedom** in a system.
+
+**Not a force** - it's a statistical measure of random kinetic energy.
+
+**At different scales:**
+
+| Scale | Temperature Manifestation |
+|-------|---------------------------|
+| Atomic | Random atomic motion, vibrations |
+| Molecular | Phonons (lattice vibrations) |
+| Electronic | Electron excitations, thermal noise |
+| Cosmic | Radiation fields, nuclear reactions |
+
+**Temperature and RF:**
+
+1. **Thermal Noise (Johnson-Nyquist Noise)**:
+$$P_n = kTB$$
+where k = Boltzmann constant, T = temperature, B = bandwidth
+
+2. **Noise Figure**: Degradation of SNR
+3. **Phase Noise**: Temperature-dependent oscillator jitter
+4. **Cosmic Microwave Background**: 2.725 K blackbody radiation
+
+```{r temperature-noise, fig.cap="Thermal Noise Power vs Temperature"}
+# Calculate thermal noise at different temperatures
+temperatures_K <- seq(1, 1000, by = 10)
+k_boltzmann <- 1.38e-23  # J/K
+bandwidth_Hz <- 1e6  # 1 MHz
+
+noise_power_W <- k_boltzmann * temperatures_K * bandwidth_Hz
+noise_power_dBm <- 10 * log10(noise_power_W * 1000)  # convert to dBm
+
+df_noise <- data.frame(
+  temperature = temperatures_K,
+  noise_dBm = noise_power_dBm
+)
+
+# Add reference points
+reference_temps <- data.frame(
+  temp = c(2.7, 77, 290, 373),
+  label = c("CMB\n2.7 K", "LN₂\n77 K", "Room\n290 K", "Water\n373 K"),
+  noise_dBm = 10 * log10(k_boltzmann * c(2.7, 77, 290, 373) * bandwidth_Hz * 1000)
+)
+
+ggplot(df_noise, aes(x = temperature, y = noise_dBm)) +
+  geom_line(color = "red", linewidth = 1.5) +
+  geom_point(data = reference_temps, aes(x = temp, y = noise_dBm), 
+             size = 3, color = "blue") +
+  geom_text(data = reference_temps, aes(x = temp, y = noise_dBm, label = label),
+            vjust = -1, size = 3) +
+  labs(
+    title = "Thermal Noise Power vs Temperature",
+    subtitle = "1 MHz bandwidth",
+    x = "Temperature (K)",
+    y = "Noise Power (dBm)",
+    caption = "Cooling reduces noise - why LNAs use cryogenic cooling"
+  ) +
+  theme_minimal()
+```
+
+#### The Unifying Thread: Atomic to Cosmic
+
+**Everything Connects Through:**
+
+1. **Quantum Fields**: Reality at the deepest level
+2. **Symmetry Principles**: Conservation laws
+3. **Scale Separation**: Different forces dominate at different scales
+4. **Electromagnetic Field**: Unifies RF from atomic to cosmic
+
+**The Complete Picture:**
+
+```
+Quantum Fields 
+    ↓
+Elementary Particles (electrons, quarks)
+    ↓
+Atoms (EM + Pauli exclusion)
+    ↓
+Molecules (electron sharing)
+    ↓
+Condensed Matter (bands, phonons)
+    ↓
+Devices (transistors, antennas)
+    ↓
+Systems (transmitters, receivers)
+    ↓
+Networks (cellular, satellite)
+    ↓
+Cosmic (space communications, radio astronomy)
+```
+
+**One Unifying Statement:**
+
+Matter, chemistry, electronics, and cosmic structure all emerge from a small set of quantum fields obeying symmetry constraints, with the Pauli exclusion principle enforcing structure, electromagnetism enabling interaction, and relativity binding electricity and magnetism into a single field that transports energy across all scales from atomic to cosmic.
+
+#### Emerging Technologies
+
+**Terahertz (THz):**
+
+- 0.1 - 10 THz
+- Between RF and optical
+- Applications: imaging, spectroscopy, 6G
+
+**Quantum Communications:**
+
+- Quantum key distribution
+- Quantum radar
+- Entanglement-based
+
+**Reconfigurable Intelligent Surfaces (RIS):**
+
+- Smart reflecting surfaces
+- Control propagation environment
+- Passive beamforming
+
+#### 6G Vision (2030+)
+
+**Goals:**
+
+- Terabit/s data rates
+- Sub-millisecond latency
+- AI-native networks
+- Holographic communications
+- Integration with sensing
+
+**Technologies:**
+
+- THz frequencies (100-300 GHz)
+- Massive MIMO evolution
+- Satellite-terrestrial integration
+- Quantum-safe security
+
+```{r technology-evolution, fig.cap="Wireless Technology Evolution"}
+# Wireless generations
+generations <- data.frame(
+  generation = c("1G", "2G", "3G", "4G", "5G", "6G (projected)"),
+  year = c(1980, 1991, 2001, 2009, 2019, 2030),
+  data_rate_Mbps = c(0.002, 0.064, 2, 100, 1000, 1000000),  # peak rates
+  technology = c("AMPS", "GSM", "UMTS", "LTE", "5G NR", "THz")
+)
+
+ggplot(generations, aes(x = year, y = data_rate_Mbps, color = generation)) +
+  geom_line(linewidth = 1.5) +
+  geom_point(size = 4) +
+  geom_text(aes(label = generation), vjust = -1, size = 4) +
+  scale_y_log10() +
+  labs(
+    title = "Wireless Technology Evolution",
+    subtitle = "Peak Data Rate Growth Over Generations",
+    x = "Year",
+    y = "Peak Data Rate (Mbps, log scale)",
+    color = "Generation"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+
+# About
+
+### About These Notes
+
+#### Purpose
+
+These teaching notes provide a comprehensive journey through RF engineering concepts, organized from the smallest scales (atomic/quantum) to the largest (cosmic/space). This structure helps students understand:
+
+1. How fundamental physics principles scale up to practical applications
+2. The interconnections between different areas of RF engineering
+3. Real-world applications at each scale
+
+#### How to Use These Notes
+
+**Navigation:**
+- Use the tabs at the top to jump between different scale levels
+- Each tab contains multiple subsections accessible via the internal tabs
+- All sections include theoretical explanations, visualizations, and practical examples
+
+**Interactive Elements:**
+- Graphs and charts are generated dynamically
+- Equations are rendered using LaTeX
+- Code examples demonstrate RF calculations
+
+#### Topics Covered
+
+1. **Atomic & Quantum Level**: Fundamental RF physics
+2. **Molecular & Material Level**: RF materials and substrates
+3. **Device Level**: Components, circuits, and antennas
+4. **System Level**: Complete RF systems and communications
+5. **Terrestrial Level**: Networks and infrastructure
+6. **Cosmic Level**: Space communications and radio astronomy
+
+#### Author Information
+
+These notes are designed for RF engineering students and professionals seeking a comprehensive understanding of the field. The material progresses from fundamental theory to practical applications.
+
+#### Technical Requirements
+
+**To render these notes:**
+
+- R (version ≥ 4.0)
+- RStudio (recommended)
+- Required R packages:
+  - flexdashboard
+  - knitr
+  - ggplot2
+
+**To compile:**
+
+```r
+rmarkdown::render("RF_Teaching_Notes.Rmd")
+```
+
+#### References
+
+Key textbooks and resources used:
+
+- Pozar, D. M. (2011). *Microwave Engineering*
+- Balanis, C. A. (2016). *Antenna Theory: Analysis and Design*
+- Rappaport, T. S. (2002). *Wireless Communications: Principles and Practice*
+- IEEE Transactions on Microwave Theory and Techniques
+- Various ITU and 3GPP technical specifications
+
+#### License
+
+These educational materials are provided for teaching and learning purposes.
+
+#### Version
+
+Version 1.0 - 2026
+
+---
+
+**Feedback Welcome:** Suggestions for improvements or additional topics are welcome!
