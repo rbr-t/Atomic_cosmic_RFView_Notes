@@ -1,9 +1,21 @@
 /* Custom CSS for RF Engineering Book */
 
+/* Force full width viewport */
+html {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden;
+}
+
 /* Main styling */
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.6;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden;
 }
 
 /* Title styling */
@@ -38,6 +50,68 @@ h1.title {
   border: 1px solid #dee2e6 !important;
   border-radius: 5px !important;
   padding: 15px !important;
+  transition: all 0.3s ease !important;
+}
+
+/* TOC minimize button */
+.toc-toggle-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.3s;
+  z-index: 10;
+}
+
+.toc-toggle-btn:hover {
+  background: #2980b9;
+}
+
+/* Minimized TOC state */
+#TOC.minimized {
+  width: 50px !important;
+  padding: 10px !important;
+  overflow: hidden !important;
+}
+
+#TOC.minimized > *:not(.toc-toggle-btn) {
+  display: none !important;
+}
+
+/* Collapsible TOC items */
+.toc-expand-icon {
+  display: inline-block;
+  width: 12px;
+  font-size: 10px;
+  margin-right: 6px;
+  cursor: pointer;
+  color: #3498db;
+  transition: transform 0.3s;
+}
+
+.toc-expand-icon:hover {
+  color: #2980b9;
+}
+
+#TOC .toc-collapsible > ul {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+#TOC .toc-collapsible.toc-expanded > ul {
+  max-height: 2000px;
+  transition: max-height 0.5s ease-in;
 }
 
 /* Ensure TOC content is scrollable */
@@ -130,29 +204,210 @@ h1.title {
 
 /* Adjust main content for left chapter nav and right TOC */
 .main-container,
-.row-fluid .span9 {
+.row-fluid .span9,
+#main,
+.container-fluid > .row-fluid {
   margin-left: 320px !important;
   margin-right: 290px !important;
   padding-left: 20px !important;
+  padding-right: 20px !important;
+  max-width: none !important;
+  width: calc(100% - 320px - 290px) !important;
+  box-sizing: border-box !important;
 }
 
+body > .container-fluid,
+.container-fluid {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Override Bootstrap max-width constraints */
+.container,
+.container-fluid {
+  max-width: none !important;
+}
+
+.row-fluid {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Tablet and smaller screens */
 @media (max-width: 1200px) {
   #TOC, .tocify {
     position: relative !important;
     width: 100% !important;
     right: auto !important;
+    margin-bottom: 20px !important;
+    top: auto !important;
   }
   
   .chapters-nav {
     position: relative !important;
     width: 100% !important;
     left: auto !important;
+    margin-bottom: 20px !important;
+    top: auto !important;
+    max-height: 300px !important;
   }
   
   .main-container,
-  .row-fluid .span9 {
+  .row-fluid .span9,
+  #main,
+  .container-fluid > .row-fluid {
     margin-left: 0 !important;
     margin-right: 0 !important;
+    width: 100% !important;
+    padding: 15px !important;
+  }
+}
+
+/* Mobile phones - portrait and landscape */
+@media (max-width: 768px) {
+  html, body {
+    font-size: 14px !important;
+  }
+  
+  /* Hide navigation by default on mobile, show minimized buttons */\n  .chapters-nav:not(.minimized) {
+    position: fixed !important;
+    top: 60px !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: calc(100vh - 60px) !important;
+    max-height: calc(100vh - 60px) !important;
+    z-index: 2000 !important;
+    background: white !important;
+    border-radius: 0 !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+  }
+  
+  .chapters-nav.minimized {
+    position: fixed !important;
+    top: 10px !important;
+    left: 10px !important;
+    width: 45px !important;
+    height: 45px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+  }
+  
+  .chapters-nav .toggle-btn {
+    width: 35px !important;
+    height: 35px !important;
+    font-size: 20px !important;
+  }
+  
+  #TOC:not(.minimized) {
+    position: fixed !important;
+    top: 60px !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: calc(100vh - 60px) !important;
+    max-height: calc(100vh - 60px) !important;
+    z-index: 2000 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+  }
+  
+  #TOC.minimized {
+    position: fixed !important;
+    top: 10px !important;
+    right: 10px !important;
+    width: 45px !important;
+    height: 45px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+  }
+  
+  .toc-toggle-btn {
+    width: 35px !important;
+    height: 35px !important;
+    font-size: 20px !important;
+  }
+  
+  /* Main content full width on mobile */
+  .main-container,
+  .row-fluid .span9,
+  #main,
+  .container-fluid > .row-fluid {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    padding: 10px !important;
+  }
+  
+  /* Make title responsive */
+  h1.title {
+    font-size: 1.5em !important;
+  }
+  
+  h1 {
+    font-size: 1.4em !important;
+  }
+  
+  h2 {
+    font-size: 1.2em !important;
+  }
+  
+  h3 {
+    font-size: 1.1em !important;
+  }
+  
+  h4 {
+    font-size: 1em !important;
+  }
+  
+  /* Adjust tabs for mobile */
+  .nav-tabs > li > a {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    margin-right: 2px !important;
+  }
+  
+  /* Make tables responsive */
+  table {
+    font-size: 12px !important;
+    display: block !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+  }
+  
+  /* Adjust code blocks */
+  pre {
+    font-size: 11px !important;
+    padding: 8px !important;
+    overflow-x: auto !important;
+  }
+  
+  /* Images responsive */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+  html, body {
+    font-size: 13px !important;
+  }
+  
+  .main-container,
+  .row-fluid .span9,
+  #main {
+    padding: 5px !important;
+  }
+  
+  h1.title {
+    font-size: 1.3em !important;
+  }
+  
+  .nav-tabs > li > a {
+    padding: 6px 8px !important;
+    font-size: 11px !important;
   }
 }
 
@@ -261,6 +516,26 @@ h1.title {
 
 .chapters-nav li {
   margin: 3px 0;
+}
+
+/* Collapsible items */
+.chapters-nav .collapsible-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.chapters-nav .collapsible-item.expanded > .collapsible-content {
+  max-height: 2000px;
+  transition: max-height 0.5s ease-in;
+}
+
+.chapters-nav .expand-icon {
+  display: inline-block;
+  width: 12px;
+  font-size: 10px;
+  margin-right: 4px;
+  transition: transform 0.3s;
 }
 
 .chapters-nav a {
@@ -387,30 +662,12 @@ tr:nth-child(even) {
   font-size: 0.9em;
 }
 
-/* Responsive design */
+/* Additional responsive adjustments */
 @media (max-width: 1400px) {
   .main-topics-nav {
     width: 180px;
     right: 10px;
     font-size: 13px;
-  }
-  
-  .main-container {
-    max-width: calc(100% - 210px);
-  }
-  
-  .main-container.expanded {
-    max-width: calc(100% - 70px);
-  }
-}
-
-@media (max-width: 1200px) {
-  .main-topics-nav {
-    display: none;
-  }
-  
-  .main-container {
-    max-width: 100%;
   }
 }
 
