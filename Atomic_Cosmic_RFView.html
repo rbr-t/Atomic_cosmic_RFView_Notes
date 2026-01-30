@@ -11,7 +11,7 @@
 
 <meta name="author" content="RF Engineering Teaching Notes" />
 
-<meta name="date" content="2026-01-24" />
+<meta name="date" content="2026-01-30" />
 
 <title>RF Engineering: From Atomic to Cosmic Perspective</title>
 
@@ -1499,9 +1499,20 @@ margin-right: -30px;
 
 <style type="text/css">
 
+html {
+width: 100% !important;
+max-width: 100% !important;
+overflow-x: hidden;
+}
+
 body {
 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 line-height: 1.6;
+width: 100% !important;
+max-width: 100% !important;
+margin: 0 !important;
+padding: 0 !important;
+overflow-x: hidden;
 }
 
 h1.title {
@@ -1532,6 +1543,60 @@ background: #f8f9fa !important;
 border: 1px solid #dee2e6 !important;
 border-radius: 5px !important;
 padding: 15px !important;
+transition: all 0.3s ease !important;
+}
+
+.toc-toggle-btn {
+position: absolute;
+top: 10px;
+left: 10px;
+background: #3498db;
+color: white;
+border: none;
+border-radius: 50%;
+width: 30px;
+height: 30px;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 18px;
+transition: all 0.3s;
+z-index: 10;
+}
+.toc-toggle-btn:hover {
+background: #2980b9;
+}
+
+#TOC.minimized {
+width: 50px !important;
+padding: 10px !important;
+overflow: hidden !important;
+}
+#TOC.minimized > *:not(.toc-toggle-btn) {
+display: none !important;
+}
+
+.toc-expand-icon {
+display: inline-block;
+width: 12px;
+font-size: 10px;
+margin-right: 6px;
+cursor: pointer;
+color: #3498db;
+transition: transform 0.3s;
+}
+.toc-expand-icon:hover {
+color: #2980b9;
+}
+#TOC .toc-collapsible > ul {
+max-height: 0;
+overflow: hidden;
+transition: max-height 0.3s ease-out;
+}
+#TOC .toc-collapsible.toc-expanded > ul {
+max-height: 2000px;
+transition: max-height 0.5s ease-in;
 }
 
 .tocify, #TOC {
@@ -1609,26 +1674,183 @@ color: #3498db !important;
 }
 
 .main-container,
-.row-fluid .span9 {
+.row-fluid .span9,
+#main,
+.container-fluid > .row-fluid {
 margin-left: 320px !important;
 margin-right: 290px !important;
 padding-left: 20px !important;
+padding-right: 20px !important;
+max-width: none !important;
+width: calc(100% - 320px - 290px) !important;
+box-sizing: border-box !important;
 }
+body > .container-fluid,
+.container-fluid {
+margin-left: 0 !important;
+margin-right: 0 !important;
+padding-left: 0 !important;
+padding-right: 0 !important;
+width: 100% !important;
+max-width: 100% !important;
+}
+
+.container,
+.container-fluid {
+max-width: none !important;
+}
+.row-fluid {
+width: 100% !important;
+max-width: none !important;
+}
+
 @media (max-width: 1200px) {
 #TOC, .tocify {
 position: relative !important;
 width: 100% !important;
 right: auto !important;
+margin-bottom: 20px !important;
+top: auto !important;
 }
 .chapters-nav {
 position: relative !important;
 width: 100% !important;
 left: auto !important;
+margin-bottom: 20px !important;
+top: auto !important;
+max-height: 300px !important;
 }
 .main-container,
-.row-fluid .span9 {
+.row-fluid .span9,
+#main,
+.container-fluid > .row-fluid {
 margin-left: 0 !important;
 margin-right: 0 !important;
+width: 100% !important;
+padding: 15px !important;
+}
+}
+
+@media (max-width: 768px) {
+html, body {
+font-size: 14px !important;
+}
+\n .chapters-nav:not(.minimized) {
+position: fixed !important;
+top: 60px !important;
+left: 0 !important;
+width: 100% !important;
+height: calc(100vh - 60px) !important;
+max-height: calc(100vh - 60px) !important;
+z-index: 2000 !important;
+background: white !important;
+border-radius: 0 !important;
+box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+}
+.chapters-nav.minimized {
+position: fixed !important;
+top: 10px !important;
+left: 10px !important;
+width: 45px !important;
+height: 45px !important;
+box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+}
+.chapters-nav .toggle-btn {
+width: 35px !important;
+height: 35px !important;
+font-size: 20px !important;
+}
+#TOC:not(.minimized) {
+position: fixed !important;
+top: 60px !important;
+right: 0 !important;
+width: 100% !important;
+height: calc(100vh - 60px) !important;
+max-height: calc(100vh - 60px) !important;
+z-index: 2000 !important;
+border-radius: 0 !important;
+box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+}
+#TOC.minimized {
+position: fixed !important;
+top: 10px !important;
+right: 10px !important;
+width: 45px !important;
+height: 45px !important;
+box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+}
+.toc-toggle-btn {
+width: 35px !important;
+height: 35px !important;
+font-size: 20px !important;
+}
+
+.main-container,
+.row-fluid .span9,
+#main,
+.container-fluid > .row-fluid {
+margin-left: 0 !important;
+margin-right: 0 !important;
+width: 100% !important;
+padding: 10px !important;
+}
+
+h1.title {
+font-size: 1.5em !important;
+}
+h1 {
+font-size: 1.4em !important;
+}
+h2 {
+font-size: 1.2em !important;
+}
+h3 {
+font-size: 1.1em !important;
+}
+h4 {
+font-size: 1em !important;
+}
+
+.nav-tabs > li > a {
+padding: 8px 12px !important;
+font-size: 12px !important;
+margin-right: 2px !important;
+}
+
+table {
+font-size: 12px !important;
+display: block !important;
+overflow-x: auto !important;
+width: 100% !important;
+}
+
+pre {
+font-size: 11px !important;
+padding: 8px !important;
+overflow-x: auto !important;
+}
+
+img {
+max-width: 100% !important;
+height: auto !important;
+}
+}
+
+@media (max-width: 480px) {
+html, body {
+font-size: 13px !important;
+}
+.main-container,
+.row-fluid .span9,
+#main {
+padding: 5px !important;
+}
+h1.title {
+font-size: 1.3em !important;
+}
+.nav-tabs > li > a {
+padding: 6px 8px !important;
+font-size: 11px !important;
 }
 }
 
@@ -1723,6 +1945,23 @@ margin-top: 3px;
 }
 .chapters-nav li {
 margin: 3px 0;
+}
+
+.chapters-nav .collapsible-content {
+max-height: 0;
+overflow: hidden;
+transition: max-height 0.3s ease-out;
+}
+.chapters-nav .collapsible-item.expanded > .collapsible-content {
+max-height: 2000px;
+transition: max-height 0.5s ease-in;
+}
+.chapters-nav .expand-icon {
+display: inline-block;
+width: 12px;
+font-size: 10px;
+margin-right: 4px;
+transition: transform 0.3s;
 }
 .chapters-nav a {
 display: block;
@@ -1835,20 +2074,6 @@ font-size: 0.9em;
 width: 180px;
 right: 10px;
 font-size: 13px;
-}
-.main-container {
-max-width: calc(100% - 210px);
-}
-.main-container.expanded {
-max-width: calc(100% - 70px);
-}
-}
-@media (max-width: 1200px) {
-.main-topics-nav {
-display: none;
-}
-.main-container {
-max-width: 100%;
 }
 }
 </style>
@@ -2023,11 +2248,12 @@ border-radius: 0px;
 <h1 class="title toc-ignore">RF Engineering: From Atomic to Cosmic
 Perspective</h1>
 <h4 class="author">RF Engineering Teaching Notes</h4>
-<h4 class="date">2026-01-24</h4>
+<h4 class="date">2026-01-30</h4>
 
 </div>
 
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <script>
 // Enhanced navigation with left TOC (topics/subtopics) and right TOC (chapters)
 (function() {
@@ -2048,8 +2274,180 @@ Perspective</h1>
     waitForTOC(function() {
       console.log('TOC ready');
       createRightChapterNav();
+      addTOCMinimizeButton();
+      initializeMobileView();
+      updateMainContainerMargins();
     });
   }
+  
+  function initializeMobileView() {
+    // On mobile, start with navigation minimized
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      const leftNav = document.querySelector('.chapters-nav');
+      const rightTOC = document.getElementById('TOC');
+      
+      if (leftNav && !leftNav.classList.contains('minimized')) {
+        leftNav.classList.add('minimized');
+      }
+      if (rightTOC && !rightTOC.classList.contains('minimized')) {
+        rightTOC.classList.add('minimized');
+      }
+      
+      console.log('Mobile view initialized - navigation minimized');
+    }
+  }
+  
+  function addTOCMinimizeButton() {
+    console.log('Adding TOC minimize button...');
+    const toc = document.getElementById('TOC');
+    if (!toc) return;
+    
+    // Add wrapper for TOC with button
+    toc.classList.add('toc-with-toggle');
+    
+    // Create toggle button
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'toc-toggle-btn';
+    toggleBtn.title = 'Minimize TOC';
+    toggleBtn.innerHTML = '→';
+    toggleBtn.onclick = function() {
+      toc.classList.toggle('minimized');
+      toggleBtn.innerHTML = toc.classList.contains('minimized') ? '←' : '→';
+      updateMainContainerMargins();
+    };
+    
+    toc.insertBefore(toggleBtn, toc.firstChild);
+    
+    // Make TOC collapsible - collapse non-active items
+    makeRightTOCCollapsible();
+    
+    console.log('✓ TOC minimize button added');
+  }
+  
+  function makeRightTOCCollapsible() {
+    const toc = document.getElementById('TOC');
+    if (!toc) return;
+    
+    // Add expand/collapse icons to TOC items with children
+    const tocItems = toc.querySelectorAll('li');
+    tocItems.forEach(function(li) {
+      const ul = li.querySelector('ul');
+      if (ul) {
+        li.classList.add('toc-collapsible');
+        const link = li.querySelector('a');
+        if (link) {
+          const icon = document.createElement('span');
+          icon.className = 'toc-expand-icon';
+          icon.textContent = '▶';
+          icon.onclick = function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            li.classList.toggle('toc-expanded');
+            icon.textContent = li.classList.contains('toc-expanded') ? '▼' : '▶';
+          };
+          link.insertBefore(icon, link.firstChild);
+        }
+      }
+    });
+    
+    // Expand active items on scroll
+    window.addEventListener('scroll', function() {
+      expandActiveTOCItems();
+    });
+    
+    expandActiveTOCItems();
+  }
+  
+  function expandActiveTOCItems() {
+    const toc = document.getElementById('TOC');
+    if (!toc) return;
+    
+    // First collapse all
+    toc.querySelectorAll('.toc-collapsible').forEach(function(li) {
+      li.classList.remove('toc-expanded');
+      const icon = li.querySelector('.toc-expand-icon');
+      if (icon) icon.textContent = '▶';
+    });
+    
+    // Find and expand active item's parents
+    const activeLink = toc.querySelector('a.active, .tocify-focus');
+    if (activeLink) {
+      let parent = activeLink.closest('.toc-collapsible');
+      while (parent) {
+        parent.classList.add('toc-expanded');
+        const icon = parent.querySelector('.toc-expand-icon');
+        if (icon) icon.textContent = '▼';
+        parent = parent.parentElement.closest('.toc-collapsible');
+      }
+    }
+  }
+  
+  function updateMainContainerMargins() {
+    // Check if mobile/tablet
+    const isMobile = window.innerWidth <= 768;
+    const isTablet = window.innerWidth > 768 && window.innerWidth <= 1200;
+    
+    // Find all possible main container elements
+    const selectors = ['.main-container', '.row-fluid .span9', '#main', '.container-fluid > .row-fluid'];
+    let mainContainers = [];
+    
+    selectors.forEach(function(selector) {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(function(el) {
+        if (!mainContainers.includes(el)) {
+          mainContainers.push(el);
+        }
+      });
+    });
+    
+    if (mainContainers.length === 0) {
+      console.warn('No main container found');
+      return;
+    }
+    
+    // On mobile/tablet, no margins needed
+    if (isMobile || isTablet) {
+      mainContainers.forEach(function(container) {
+        container.style.setProperty('margin-left', '0', 'important');
+        container.style.setProperty('margin-right', '0', 'important');
+        container.style.setProperty('width', '100%', 'important');
+        container.style.setProperty('max-width', '100%', 'important');
+      });
+      console.log('Mobile/Tablet mode: Full width applied');
+      return;
+    }
+    
+    const leftNav = document.querySelector('.chapters-nav');
+    const rightTOC = document.getElementById('TOC');
+    
+    const leftMinimized = leftNav && leftNav.classList.contains('minimized');
+    const rightMinimized = rightTOC && rightTOC.classList.contains('minimized');
+    
+    // Calculate margins based on minimized state
+    const leftMargin = leftMinimized ? '70px' : '320px';
+    const rightMargin = rightMinimized ? '70px' : '290px';
+    
+    // Calculate width dynamically
+    const leftValue = leftMinimized ? 70 : 320;
+    const rightValue = rightMinimized ? 70 : 290;
+    const calcWidth = 'calc(100% - ' + leftValue + 'px - ' + rightValue + 'px)';
+    
+    // Apply to all main containers
+    mainContainers.forEach(function(container) {
+      container.style.setProperty('margin-left', leftMargin, 'important');
+      container.style.setProperty('margin-right', rightMargin, 'important');
+      container.style.setProperty('width', calcWidth, 'important');
+      container.style.setProperty('max-width', 'none', 'important');
+    });
+    
+    console.log('Desktop mode: margins=' + leftMargin + '/' + rightMargin + ', width=' + calcWidth + ' (applied to ' + mainContainers.length + ' containers)');
+  }
+  
+  // Update margins on window resize
+  window.addEventListener('resize', function() {
+    updateMainContainerMargins();
+  });
   
   function waitForTOC(callback) {
     let attempts = 0;
@@ -2082,7 +2480,7 @@ Perspective</h1>
     const toggleBtn = navDiv.querySelector('.toggle-btn');
     toggleBtn.onclick = function() {
       navDiv.classList.toggle('minimized');
-      document.querySelector('.main-container')?.classList.toggle('expanded');
+      updateMainContainerMargins();
     };
     
     const chaptersList = navDiv.querySelector('#chapters-list');
@@ -2099,12 +2497,13 @@ Perspective</h1>
       
       // Add main topic
       const h1Li = document.createElement('li');
-      h1Li.className = 'chapter-h1';
+      h1Li.className = 'chapter-h1 collapsible-item';
       const h1Link = document.createElement('a');
       h1Link.href = '#' + h1Section.id;
-      h1Link.textContent = h1Text;
+      h1Link.innerHTML = '<span class="expand-icon">▶</span> ' + h1Text;
       h1Link.onclick = function(e) {
         e.preventDefault();
+        toggleCollapsible(h1Li);
         scrollToElement(h1Section.id);
         setActiveChapter(h1Link);
       };
@@ -2114,6 +2513,7 @@ Perspective</h1>
       const h2Sections = h1Section.querySelectorAll('.section.level2');
       if (h2Sections.length > 0) {
         const h2Ul = document.createElement('ul');
+        h2Ul.className = 'collapsible-content';
         
         h2Sections.forEach(function(h2Section) {
           const h2 = h2Section.querySelector('h2');
@@ -2121,12 +2521,13 @@ Perspective</h1>
           
           const h2Text = h2.textContent.replace(/^\d+\.\d+\s*/, '').trim();
           const h2Li = document.createElement('li');
-          h2Li.className = 'chapter-h2';
+          h2Li.className = 'chapter-h2 collapsible-item';
           const h2Link = document.createElement('a');
           h2Link.href = '#' + h2Section.id;
-          h2Link.textContent = h2Text;
+          h2Link.innerHTML = '<span class="expand-icon">▶</span> ' + h2Text;
           h2Link.onclick = function(e) {
             e.preventDefault();
+            toggleCollapsible(h2Li);
             scrollToElement(h2Section.id);
             setActiveChapter(h2Link);
           };
@@ -2136,6 +2537,7 @@ Perspective</h1>
           const h3Sections = h2Section.querySelectorAll('.section.level3');
           if (h3Sections.length > 0) {
             const h3Ul = document.createElement('ul');
+            h3Ul.className = 'collapsible-content';
             
             h3Sections.forEach(function(h3Section) {
               const h3 = h3Section.querySelector('h3');
@@ -2177,9 +2579,44 @@ Perspective</h1>
     
     console.log('✓ Created chapter navigation with ' + chapterCount + ' chapters');
     
+    // Collapse all items by default
+    collapseAllItems();
+    
     // Highlight active on scroll
     window.addEventListener('scroll', updateActiveChapter);
     updateActiveChapter();
+  }
+  
+  function toggleCollapsible(item) {
+    const content = item.querySelector('.collapsible-content');
+    const icon = item.querySelector('.expand-icon');
+    if (!content || !icon) return;
+    
+    const isExpanded = item.classList.contains('expanded');
+    item.classList.toggle('expanded');
+    icon.textContent = isExpanded ? '▶' : '▼';
+  }
+  
+  function collapseAllItems() {
+    document.querySelectorAll('.chapters-nav .collapsible-item').forEach(function(item) {
+      item.classList.remove('expanded');
+      const icon = item.querySelector('.expand-icon');
+      if (icon) icon.textContent = '▶';
+    });
+  }
+  
+  function expandActiveItems() {
+    // Find active link and expand its parents
+    const activeLink = document.querySelector('.chapters-nav a.active');
+    if (!activeLink) return;
+    
+    let parent = activeLink.closest('.collapsible-item');
+    while (parent) {
+      parent.classList.add('expanded');
+      const icon = parent.querySelector('.expand-icon');
+      if (icon) icon.textContent = '▼';
+      parent = parent.parentElement.closest('.collapsible-item');
+    }
   }
   
   function scrollToElement(elementId) {
@@ -2195,6 +2632,8 @@ Perspective</h1>
       a.classList.remove('active');
     });
     link.classList.add('active');
+    collapseAllItems();
+    expandActiveItems();
   }
   
   function updateActiveChapter() {
@@ -2210,10 +2649,22 @@ Perspective</h1>
     
     if (activeSection) {
       const activeId = activeSection.id;
+      let hasChange = false;
       document.querySelectorAll('.chapters-nav a').forEach(function(link) {
         const href = link.getAttribute('href');
-        link.classList.toggle('active', href === '#' + activeId);
+        const shouldBeActive = href === '#' + activeId;
+        if (shouldBeActive && !link.classList.contains('active')) {
+          hasChange = true;
+          link.classList.add('active');
+        } else if (!shouldBeActive && link.classList.contains('active')) {
+          link.classList.remove('active');
+        }
       });
+      
+      if (hasChange) {
+        collapseAllItems();
+        expandActiveItems();
+      }
     }
   }
 })();
