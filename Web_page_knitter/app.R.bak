@@ -1,0 +1,1098 @@
+library(shiny)
+library(shinyjs)
+library(shinyFiles)
+library(rmarkdown)
+library(here)
+library(fs)
+library(httr)
+library(shinyFiles)
+
+
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
+# Load external chat handlers (sourced later after helper functions are defined)
+# source("chat_module.R")
+
+# Helper: Copy all files from source to www
+copy_source_to_www <- function(source_folder, www_folder = "www") {
+  if (!dir.exists(source_folder)) {
+    return()
+  }
+  if (!dir.exists(www_folder)) dir.create(www_folder, recursive = TRUE)
+  files <- list.files(source_folder, recursive = TRUE, full.names = TRUE)
+  for (f in files) {
+    if (file.info(f)$isdir) next
+    dest <- file.path(www_folder, basename(f))
+    file.copy(f, dest, overwrite = TRUE)
+  }
+}
+
+# Helper: Copy rendered report to www and rewrite src links
+# ...existing code...
+copy_report_to_www <- function(report_path, source_folder = NULL, www_folder = "www", verbose = FALSE) {
+  dir.create(www_folder, recursive = TRUE, showWarnings = FALSE)
+
+  # locate/rendered report (fallback to newest html in same dir)
+  rp <- tryCatch(normalizePath(report_path, winslash = "/", mustWork = FALSE), error = function(e) NA_character_)
+  if (is.na(rp) || !file.exists(rp)) {
+    possible_dir <- if (!is.na(rp)) dirname(rp) else "."
+    if (!dir.exists(possible_dir)) possible_dir <- "."
+    html_candidates <- list.files(possible_dir, pattern = "\\.html?$", full.names = TRUE)
+    if (length(html_candidates) == 0) {
+      if (isTRUE(verbose)) message("copy_report_to_www: no HTML found for ", report_path)
+      return(invisible(NA_character_))
+    }
+    rp <- html_candidates[which.max(file.info(html_candidates)$mtime)]
+    if (isTRUE(verbose)) message("copy_report_to_www: using fallback HTML ", rp)
+  }
+  rp <- normalizePath(rp, winslash = "/", mustWork = TRUE)
+  report_dir  <- dirname(rp)
+  report_file <- basename(rp)
+
+  # determine source_dir (prefer explicit)
+  source_dir <- if (!is.null(source_folder) && nzchar(source_folder) && dir.exists(source_folder)) {
+    tryCatch(normalizePath(source_folder, winslash = "/", mustWork = TRUE), error = function(e) report_dir)
+  } else {
+    report_dir
+  }
+  src_basename <- basename(source_dir)
+
+  # dest: www/<source_basename>/...
+  dest_root <- file.path(www_folder, src_basename)
+  if (dir.exists(dest_root)) {
+    tryCatch(unlink(dest_root, recursive = TRUE, force = TRUE), error = function(e) {
+      if (isTRUE(verbose)) message("copy_report_to_www: removing old dest failed: ", e$message)
+    })
+  }
+  dir.create(dest_root, recursive = TRUE, showWarnings = FALSE)
+
+  # copy entire source_dir tree into dest_root preserving subfolders
+  files_src <- list.files(source_dir, all.files = TRUE, recursive = TRUE, full.names = TRUE)
+  for (f in files_src) {
+    if (identical(normalizePath(f, winslash = "/"), normalizePath(source_dir, winslash = "/"))) next
+    if (file.info(f)$isdir) next
+    rel <- if (startsWith(f, paste0(source_dir, "/"))) substring(f, nchar(source_dir) + 2) else basename(f)
+    destf <- file.path(dest_root, rel)
+    dir.create(dirname(destf), recursive = TRUE, showWarnings = FALSE)
+    tryCatch(file.copy(f, destf, overwrite = TRUE), error = function(e) {
+      if (isTRUE(verbose)) message("copy_report_to_www: failed to copy asset ", f, " -> ", destf, " : ", e$message)
+    })
+  }
+
+  # copy the rendered HTML into same dest_root
+  dest_report <- file.path(dest_root, report_file)
+  tryCatch(file.copy(rp, dest_report, overwrite = TRUE), error = function(e) {
+    if (isTRUE(verbose)) message("copy_report_to_www: failed to copy HTML to dest: ", e$message)
+  })
+
+  # if copied HTML exists, rewrite local links so they point inside dest_root (preserve subfolders)
+  if (file.exists(dest_report)) {
+    txt <- paste(readLines(dest_report, warn = FALSE), collapse = "\n")
+    # unify slashes
+    txt <- gsub("\\\\", "/", txt)
+
+    # helper to rewrite attribute matches (href/src/data-src/data-href)
+    attr_pat <- '(?i)\\b(href|src|data-src|data-href)\\s*=\\s*([\'"])(.*?)\\2'
+    m <- gregexpr(attr_pat, txt, perl = TRUE)[[1]]
+    if (m[1] != -1) {
+      matches <- regmatches(txt, list(m))[[1]]
+      starts <- m
+      lens <- attr(m, "match.length")
+      for (i in rev(seq_along(matches))) {
+        full <- matches[i]
+        rex <- regexec(attr_pat, full, perl = TRUE)
+        groups <- regmatches(full, rex)[[1]]
+        if (length(groups) < 4) next
+        key <- groups[2]
+        q <- groups[3]
+        url_raw <- groups[4]
+        url_norm <- gsub("\\\\", "/", url_raw)
+        # skip external/protocol-relative/data/mailto/javascript/anchor
+        if (grepl("^(?i)([a-z]+:|//|data:|mailto:|javascript:|#)", url_norm, perl = TRUE)) next
+
+        new_url <- url_norm
+        # if url starts with source basename (e.g. "Master_report/sub/foo.png") remove the top segment
+        if (startsWith(url_norm, paste0(src_basename, "/"))) {
+          new_url <- sub(paste0("^", src_basename, "/+"), "", url_norm)
+        } else {
+          # if url is absolute pointing inside source_dir, make it relative to source_dir
+          abs_url_try <- tryCatch(normalizePath(url_norm, winslash = "/", mustWork = FALSE), error = function(e) NA_character_)
+          if (!is.na(abs_url_try) && startsWith(abs_url_try, source_dir)) {
+            relpath <- substring(abs_url_try, nchar(source_dir) + 2)
+            new_url <- relpath
+          } else {
+            # if it contains the source_dir path segments, strip up to basename
+            norm_slashed <- gsub("\\\\", "/", url_norm)
+            idx <- regexpr(paste0(src_basename, "/"), norm_slashed, fixed = TRUE)
+            if (idx[1] > -1) {
+              new_url <- substring(norm_slashed, idx[1] + nchar(src_basename) + 1)
+            }
+          }
+        }
+        # ensure no leading "./"
+        new_url <- sub("^\\./+", "", new_url)
+        # build replacement preserving quotes and attribute key
+        replacement <- paste0(key, "=", q, new_url, q)
+        substr(txt, starts[i], starts[i] + lens[i] - 1) <- replacement
+      }
+    }
+
+    # rewrite url(...) occurrences (CSS/background images)
+    url_pat <- '(?i)url\\((["\']?)(.*?)\\1\\)'
+    m2 <- gregexpr(url_pat, txt, perl = TRUE)[[1]]
+    if (m2[1] != -1) {
+      matches2 <- regmatches(txt, list(m2))[[1]]
+      starts2 <- m2
+      lens2 <- attr(m2, "match.length")
+      for (i in rev(seq_along(matches2))) {
+        full <- matches2[i]
+        rex <- regexec(url_pat, full, perl = TRUE)
+        groups <- regmatches(full, rex)[[1]]
+        if (length(groups) < 3) next
+        url_raw <- groups[2]
+        if (grepl("^(?i)([a-z]+:|//|data:|#)", url_raw, perl = TRUE)) next
+        new_url <- url_raw
+        if (startsWith(url_raw, paste0(src_basename, "/"))) {
+          new_url <- sub(paste0("^", src_basename, "/+"), "", url_raw)
+        } else {
+          idx <- regexpr(paste0(src_basename, "/"), url_raw, fixed = TRUE)
+          if (idx[1] > -1) new_url <- substring(url_raw, idx[1] + nchar(src_basename) + 1)
+        }
+        newurl_expr <- paste0("url('", new_url, "')")
+        substr(txt, starts2[i], starts2[i] + lens2[i] - 1) <- newurl_expr
+      }
+    }
+
+    # rewrite srcset entries (keep descriptors)
+    srcset_pat <- '(?i)\\bsrcset\\s*=\\s*([\'"])(.*?)\\1'
+    if (grepl(srcset_pat, txt, perl = TRUE)) {
+      txt <- gsub(srcset_pat, function(m) {
+        inner <- sub(srcset_pat, "\\2", m, perl = TRUE)
+        parts <- strsplit(inner, ",")[[1]]
+        newparts <- vapply(parts, function(p) {
+          ptrim <- trimws(p)
+          sp <- strsplit(ptrim, "\\s+")[[1]]
+          urlp <- sp[1]; rest <- if (length(sp) > 1) paste(sp[-1], collapse = " ") else ""
+          if (startsWith(urlp, paste0(src_basename, "/"))) {
+            urlp <- sub(paste0("^", src_basename, "/+"), "", urlp)
+          } else {
+            idx <- regexpr(paste0(src_basename, "/"), urlp, fixed = TRUE)
+            if (idx[1] > -1) urlp <- substring(urlp, idx[1] + nchar(src_basename) + 1)
+          }
+          if (nzchar(rest)) paste(urlp, rest) else urlp
+        }, FUN.VALUE = character(1))
+        paste0('srcset="', paste(newparts, collapse = ", "), '"')
+      }, txt, perl = TRUE)
+    }
+
+    # write modified HTML back
+    tryCatch(writeLines(txt, con = dest_report), error = function(e) {
+      if (isTRUE(verbose)) message("copy_report_to_www: failed to write modified HTML: ", e$message)
+    })
+  }
+
+  if (isTRUE(verbose)) message("copy_report_to_www: copied HTML+assets to ", dest_root)
+  invisible(file.path(src_basename, report_file))
+}
+# ...existing code...}
+
+
+find_project_file <- function(filename, root = here()) {
+  found <- list.files(root, pattern = paste0("^", filename, "$"), recursive = TRUE, full.names = TRUE)
+  if (length(found) > 0) {
+    return(found[1])
+  } else {
+    stop(paste("Could not find", filename, "in", root))
+  }
+}
+
+logo_path <- find_project_file("logo.png")
+bootstrap_css_path <- find_project_file("bootstrapMint.css")
+styles_css_path <- find_project_file("styles.css")
+baya_weaver_path <- find_project_file("baya_weaver_2.png")
+chat_module_path <- find_project_file("chat_module.R")
+
+# Utility function to return both original and converted paths
+convert_ishare_path <- function(path) {
+  if (is.null(path) || path == "") {
+    print("Path is NULL or empty.")
+    return(list(original_path = path, converted_path = path))
+  }
+
+  original_path <- path
+  converted_path <- path
+
+  print(paste("Original Path:", original_path))
+
+  if (grepl("^https://sec-ishare\\.infineon\\.com", path)) {
+    print("Path matches iShare URL pattern. Converting...")
+    # Convert iShare URL to network path
+    converted_path <- gsub("^https://sec-ishare\\.infineon\\.com", "//sec-ishare.infineon.com@SSL/DavWWWRoot", path)
+    converted_path <- gsub("/", "\\\\", converted_path) # Replace forward slashes with backslashes
+    print(paste("Converted Path:", converted_path))
+  } else {
+    print("Path does not match iShare URL pattern. No conversion performed.")
+  }
+
+  print(paste("Returning Original Path:", original_path))
+  print(paste("Returning Converted Path:", converted_path))
+
+  return(list(original_path = original_path, converted_path = converted_path))
+}
+
+# Chat history helpers
+save_chat_history <- function(messages, context_key, folder = "www") {
+  file_path <- file.path(folder, paste0("chat_history_", context_key, ".txt"))
+  writeLines(messages, file_path)
+}
+load_chat_history <- function(context_key, folder = "www") {
+  file_path <- file.path(folder, paste0("chat_history_", context_key, ".txt"))
+  if (file.exists(file_path)) {
+    readLines(file_path)
+  } else {
+    character()
+  }
+}
+
+# Now that helper functions are defined, load the external chat handlers
+#source("chat_module.R")
+source(chat_module_path)
+
+
+# Clean up www folder on app start, keep essential assets
+onStart <- function() {
+  www_folder <- here("Web-page-knitter", "www")
+  if (!dir.exists(www_folder)) {
+    dir.create(www_folder, recursive = TRUE)
+  }  
+
+  keep_files <- c(basename(logo_path), basename(styles_css_path), basename(bootstrap_css_path), basename(baya_weaver_path))
+
+  # only examine top-level entries (files and folders) inside www
+  entries <- list.files(www_folder, full.names = TRUE, recursive = FALSE)
+  for (entry in entries) {
+    bn <- basename(entry)
+    if (dir.exists(entry)) {
+      # remove entire subfolder (recursive)
+      tryCatch({
+        unlink(entry, recursive = TRUE, force = TRUE)
+      }, error = function(e) {
+        message("onStart: failed to remove directory ", entry, ": ", e$message)
+      })
+    } else {
+      # file: remove unless it's one of the keep files
+      if (!bn %in% keep_files) {
+        tryCatch({
+          file.remove(entry)
+        }, error = function(e) {
+          message("onStart: failed to remove file ", entry, ": ", e$message)
+        })
+      }
+    }
+  }
+}
+
+# UI Module
+reportTabUI <- function(id, toc_choices = NULL) {
+  ns <- NS(id)
+  fluidPage(
+    tags$head(       
+      tags$link(rel = "stylesheet", type = "text/css", href = paste0(basename(styles_css_path), "?v=", as.integer(file.info(basename(styles_css_path))$mtime))),
+      tags$link(rel = "stylesheet", type = "text/css", href = paste0(basename(bootstrap_css_path), "?v=", as.integer(file.info(basename(bootstrap_css_path))$mtime))),
+  # minimal inline CSS only for floating toggles; other styles are in www/styles.css
+  tags$style(HTML('.sidebar-toggle-float{position:fixed;top:200px;left:10px;z-index:2000;background:#2196F3;color:#fff;border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer}.right-sidebar-toggle-float{position:fixed;top:650px;right:10px;z-index:2000;background:#2196F3;color:#fff;border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer}.sidebar-hidden{display:none!important}.main-panel-expanded{width:100%!important;max-width:100%!important}.right-sidebar{position:fixed;top:70px;right:0;width:350px;height:calc(100% - 70px);background:#f8f9fa;border-left:1px solid #ddd;z-index:1500;padding:20px;overflow-y:auto;box-shadow:-2px 0 6px rgba(0,0,0,0.1)}'))
+  ),
+  
+
+    actionButton(ns("toggle_sidebar"), label = NULL, icon = icon("bars"), class = "sidebar-toggle-float"),
+    actionButton(ns("toggle_right_sidebar"), label = NULL, icon = icon("comments"), class = "right-sidebar-toggle-float"),
+    fluidRow(
+      useShinyjs(),
+      sidebarLayout(
+        sidebarPanel(
+          div(
+            class = "sticky-buttons",
+            div(
+              class = "button-row",
+              actionButton(ns("add_section"), "Add Section +", class = "btn btn-success"),
+              actionButton(ns("render_all_reports"), "Render Reports", class = "btn btn-primary"),
+              hr(),              
+            )
+            
+          ),
+      #br(),
+        div(style = "margin-top:8px;",
+          actionLink(ns("config_toggle"), label = tagList(icon("cog"), tags$strong(" Configuration settings ")), style = "display:block; margin-bottom:6px;"),
+          shinyjs::hidden(
+            div(id = ns("config_area"),
+              downloadButton(ns("save_settings"), "Export settings (.json)", class = "btn btn-secondary"),
+              br(), br(),
+              fileInput(ns("load_settings"), "Import settings (.json)", accept = c(".json")),
+              tags$hr(),
+              selectInput(ns("profiles"), "Saved profiles:", choices = c("(none)"), selected = NULL),
+              textInput(ns("profile_name"), "Profile name (for save):", placeholder = "my-work-profile"),
+              div(style = "display:flex; gap:8px;",
+                actionButton(ns("save_profile"), "Save profile", class = "btn btn-info"),
+                actionButton(ns("load_profile"), "Load profile", class = "btn btn-primary"),
+                actionButton(ns("delete_profile"), "Delete profile", class = "btn btn-danger")                
+              ),              
+              #br(),
+            )           
+          )
+           
+        ),
+        hr(),
+        br(),
+        div(id = ns("dynamic_sections")),
+        width = 4,
+        id = ns("sidebar_panel")
+      ),
+        mainPanel(
+          navbarPage(
+            id = ns("dynamic_navbar"),
+            title = "Report previews",
+            tabPanel("Welcome", h6("Rendered reports will appear here!"))
+          ),
+          width = 8,
+          id = ns("main_panel")
+        )
+      ),
+      # Right sidebar (chatbox), hidden by default
+      div(
+        id = ns("right_sidebar"),
+        class = "right-sidebar right-sidebar-hidden",
+        h4("Chat with LLM"),
+        selectInput(
+          ns("llm_model"),
+          "Choose Language Model:",
+          choices = c(
+            "Local tinyllama (Ollama)" = "tinyllama",
+            "OpenAI GPT-4" = "openai-gpt4",
+            "OpenAI GPT-3.5" = "openai-gpt3.5",
+            "Anthropic Claude 3" = "anthropic-claude3",
+            "Google Gemini" = "google-gemini",
+            "DeepSeek: R1:8B" = "deepseek-r1:8b"
+          ),
+          selected = "tinyllama"
+        ),
+        passwordInput(
+          ns("llm_token"),
+          "Paste your API token:",
+          placeholder = "Paste your API token here"
+        ),
+        actionButton(ns("llm_connect"), "Connect", class = "btn btn-info"),
+        tags$hr(),
+        selectInput(
+          ns("chat_context"),
+          "Select Chapter/File for Context:",
+          choices = toc_choices %||% c("Introduction", "Methods", "Results"),
+          selected = toc_choices[[1]] %||% "Introduction"
+        ),
+        uiOutput(ns("chatbox_messages"), class = "chatbox-messages"),
+        textInput(ns("chatbox_input"), "Type your message:"),
+        actionButton(ns("chatbox_send"), "Send", class = "btn btn-primary")
+      )
+    )
+  )
+}
+
+# Server Module
+reportTabServer <- function(id, rmd_file, report_type = "individual", toc_choices = NULL) {
+  moduleServer(id, function(input, output, session) {
+    ns <- session$ns
+    report_type <- match.arg(report_type, choices = c("individual", "master"))
+    rv <- reactiveValues(section_count = 0, sections = list())
+    # Chat state
+    chat_messages <- reactiveVal(character())
+    llm_info <- reactiveValues(model = NULL, token = NULL, connected = FALSE)
+    chat_context <- reactive({
+      input$chat_context %||% "Introduction"
+    })
+  # directory chooser roots for shinyFiles
+  dir_roots <- c(Home = path.expand("~"), Project = here())
+
+    observeEvent(input$close_tab, {
+  tab_name <- input$close_tab
+  print(paste("Trying to close tab:", tab_name))
+  removeTab(session$ns("dynamic_navbar"), target = tab_name)
+  file_to_delete <- file.path("www", paste0(tab_name, ".html"))
+  if (file.exists(file_to_delete)) file.remove(file_to_delete)
+  showNotification(paste("Closed and deleted:", tab_name), type = "message")
+}, ignoreInit = TRUE)
+
+    # Sidebar toggle logic
+    observeEvent(input$toggle_sidebar, {
+      shinyjs::toggleClass(selector = paste0("#", ns("sidebar_panel")), class = "sidebar-hidden")
+      shinyjs::toggleClass(selector = paste0("#", ns("main_panel")), class = "main-panel-expanded")
+    })
+    # Right sidebar toggle logic
+    observeEvent(input$toggle_right_sidebar, {
+      shinyjs::toggleClass(selector = paste0("#", ns("right_sidebar")), class = "right-sidebar-hidden")
+    })
+
+  # Wire external chat handlers (in chat_module.R)
+  setup_chat_handlers(input, output, session, chat_messages, llm_info, chat_context)
+  # Ensure chat (right sidebar) is minimized/hidden on initial load
+  session$onFlushed(function() {
+    try({
+      shinyjs::addClass(selector = paste0("#", ns("right_sidebar")), class = "right-sidebar-hidden")
+    }, silent = TRUE)
+  }, once = TRUE)
+    # Dynamic section logic (same as your previous implementation)
+    observeEvent(input$add_section, {
+      rv$section_count <- rv$section_count + 1
+      section_id <- paste0("section_", rv$section_count)
+      insertUI(
+        selector = paste0("#", ns("dynamic_sections")),
+        ui = div(
+          id = ns(section_id),
+          checkboxInput(ns(paste0(section_id, "_checkbox")), "Include this section", value = TRUE),
+          div(style = "display:flex; gap:8px; align-items:center;",
+            div(style = "flex: 3;", textInput(ns(paste0(section_id, "_source")), "Source Folder", placeholder = "Paste Source path")),
+            div(style = "flex: 1;", shinyFiles::shinyDirButton(ns(paste0(section_id, "_source_browse")), "Browse...", "Select source folder"))
+          ),
+          div(style = "display:flex; gap:8px; align-items:center;",
+            div(style = "flex: 3;", textInput(ns(paste0(section_id, "_destination")), "Destination Folder", placeholder = "Paste Destination path")),
+            div(style = "flex: 1;", shinyFiles::shinyDirButton(ns(paste0(section_id, "_destination_browse")), "Browse...", "Select destination folder"))
+          ),
+          textInput(ns(paste0(section_id, "_title")), "Report Title", placeholder = "Enter in format (Title-Subtitle-addition)"),
+          textInput(ns(paste0(section_id, "_author")), "Author", placeholder = "Enter Author"),
+          div(
+            style = "display: flex; align-items: center; gap: 10px;",
+            div(style = "flex: 2;", fileInput(ns(paste0(section_id, "_logo")), "Logo (optional):",
+              accept = c("image/png", "image/jpeg", "image/jpg")
+            )),
+            div(style = "flex: 1;", numericInput(ns(paste0(section_id, "_logo_width")), "Width:", value = 75, min = 10)),
+            div(style = "flex: 1;", numericInput(ns(paste0(section_id, "_logo_height")), "Height:", value = 35, min = 10))
+          ),
+          selectInput(
+            ns(paste0(section_id, "_format")),
+            "Choose Report Format:",
+            choices = c(
+              "HTML Document" = "rmarkdown::html_document",
+              "Flex Dashboard" = "flexdashboard::flex_dashboard",
+              "Reveal.js Presentation" = "revealjs::revealjs_presentation",
+              "Slidy Presentation" = "rmarkdown::slidy_presentation",
+              "ioslides Presentation" = "rmarkdown::ioslides_presentation"
+            ),
+            selected = "rmarkdown::html_document"
+          ),
+          actionButton(ns(paste0(section_id, "_remove")), "Remove Section -", class = "btn btn-danger"),
+          hr()
+        )
+      )
+      observeEvent(input[[paste0(section_id, "_remove")]], {
+        removeUI(selector = paste0("#", ns(section_id)))
+        rv$sections[[section_id]] <- NULL
+      })
+      # setup shinyFiles directory choosers for this dynamic section
+      local({
+        sid <- section_id
+        tryCatch({
+          shinyFiles::shinyDirChoose(input, id = paste0(sid, "_source_browse"), roots = dir_roots, session = session)
+        }, error = function(e) NULL)
+        tryCatch({
+          shinyFiles::shinyDirChoose(input, id = paste0(sid, "_destination_browse"), roots = dir_roots, session = session)
+        }, error = function(e) NULL)
+
+        observeEvent(input[[paste0(sid, "_source_browse")]], {
+          sel <- input[[paste0(sid, "_source_browse")]]
+          if (is.null(sel)) return()
+          p <- tryCatch(shinyFiles::parseDirPath(dir_roots, sel), error = function(e) NULL)
+          if (!is.null(p) && length(p) > 0) updateTextInput(session, paste0(sid, "_source"), value = as.character(p[[1]]))
+        }, ignoreInit = TRUE)
+
+        observeEvent(input[[paste0(sid, "_destination_browse")]], {
+          sel <- input[[paste0(sid, "_destination_browse")]]
+          if (is.null(sel)) return()
+          p <- tryCatch(shinyFiles::parseDirPath(dir_roots, sel), error = function(e) NULL)
+          if (!is.null(p) && length(p) > 0) updateTextInput(session, paste0(sid, "_destination"), value = as.character(p[[1]]))
+        }, ignoreInit = TRUE)
+      })
+      rv$sections[[section_id]] <- list(
+        source_path = NULL,
+        destination_path = NULL,
+        title = NULL,
+        author = NULL,
+        logo = logo_path,
+        logo_width = 75,
+        logo_height = 35,
+        format = NULL,
+        checkbox = TRUE
+      )
+    })
+
+    # Save / Load settings: create download handler and load uploaded JSON
+    output$save_settings <- downloadHandler(
+      filename = function() paste0("webknit_settings_", Sys.Date(), ".json"),
+      content = function(file) {
+        cfg <- list(
+          llm = list(model = isolate(llm_info$model), token = isolate(llm_info$token)),
+          sections = isolate(rv$sections)
+        )
+        jsonlite::write_json(cfg, path = file, pretty = TRUE, auto_unbox = TRUE)
+      }
+    )
+
+    # Helper: reconstruct dynamic sections UI from a saved sections list
+    reconstruct_sections <- function(sections_list) {
+      # remove existing dynamic sections UI
+      for (sid in names(rv$sections)) {
+        tryCatch(removeUI(selector = paste0("#", ns(sid))), error = function(e) NULL)
+      }
+      rv$sections <- list()
+      rv$section_count <- 0
+
+      if (is.null(sections_list) || length(sections_list) == 0) return()
+
+      for (s in seq_along(sections_list)) {
+        saved <- sections_list[[s]]
+        rv$section_count <- rv$section_count + 1
+        section_id <- paste0("section_", rv$section_count)
+        insertUI(
+          selector = paste0("#", ns("dynamic_sections")),
+          ui = div(
+            id = ns(section_id),
+            checkboxInput(ns(paste0(section_id, "_checkbox")), "Include this section", value = !isFALSE(saved$checkbox)),
+            div(style = "display:flex; gap:8px; align-items:center;",
+              div(style = "flex: 3;", textInput(ns(paste0(section_id, "_source")), "Source Folder", value = saved$original_source %||% saved$source_path, placeholder = "Paste Source path")),
+              div(style = "flex: 1;", shinyFiles::shinyDirButton(ns(paste0(section_id, "_source_browse")), "Browse...", "Select source folder"))
+            ),
+            div(style = "display:flex; gap:8px; align-items:center;",
+              div(style = "flex: 3;", textInput(ns(paste0(section_id, "_destination")), "Destination Folder", value = saved$original_destination %||% saved$destination_path, placeholder = "Paste Destination path")),
+              div(style = "flex: 1;", shinyFiles::shinyDirButton(ns(paste0(section_id, "_destination_browse")), "Browse...", "Select destination folder"))
+            ),
+            textInput(ns(paste0(section_id, "_title")), "Report Title", value = saved$title, placeholder = "Enter in format (Title-Subtitle-addition)"),
+            textInput(ns(paste0(section_id, "_author")), "Author", value = saved$author, placeholder = "Enter Author"),
+            div(
+              style = "display: flex; align-items: center; gap: 10px;",
+              div(style = "flex: 2;", fileInput(ns(paste0(section_id, "_logo")), "Logo (optional):", accept = c("image/png", "image/jpeg", "image/jpg"))),
+              div(style = "flex: 1;", numericInput(ns(paste0(section_id, "_logo_width")), "Width:", value = saved$logo_width %||% 75, min = 10)),
+              div(style = "flex: 1;", numericInput(ns(paste0(section_id, "_logo_height")), "Height:", value = saved$logo_height %||% 35, min = 10))
+            ),
+            selectInput(
+              ns(paste0(section_id, "_format")),
+              "Choose Report Format:",
+              choices = c(
+                "HTML Document" = "rmarkdown::html_document",
+                "Flex Dashboard" = "flexdashboard::flex_dashboard",
+                "Reveal.js Presentation" = "revealjs::revealjs_presentation",
+                "Slidy Presentation" = "rmarkdown::slidy_presentation",
+                "ioslides Presentation" = "rmarkdown::ioslides_presentation"
+              ),
+              selected = saved$format %||% "rmarkdown::html_document"
+            ),
+            actionButton(ns(paste0(section_id, "_remove")), "Remove Section -", class = "btn btn-danger"),
+            hr()
+          )
+        )
+
+        # attach remove observer for this dynamically created section
+        local({
+          sid <- section_id
+          observeEvent(input[[paste0(sid, "_remove")]], {
+            removeUI(selector = paste0("#", ns(sid)))
+            rv$sections[[sid]] <- NULL
+          }, ignoreInit = TRUE)
+        })
+
+        # setup shinyFiles directory choosers for restored section
+        local({
+          sid <- section_id
+          tryCatch({
+            shinyFiles::shinyDirChoose(input, id = paste0(sid, "_source_browse"), roots = dir_roots, session = session)
+          }, error = function(e) NULL)
+          tryCatch({
+            shinyFiles::shinyDirChoose(input, id = paste0(sid, "_destination_browse"), roots = dir_roots, session = session)
+          }, error = function(e) NULL)
+
+          observeEvent(input[[paste0(sid, "_source_browse")]], {
+            sel <- input[[paste0(sid, "_source_browse")]]
+            if (is.null(sel)) return()
+            p <- tryCatch(shinyFiles::parseDirPath(dir_roots, sel), error = function(e) NULL)
+            if (!is.null(p) && length(p) > 0) updateTextInput(session, paste0(sid, "_source"), value = as.character(p[[1]]))
+          }, ignoreInit = TRUE)
+
+          observeEvent(input[[paste0(sid, "_destination_browse")]], {
+            sel <- input[[paste0(sid, "_destination_browse")]]
+            if (is.null(sel)) return()
+            p <- tryCatch(shinyFiles::parseDirPath(dir_roots, sel), error = function(e) NULL)
+            if (!is.null(p) && length(p) > 0) updateTextInput(session, paste0(sid, "_destination"), value = as.character(p[[1]]))
+          }, ignoreInit = TRUE)
+        })
+
+        # populate rv$sections with saved values (logo file can't be pre-populated into fileInput)
+        rv$sections[[section_id]] <- list(
+          source_path = saved$source_path %||% saved$original_source,
+          destination_path = saved$destination_path %||% saved$original_destination,
+          title = saved$title,
+          author = saved$author,
+          logo = saved$logo %||% logo_path,
+          logo_width = saved$logo_width %||% 75,
+          logo_height = saved$logo_height %||% 35,
+          format = saved$format %||% "rmarkdown::html_document",
+          checkbox = !isFALSE(saved$checkbox)
+        )
+      }
+    }
+
+    observeEvent(input$load_settings, {
+      f <- input$load_settings
+      if (is.null(f) || length(f$datapath) == 0) return()
+      cfg <- tryCatch(jsonlite::read_json(f$datapath, simplifyVector = TRUE), error = function(e) NULL)
+      if (is.null(cfg)) {
+        showNotification("Failed to read settings file (invalid JSON)", type = "error")
+        return()
+      }
+
+      # restore llm settings (if present)
+      if (!is.null(cfg$llm)) {
+        if (!is.null(cfg$llm$model)) {
+          updateSelectInput(session, "llm_model", selected = cfg$llm$model)
+          llm_info$model <- cfg$llm$model
+        }
+        if (!is.null(cfg$llm$token)) {
+          updateTextInput(session, "llm_token", value = cfg$llm$token)
+          llm_info$token <- cfg$llm$token
+        }
+      }
+
+      # Reconstruct dynamic sections immediately from loaded config
+      reconstruct_sections(cfg$sections %||% list())
+      showNotification("Settings loaded and sections reconstructed", type = "message")
+    })
+
+    # Profile directory helpers
+    profile_dir <- file.path(path.expand('~'), '.webknit')
+    if (!dir.exists(profile_dir)) dir.create(profile_dir, recursive = TRUE, showWarnings = FALSE)
+    last_settings_file <- file.path(profile_dir, 'last_settings.json')
+
+    list_profiles <- function() {
+      js <- list.files(profile_dir, pattern = '\\.(json)$', full.names = TRUE)
+      names(js) <- basename(js)
+      js
+    }
+
+    # populate profiles select on start
+    observe({
+      profs <- list_profiles()
+      choices <- c('(none)', basename(profs))
+      updateSelectInput(session, "profiles", choices = choices, selected = ifelse(length(choices) > 1, choices[2], '(none)'))
+    })
+
+    # Save profile button writes to ~/.webknit/<name>.json
+    observeEvent(input$save_profile, {
+      name <- input$profile_name
+      if (is.null(name) || !nzchar(name)) {
+        showNotification('Enter a profile name first', type = 'error')
+        return()
+      }
+      target <- file.path(profile_dir, paste0(name, '.json'))
+      cfg <- list(llm = list(model = llm_info$model, token = llm_info$token), sections = rv$sections)
+      tryCatch({
+        jsonlite::write_json(cfg, path = target, pretty = TRUE, auto_unbox = TRUE)
+        showNotification(paste('Profile saved to', target), type = 'message')
+        # refresh list
+        profs <- list_profiles()
+        choices <- c('(none)', basename(profs))
+        updateSelectInput(session, "profiles", choices = choices, selected = basename(target))
+      }, error = function(e) showNotification(paste('Failed to save profile:', e$message), type = 'error'))
+    })
+
+    # Load profile
+    observeEvent(input$load_profile, {
+      sel <- input$profiles
+      if (is.null(sel) || sel == '(none)') {
+        showNotification('Select a profile to load', type = 'error')
+        return()
+      }
+      path <- file.path(profile_dir, sel)
+      if (!file.exists(path)) { showNotification('Profile file missing', type = 'error'); return() }
+      cfg <- tryCatch(jsonlite::read_json(path, simplifyVector = TRUE), error = function(e) NULL)
+      if (is.null(cfg)) { showNotification('Failed to read profile', type = 'error'); return() }
+      # restore llm/settings
+      if (!is.null(cfg$llm)) {
+        if (!is.null(cfg$llm$model)) { updateSelectInput(session, 'llm_model', selected = cfg$llm$model); llm_info$model <- cfg$llm$model }
+        if (!is.null(cfg$llm$token)) { updateTextInput(session, 'llm_token', value = cfg$llm$token); llm_info$token <- cfg$llm$token }
+      }
+      # Reconstruct dynamic sections immediately
+      reconstruct_sections(cfg$sections %||% list())
+      showNotification('Profile loaded and sections reconstructed', type = 'message')
+    })
+
+    # Delete profile
+    observeEvent(input$delete_profile, {
+      sel <- input$profiles
+      if (is.null(sel) || sel == '(none)') { showNotification('Select a profile to delete', type = 'error'); return() }
+      path <- file.path(profile_dir, sel)
+      if (!file.exists(path)) { showNotification('Profile file missing', type = 'error'); return() }
+      ok <- tryCatch({ file.remove(path); TRUE }, error = function(e) FALSE)
+      if (isTRUE(ok)) {
+        showNotification('Profile deleted', type = 'message')
+        profs <- list_profiles(); choices <- c('(none)', basename(profs)); updateSelectInput(session, 'profiles', choices = choices, selected = '(none)')
+      } else showNotification('Failed to delete profile', type = 'error')
+    })
+
+    # Autosave on session end: persist last settings
+    session$onSessionEnded(function() {
+      # Read reactive values defensively: isolate() is used but still wrap in tryCatch
+      model_val <- tryCatch(isolate(llm_info$model), error = function(e) NULL)
+      token_val <- tryCatch(isolate(llm_info$token), error = function(e) NULL)
+      sections_val <- tryCatch(isolate(rv$sections), error = function(e) list())
+      cfg <- list(
+        llm = list(
+          model = model_val,
+          token = token_val
+        ),
+        sections = sections_val
+      )
+      tryCatch(jsonlite::write_json(cfg, path = last_settings_file, pretty = TRUE, auto_unbox = TRUE), error = function(e) NULL)
+    })
+
+    # Autoload last settings if present
+    if (file.exists(last_settings_file)) {
+      cfg <- tryCatch(jsonlite::read_json(last_settings_file, simplifyVector = TRUE), error = function(e) NULL)
+      if (!is.null(cfg) && !is.null(cfg$llm)) {
+        if (!is.null(cfg$llm$model)) { llm_info$model <- cfg$llm$model }
+        if (!is.null(cfg$llm$token)) { llm_info$token <- cfg$llm$token }
+      }
+      # Auto-reconstruct saved sections from last session (do this after UI is ready)
+      rv$sections <- cfg$sections %||% rv$sections
+      if (!is.null(cfg$sections) && length(cfg$sections) > 0) {
+        session$onFlushed(function() {
+          reconstruct_sections(cfg$sections)
+        }, once = TRUE)
+      }
+    }
+
+    # Restore UI button: reconstruct dynamic UI from what's currently in rv$sections
+    
+
+    # Toggle configuration area visibility
+    observeEvent(input$config_toggle, {
+      shinyjs::toggle(id = "config_area", anim = TRUE)
+    })
+
+    # Synchronize inputs with reactiveValues
+    observe({
+      for (section_id in names(rv$sections)) {
+        if (!is.null(rv$sections[[section_id]])) {
+          # Get the current inputs
+          source_path <- input[[paste0(section_id, "_source")]]
+          destination_path <- input[[paste0(section_id, "_destination")]]
+
+          print(paste0("This is source path:", source_path))
+          print(paste0("This is destination path:", destination_path))
+
+          # Convert paths using the updated convert_ishare_path() function
+          paths_source <- convert_ishare_path(source_path)
+          paths_destination <- convert_ishare_path(destination_path)
+
+          # Store both original and converted paths in rv$sections
+          rv$sections[[section_id]]$original_source <- paths_source$original_path
+          rv$sections[[section_id]]$converted_source <- paths_source$converted_path
+          rv$sections[[section_id]]$original_destination <- paths_destination$original_path
+          rv$sections[[section_id]]$converted_destination <- paths_destination$converted_path
+
+          # Debugging: Print stored paths
+          print(paste("Original Source Path:", rv$sections[[section_id]]$original_source))
+          print(paste("Converted Source Path:", rv$sections[[section_id]]$converted_source))
+          print(paste("Original Destination Path:", rv$sections[[section_id]]$original_destination))
+          print(paste("Converted Destination Path:", rv$sections[[section_id]]$converted_destination))
+
+
+          # Update reactiveValues with converted paths
+          if (!identical(rv$sections[[section_id]]$source_path, paths_source$converted_path)) {
+            rv$sections[[section_id]]$source_path <- paths_source$converted_path
+            print(paste("Converted Source Path:", paths_source$converted_path)) # Debugging
+          }
+
+          if (!identical(rv$sections[[section_id]]$destination_path, paths_destination$converted_path)) {
+            rv$sections[[section_id]]$destination_path <- paths_destination$converted_path
+            print(paste("Converted Destination Path:", paths_destination$converted_path)) # Debugging
+          }
+
+          # Update other inputs
+          rv$sections[[section_id]]$title <- input[[paste0(section_id, "_title")]]
+          rv$sections[[section_id]]$author <- input[[paste0(section_id, "_author")]]
+          rv$sections[[section_id]]$logo <- if (!is.null(input[[paste0(section_id, "_logo")]])) {
+            input[[paste0(section_id, "_logo")]]$datapath
+          } else {
+            logo_path # Default logo path if no file is uploaded
+          }
+          rv$sections[[section_id]]$logo_width <- input[[paste0(section_id, "_logo_width")]]
+          rv$sections[[section_id]]$logo_height <- input[[paste0(section_id, "_logo_height")]]
+          rv$sections[[section_id]]$format <- input[[paste0(section_id, "_format")]]
+          rv$sections[[section_id]]$checkbox <- input[[paste0(section_id, "_checkbox")]]
+
+          # print("Debug: Contents of rv$sections before rendering:")
+          # print(rv$sections)
+        }
+      }
+    })
+
+    # Render all reports when "Render Reports" button is clicked (same as before)
+    observeEvent(input$render_all_reports, {
+      withProgress(message = "Rendering reports...", value = 0, {
+        num_sections <- length(names(rv$sections))
+        progress_step <- 1 / max(num_sections, 1) # Avoid division by zero
+
+        for (section_id in names(rv$sections)) {
+          section <- rv$sections[[section_id]]
+          if (!is.null(section) && section$checkbox) {
+            # Debugging: Print paths before validation
+            print(paste("Debug: Section Source Path =", section$source_path))
+            print(paste("Debug: Section Destination Path =", section$destination_path))
+
+            # Validate inputs
+            if ((is.null(section$original_source) || section$original_source == "") ||
+              (is.null(section$converted_destination) || section$converted_destination == "") ||
+              (is.null(section$title) || section$title == "") ||
+              (is.null(section$author) || section$author == "")) {
+              showNotification("Error: Missing inputs in section", type = "error")
+              next
+            }
+
+            # Dynamically set output options
+            output_options <- switch(section$format,
+              "rmarkdown::html_document" = if (report_type == "individual") {
+                list(
+                  toc = TRUE,
+                  toc_float = TRUE,
+                  number_sections = TRUE,
+                  theme = "yeti",
+                  css = c(styles_css_path, bootstrap_css_path)
+                )
+              } else {
+                list(
+                  number_sections = TRUE,
+                  theme = "yeti",
+                  css = c(styles_css_path, bootstrap_css_path)
+                )
+              },
+              "flexdashboard::flex_dashboard" = list(orientation = "rows"),
+              "revealjs::revealjs_presentation" = list(slide_level = 3),
+              "rmarkdown::slidy_presentation" = list(slide_level = 3),
+              "rmarkdown::ioslides_presentation" = list(widescreen = TRUE, incremental = TRUE, smaller = TRUE),
+              NULL
+            )
+
+            # Update progress message
+            incProgress(progress_step, detail = paste("Rendering:", section$title))
+
+            # Log the rendering process for debugging
+            print(paste("Rendering report for section:", section_id))
+
+            # Use pre-computed paths instead of re-converting
+            original_src_path <- section$original_source
+            converted_src_path <- section$converted_source
+            original_dstn_path <- section$original_destination
+            converted_dstn_path <- section$converted_destination
+
+            # Render the report
+            report_filename <- paste0(gsub("[^a-zA-Z0-9\\s]", "_", section$title), ".html")
+            report_filepath <- file.path(section$destination, report_filename)
+
+            # ...existing code...
+            tryCatch(
+              {
+                # local verbose flag for debug printing (avoid undefined variable errors)
+                verbose <- FALSE
+                # --- prepare safe filenames/paths ---
+                sanitized_title <- gsub("[^a-zA-Z0-9\\s]", " ", section$title)
+                sanitized_title <- gsub("\\s+", "-", trimws(sanitized_title))
+                report_filename <- paste0(sanitized_title, ".html")
+                report_filepath <- file.path(section$destination_path, report_filename)
+
+                # ensure destination exists
+                dir_create(section$destination_path)
+                dir_create("www")
+
+                # copy the shared css files into the report output folder so the Rmd will find them by basename
+tryCatch({
+  file.copy(styles_css_path, file.path(section$destination_path, styles_css_path), overwrite = TRUE)
+}, error = function(e) message("Failed to copy styles.css to output dir: ", e$message))
+tryCatch({
+  file.copy(bootstrap_css_path, file.path(section$destination_path, bootstrap_css_path), overwrite = TRUE)
+}, error = function(e) message("Failed to copy bootstrapMint.css to output dir: ", e$message))
+
+                # Debug prints
+                if (isTRUE(verbose)) {
+                  message("Rendering to: ", report_filepath)
+                  message("Source folder (assets): ", section$source_path)
+                }
+
+                # Render using the exact report_filename into destination_path
+                rmarkdown::render(
+                  input = rmd_file,
+                  output_file = report_filename,          # exact filename
+                  output_dir  = section$destination_path, # exact folder
+                  params = list(
+                    original_src_path = as.character(original_src_path),
+                    converted_src_path = as.character(converted_src_path),
+                    original_dstn_path = as.character(original_dstn_path),
+                    converted_dstn_path = as.character(converted_dstn_path),
+                    title = as.character(section$title),
+                    author = as.character(section$author),
+                    logo = section$logo,
+                    logo_width = section$logo_width,
+                    logo_height = section$logo_height
+                  ),
+                  output_format  = section$format,
+                  output_options = output_options
+                )
+
+                # confirm rendered file exists
+                if (!file.exists(report_filepath)) {
+                  stop("Rendered HTML not found at: ", report_filepath, ". Files in destination: ",
+                       paste(list.files(section$destination_path, pattern = "\\.html?$", full.names = TRUE), collapse = ", "))
+                }
+
+                # Copy rendered report + assets -> www; pass source folder explicitly
+                iframe_src <- copy_report_to_www(
+                  report_path   = report_filepath,
+                  source_folder = section$source_path,
+                  www_folder    = "www",
+                  verbose       = TRUE
+                )
+
+                if (is.na(iframe_src) || !nzchar(iframe_src)) {
+                  stop("copy_report_to_www failed to prepare preview for: ", report_filepath)
+                }
+
+                showNotification(paste0("Report successfully rendered: ", section$title), type = "message")
+
+                # Only append the preview tab after successful copy; use returned path
+          appendTab(
+                  inputId = "dynamic_navbar",
+                  tabPanel(
+                    title = tagList(
+                      section$title,
+                      tags$button(
+                        class = "tab-close-btn btn btn-link btn-sm",
+                        style = "padding:0;margin-left:8px;",
+                        `data-tabname` = ns(section$title),
+                        icon("times")
+                      )
+                    ),
+                    tags$iframe(
+                      src = iframe_src, # use path returned by copy_report_to_www (e.g. "Folder/report.html")
+                      width = "100%",
+                      height = "750px",
+                      frameborder = "0"
+                    )
+                  ),
+                  select = TRUE
+                )
+              },
+              error = function(e) {
+                showNotification(paste0("Error rendering report: ", e$message), type = "error")
+              }
+            )
+            gc() # Clean up memory
+          }
+        }
+      })
+    })
+  })
+}
+
+
+# Main UI
+ui <- navbarPage(
+  tags$head(
+  useShinyjs(),
+    # existing tab-close handler plus toggle / night-mode styles
+  tags$script(HTML("$(document).on('click', '.tab-close-btn', function(e) { var tabName = $(this).data('tabname'); Shiny.setInputValue('close_tab', tabName, {priority: 'event'}); e.stopPropagation(); });")),
+  # Debug: forward clicks on any *_browse control to server and console
+  tags$script(HTML("$(document).on('click', '[id$=\"_browse\"]', function(e) { try { console.log('browse-button-clicked:', this.id); Shiny.setInputValue('last_browse_clicked', this.id, {priority: 'event'}); } catch(err) { console.log('browse-click-debug-error', err); } });")),
+    tags$style(HTML("
+      /* Toggle switch */
+      .toggle-switch { position: relative; display: inline-block; width: 56px; height: 30px; margin: 10px 12px; vertical-align: middle; }
+      .toggle-switch input { opacity: 0; width: 0; height: 0; }
+      .toggle-switch .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #d9ead3; transition: .25s; border-radius: 20px; }
+      .toggle-switch .slider:before { position: absolute; content: \"\"; height: 24px; width: 24px; left: 3px; bottom: 3px; background: white; transition: .25s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+      .toggle-switch input:checked + .slider { background: #999999; }
+      .toggle-switch input:focus + .slider { box-shadow: 0 0 2px rgba(33,150,243,0.6); }
+      .toggle-switch input:checked + .slider:before { transform: translateX(26px); }
+
+      /* Night mode */
+      body.night-mode { background: #444444 !important; color: #e6eef8 !important; }
+      .navbar.night-mode, .navbar { background-color: #444444 !important; border-color: #0b1220 !important; }
+      .navbar .navbar-brand, .navbar .nav, .navbar a { color: #e6eef8 !important; }
+      .main, .container, .content { color: inherit; background: transparent; }
+      /* Make iframe previews match dark background when night-mode is active (basic) */
+      body.night-mode iframe { background: #444444; color: #e6eef8; }
+
+      /* Small adjustments to ensure toggle aligns nicely with header */
+      .navbar .toggle-switch { margin-top: 12px; margin-bottom: 12px; }
+    "))
+  ),
+  title = tagList(
+      div(style = "display:flex; flex-direction:column; align-items:flex-start; gap:8px;",
+        div(style = "display:flex; align-items:center; gap:10px;",
+          img(src = basename(baya_weaver_path), height = "80px", style = "margin-right: 20px;"),
+          span(style = "font-size:20px; font-weight:600;", "Web-page knitter")
+        ),
+        # toggle placed directly under the title
+        div(class = "toggle-switch", style = "margin-left:0; margin-right: 20px;margin-top: 0px;",
+          tags$input(id = "toggle_night_view", type = "checkbox"),
+          tags$label(class = "slider", `for` = "toggle_night_view")
+        )
+  ),
+  ),
+  theme = bslib::bs_theme(version = 5, bootswatch = "minty"),
+  tabPanel(
+    "Individual Reports",
+    fluidPage(
+      #actionButton("toggle_sidebar", label = NULL, icon = icon("bars"), class = "sidebar-toggle-float"),
+      #actionButton("toggle_right_sidebar", label = NULL, icon = icon("bars"), class = "right-sidebar-toggle-float"),
+      useShinyjs(),
+      #tags$head(
+      #  tags$link(rel = "stylesheet", type = "text/css", href = basename(styles_css_path)),
+      #  tags$link(rel = "stylesheet", type = "text/css", href = basename(bootstrap_css_path))
+  # sticky style moved to www/styles.css (externalized for caching and easier overrides)
+      #),
+      reportTabUI("individual")
+    )
+  ),
+  tabPanel(
+    "Master Report",
+    fluidPage(
+      useShinyjs(),
+      #tags$head(
+      #  tags$link(rel = "stylesheet", type = "text/css", href = basename(styles_css_path)),
+      # tags$link(rel = "stylesheet", type = "text/css", href = basename(bootstrap_css_path))
+      #),
+      reportTabUI("master")
+    )
+  )
+)
+
+# Main server
+server <- function(input, output, session) {
+  useShinyjs()
+  # DEBUG: log client-side forwarded browse button clicks
+  observeEvent(input$last_browse_clicked, {
+    cat('DEBUG: last_browse_clicked =', input$last_browse_clicked, '\n')
+  })
+  observe({
+    if (input$toggle_night_view) {
+      shinyjs::addClass(selector = "body", class = "night-mode")
+      shinyjs::addClass(selector = ".navbar", class = "night-mode")
+    } else {
+      shinyjs::removeClass(selector = "body", class = "night-mode")
+      shinyjs::removeClass(selector = ".navbar", class = "night-mode")
+    }
+  })
+
+  individual_rmd_file <- find_project_file("Report_generator_ShinyApp.Rmd")
+  master_rmd_file <- find_project_file("Master_html_report_ShinyApp.Rmd")
+  # Example TOC choices, you can populate dynamically
+  toc_choices <- c("Introduction", "Methods", "Results")
+  reportTabServer("individual", rmd_file = individual_rmd_file, report_type = "individual", toc_choices = toc_choices)
+  reportTabServer("master", rmd_file = master_rmd_file, report_type = "master", toc_choices = toc_choices)
+}
+
+options(shiny.port = 4846)
+shinyApp(ui = ui, server = server, onStart = onStart)
