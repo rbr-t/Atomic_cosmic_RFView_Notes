@@ -1,0 +1,278 @@
+---
+title: "<div style='background-color: #3EB489; padding: 10px;'><img src='logo.png' style='float:left; width:75px; height:35px; margin-right: 20px;'><span style='font-size: 26px'> IFX_2022 - Project - Tx_Baseline </span></div>"
+
+author: "<div style='background-color: #3EB489; padding: 10px;'>PSS RFS DR RF PTE PRE</div>"
+date: "<div style='background-color: #3EB489; padding: 10px;'>`r Sys.Date()`</div>"
+output: 
+   #flexdashboard::flex_dashboard:
+    #theme: 
+     # version: 4
+      #bootswatch: minty
+#site: bookdown::bookdown_site
+  html_document:
+    #template: template.html
+    fig_width: 7
+    fig_height: 6
+    fig_caption: true
+    df_print: paged
+    toc: true
+    toc_depth: 6
+    toc_float: true
+    number_sections: true
+    theme: yeti
+    css: [styles.css, bootstrapMint.css]
+    #vertical_layout: scroll
+---
+
+```{r setup, include=FALSE, cache=FALSE}
+## Global options
+#knitr::opts_chunk$set(cache = TRUE)
+library(here)
+library(rmarkdown)
+library(knitr)
+library(readxl)
+library(gt)
+library(officer)
+library(xml2)
+library(gtExtras)
+library(dplyr)
+library(readr)
+library(xlsx)
+library(openxlsx)
+library(janitor)
+library(stringr)
+library(htmltools)
+library(dplyr)
+library(pdftools)
+library(RDCOMClient)
+library(pandoc)
+library(doconv)
+
+
+```
+```{r Sticky_header, echo=FALSE}
+suppressWarnings({
+  library(htmltools)
+  library(rmarkdown)
+  library(xml2)
+  library(stringr)
+})
+library(htmltools)
+library(rmarkdown)
+library(xml2)
+
+title <- metadata$title
+parsed_title <- read_html(title)
+span_title <- xml_find_all(parsed_title, "//span")[[1]]
+text_title <- xml_text(span_title)
+
+tags$div(class = "sticky-header",
+         tags$h5(text_title)
+)
+```
+
+```{r, results='asis', echo=FALSE, cache = FALSE}
+# Get the current working directory
+#wd <- file.path(getwd(), "Tables_Plots")
+
+wd <- file.path("../02_Projects/01_Tx_Baseline")
+
+#wd <- "//sec-ishare.infineon.com@SSL/DavWWWRoot/sites/IFXMLANT/POM_Master_report/BGSA440AC/1YUS2N8N/"
+
+
+
+
+
+create_hierarchy <- function(path, level = 1) {
+  # Get a list of all the files and folders
+  files <- dir(path, full.names = TRUE)
+
+  # Loop through each file and folder
+  for (file in files) {
+    # Check if it's a folder
+    if (file.info(file)$isdir) {
+      # Create a heading for the folder
+      folder_name <- basename(file)
+      folder_name <- gsub("^[0-9]+_", "", folder_name) # Remove numbers as suffix from folder name
+      cat(paste(rep("#", level), collapse = ""), " ", folder_name, "\n")
+
+      # Get a list of all the files in the folder
+      folder_files <- dir(file, full.names = TRUE)
+
+      # Loop through each file in the folder
+      for (folder_file in folder_files) {
+        # Check if it's a file
+        if (!file.info(folder_file)$isdir) {
+          # Get the file extension
+          file_ext <- tolower(strsplit(basename(folder_file), "\\.")[[1]][2])
+
+          # Check if it's an image file
+          if (file_ext %in% c("png", "jpg", "jpeg", "gif", "bmp")) {
+            # Add a sub-heading for the image file
+
+            img_file_name <- basename(folder_file)
+            img_file_name <- gsub("^[0-9]+_", "", img_file_name)
+            cat(paste(rep("#", level + 1), collapse = ""), " ", img_file_name, "\n")
+
+            # Add the image to the HTML document
+            #cat("![", basename(folder_file), "](", gsub("\\\\", "/", folder_file), ")\n\n") ## for local drive
+            cat("![", basename(folder_file), "](", file.path("file://", folder_file), ")\n\n") ## from secure i-share
+            cat("<br><br>")  # Add two line breaks
+            cat("<hr>")  # Add a horizontal rule
+            cat("\n\n")  # Add two paragraph breaks
+
+          } else if (file_ext %in% c("csv", "xlsx", "xls", "txt")) {
+  # Read the table file
+  if (file_ext == "csv") {
+    table_data <- read.csv2(folder_file, skipNul = T,na.strings = "NA",numerals = "no.loss",check.names = T,header = T,sep = ";",quote = "\"'",tryLogical = TRUE,stringsAsFactors = F,blank.lines.skip = TRUE,strip.white = TRUE,skip = 6,allowEscapes = T,flush = T,encoding = "UTF-8")
+  } else if (file_ext %in% c("xlsx", "xls")) {
+    #table_data <- readxl::read_excel(folder_file,check.names = FALSE, )
+    table_data <- openxlsx::read.xlsx(folder_file, detectDates = T, colNames = T, rowNames = F, startRow = 1,skipEmptyCols = T, skipEmptyRows = T, sep.names = " ", fillMergedCells = F)
+  } else if (file_ext == "txt") {
+    table_data <- read.delim2(folder_file, skipNul = T,na.strings = "NA",numerals = "no.loss",check.names = T,header = T,quote = "\"'",tryLogical = TRUE,stringsAsFactors = F,blank.lines.skip = TRUE,strip.white = TRUE,skip = 6,allowEscapes = T,flush = T,encoding = "Latin-1")
+  }
+
+  # Add a heading for the table file
+  table_file_name <- basename(folder_file)
+  table_file_name <- gsub("^[0-9]+_", "", table_file_name)
+  cat(paste(rep("#", level + 1), collapse = ""), " ", table_file_name, "\n")
+
+  # Apply type.convert and mutate along every cell
+  # Apply type.convert to each column
+  table_data[] <- lapply(table_data, type.convert, as.is = TRUE)
+  table_data <- table_data %>% select_if(~!all(is.na(.)))
+
+  # Replace empty column names with "Unknown"
+  colnames(table_data)[colnames(table_data) == ""] <- "Unknown"
+
+  # Format the table using gt
+            table_data %>%
+              gt() %>%
+              tab_style(style = cell_text(weight = "bold"), locations = cells_body(rows = 1)) %>%
+              sub_missing(columns = everything(), missing_text = "") %>%
+              fmt_number(columns = everything(), decimals = 3, drop_trailing_dec_mark = T, drop_trailing_zeros = T, suffixing = T) %>%
+              gt_theme_excel() %>%
+              print()
+
+  # Add CSS styles to control table width and height
+  cat("<style>table {width: 100%; height: auto; overflow-y: 650px; display: block;}</style>")
+  # Add CSS style to freeze the first 5 rows
+  #cat("<style>table tr:nth-child(-n+5) {position: sticky; top: 0; background-color: white;}</style>")
+
+  # Add space between tables
+  cat("<br><br>")
+  cat("<hr>")
+  cat("\n\n")
+}
+          # This } was moved here
+
+          else if (file_ext %in% c("pdf")) {
+            # Add a chapter heading for the PDF file
+            #folder_file <- "https://sec-ishare.infineon.com/sites/IFXMLANT/POM_Master_report/BGSA300AC/1YUS95CM/"
+            pdf_file_name <- basename(folder_file)
+            pdf_file_name <- gsub("^[0-9]+_", "", pdf_file_name)
+            cat(paste(rep("#", level+1), collapse = ""), " ", pdf_file_name, "\n\n")
+          
+            # Add a sub-heading for the PDF file
+            #cat(paste(rep("#", level + 1), collapse = ""), " PDF File\n\n")
+          
+            # Extract the TOC from the PDF file
+            pdf_toc <- pdf_info(folder_file)$toc
+          
+            # Add the TOC to the HTML document
+            for (i in seq_along(pdf_toc)) {
+              cat(paste(rep("#", level + 2), collapse = ""), " ", pdf_toc[[i]]$title, "\n")
+            }
+            # Embed the PDF file
+            #folder_file <- str_c("https://sec-ishare.infineon.com/sites/IFXMLANT/POM_Master_report/BGSA300AC/1YUS95CM/",folder_files)
+            cat("<embed src='", folder_file, "' type='application/pdf' width='120%' height='650px' pages='2'>\n\n") ## from local drive
+            
+            #pdf_url <- file.path("https://sec-ishare.infineon.com", gsub("//sec-ishare.infineon.com@SSL/DavWWWRoot/", "", folder_file))
+#cat("<embed src='", pdf_url, "' type='application/pdf' width='120%' height='650px' pages='2'>\n\n")
+            
+            cat("<br><br>")  # Add two line breaks
+            cat("<hr>")  # Add a horizontal rule
+            cat("\n\n")  # Add two paragraph breaks
+                      } else if (file_ext %in% c("docx")) {
+            # Add a heading for the Word file
+            word_file_name <- basename(folder_file)
+            word_file_name <- gsub("^[0-9]+_", "", word_file_name)
+            cat(paste(rep("#", level + 1), collapse = ""), " ", word_file_name, "\n\n")
+          
+            # Convert the Word document to PDF
+            output_dir <- dirname(folder_file)
+            pdf_file <- paste0(output_dir, "/", gsub("\\.(docx|doc|rtf)$", ".pdf", basename(folder_file)))
+            tryCatch(
+              expr = {
+                doconv::docx2pdf(input = folder_file, output = pdf_file)
+              },
+              error = function(e) {
+                cat("Error: An error occurred while trying to convert the Word document to PDF.\n")
+                cat("Error message: ", e$message, "\n")
+              }
+            )
+          
+            # Embed the PDF file
+            cat("<embed src='", basename(pdf_file), "' type='application/pdf' width='120%' height='650px'>\n\n")
+            
+            cat("<br><br>")  # Add two line breaks
+            cat("<hr>")  # Add a horizontal rule
+            cat("\n\n")  # Add two paragraph breaks
+          }
+          
+          else if (file_ext %in% c("pptx")) {
+            # Add a heading for the PPT file
+            ppt_file_name <- basename(folder_file)
+            ppt_file_name <- gsub("^[0-9]+_", "", ppt_file_name)
+            cat(paste(rep("#", level + 1), collapse = ""), " ", ppt_file_name, "\n\n")
+          
+            # Convert the PPT file to PDF
+            output_dir <- dirname(folder_file)
+            pdf_file <- paste0(output_dir, "/", gsub("\\.pptx$", ".pdf", basename(folder_file)))
+            tryCatch(
+              expr = {
+                doconv::pptx2pdf(input = folder_file)
+              },
+              error = function(e) {
+                cat("Error: An error occurred while trying to convert the PPT file to PDF.\n")
+                cat("Error message: ", e$message, "\n")
+              }
+            )
+          
+            # Embed the PDF file
+            cat("<embed src='", basename(pdf_file), "' type='application/pdf' width='120%' height='650px'>\n\n")
+            cat("<br><br>")  # Add two line breaks
+            cat("<hr>")  # Add a horizontal rule
+            cat("\n\n")  # Add two paragraph breaks
+          }
+        }
+      }
+
+      # Recursively create the hierarchy for the subfolder
+      create_hierarchy(file, level + 1)
+    }
+  }
+}
+
+# Create the hierarchy
+create_hierarchy(wd)
+
+# Set the output file path
+#output_file <- "//sec-ishare.infineon.com@SSL/DavWWWRoot/sites/IFXMLANT/POM_Master_report/Reports"
+output_file <- file.path("../00_Master_html_file")
+
+# Get the name of the Rmd file
+#rmd_file <- "BGSA440AC_M6226A00-LOT_1YUS2N8M-Sort_20x_Wafer_1_25"
+rmd_file <- basename(knitr::current_input())
+rmd_file <- str_replace(rmd_file, "\\.Rmd$", "")
+#print(rmd_file)
+# Get the name of the HTML file
+html_file <- paste0(basename(rmd_file), ".html")
+
+# Move the HTML file to the output location
+#file.rename(html_file, file.path(output_file, html_file))
+
+# Copy the HTML file to the output location
+file.copy(html_file, file.path(output_file, html_file),overwrite = TRUE,copy.date = TRUE)
+
+

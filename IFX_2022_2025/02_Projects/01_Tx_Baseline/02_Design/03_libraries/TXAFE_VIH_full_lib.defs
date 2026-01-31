@@ -1,0 +1,61 @@
+## To use add: 
+#INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/ads_workspaces/TXAFE_wrk/TXAFE_VIH_full_lib.defs
+
+
+## Villach Libs (full oa folder)
+
+DEFINE ART_IC_B11HFC_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_B11HFC_lib
+ASSIGN ART_IC_B11HFC_lib libMode shared
+DEFINE ART_IC_GaN_S_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_GaN_S_lib
+ASSIGN ART_IC_GaN_S_lib libMode shared
+DEFINE ART_IC_N3074A_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_N3074A_lib
+ASSIGN ART_IC_N3074A_lib libMode shared
+DEFINE ART_IC_N9500A_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_N9500A_lib
+ASSIGN ART_IC_N9500A_lib libMode shared
+DEFINE ART_IC_N9500B_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_N9500B_lib
+ASSIGN ART_IC_N9500B_lib libMode shared
+DEFINE ART_IC_N9501B_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_N9501B_lib
+ASSIGN ART_IC_N9501B_lib libMode shared
+DEFINE ART_IC_PA3G6L_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_PA3G6L_lib
+ASSIGN ART_IC_PA3G6L_lib libMode shared
+DEFINE ART_IC_R9504A_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_R9504A_lib
+ASSIGN ART_IC_R9504A_lib libMode shared
+DEFINE ART_IC_R9505A_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_R9505A_lib
+ASSIGN ART_IC_R9505A_lib libMode shared
+DEFINE ART_IC_R9507A_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_R9507A_lib
+ASSIGN ART_IC_R9507A_lib libMode shared
+DEFINE ART_IC_T9501A_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_T9501A_lib
+ASSIGN ART_IC_T9501A_lib libMode shared
+DEFINE ART_IC_T9502A_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_T9502A_lib
+ASSIGN ART_IC_T9502A_lib libMode shared
+DEFINE ART_IC_T9507B_lib /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/ART_IC_T9507B_lib
+ASSIGN ART_IC_T9507B_lib libMode shared
+
+## Villach PDKs
+
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/IC_B11HFC/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/IC_GaN_S/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/IC_LD8C/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/IFXGaN_DesignKit/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/IFX_LD8C50R_IPD_dk_v0/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/IFX_Laminate_lgit_L5_322um_v1_dk_Library/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/IFX_Laminate_v0_PCB_dk_Library/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/IFX_Laminate_v0_dk_Library/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/IFX_Murata_v0/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/IFX_SMT_lgit_L5_322um_v1/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/IFX_SMT_v0/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/Module_Package_lgit_L5_322um_v1/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/PA_S_8W_3G5/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/Pre_PA_B11_3G5/lib.defs
+INCLUDE /home/mod_00/Freeman_legacy/cliosoft/cliosoft.$LOGNAME.default/units/top_Freeman_legacy/oa/b11hfc/lib.defs
+
+
+## Additional Design kits (included in TXAFE_pub_lib.defs from Munich)
+
+# Murata models
+INCLUDE /home/mod_00/subprj_common_files/nodm/default/units/model_file_pdks/Murata_lib_2021_06e/muRataLibWeb_EIA/lib.defs
+# Modelithics
+INCLUDE /opt/Modelithics/21.0/Library/MDLX_CLR_dk_Library/lib.defs
+INCLUDE /opt/Modelithics/21.0/Library/MDLX_SELECT_dk_Library/lib.defs
+INCLUDE /opt/Modelithics/21.0/Library/MDLX_Sub_dk_Library/lib.defs
+
