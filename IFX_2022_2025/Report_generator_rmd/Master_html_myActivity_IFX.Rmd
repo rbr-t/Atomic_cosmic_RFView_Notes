@@ -1,0 +1,180 @@
+---
+title: "<div class='title'><img src='logo.png' style='float:left; width:75px; height:35px; margin-right: 20px;'><span style='font-size: 26px'>My overview @ Infineon </span></div>"
+output:
+  #bookdown::gitbook:
+html_document:
+#toc: true
+#toc_float: true
+#toc_depth: 6
+theme: yeti
+css: [styles.css, bootstrapMint.css]
+editable: TRUE
+---
+
+```{r, echo = FALSE, eval=TRUE, cache=FALSE}
+suppressWarnings(library(htmltools))
+suppressWarnings(library(knitr))
+#suppressWarnings(library(here))
+
+# Load the necessary libraries
+#library(here)
+library(htmltools)
+library(knitr)
+
+
+
+# Define the directory path
+#dir_path <- file.path(getwd(), "Reports")
+
+dir_path <- "../00_Master_html_file"
+
+
+# Get the list of files in the directory
+file_list <- dir(dir_path, pattern = "*.html", full.names = TRUE)
+#print(file_list)
+# Create a list to store the hierarchical structure
+hierarchy <- list()
+
+# Loop through each file and create the hierarchical structure
+for (file in file_list) {
+# Extract the file name without the path
+file_name <- basename(file)
+
+# Split the file name into components using "-" as the separator
+components <- strsplit(file_name, "-")[[1]]
+#print(components)
+#print(components)
+# Create a nested list to represent the hierarchical structure
+product_id <- components[1]
+lot_id <- components[2]
+#wafer_id <- paste(components[3], components[4], sep = "-")
+wafer_id <- paste(components[3])
+
+hierarchy[[product_id]][[lot_id]][[wafer_id]] <- file
+
+}
+
+#library(urltools)
+# Define the CSS for floating TOC
+css <- "
+.float-toc {
+  position: float;
+  top: 10px;
+  left: 10px;
+  background-color: #F8F8FF;
+  padding: 10px;
+  border: 1px solid #ddd;
+  width: 200px;
+}
+"
+
+# Include the CSS in your RMD
+htmltools::tags$style(css)
+
+# Your existing code wrapped in a div with the float-toc class
+toc <- htmltools::tags$div(
+  class = "float-toc",
+  htmltools::tags$h2('Company'),
+  htmltools::tags$ul(
+    lapply(names(hierarchy), function(product) {
+      htmltools::tags$li(
+        htmltools::tags$strong(product), # Changed from span to strong
+        htmltools::tags$ul(
+          lapply(names(hierarchy[[product]]), function(lot) {
+            htmltools::tags$li(
+              htmltools::tags$span(lot),
+              htmltools::tags$ul(
+                lapply(names(hierarchy[[product]][[lot]]), function(wafer) {
+                  file_path <- file.path(hierarchy[[product]][[lot]][[wafer]])
+                  file_name <- basename(file_path)
+                  #file_url <- paste0('../00_Master_html_file', file_name)
+                  htmltools::tags$li(
+                    htmltools::tags$a(
+                      #href = file_url,
+                      href = file_name,
+                      target = 'report-content',
+                      wafer
+                    )
+                  )
+                })
+              )
+            )
+          })
+        )
+      )
+    })
+  )
+)
+
+# Create a HTML widget for the report content
+report_content <- htmltools::tags$iframe(
+  id = "report-content",
+  name = "report-content",
+  src = "",
+  style = "width: 225%; height: 100vh; border: none; overflow: visible; margin-left: 0%;",
+  frameborder = "0"
+)
+
+
+# Create a button to toggle the TOC
+toc_toggle_button <- htmltools::tags$button(
+  id = "toc-toggle-button",
+  class = "btn btn-primary",
+  "TOC"
+)
+
+# Add the button to the main content
+main_content <- htmltools::tags$html(
+  htmltools::tags$head(),
+  htmltools::tags$body(
+    htmltools::tags$div(
+      style = "display: flex; flex-direction: row;",
+      toc_toggle_button,
+      htmltools::tags$div(
+        id = "toc-container",
+        style = "float:left; width: 30%;",
+        toc
+      ),
+      htmltools::tags$div(
+        style = "float:left; width: 200%;",
+        report_content
+      )
+    )
+  )
+)
+
+# Add JavaScript code to toggle the TOC
+main_content <- htmltools::tags$html(
+  htmltools::tags$head(),
+  htmltools::tags$body(
+    htmltools::tags$div(
+      style = "display: flex; flex-direction: row;",
+      toc_toggle_button,
+      htmltools::tags$div(
+        id = "toc-container",
+        style = "float:left; width: 30%;",
+        toc
+      ),
+      htmltools::tags$div(
+        style = "float:left; width: 250%;",
+        report_content
+      )
+    ),
+    htmltools::tags$script(
+      "document.getElementById('toc-toggle-button').addEventListener('click', function() {
+        var tocContainer = document.getElementById('toc-container');
+        if (tocContainer.style.display === 'none') {
+          tocContainer.style.display = 'block';
+        } else {
+          tocContainer.style.display = 'none';
+        }
+      });"
+    )
+  )
+)
+
+# Create a HTML widget for the entire page
+page <- main_content
+
+# Knit the page to HTML
+knit_print(page, format = "html")
