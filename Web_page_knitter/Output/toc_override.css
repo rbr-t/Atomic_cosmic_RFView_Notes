@@ -1,0 +1,31 @@
+/* Force floating TOC visibility above all app elements */
+.tocify-wrapper, .tocify, .tocify-list, .tocify li, #TOC, .toc, .tocify-header {
+  position: fixed !important;
+  top: 100px !important;
+  right: 20px !important;
+  max-width: 350px !important;
+  z-index: 999999 !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+  padding: 10px 15px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: auto !important;
+  border: 1px solid #ddd !important;
+}
+
+/* Ensure links are clickable and visible */
+.tocify a, .toc a, .tocify-list a, #TOC a {
+  color: #333 !important;
+  pointer-events: auto !important;
+  text-decoration: none !important;
+}
+
+/* Prevent app sidebars from overlapping */
+.right-sidebar, .sidebar-panel { z-index: 1500 !important; }
+
+/* Avoid clipping by parent containers */
+html, body, .container, .content, .main, iframe, .row, .col {
+  overflow: visible !important;
+}

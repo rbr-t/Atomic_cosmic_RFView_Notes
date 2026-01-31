@@ -1,0 +1,656 @@
+---
+title: |
+  <div class='title'>
+    <img src='`r params$logo`' 
+         style='float:left; 
+                width:`r params$logo_width`px; 
+                height:`r params$logo_height`px; 
+                margin-right: 20px;'>
+    <span style='font-size: 30px'>`r params$title`</span>
+  </div>
+author: "`r params$author`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+params:
+  title: "Default Title"
+  author: "Default Author"
+  logo: "www/logo.png" # Default logo path
+  logo_width: 75       # Default width in px
+  logo_height: 35      # Default height in px
+  original_src_path: ""
+  converted_src_path: ""
+  original_dstn_path: ""
+  converted_dstn_path: ""
+---
+
+
+```{r setup, include=FALSE}
+## Global options
+#knitr::opts_chunk$set(cache = TRUE)
+library(here)
+library(rmarkdown)
+library(knitr)
+library(readxl)
+library(gt)
+#library(officer)
+library(xml2)
+library(gtExtras)
+library(dplyr)
+library(readr)
+#library(xlsx)
+library(openxlsx)
+library(janitor)
+library(stringr)
+library(htmltools)
+library(pdftools)
+#library(RDCOMClient)
+library(pandoc)
+library(doconv)
+library(emld)
+library(markdown)
+library(jsonlite)
+library(digest) # For creating unique IDs for notes
+
+# Helper function to create notes box
+create_notes_box <- function(file_path, display_name) {
+  # Create unique ID from file path using MD5 hash
+  doc_id <- digest::digest(file_path, algo = "md5", serialize = FALSE)
+  
+  # Create HTML for notes box
+  notes_html <- sprintf('
+<div class="document-notes-container" style="margin: 20px 0; border: 2px solid #4CAF50; border-radius: 8px; overflow: hidden;">
+  <div class="notes-header" style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: white; padding: 10px 15px; font-weight: bold; cursor: pointer;" onclick="toggleNotes(\'%s\')">
+    <span style="font-size: 16px;">📝 Questions & Observations for: %s</span>
+    <span id="toggle-icon-%s" style="float: right;">▼</span>
+  </div>
+  <div id="notes-content-%s" class="notes-content" style="padding: 15px; background: #f9f9f9; display: block;">
+    <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+      <em>Use this space to record questions, key observations, or summaries about this document. 
+      Your notes are saved automatically in your browser.</em>
+    </p>
+    <textarea id="notes-textarea-%s" 
+              rows="6" 
+              placeholder="Enter your questions and observations here..."
+              style="width: 100%%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 14px; resize: vertical;"
+              onchange="saveNotes(\'%s\')"></textarea>
+    <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+      <button onclick="saveNotes(\'%s\')" 
+              style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+        💾 Save Notes
+      </button>
+      <button onclick="clearNotes(\'%s\')" 
+              style="padding: 8px 16px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+        🗑️ Clear Notes
+      </button>
+      <button onclick="exportNotes(\'%s\', \'%s\')" 
+              style="padding: 8px 16px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+        📥 Export Notes
+      </button>
+      <span id="save-status-%s" style="color: #4CAF50; font-size: 13px; margin-left: 10px;"></span>
+    </div>
+  </div>
+</div>
+', doc_id, display_name, doc_id, doc_id, doc_id, doc_id, doc_id, doc_id, doc_id, display_name, doc_id)
+  
+  return(notes_html)
+}
+
+```
+
+```{r Sticky_header, echo=FALSE}
+suppressWarnings({
+  library(htmltools)
+  library(rmarkdown)
+})
+
+# Use params$title directly (use fully qualified tags to avoid missing 'tags')
+htmltools::tags$div(class = "sticky-header",
+  htmltools::tags$h2(if (is.null(params$title) || params$title == "") "Report" else params$title)
+)
+```
+
+
+```{r, results='asis', echo=FALSE, cache = FALSE, cache.path=here(), cache.lazy=FALSE}
+knitr::opts_chunk$set(cache = FALSE)
+# Get the current working directory
+#source("app.R")
+
+src_path <- params$converted_src_path
+dstn_path <- params$converted_dstn_path
+
+# Helper to process a single file (same logic as original, extracted for reuse)
+process_file <- function(folder_file, level) {
+  # guard
+  if (!file.exists(folder_file) || file.info(folder_file)$isdir) return()
+
+  file_ext <- tolower(tools::file_ext(folder_file))
+  file_basename <- basename(folder_file)
+  display_name <- gsub("^[0-9]+_", "", file_basename)
+
+  # Images
+  if (file_ext %in% c("png", "jpg", "jpeg", "gif", "bmp")) {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n")
+    cat("![", file_basename, "](", gsub("\\\\", "/", folder_file), ")\n\n")
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+ # Tables (csv, xlsx, xls, txt)
+  if (file_ext %in% c("csv", "xlsx", "xls", "txt")) {
+
+   safe_read_table <- function(path, ext) {
+      tbl <- tryCatch({
+        if (ext == "csv") {
+          read.csv2(path, skipNul = TRUE, na.strings = "NA",
+                    stringsAsFactors = FALSE, sep = ";", fileEncoding = "UTF-8")
+        } else if (ext %in% c("xlsx", "xls")) {
+          openxlsx::read.xlsx(path, detectDates = TRUE, colNames = TRUE)
+        } else if (ext == "txt") {
+          read.delim(path, skipNul = TRUE, stringsAsFactors = FALSE, fileEncoding = "Latin-1")
+        } else {
+          NULL
+        }
+      }, error = function(e) {
+        warning("Error reading table file: ", path, " : ", e$message)
+        NULL
+      })
+
+      if (is.null(tbl)) return(NULL)
+
+      # Coerce atomic/matrix/list to data.frame safely
+      if (is.atomic(tbl)) {
+        tbl <- data.frame(V1 = tbl, stringsAsFactors = FALSE)
+      } else if (is.matrix(tbl)) {
+        tbl <- as.data.frame(tbl, stringsAsFactors = FALSE)
+      } else if (!is.data.frame(tbl)) {
+        # attempt best-effort coercion
+        tbl <- tryCatch(as.data.frame(tbl, stringsAsFactors = FALSE), error = function(e) NULL)
+      }
+
+      if (is.null(tbl)) return(NULL)
+
+      # Ensure column names exist and are not empty
+      if (is.null(colnames(tbl))) colnames(tbl) <- paste0("V", seq_len(ncol(tbl)))
+      empty_names <- which(nchar(trimws(colnames(tbl))) == 0)
+      if (length(empty_names) > 0) {
+        colnames(tbl)[empty_names] <- paste0("V", empty_names)
+      }
+
+      tbl
+    }
+
+    table_data <- safe_read_table(folder_file, file_ext)
+
+    if (is.null(table_data) || !is.data.frame(table_data) ||
+        nrow(table_data) == 0 || ncol(table_data) == 0) {
+      warning("File is empty or could not be parsed as a table: ", folder_file)
+      return()
+    }
+
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n")
+    table_data[] <- lapply(table_data, type.convert, as.is = TRUE)
+    table_data <- as.data.frame(table_data, stringsAsFactors = FALSE)
+    table_data <- table_data[, !(vapply(table_data, function(col) all(is.na(col)), logical(1)))]
+
+    # replace any blank column names remaining
+    cn <- colnames(table_data)
+    cn[nchar(trimws(cn)) == 0] <- paste0("V", which(nchar(trimws(cn)) == 0))
+    colnames(table_data) <- cn
+
+    tryCatch({
+      table_data %>%
+        gt() %>%
+        sub_missing(columns = everything(), missing_text = "") %>%
+        fmt_number(columns = everything(), decimals = 3, drop_trailing_dec_mark = TRUE,
+                   drop_trailing_zeros = TRUE) %>%
+        gt_theme_excel() %>%
+        print()
+    }, error = function(e) {
+      warning("Error processing table with gt: ", e$message)
+    })
+
+    cat("<style>table {width: 100%; height: auto; overflow-y: 650px; display: block;}</style>\n")
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  # PDF
+  if (file_ext == "pdf") {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    # Try to extract PDF TOC if available
+    pdf_toc <- tryCatch({ pdf_info(folder_file)$toc }, error = function(e) NULL)
+    if (!is.null(pdf_toc) && length(pdf_toc) > 0) {
+      for (i in seq_along(pdf_toc)) {
+        cat(paste(rep("#", level + 2), collapse = ""), " ", pdf_toc[[i]]$title, "\n")
+      }
+    }
+    cat("<embed src='", gsub("\\\\", "/", folder_file), "' type='application/pdf' width='100%' height='650px'>\n\n")
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  # HTML
+  if (file_ext == "html" || file_ext == "htm") {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    cat("<iframe src='", gsub("\\\\", "/", folder_file), "' width='100%' height='800px' frameborder='0'></iframe>\n\n")
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+    # Word (docx) - try multiple converters (soffice, RDCOMClient on Windows, pandoc) and embed PDF if produced
+  if (file_ext == "docx") {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    pdf_target <- file.path(dirname(folder_file), paste0(tools::file_path_sans_ext(basename(folder_file)), ".pdf"))
+
+    if (!file.exists(pdf_target)) {
+      # 1) Try LibreOffice / soffice
+      soffice <- Sys.which("soffice")
+      if (nzchar(soffice)) {
+        conv_cmd <- sprintf('%s --headless --convert-to pdf --outdir "%s" "%s"',
+                            soffice, dirname(folder_file), folder_file)
+        tryCatch(system(conv_cmd, intern = TRUE, ignore.stderr = TRUE), error = function(e) NULL)
+      }
+    }
+
+    if (!file.exists(pdf_target) && .Platform$OS.type == "windows") {
+      # 2) Try MS Office via RDCOMClient on Windows (best-effort)
+      if (requireNamespace("RDCOMClient", quietly = TRUE)) {
+        tryCatch({
+          wordApp <- RDCOMClient::COMCreate("Word.Application")
+          wordApp[["Visible"]] <- FALSE
+          doc <- wordApp[["Documents"]]$Open(normalizePath(folder_file))
+          # 17 is wdFormatPDF
+          doc$SaveAs(normalizePath(pdf_target), 17)
+          doc$Close(FALSE)
+          wordApp$Quit()
+        }, error = function(e) {
+          try({ wordApp$Quit() }, silent = TRUE)
+          NULL
+        })
+      }
+    }
+
+    if (!file.exists(pdf_target)) {
+      # 3) Try pandoc (requires LaTeX for PDF output)
+      pandoc <- Sys.which("pandoc")
+      if (nzchar(pandoc)) {
+        tryCatch({
+          system2(pandoc, args = c(shQuote(folder_file), "-o", shQuote(pdf_target)), stdout = FALSE, stderr = FALSE)
+        }, error = function(e) NULL)
+      }
+    }
+
+    # Embed PDF if available, otherwise fallback to download + online viewer iframe
+    if (file.exists(pdf_target)) {
+      cat("<embed src='", gsub("\\\\", "/", pdf_target), "' type='application/pdf' width='100%' height='650px'>\n\n")
+    } else {
+      cat("<p>Download Word document: <a href='", gsub("\\\\", "/", folder_file),
+          "' download>", display_name, "</a></p>\n\n")
+      office_viewer <- paste0("https://view.officeapps.live.com/op/embed.aspx?src=", URLencode(gsub("\\\\", "/", folder_file)))
+      cat("<p>Online viewer (if file is publicly accessible):</p>\n")
+      cat("<iframe src='", office_viewer, "' width='100%' height='650px' frameborder='0'></iframe>\n\n")
+    }
+    cat(create_notes_box(folder_file, display_name))    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  # Video
+  if (file_ext %in% c("mp4", "webm", "ogg","3gp","flv","mkv")) {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    cat(sprintf(
+      "<video width='640' height='360' controls>\n  <source src='%s' type='video/%s'>\n  Your browser does not support the video tag.\n</video>\n\n",
+      gsub("\\\\", "/", folder_file), file_ext
+    ))
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  # Audio
+  if (file_ext %in% c("mp3", "wav", "oga", "ogg")) {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    cat(sprintf(
+      "<audio controls>\n  <source src='%s' type='audio/%s'>\n  Your browser does not support the audio element.\n</audio>\n\n",
+      gsub("\\\\", "/", folder_file), file_ext
+    ))
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  # Archives
+  if (file_ext %in% c("zip", "tar", "gz")) {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    cat(sprintf("<a href='%s' download='%s'>Download archive</a>\n\n",
+                gsub("\\\\", "/", folder_file), display_name))
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  # Markdown
+  if (file_ext == "md") {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    md_html <- tryCatch({ markdown::markdownToHTML(folder_file, fragment.only = TRUE) },
+                        error = function(e) paste("<pre>Error rendering markdown: ", e$message, "</pre>"))
+    cat(md_html, "\n\n")
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  # R / Rmd - show code and download link
+  if (file_ext %in% c("r", "rmd")) {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    code <- tryCatch({ paste(readLines(folder_file), collapse = "\n") }, error = function(e) paste("# Error reading file:", e$message))
+    cat("<pre style='background:#f8f8f8;border:1px solid #ccc;padding:10px;'>", htmltools::htmlEscape(code), "</pre>\n")
+    cat(sprintf("<a href='%s' download='%s'>Download script</a>\n\n", gsub("\\\\", "/", folder_file), display_name))
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  # JSON
+  if (file_ext == "json") {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    json_txt <- tryCatch({ jsonlite::prettify(paste(readLines(folder_file), collapse = "\n")) },
+                         error = function(e) paste("{\"error\":\"", e$message, "\"}"))
+    cat("<pre style='background:#f8f8f8;border:1px solid #ccc;padding:10px;'>", htmltools::htmlEscape(json_txt), "</pre>\n")
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  # XML
+  if (file_ext == "xml") {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    xml_txt <- tryCatch({ xml2::as_character(xml2::read_xml(folder_file)) }, error = function(e) paste("<error>", e$message, "</error>"))
+    cat("<pre style='background:#f8f8f8;border:1px solid #ccc;padding:10px;'>", htmltools::htmlEscape(xml_txt), "</pre>\n")
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+    # Email files (eml/msg)
+  if (file_ext == "eml") {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    # Try to parse and display .eml content
+    email_html <- tryCatch({
+      eml_obj <- emld::read_eml(folder_file)
+      subject <- eml_obj$header$subject %||% ""
+      from <- eml_obj$header$from %||% ""
+      to <- eml_obj$header$to %||% ""
+      body <- eml_obj$body %||% ""
+      cat("<b>Subject:</b> ", htmltools::htmlEscape(subject), "<br>")
+      cat("<b>From:</b> ", htmltools::htmlEscape(from), "<br>")
+      cat("<b>To:</b> ", htmltools::htmlEscape(to), "<br>")
+      cat("<hr>")
+      cat("<pre style='background:#f8f8f8;border:1px solid #ccc;padding:10px;'>", htmltools::htmlEscape(body), "</pre>")
+      NULL
+    }, error = function(e) {
+      NULL
+    })
+    if (is.null(email_html)) {
+      cat(sprintf("<a href='%s' download='%s'>Download email file</a>\n\n", gsub("\\\\", "/", folder_file), display_name))
+    }
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  if (file_ext == "msg") {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    # Try to parse .msg using RDCOMClient (Windows only)
+    msg_html <- NULL
+    if (.Platform$OS.type == "windows" && requireNamespace("RDCOMClient", quietly = TRUE)) {
+      msg_html <- tryCatch({
+        outlook <- RDCOMClient::COMCreate("Outlook.Application")
+        mail <- outlook$Session$OpenSharedItem(normalizePath(folder_file))
+        subject <- mail[["Subject"]]
+        from <- mail[["SenderName"]]
+        to <- mail[["To"]]
+        body <- mail[["Body"]]
+        cat("<b>Subject:</b> ", htmltools::htmlEscape(subject), "<br>")
+        cat("<b>From:</b> ", htmltools::htmlEscape(from), "<br>")
+        cat("<b>To:</b> ", htmltools::htmlEscape(to), "<br>")
+        cat("<hr>")
+        cat("<pre style='background:#f8f8f8;border:1px solid #ccc;padding:10px;'>", htmltools::htmlEscape(body), "</pre>")
+        mail$Close(0)
+        outlook$Quit()
+        NULL
+      }, error = function(e) {
+        NULL
+      })
+    }
+    if (is.null(msg_html)) {
+      cat(sprintf("<a href='%s' download='%s'>Download email file</a>\n\n", gsub("\\\\", "/", folder_file), display_name))
+    }
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  # PPTX - try LibreOffice conversion first, then MS PowerPoint COM on Windows; embed PDF if produced
+  if (file_ext %in% c("pptx", "ppt")) {
+    cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+    pdf_target <- file.path(dirname(folder_file), paste0(tools::file_path_sans_ext(basename(folder_file)), ".pdf"))
+
+    if (!file.exists(pdf_target)) {
+      # 1) LibreOffice
+      soffice <- Sys.which("soffice")
+      if (nzchar(soffice)) {
+        conv_cmd <- sprintf('%s --headless --convert-to pdf --outdir "%s" "%s"',
+                            soffice, dirname(folder_file), folder_file)
+        tryCatch(system(conv_cmd, intern = TRUE, ignore.stderr = TRUE), error = function(e) NULL)
+      }
+    }
+
+    if (!file.exists(pdf_target) && .Platform$OS.type == "windows") {
+      # 2) PowerPoint COM via RDCOMClient
+      if (requireNamespace("RDCOMClient", quietly = TRUE)) {
+        tryCatch({
+          pptApp <- RDCOMClient::COMCreate("PowerPoint.Application")
+          # Open with WithWindow = FALSE where supported
+          pres <- pptApp[["Presentations"]]$Open(normalizePath(folder_file), WithWindow = FALSE)
+          # 32 is ppSaveAsPDF
+          pres$SaveAs(normalizePath(pdf_target), 32)
+          pres$Close()
+          pptApp$Quit()
+        }, error = function(e) {
+          try({ pptApp$Quit() }, silent = TRUE)
+          NULL
+        })
+      }
+    }
+
+    # If still no pdf, fall back to an Office Online embed or download link
+    if (file.exists(pdf_target)) {
+      cat("<embed src='", gsub("\\\\", "/", pdf_target), "' type='application/pdf' width='100%' height='650px'>\n\n")
+    } else {
+      cat(sprintf("<a href='%s' download='%s'>Download presentation</a>\n\n", gsub("\\\\", "/", folder_file), display_name))
+      office_viewer <- paste0("https://view.officeapps.live.com/op/embed.aspx?src=", URLencode(gsub("\\\\", "/", folder_file)))
+      cat("<p>Online viewer (if file is publicly accessible):</p>\n")
+      cat("<iframe src='", office_viewer, "' width='100%' height='650px' frameborder='0'></iframe>\n\n")
+    }
+
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
+    return()
+  }
+
+  # Default: provide a download link
+  cat(paste(rep("#", level + 1), collapse = ""), " ", display_name, "\n\n")
+  cat(sprintf("<a href='%s' download='%s'>Download file</a>\n\n", gsub("\\\\", "/", folder_file), display_name))
+  cat(create_notes_box(folder_file, display_name))
+  cat("<br><br>\n<hr>\n\n")
+}
+
+# create_hierarchy: process files in current directory first, then recurse into subdirectories
+create_hierarchy <- function(path, level = 1) {
+  if (!dir.exists(path)) return()
+
+  # 1) Process files in the current folder
+  files <- list.files(path, full.names = TRUE, recursive = FALSE)
+  for (f in files) {
+    if (!file.info(f)$isdir) {
+      process_file(f, level)
+    }
+  }
+
+  # 2) Recurse into immediate subdirectories (preserve hierarchy)
+  subdirs <- list.dirs(path, full.names = TRUE, recursive = FALSE)
+  for (d in subdirs) {
+    folder_name <- basename(d)
+    folder_name <- gsub("^[0-9]+_", "", folder_name)
+    cat(paste(rep("#", level), collapse = ""), " ", folder_name, "\n")
+    # Process files and nested subfolders within this subdir
+    create_hierarchy(d, level + 1)
+  }
+}
+
+# start
+create_hierarchy(src_path)
+```
+
+```{js notes-javascript, echo=FALSE}
+// Notes Management JavaScript
+
+// Load notes from localStorage when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  loadAllNotes();
+});
+
+// Load all notes from localStorage
+function loadAllNotes() {
+  const textareas = document.querySelectorAll('[id^="notes-textarea-"]');
+  textareas.forEach(textarea => {
+    const docId = textarea.id.replace('notes-textarea-', '');
+    const savedNotes = localStorage.getItem('doc-notes-' + docId);
+    if (savedNotes) {
+      textarea.value = savedNotes;
+    }
+  });
+}
+
+// Save notes to localStorage
+function saveNotes(docId) {
+  const textarea = document.getElementById('notes-textarea-' + docId);
+  const statusSpan = document.getElementById('save-status-' + docId);
+  
+  if (textarea) {
+    localStorage.setItem('doc-notes-' + docId, textarea.value);
+    
+    // Show save confirmation
+    if (statusSpan) {
+      statusSpan.textContent = '✓ Saved!';
+      statusSpan.style.color = '#4CAF50';
+      setTimeout(() => {
+        statusSpan.textContent = '';
+      }, 2000);
+    }
+  }
+}
+
+// Clear notes
+function clearNotes(docId) {
+  if (confirm('Are you sure you want to clear these notes? This cannot be undone.')) {
+    const textarea = document.getElementById('notes-textarea-' + docId);
+    const statusSpan = document.getElementById('save-status-' + docId);
+    
+    if (textarea) {
+      textarea.value = '';
+      localStorage.removeItem('doc-notes-' + docId);
+      
+      if (statusSpan) {
+        statusSpan.textContent = '✓ Cleared!';
+        statusSpan.style.color = '#f44336';
+        setTimeout(() => {
+          statusSpan.textContent = '';
+        }, 2000);
+      }
+    }
+  }
+}
+
+// Export notes as text file
+function exportNotes(docId, docName) {
+  const textarea = document.getElementById('notes-textarea-' + docId);
+  if (textarea && textarea.value) {
+    const content = 'Questions & Observations for: ' + docName + '\n\n' + textarea.value;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'notes-' + docName.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } else {
+    alert('No notes to export!');
+  }
+}
+
+// Toggle notes visibility
+function toggleNotes(docId) {
+  const content = document.getElementById('notes-content-' + docId);
+  const icon = document.getElementById('toggle-icon-' + docId);
+  
+  if (content && icon) {
+    if (content.style.display === 'none') {
+      content.style.display = 'block';
+      icon.textContent = '▼';
+    } else {
+      content.style.display = 'none';
+      icon.textContent = '►';
+    }
+  }
+}
+
+// Export all notes
+function exportAllNotes() {
+  const allNotes = [];
+  const textareas = document.querySelectorAll('[id^="notes-textarea-"]');
+  
+  textareas.forEach(textarea => {
+    if (textarea.value) {
+      const docId = textarea.id.replace('notes-textarea-', '');
+      const header = textarea.closest('.document-notes-container').querySelector('.notes-header span').textContent;
+      allNotes.push({
+        document: header.replace('📝 Questions & Observations for: ', ''),
+        notes: textarea.value
+      });
+    }
+  });
+  
+  if (allNotes.length > 0) {
+    let content = 'ALL DOCUMENT NOTES\n';
+    content += '='.repeat(50) + '\n\n';
+    
+    allNotes.forEach((item, index) => {
+      content += `Document ${index + 1}: ${item.document}\n`;
+      content += '-'.repeat(50) + '\n';
+      content += item.notes + '\n\n';
+    });
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'all-document-notes-' + new Date().toISOString().split('T')[0] + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } else {
+    alert('No notes to export!');
+  }
+}
+```

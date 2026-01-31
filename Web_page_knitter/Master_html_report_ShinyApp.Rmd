@@ -1,0 +1,208 @@
+---
+title: |
+  <div class='title'>
+    <img src='`r params$logo`' 
+         style='float:left; 
+                width:`r params$logo_width`px; 
+                height:`r params$logo_height`px; 
+                margin-right: 20px;'>
+    <span style='font-size: 30px'>`r params$title`</span>
+  </div>
+author: "`r params$author`"
+output:
+  html_document:
+params:
+  title: "Default Title"
+  author: "Default Author"
+  logo: "www/logo.png" # Default logo path
+  logo_width: 75       # Default width in px
+  logo_height: 35      # Default height in px
+  original_src_path: ""
+  converted_src_path: ""
+  original_dstn_path: ""
+  converted_dstn_path: ""
+---
+
+```{r Sticky_header, echo=FALSE}
+suppressWarnings({
+  library(htmltools)
+  library(rmarkdown)
+})
+
+# Use params$title directly
+tags$div(class = "sticky-header",
+         tags$h5(params$title)
+)
+```
+
+```{r, echo = FALSE}
+suppressWarnings(library(htmltools))
+suppressWarnings(library(knitr))
+#suppressWarnings(library(here))
+
+# Load the necessary libraries
+#library(here)
+library(htmltools)
+library(knitr)
+
+# Validate params
+if (is.null(params$converted_src_path) || params$converted_src_path == "") {
+    stop("Error: Invalid source path.")
+}
+if (is.null(params$title) || params$title == "") {
+    stop("Error: Missing report title.")
+}
+
+# Debug file list
+#print(paste("Reading files from:", params$converted_src_path))
+files_list <- list.files(params$converted_src_path, recursive = TRUE, full.names = TRUE, pattern = "\\.html$")
+if (length(files_list) == 0) {
+    stop(paste("No HTML files found in source path:", params$converted_src_path))
+}
+
+# Use the converted path for operations like file copying
+src_path <- params$converted_src_path
+dstn_path <- params$converted_dstn_path
+
+#print(params$original_src_path)
+#print(params$converted_src_path)
+
+if ((is.null(src_path)==T) || src_path == "") {
+    stop("Source path is missing or invalid.")
+} else if (!dir.exists(src_path)) {
+    stop(paste("Source path does not exist:", src_path))
+}
+
+# Get list of HTML files
+files_list <- list.files(src_path, recursive = TRUE, full.names = TRUE, pattern = "\\.html$")
+
+# Initialize hierarchy
+hierarchy <- list()
+
+# Loop through each file and create the hierarchical structure
+for (file in files_list) {
+# Extract the file name without the path
+file_name <- basename(file)
+
+# Split the file name into components using "-" as the separator
+components <- strsplit(file_name, "-")[[1]]
+if (length(components) < 3) {
+    warning(paste("Skipping file with unexpected name format:", file_name))
+    next
+}
+h1_id <- components[1]
+h2_id <- components[2]
+h3_id <- components[3]
+
+hierarchy[[h1_id]][[h2_id]][[h3_id]] <- file
+
+}
+
+#library(urltools)
+# Define the CSS for floating TOC
+css <- "
+.float-toc {
+  position: float;
+  top: 10px;
+  left: 10px;
+  background-color: #F8F8FF;
+  padding: 10px;
+  border: 1px solid #ddd;
+  width: 200px;
+}
+"
+
+# Include the CSS in your RMD
+htmltools::tags$style(css)
+
+# Generate the TOC with links using the original source path
+toc <- htmltools::tags$div(
+  class = "float-toc",
+  htmltools::tags$h2(params$title),
+  htmltools::tags$ul(
+    lapply(names(hierarchy), function(h1) {
+      htmltools::tags$li(
+        htmltools::tags$strong(h1),
+        htmltools::tags$ul(
+          lapply(names(hierarchy[[h1]]), function(h2) {
+            htmltools::tags$li(
+              htmltools::tags$span(h2),
+              htmltools::tags$ul(
+                lapply(names(hierarchy[[h1]][[h2]]), function(h3) {
+                  file_path <- file.path(hierarchy[[h1]][[h2]][[h3]])
+                  file_name <- basename(file_path)
+                  # Construct the file URL using the original source path
+                  file_url <- paste0(params$original_src_path, "/", file_name) 
+                  #print(paste("File URL:", file_url)) # Debugging
+                  htmltools::tags$li(
+                    htmltools::tags$a(
+                      href = file_url,
+                      target = 'report-content',
+                      h3
+                    )
+                  )
+                })
+              )
+            )
+          })
+        )
+      )
+    })
+  )
+)
+
+
+# Create a HTML widget for the report content
+report_content <- htmltools::tags$iframe(
+  id = "report-content",
+  name = "report-content",
+  src = "",
+  style = "width: 225%; height: 100vh; border: none; overflow: visible; margin-left: 0%;",
+  frameborder = "0"
+)
+
+
+# Create a button to toggle the TOC
+toc_toggle_button <- htmltools::tags$button(
+  id = "toc-toggle-button",
+  class = "btn btn-primary",
+  "TOC"
+)
+
+
+
+# Add JavaScript code to toggle the TOC
+main_content <- htmltools::tags$html(
+  htmltools::tags$head(),
+  htmltools::tags$body(
+    htmltools::tags$div(
+      style = "display: flex; flex-direction: row;",
+      toc_toggle_button,
+      htmltools::tags$div(
+        id = "toc-container",
+        style = "float:left; width: 30%;",
+        toc
+      ),
+      htmltools::tags$div(
+        style = "float:left; width: 250%;",
+        report_content
+      )
+    ),
+    htmltools::tags$script(
+      "document.getElementById('toc-toggle-button').addEventListener('click', function() {
+        var tocContainer = document.getElementById('toc-container');
+        if (tocContainer.style.display === 'none') {
+          tocContainer.style.display = 'block';
+        } else {
+          tocContainer.style.display = 'none';
+        }
+      });"
+    )
+  )
+)
+
+# Create a HTML widget for the entire page
+page <- main_content
+
+# Knit the page to HTML
+knit_print(page, format = "html")

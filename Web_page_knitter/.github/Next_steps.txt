@@ -1,0 +1,27 @@
+Next steps:
+    1. Knit files in a folder to a web-page view 
+    2. Summarize files to suit different overview formats
+    3. Assign key-words, prepare and attach metadata
+        a. Ability to connect and chat about the generated reports with LLMs
+        b. security strategy and implementation especially while chatting with LLMs
+        c. Ability to re-arrange the toc based on keywords or workflows
+        d. Ability to edit files from the web-page
+    4. Generate work flow and prompts for indivudual reports/files
+    5. Identifiy commonolities, use the toc as big pictrue to define common goal
+    6. Generate master workflow and link to indivudual workflows
+    7. Define goals for app development
+        a. structure
+        b. functionality
+        c. data Management
+        d. UI elements definition
+        e. Scale & speed
+    8. Generate detailed prompts for the app development
+        a. Organize promts for use/re-use with appropirate searchable keywords
+        b. Store prompts in a structured format for future use (prompt library)
+    9. Generate app code using appropriate LLM
+        a. Use of workflows, models and agents
+    10. Test strategy and automated testing of the app and documentation
+    11. How to reuse apply methodology for other applications.
+    12. Master app/workspae which acts as a library of inidvudual apps and shares resources for efficiency.
+    13. Machine learnign and model the app process 
+    

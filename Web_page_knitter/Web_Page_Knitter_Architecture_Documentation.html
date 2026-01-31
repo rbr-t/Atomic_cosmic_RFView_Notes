@@ -1,0 +1,2227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web-page-knitter - Architecture Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2196F3 0%, #0366d6 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .date {
+            margin-top: 10px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        /* Tab Navigation */
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            background-color: #f4f4f4;
+            border-bottom: 3px solid #2196F3;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .tab-button {
+            background-color: #e0e0e0;
+            border: none;
+            padding: 15px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .tab-button:hover {
+            background-color: #d0d0d0;
+        }
+        
+        .tab-button.active {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+            animation: fadeIn 0.3s;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Headings */
+        h1 {
+            color: #0366d6;
+            border-bottom: 3px solid #0366d6;
+            padding-bottom: 10px;
+            margin: 30px 0 20px 0;
+        }
+        
+        h2 {
+            color: #2196F3;
+            border-bottom: 2px solid #2196F3;
+            padding-bottom: 8px;
+            margin: 30px 0 15px 0;
+        }
+        
+        h3 {
+            color: #666;
+            margin: 20px 0 10px 0;
+        }
+        
+        /* Info Boxes */
+        .info-box, .success-box, .warning-box {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 5px solid;
+        }
+        
+        .info-box {
+            background-color: #e8f4f8;
+            border-left-color: #2196F3;
+        }
+        
+        .success-box {
+            background-color: #efffef;
+            border-left-color: #28a745;
+        }
+        
+        .warning-box {
+            background-color: #fff8e5;
+            border-left-color: #f39c12;
+        }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background-color: #2196F3;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        /* Code */
+        code {
+            background-color: #f4f4f4;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #c7254e;
+        }
+        
+        pre {
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            border-left: 4px solid #2196F3;
+        }
+        
+        pre code {
+            background: none;
+            padding: 0;
+            color: #333;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Module Cards */
+        .module-card {
+            background-color: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 25px 0;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .module-card h4 {
+            color: #2196F3;
+            margin-bottom: 15px;
+        }
+        
+        /* Lists */
+        ul, ol {
+            margin: 15px 0 15px 30px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+        
+        /* Color Legend */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .color-box {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #666;
+            border-radius: 6px;
+        }
+        
+        /* Footer */
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 30px;
+            margin-top: 50px;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            header h1 {
+                font-size: 1.5em;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab-button {
+                width: 100%;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 Web-page-knitter</h1>
+            <p>Complete Architecture Documentation</p>
+            <p class="date">app.R (1,997 lines) + 2 R Modules (243 lines) | Last Updated: January 31, 2026</p>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab(event, 'overview')">🎯 Overview</button>
+            <button class="tab-button" onclick="openTab(event, 'architecture')">🏗️ Architecture</button>
+            <button class="tab-button" onclick="openTab(event, 'modules')">📱 Modules</button>
+            <button class="tab-button" onclick="openTab(event, 'functions')">🔧 Functions</button>
+            <button class="tab-button" onclick="openTab(event, 'dataflow')">🔄 Data Flow</button>
+            <button class="tab-button" onclick="openTab(event, 'features')">✨ Features</button>
+            <button class="tab-button" onclick="openTab(event, 'tech')">💻 Tech Stack</button>
+            <button class="tab-button" onclick="openTab(event, 'filemap')">📁 File Mapping</button>
+            <button class="tab-button" onclick="openTab(event, 'update')">📝 Update Guide</button>
+        </div>
+        
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <h1>Overview</h1>
+            
+            <div class="success-box">
+                <h3>📱 App Information</h3>
+                <ul>
+                    <li><strong>Main File:</strong> app.R (1,997 lines)</li>
+                    <li><strong>R Modules:</strong> 2 files (243 lines)</li>
+                    <li><strong>Documentation:</strong> 3 comprehensive guides (1,775+ lines)</li>
+                    <li><strong>Total Code:</strong> 2,240 lines</li>
+                    <li><strong>Framework:</strong> R Shiny with Modular Architecture</li>
+                    <li><strong>Purpose:</strong> Generate interactive web reports from hierarchical folder structures</li>
+                    <li><strong>Status:</strong> Production Ready - Version 2.0 Complete ✅</li>
+                </ul>
+            </div>
+            
+            <h2>Key Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">R FILES</div>
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">Core Components</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <div class="stat-label">MODULES</div>
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">UI + Server Modules</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <div class="stat-label">FUNCTIONS</div>
+                    <div class="stat-number">15+</div>
+                    <div class="stat-label">Helper & Processing</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="stat-label">TEMPLATES</div>
+                    <div class="stat-number">12</div>
+                    <div class="stat-label">IFX + RMarkdown</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <div class="stat-label">FEATURES</div>
+                    <div class="stat-number">14</div>
+                    <div class="stat-label">New in v2.0</div>
+                </div>
+            </div>
+            
+            <h2>System Overview</h2>
+            <div class="info-box">
+                <p>Web-page-knitter is a <strong>production-ready Shiny application</strong> that provides:</p>
+                <ul>
+                    <li>✅ <strong>Smart Path Handling</strong> - Relative, absolute, Windows, iShare URL support</li>
+                    <li>✅ <strong>Path Validation</strong> - Pre-render validation with detailed error messages</li>
+                    <li>✅ <strong>Recent Paths</strong> - Automatic tracking of last 10 paths per type</li>
+                    <li>✅ <strong>IFX Integration</strong> - 10 pre-configured templates for IFX folder types</li>
+                    <li>✅ <strong>Example Configurations</strong> - Real-world examples based on IFX experience</li>
+                    <li>✅ <strong>Path Testing</strong> - Test all paths before rendering</li>
+                    <li>✅ <strong>Batch Operations</strong> - Select/deselect all sections at once</li>
+                    <li>✅ <strong>Progress Indicators</strong> - Real-time rendering progress with section counts</li>
+                    <li>✅ <strong>Profile Management</strong> - Save/load/delete configuration profiles</li>
+                    <li>✅ <strong>Multi-Format Reports</strong> - HTML, FlexDashboard, Presentations</li>
+                    <li>✅ <strong>Dynamic Sections</strong> - Add/remove sections on the fly</li>
+                    <li>✅ <strong>Interactive Chat</strong> - AI-powered assistance with Ollama/OpenAI</li>
+                </ul>
+            </div>
+            
+            <h2>Architecture Layers</h2>
+            <pre>
+┌─────────────────────────────────────────────────┐
+│         USER INTERFACE (3 Tabs)                 │
+│  Individual Reports, Master Report, Chat        │
+├─────────────────────────────────────────────────┤
+│       SERVER LOGIC (Event Handlers)             │
+│  observeEvent() handlers for user actions       │
+├─────────────────────────────────────────────────┤
+│     PROCESSING (15+ Functions)                  │
+│  Path normalization, validation, rendering      │
+├─────────────────────────────────────────────────┤
+│      DATA STORAGE (Reactive Values)             │
+│  Sections, profiles, recent paths, LLM info     │
+├─────────────────────────────────────────────────┤
+│        OUTPUTS (Dynamic Rendering)              │
+│  Report previews, dynamic sections, modals      │
+├─────────────────────────────────────────────────┤
+│      EXTERNAL INTEGRATION                       │
+│  RMarkdown, JavaScript, Ollama/OpenAI APIs      │
+└─────────────────────────────────────────────────┘
+            </pre>
+            
+            <h2>Color Coding in Diagrams</h2>
+            <div class="color-legend">
+                <div class="color-item">
+                    <div class="color-box" style="background-color: #FFE5E5;"></div>
+                    <span><strong>Red/Pink:</strong> Entry points, External files</span>
+                </div>
+                <div class="color-item">
+                    <div class="color-box" style="background-color: #E5F5FF;"></div>
+                    <span><strong>Blue:</strong> UI Components, Modules</span>
+                </div>
+                <div class="color-item">
+                    <div class="color-box" style="background-color: #FFFFE5;"></div>
+                    <span><strong>Yellow:</strong> Server Logic, Decisions</span>
+                </div>
+                <div class="color-item">
+                    <div class="color-box" style="background-color: #E5FFE5;"></div>
+                    <span><strong>Green:</strong> Functions, Processing</span>
+                </div>
+                <div class="color-item">
+                    <div class="color-box" style="background-color: #FFE5F5;"></div>
+                    <span><strong>Purple:</strong> Data Storage</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Architecture Tab -->
+        <div id="architecture" class="tab-content">
+            <h1>System Architecture</h1>
+            
+            <h2>Application Entry Point</h2>
+            <p>The application starts in <code>app.R</code> with the following initialization sequence:</p>
+            <pre><code># 1. Load Required Libraries (lines 1-7)
+library(shiny)           # Web application framework
+library(shinyjs)         # JavaScript interactions
+library(rmarkdown)       # Report generation
+library(here)            # File path management
+library(fs)              # File system operations
+library(httr)            # HTTP requests
+
+# 2. Define Helper Operator (line 9)
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
+# 3. Source Helper Functions (lines 11-560)
+copy_source_to_www()              # Copy assets to www folder
+copy_report_to_www()              # Copy rendered reports
+convert_ishare_path()             # Convert iShare URLs
+normalize_path_for_app()          # Smart path normalization
+validate_source_path()            # Path validation
+show_path_error()                 # Context-aware errors
+normalize_cross_platform_path()   # Cross-platform paths
+get_recent_paths()                # Retrieve path history
+save_recent_path()                # Save path to history
+# ... plus 6 more helper functions
+
+# 4. Source External Modules (lines 570-582)
+source(chat_module_path)          # AI chat integration
+source(ifx_module_path)           # IFX templates
+
+# 5. Define Configuration Paths (lines 584-608)
+logo_path, styles_css_path, bootstrap_css_path, etc.
+
+# 6. Create UI Structure (lines 610-820)
+reportTabUI <- function(id, toc_choices = NULL) { ... }
+
+# 7. Define Server Module (lines 822-1937)
+reportTabServer <- function(id, report_type, ...) { ... }
+
+# 8. Create Main UI (lines 1879-1915)
+ui <- navbarPage(...)
+
+# 9. Define Main Server (lines 1917-1932)
+server <- function(input, output, session) { ... }
+
+# 10. Run Application (line 1937)
+shinyApp(ui = ui, server = server)</code></pre>
+            
+            <h2>Layer 1: UI Structure</h2>
+            <div class="module-card">
+                <h3>Navigation Bar</h3>
+                <pre><code>navbarPage(
+  title = div(
+    img(src = basename(baya_weaver_path), height = "50px"),
+    "Web-page-knitter"
+  ),
+  id = "main_navbar",
+  theme = NULL,
+  ...
+)</code></pre>
+                <p><strong>Purpose:</strong> Top-level navigation with logo and app title</p>
+            </div>
+            
+            <div class="module-card">
+                <h3>Three Main Tabs</h3>
+                <ol>
+                    <li>📄 <strong>Individual Reports</strong> - Generate separate reports per section</li>
+                    <li>📑 <strong>Master Report</strong> - Generate single comprehensive report</li>
+                    <li>💬 <strong>Chat</strong> - AI-powered assistance (placeholder)</li>
+                </ol>
+            </div>
+            
+            <div class="module-card">
+                <h3>Sidebar Panel Components</h3>
+                <ul>
+                    <li><strong>Configuration Toggle</strong> - Expand/collapse settings panel</li>
+                    <li><strong>Profile Management</strong> - Save/load/delete profiles</li>
+                    <li><strong>Sticky Action Buttons</strong>:
+                        <ul>
+                            <li>Add Section +</li>
+                            <li>Render Reports</li>
+                            <li>Test All Paths</li>
+                            <li>Show Examples</li>
+                            <li>Select All (batch operation)</li>
+                            <li>Deselect All (batch operation)</li>
+                        </ul>
+                    </li>
+                    <li><strong>IFX Integration Panel</strong> - 10 pre-configured templates</li>
+                    <li><strong>Dynamic Sections</strong> - User-added report sections</li>
+                </ul>
+            </div>
+            
+            <h2>Layer 2: Server Logic</h2>
+            <div class="info-box">
+                <h3>Event-Driven Architecture</h3>
+                <p>The server uses Shiny's reactive programming model:</p>
+                <ol>
+                    <li><strong>User Action</strong> → Triggers event (button click, input change)</li>
+                    <li><strong>observeEvent()</strong> → Captures the event</li>
+                    <li><strong>Processing</strong> → Calls path normalization/validation functions</li>
+                    <li><strong>Update</strong> → Modifies reactive values (rv$sections)</li>
+                    <li><strong>Re-render</strong> → Outputs automatically update (section UI, previews)</li>
+                </ol>
+            </div>
+            
+            <h2>Layer 3: Processing Functions</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Function</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td rowspan="3"><strong>Path Handling</strong></td>
+                        <td><code>normalize_path_for_app()</code></td>
+                        <td>Convert any path format to usable absolute path</td>
+                    </tr>
+                    <tr>
+                        <td><code>normalize_cross_platform_path()</code></td>
+                        <td>Handle Windows/Unix path differences</td>
+                    </tr>
+                    <tr>
+                        <td><code>convert_ishare_path()</code></td>
+                        <td>Convert iShare URLs to local paths</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="2"><strong>Path Validation</strong></td>
+                        <td><code>validate_source_path()</code></td>
+                        <td>Comprehensive path validation with errors</td>
+                    </tr>
+                    <tr>
+                        <td><code>show_path_error()</code></td>
+                        <td>Display context-aware error messages</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="2"><strong>Recent Paths</strong></td>
+                        <td><code>get_recent_paths()</code></td>
+                        <td>Retrieve recent path history</td>
+                    </tr>
+                    <tr>
+                        <td><code>save_recent_path()</code></td>
+                        <td>Save path to history file</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="2"><strong>File Operations</strong></td>
+                        <td><code>copy_source_to_www()</code></td>
+                        <td>Copy assets to www folder</td>
+                    </tr>
+                    <tr>
+                        <td><code>copy_report_to_www()</code></td>
+                        <td>Copy rendered reports with asset rewriting</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h2>Layer 4: Data Storage</h2>
+            <div class="warning-box">
+                <h3>Reactive Values Store</h3>
+                <p>All application state is stored in reactive values:</p>
+                <pre><code>rv <- reactiveValues(
+  sections = list(),        # Section configurations
+  section_count = 0         # Counter for unique section IDs
+)
+
+llm_info <- reactiveValues(
+  model = NULL,             # Selected LLM model
+  token = NULL              # API token for external LLMs
+)
+
+last_sections_snapshot <- NULL  # For profile export</code></pre>
+                <p><strong>Why Reactive Values?</strong></p>
+                <ul>
+                    <li>✅ Single source of truth for app state</li>
+                    <li>✅ Automatic dependency tracking</li>
+                    <li>✅ Efficient re-rendering (only affected outputs update)</li>
+                    <li>✅ Easy to debug and inspect</li>
+                    <li>✅ Supports dynamic UI generation</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Modules Tab -->
+        <div id="modules" class="tab-content">
+            <h1>Modules</h1>
+            
+            <div class="success-box">
+                <p>The application consists of <strong>3 core modules</strong>, each serving a specific purpose:</p>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>File</th>
+                        <th>Purpose</th>
+                        <th>Key Features</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>1. Report Tab</strong></td>
+                        <td>app.R (lines 610-1937)</td>
+                        <td>Core report generation module with dynamic sections</td>
+                        <td>Section management, rendering, path validation, profiles</td>
+                    </tr>
+                    <tr>
+                        <td><strong>2. Chat Module</strong></td>
+                        <td>Modules/chat_module.R (68 lines)</td>
+                        <td>AI-powered assistance with Ollama/OpenAI integration</td>
+                        <td>Model selection, chat history, code extraction</td>
+                    </tr>
+                    <tr>
+                        <td><strong>3. IFX Integration</strong></td>
+                        <td>Modules/ifx_integration.R (175 lines)</td>
+                        <td>Pre-configured templates for IFX folder structure</td>
+                        <td>10 templates, auto-fill sections, purple gradient UI</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h2>Module 1: Report Tab (Main Module)</h2>
+            <div class="module-card">
+                <h3>Purpose</h3>
+                <p>Generate interactive web reports from hierarchical folder structures with smart path handling and validation</p>
+                
+                <h3>Features</h3>
+                <ol>
+                    <li><strong>Dynamic Section Management</strong> - Add/remove sections on the fly</li>
+                    <li><strong>Smart Path Handling</strong> - Relative, absolute, Windows, iShare URLs</li>
+                    <li><strong>Path Validation</strong> - Pre-render validation with detailed errors</li>
+                    <li><strong>Recent Paths</strong> - Automatic tracking with dropdown selection</li>
+                    <li><strong>Path Testing</strong> - Test all paths before rendering</li>
+                    <li><strong>Example Configurations</strong> - Show real-world examples</li>
+                    <li><strong>Batch Operations</strong> - Select/deselect all at once</li>
+                    <li><strong>Progress Indicators</strong> - Real-time rendering progress</li>
+                    <li><strong>Profile Management</strong> - Save/load/delete configurations</li>
+                    <li><strong>Multi-Format Support</strong> - HTML, FlexDashboard, Presentations</li>
+                    <li><strong>Live Preview</strong> - View rendered reports in tabs</li>
+                    <li><strong>Sidebar Toggles</strong> - Collapsible left/right sidebars</li>
+                </ol>
+                
+                <h3>Data Flow</h3>
+                <pre>User clicks "Add Section"
+  ↓
+Section UI inserted with:
+  - Recent paths dropdowns
+  - Source/destination inputs
+  - Title/author fields
+  - Logo upload
+  - Format selection
+  ↓
+User fills inputs (or selects from recent paths)
+  ↓
+User clicks "Test All Paths"
+  ↓
+validate_source_path() checks each section
+  ↓
+Modal displays validation results
+  ↓
+User clicks "Render Reports"
+  ↓
+withProgress() starts
+  ↓
+For each selected section:
+  - Normalize paths
+  - Validate source
+  - Render with rmarkdown::render()
+  - Save recent paths
+  - Copy to www/ folder
+  - Create preview tab
+  - Update progress: [N/M] Rendering: Title
+  ↓
+All sections rendered
+  ↓
+Preview tabs updated with iframes</pre>
+            </div>
+            
+            <h2>Module 2: Chat Module</h2>
+            <div class="module-card">
+                <h3>Purpose</h3>
+                <p>AI-powered assistance for report generation with support for multiple LLM backends</p>
+                
+                <h3>Features</h3>
+                <ol>
+                    <li><strong>Multiple LLM Support</strong> - Ollama (local) and OpenAI (cloud)</li>
+                    <li><strong>Model Selection</strong> - Choose from available models</li>
+                    <li><strong>Chat History</strong> - Persistent conversation thread</li>
+                    <li><strong>Code Extraction</strong> - Extract code blocks from responses</li>
+                    <li><strong>Context Awareness</strong> - Can reference report configurations</li>
+                </ol>
+                
+                <h3>LLM Integration</h3>
+                <pre>User types message in chat input
+  ↓
+Click "Send to LLM"
+  ↓
+Determine LLM type (Ollama vs OpenAI)
+  ↓
+  ├─ Ollama (Local):
+  │   POST to http://localhost:11434/api/generate
+  │   Model: tinyllama, mistral, etc.
+  │
+  └─ OpenAI (Cloud):
+      POST to https://api.openai.com/v1/chat/completions
+      Headers: Authorization: Bearer {token}
+      Model: gpt-3.5-turbo, gpt-4, etc.
+  ↓
+Parse JSON response
+  ↓
+Extract message content
+  ↓
+Display in chat history
+  ↓
+Extract code blocks (if any)
+  ↓
+User can copy/apply code</pre>
+            </div>
+            
+            <h2>Module 3: IFX Integration</h2>
+            <div class="module-card">
+                <h3>Purpose</h3>
+                <p>Quick-setup panel with pre-configured templates for IFX folder structure</p>
+                
+                <h3>Features</h3>
+                <ol>
+                    <li><strong>10 Pre-Configured Templates</strong> - One for each IFX folder type</li>
+                    <li><strong>Auto-Fill Sections</strong> - Click button to create section with paths</li>
+                    <li><strong>Purple Gradient UI</strong> - Visually distinct from main sections</li>
+                    <li><strong>Parent Integration</strong> - Interacts with parent reactive values</li>
+                    <li><strong>Conditional Display</strong> - Show/hide with checkbox</li>
+                </ol>
+                
+                <h3>Available Templates</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Template</th>
+                            <th>Folder</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Administration</td>
+                            <td>01_Administration</td>
+                            <td>HR, contracts, salary, AHM reports</td>
+                        </tr>
+                        <tr>
+                            <td>Projects</td>
+                            <td>02_Projects</td>
+                            <td>Project documentation and reports</td>
+                        </tr>
+                        <tr>
+                            <td>PRD</td>
+                            <td>03_PRD</td>
+                            <td>Performance review dialogues</td>
+                        </tr>
+                        <tr>
+                            <td>Conferences</td>
+                            <td>04_Conferences</td>
+                            <td>Conference materials and presentations</td>
+                        </tr>
+                        <tr>
+                            <td>Study Material</td>
+                            <td>05_Study_Material</td>
+                            <td>Training and study resources</td>
+                        </tr>
+                        <tr>
+                            <td>Business Trips</td>
+                            <td>06_Business_Trips</td>
+                            <td>Travel bookings and expenses</td>
+                        </tr>
+                        <tr>
+                            <td>Technical Reports</td>
+                            <td>07_Technical_reports</td>
+                            <td>Technical documentation and papers</td>
+                        </tr>
+                        <tr>
+                            <td>Competition</td>
+                            <td>08_Competition</td>
+                            <td>Market analysis and competitor reports</td>
+                        </tr>
+                        <tr>
+                            <td>Presentations</td>
+                            <td>09_My_presentations</td>
+                            <td>Personal presentations and materials</td>
+                        </tr>
+                        <tr>
+                            <td>Trainings</td>
+                            <td>10_IFX_internal_trainings</td>
+                            <td>Internal training materials</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Template Application Flow</h3>
+                <pre>User checks "Show IFX Integration"
+  ↓
+conditionalPanel displays IFX panel
+  ↓
+User clicks template button (e.g., "Administration")
+  ↓
+ifx_integration_server() triggered
+  ↓
+Increment parent rv$section_count
+  ↓
+Generate unique section_id
+  ↓
+Call updateTextInput() for:
+  - Source path: IFX_2022_2025/01_Administration/
+  - Destination: IFX_2022_2025/00_Master_html_file/
+  - Title: IFX Administration 2022-2026
+  - Author: Your Name
+  ↓
+Trigger parent observeEvent(input$add_section)
+  ↓
+New section created with pre-filled values
+  ↓
+User can edit if needed, then render</pre>
+            </div>
+        </div>
+        
+        <!-- Functions Tab -->
+        <div id="functions" class="tab-content">
+            <h1>Functions</h1>
+            
+            <div class="info-box">
+                <p>The application uses <strong>15+ helper functions</strong> organized into categories:</p>
+                <ol>
+                    <li><strong>Path Handling (5)</strong> - Normalization and conversion</li>
+                    <li><strong>Path Validation (2)</strong> - Validation and error reporting</li>
+                    <li><strong>Recent Paths (2)</strong> - History management</li>
+                    <li><strong>File Operations (3)</strong> - Copying and rendering</li>
+                    <li><strong>Utility (3+)</strong> - General helpers</li>
+                </ol>
+            </div>
+            
+            <h2>Path Handling Functions (5)</h2>
+            
+            <div class="module-card">
+                <h3>1. normalize_path_for_app(path)</h3>
+                <p><strong>Purpose:</strong> Convert any path format to usable absolute path</p>
+                <p><strong>Handles:</strong></p>
+                <ul>
+                    <li>Relative paths: <code>IFX_2022_2025/01_Administration/</code></li>
+                    <li>Absolute paths: <code>/workspaces/project/IFX_2022_2025/</code></li>
+                    <li>Windows paths: <code>C:/Users/username/project/</code></li>
+                    <li>Tilde paths: <code>~/Documents/project/</code></li>
+                    <li>iShare URLs: <code>https://apps.eu.valeo.com/ishare/...</code></li>
+                </ul>
+                <p><strong>Logic:</strong></p>
+                <pre><code>IF path is NULL or empty → RETURN NULL
+ELSE IF path starts with http/https → convert_ishare_path()
+ELSE IF path starts with ~ → expand.path()
+ELSE IF path is absolute (starts with /) → normalize
+ELSE (relative) → join with workspace root → normalize
+FINALLY → ensure trailing slash</code></pre>
+            </div>
+            
+            <div class="module-card">
+                <h3>2. normalize_cross_platform_path(path)</h3>
+                <p><strong>Purpose:</strong> Handle Windows/Unix path differences</p>
+                <p><strong>Conversions:</strong></p>
+                <ul>
+                    <li>Backslash → Forward slash: <code>C:\Users\... → C:/Users/...</code></li>
+                    <li>Remove drive letter: <code>C:/Users/... → /Users/...</code></li>
+                    <li>Normalize separators: <code>path1\path2 → path1/path2</code></li>
+                </ul>
+            </div>
+            
+            <div class="module-card">
+                <h3>3. convert_ishare_path(path)</h3>
+                <p><strong>Purpose:</strong> Convert iShare URLs to local file paths</p>
+                <p><strong>Input:</strong> <code>https://apps.eu.valeo.com/ishare/sites/...</code></p>
+                <p><strong>Output:</strong></p>
+                <pre><code>list(
+  original_path = "https://apps.eu.valeo.com/...",
+  converted_path = "/workspaces/.../path"
+)</code></pre>
+                <p><strong>Mapping:</strong></p>
+                <ul>
+                    <li><code>/sites/DE-TS-RFEngineering/...</code> → <code>/workspaces/.../</code></li>
+                    <li>Other paths → Extract folder structure from URL</li>
+                </ul>
+            </div>
+            
+            <h2>Path Validation Functions (2)</h2>
+            
+            <div class="module-card">
+                <h3>4. validate_source_path(path)</h3>
+                <p><strong>Purpose:</strong> Comprehensive path validation with detailed errors</p>
+                <p><strong>Checks:</strong></p>
+                <ol>
+                    <li>Path is not NULL or empty</li>
+                    <li>Path exists on file system</li>
+                    <li>Path is a directory (not a file)</li>
+                    <li>Path is readable</li>
+                    <li>Directory contains files</li>
+                </ol>
+                <p><strong>Returns:</strong></p>
+                <pre><code>list(
+  valid = TRUE/FALSE,
+  error = "Error message" or NULL,
+  suggestion = "Helpful suggestion" or NULL
+)</code></pre>
+                <p><strong>Example Errors:</strong></p>
+                <ul>
+                    <li><strong>Non-existent:</strong> "Source path does not exist: {path}"<br>
+                    Suggestion: "Check for typos. Available folders: ..."</li>
+                    <li><strong>Not a directory:</strong> "Source path is a file, not a directory: {path}"<br>
+                    Suggestion: "Use parent folder instead"</li>
+                    <li><strong>Not readable:</strong> "Source path exists but is not readable: {path}"<br>
+                    Suggestion: "Check permissions: chmod +r {path}"</li>
+                    <li><strong>Empty:</strong> "Source folder is empty: {path}"<br>
+                    Suggestion: "Ensure folder contains files before rendering"</li>
+                </ul>
+            </div>
+            
+            <div class="module-card">
+                <h3>5. show_path_error(section_id, title, validation_result)</h3>
+                <p><strong>Purpose:</strong> Display context-aware error notifications</p>
+                <p><strong>Format:</strong></p>
+                <pre><code>showNotification(
+  sprintf(
+    "Invalid source path for '%s':\n%s\n\nSuggestion: %s",
+    title,
+    validation_result$error,
+    validation_result$suggestion
+  ),
+  type = "error",
+  duration = 10
+)</code></pre>
+            </div>
+            
+            <h2>Recent Paths Functions (2)</h2>
+            
+            <div class="module-card">
+                <h3>6. get_recent_paths(type = "source"|"destination")</h3>
+                <p><strong>Purpose:</strong> Retrieve recent path history from JSON file</p>
+                <p><strong>Storage:</strong> <code>www/recent_paths.json</code></p>
+                <p><strong>Structure:</strong></p>
+                <pre><code>{
+  "source": [
+    "IFX_2022_2025/01_Administration/",
+    "IFX_2022_2025/02_Projects/",
+    ...
+  ],
+  "destination": [
+    "IFX_2022_2025/00_Master_html_file/",
+    ...
+  ]
+}</code></pre>
+                <p><strong>Logic:</strong></p>
+                <ul>
+                    <li>Read JSON file (create if doesn't exist)</li>
+                    <li>Extract paths for specified type</li>
+                    <li>Return last 10 unique paths</li>
+                    <li>Most recent first (LIFO order)</li>
+                </ul>
+            </div>
+            
+            <div class="module-card">
+                <h3>7. save_recent_path(path, type)</h3>
+                <p><strong>Purpose:</strong> Save path to history after successful render</p>
+                <p><strong>Logic:</strong></p>
+                <pre><code>Read existing recent_paths.json
+  ↓
+Add new path to beginning of list
+  ↓
+Remove duplicates
+  ↓
+Keep only last 10 paths
+  ↓
+Write back to JSON file</code></pre>
+                <p><strong>Called After:</strong> Successful <code>rmarkdown::render()</code></p>
+            </div>
+            
+            <h2>File Operations Functions (3)</h2>
+            
+            <div class="module-card">
+                <h3>8. copy_source_to_www(source_folder, www_folder = "www")</h3>
+                <p><strong>Purpose:</strong> Copy all source assets to www folder for serving</p>
+                <p><strong>Process:</strong></p>
+                <ol>
+                    <li>Check source folder exists</li>
+                    <li>Create www folder if needed</li>
+                    <li>List all files recursively</li>
+                    <li>Copy each file to www/</li>
+                    <li>Preserve relative structure</li>
+                </ol>
+            </div>
+            
+            <div class="module-card">
+                <h3>9. copy_report_to_www(report_path, source_folder, www_folder, verbose)</h3>
+                <p><strong>Purpose:</strong> Copy rendered report and rewrite asset links</p>
+                <p><strong>Process:</strong></p>
+                <ol>
+                    <li>Locate rendered HTML file</li>
+                    <li>Read HTML content</li>
+                    <li>Rewrite src/href attributes to point to www/</li>
+                    <li>Copy report to www/</li>
+                    <li>Copy all assets (images, CSS, JS)</li>
+                    <li>Return relative path for iframe</li>
+                </ol>
+                <p><strong>Returns:</strong> <code>"report_name.html"</code> (relative to www/)</p>
+            </div>
+            
+            <h2>Utility Functions (3+)</h2>
+            
+            <div class="module-card">
+                <h3>10. make_tab_uid(section)</h3>
+                <p><strong>Purpose:</strong> Generate unique ID for preview tabs</p>
+                <p><strong>Logic:</strong></p>
+                <pre><code>uid = digest::digest(list(
+  title = section$title,
+  source = section$source_path,
+  destination = section$destination_path,
+  timestamp = Sys.time()
+))</code></pre>
+            </div>
+            
+            <div class="module-card">
+                <h3>11. extract_plain_text(html_content, max_chars = 500)</h3>
+                <p><strong>Purpose:</strong> Extract plain text from HTML for LLM context</p>
+                <p><strong>Process:</strong></p>
+                <ol>
+                    <li>Parse HTML with xml2::read_html()</li>
+                    <li>Remove script/style tags</li>
+                    <li>Extract text content</li>
+                    <li>Collapse whitespace</li>
+                    <li>Truncate to max_chars</li>
+                </ol>
+            </div>
+            
+            <div class="module-card">
+                <h3>12. %||% (Operator)</h3>
+                <p><strong>Purpose:</strong> Null-coalescing operator (provide default value)</p>
+                <p><strong>Usage:</strong> <code>value <- input$field %||% "default"</code></p>
+                <p><strong>Definition:</strong></p>
+                <pre><code>`%||%` <- function(a, b) if (!is.null(a)) a else b</code></pre>
+            </div>
+        </div>
+        
+        <!-- Data Flow Tab -->
+        <div id="dataflow" class="tab-content">
+            <h1>Data Flow</h1>
+            
+            <h2>Data Flow Overview</h2>
+            <pre>USER INPUT → NORMALIZATION → VALIDATION → RENDERING → COPYING → PREVIEW</pre>
+            
+            <h2>Pattern 1: Adding a Section</h2>
+            <div class="info-box">
+                <h3>Flow: User Input to Section Display</h3>
+                <ol>
+                    <li><strong>Input:</strong> User clicks "Add Section +"</li>
+                    <li><strong>Trigger:</strong> <code>observeEvent(input$add_section)</code> fires</li>
+                    <li><strong>Action:</strong> Increment <code>rv$section_count</code></li>
+                    <li><strong>UI Update:</strong> <code>insertUI()</code> adds section div with:
+                        <ul>
+                            <li>Checkbox: Include this section</li>
+                            <li>Dropdown: Recent source paths</li>
+                            <li>Text input: Source folder</li>
+                            <li>Dropdown: Recent destination paths</li>
+                            <li>Text input: Destination folder</li>
+                            <li>Text input: Report title</li>
+                            <li>Text input: Author</li>
+                            <li>File input: Logo (optional)</li>
+                            <li>Numeric inputs: Logo width/height</li>
+                            <li>Dropdown: Report format</li>
+                            <li>Button: Remove Section -</li>
+                        </ul>
+                    </li>
+                    <li><strong>Observer Setup:</strong> Create local observers for:
+                        <ul>
+                            <li>Recent source path selection</li>
+                            <li>Recent destination path selection</li>
+                            <li>Remove button click</li>
+                        </ul>
+                    </li>
+                    <li><strong>Storage:</strong> Initialize section in <code>rv$sections[[section_id]]</code></li>
+                    <li><strong>Display:</strong> Section UI appears in sidebar</li>
+                </ol>
+            </div>
+            
+            <h2>Pattern 2: Rendering Reports</h2>
+            <div class="warning-box">
+                <h3>Flow: Render Button to Preview Display</h3>
+                <pre>User clicks "Render Reports"
+  ↓
+observeEvent(input$render_all_reports) fires
+  ↓
+Read all section inputs into sections_for_render
+  ↓
+withProgress("Rendering reports...", {
+  Count checked sections → sections_to_render
+  progress_step = 1 / sections_to_render
+  current_section = 0
+  
+  FOR EACH section in sections_for_render:
+    IF section$checkbox == TRUE:
+      current_section++
+      
+      1. Normalize paths:
+         original_src = section$original_source
+         converted_src = normalize_path_for_app(original_src)
+         original_dst = section$original_destination
+         converted_dst = normalize_path_for_app(original_dst)
+      
+      2. Validate inputs:
+         IF any field empty → showNotification() → SKIP
+      
+      3. Determine output options (HTML, FlexDashboard, etc.)
+      
+      4. Update progress:
+         incProgress(progress_step, 
+                    detail = "[N/M] Rendering: Title")
+      
+      5. Validate source path:
+         validation = validate_source_path(converted_src)
+         IF !validation$valid → stop() with error
+      
+      6. Validate destination:
+         normalized_dest = normalize_path_for_app(converted_dst)
+         IF NULL → stop() with error
+      
+      7. Prepare render:
+         sanitize title → report_filename
+         create_directories(destination_path)
+         copy CSS files to destination
+      
+      8. Render:
+         rmarkdown::render(
+           input = rmd_file,
+           output_file = report_filename,
+           output_dir = destination_path,
+           params = list(
+             original_src_path, converted_src_path,
+             original_dstn_path, converted_dstn_path,
+             title, author, logo, logo_width, logo_height
+           ),
+           output_format = section$format,
+           output_options = output_options
+         )
+      
+      9. Save recent paths:
+         save_recent_path(converted_src, "source")
+         save_recent_path(converted_dst, "destination")
+      
+      10. Verify render:
+          IF !file.exists(report_filepath) → stop()
+      
+      11. Copy to www:
+          iframe_src = copy_report_to_www(
+            report_path = report_filepath,
+            source_folder = converted_src,
+            www_folder = "www"
+          )
+      
+      12. Create preview tab:
+          uid = make_tab_uid(section)
+          short_uid = substr(uid, 1, 8)
+          tab_title = paste(title, short_uid)
+          close_onclick = sprintf(
+            "Shiny.setInputValue('%s', '%s', {priority:'event'})",
+            ns("close_tab"), uid
+          )
+          
+          insertTab(
+            targetId = ns("dynamic_navbar"),
+            position = "after",
+            select = FALSE,
+            tabPanel(
+              title = tagList(
+                span(tab_title),
+                actionLink(ns(paste0("close_", uid)), 
+                          icon("times"),
+                          onclick = close_onclick)
+              ),
+              value = uid,
+              tags$iframe(
+                src = iframe_src,
+                width = "100%",
+                height = "800px",
+                frameborder = "0"
+              )
+            )
+          )
+      
+      13. Show success:
+          showNotification("Rendered: Title", type = "message")
+  
+  END FOR
+})
+  ↓
+All reports rendered
+  ↓
+User sees preview tabs with rendered content</pre>
+            </div>
+            
+            <h2>Pattern 3: Recent Path Selection</h2>
+            <div class="success-box">
+                <h3>Flow: Dropdown Selection to Auto-Fill</h3>
+                <pre>User adds new section
+  ↓
+Section UI displays with recent path dropdowns
+  ↓
+Dropdowns populated with get_recent_paths()
+  ↓
+User selects path from dropdown
+  ↓
+observeEvent(input$section_N_source_recent) fires
+  ↓
+selected_path = input$section_N_source_recent
+  ↓
+IF selected_path != "" AND != "(Type or select...)":
+  updateTextInput(session, "section_N_source", 
+                  value = selected_path)
+  ↓
+Text input auto-filled with selected path
+  ↓
+User can edit if needed or use as-is</pre>
+            </div>
+            
+            <h2>Pattern 4: IFX Template Application</h2>
+            <div class="info-box">
+                <h3>Flow: Template Button to Section Creation</h3>
+                <pre>User checks "Show IFX Integration"
+  ↓
+conditionalPanel displays IFX panel
+  ↓
+User clicks template button (e.g., "Administration")
+  ↓
+observeEvent(input$ifx_apply_admin) in ifx_integration_server()
+  ↓
+1. Increment parent rv$section_count
+2. Generate section_id = paste0("section_", count)
+3. Get template config for Administration:
+     source: "IFX_2022_2025/01_Administration/"
+     destination: "IFX_2022_2025/00_Master_html_file/"
+     title: "IFX Administration 2022-2026"
+     author: "Your Name"
+     format: "rmarkdown::html_document"
+4. Update parent inputs:
+     updateTextInput(session, 
+                    ns(paste0(section_id, "_source")), 
+                    value = config$source)
+     updateTextInput(session, 
+                    ns(paste0(section_id, "_destination")), 
+                    value = config$destination)
+     updateTextInput(session, 
+                    ns(paste0(section_id, "_title")), 
+                    value = config$title)
+     updateTextInput(session, 
+                    ns(paste0(section_id, "_author")), 
+                    value = config$author)
+     updateSelectInput(session, 
+                      ns(paste0(section_id, "_format")), 
+                      selected = config$format)
+5. Trigger parent observeEvent(input$add_section)
+  ↓
+New section created with pre-filled values
+  ↓
+showNotification("Applied Administration template")
+  ↓
+User sees fully configured section ready to render</pre>
+            </div>
+            
+            <h2>Data Storage Structure</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Store</th>
+                        <th>Type</th>
+                        <th>Contents</th>
+                        <th>Persistence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>rv$sections</code></td>
+                        <td>List</td>
+                        <td>All section configurations: source_path, destination_path, title, author, logo, format, checkbox</td>
+                        <td>Session (can save to profile)</td>
+                    </tr>
+                    <tr>
+                        <td><code>rv$section_count</code></td>
+                        <td>Integer</td>
+                        <td>Counter for generating unique section IDs</td>
+                        <td>Session</td>
+                    </tr>
+                    <tr>
+                        <td><code>llm_info$model</code></td>
+                        <td>String</td>
+                        <td>Selected LLM model (tinyllama, gpt-3.5-turbo, etc.)</td>
+                        <td>Session</td>
+                    </tr>
+                    <tr>
+                        <td><code>llm_info$token</code></td>
+                        <td>String</td>
+                        <td>API token for external LLMs (OpenAI)</td>
+                        <td>Session (not in profiles)</td>
+                    </tr>
+                    <tr>
+                        <td><code>www/recent_paths.json</code></td>
+                        <td>JSON File</td>
+                        <td>Recent source and destination paths (last 10 each)</td>
+                        <td>Persistent (file)</td>
+                    </tr>
+                    <tr>
+                        <td><code>saved_profiles/</code></td>
+                        <td>Directory</td>
+                        <td>Saved configuration profiles as JSON files</td>
+                        <td>Persistent (files)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Features Tab -->
+        <div id="features" class="tab-content">
+            <h1>New Features (v2.0)</h1>
+            
+            <div class="success-box">
+                <p>Version 2.0 introduces <strong>14 major enhancements</strong> inspired by real-world usage with the IFX_2022_2025 folder structure.</p>
+            </div>
+            
+            <h2>Feature Matrix</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Feature</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Impact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>Relative Path Support</td>
+                        <td>✅ Complete</td>
+                        <td>High</td>
+                        <td>Portability across systems</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>Cross-Platform Paths</td>
+                        <td>✅ Complete</td>
+                        <td>High</td>
+                        <td>Windows/Linux compatibility</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>Recent Paths Tracking</td>
+                        <td>✅ Complete</td>
+                        <td>High</td>
+                        <td>Faster workflow</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>Better Error Messages</td>
+                        <td>✅ Complete</td>
+                        <td>High</td>
+                        <td>Easier troubleshooting</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>Example Configurations</td>
+                        <td>✅ Complete</td>
+                        <td>Medium</td>
+                        <td>User guidance</td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>Path Testing</td>
+                        <td>✅ Complete</td>
+                        <td>Medium</td>
+                        <td>Error prevention</td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td>IFX Integration</td>
+                        <td>✅ Complete</td>
+                        <td>High</td>
+                        <td>Quick setup for IFX users</td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td>Batch Operations</td>
+                        <td>✅ Complete</td>
+                        <td>Medium</td>
+                        <td>Bulk section management</td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td>Progress Indicators</td>
+                        <td>✅ Complete</td>
+                        <td>Medium</td>
+                        <td>User feedback during render</td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td>Relative Paths in Profiles</td>
+                        <td>⏳ Deferred</td>
+                        <td>Medium</td>
+                        <td>Profile portability</td>
+                    </tr>
+                    <tr>
+                        <td>11</td>
+                        <td>Master Template Enhancement</td>
+                        <td>⏳ Deferred</td>
+                        <td>Low</td>
+                        <td>Better master reports</td>
+                    </tr>
+                    <tr>
+                        <td>12</td>
+                        <td>URL Shortcut Resolver</td>
+                        <td>⏳ Deferred</td>
+                        <td>Low</td>
+                        <td>Quick path entry</td>
+                    </tr>
+                    <tr>
+                        <td>13</td>
+                        <td>Drag-and-Drop Sections</td>
+                        <td>⏳ Deferred</td>
+                        <td>Low</td>
+                        <td>Section reordering</td>
+                    </tr>
+                    <tr>
+                        <td>14</td>
+                        <td>Documentation & Tutorial</td>
+                        <td>✅ Partial</td>
+                        <td>Medium</td>
+                        <td>User onboarding</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h2>Feature Details</h2>
+            
+            <h3>✅ 1. Relative Path Support</h3>
+            <div class="module-card">
+                <p><strong>Problem:</strong> Hardcoded absolute paths break when workspace moves</p>
+                <p><strong>Solution:</strong> Smart path normalization with <code>normalize_path_for_app()</code></p>
+                <p><strong>Benefits:</strong></p>
+                <ul>
+                    <li>Works across different machines</li>
+                    <li>Portable configurations</li>
+                    <li>Version control friendly</li>
+                </ul>
+                <p><strong>Usage:</strong></p>
+                <pre><code># Instead of:
+C:/Users/username/IFX_2022_2025/01_Administration/
+
+# Use:
+IFX_2022_2025/01_Administration/</code></pre>
+            </div>
+            
+            <h3>✅ 3. Recent Paths Tracking</h3>
+            <div class="module-card">
+                <p><strong>Problem:</strong> Re-typing common paths repeatedly</p>
+                <p><strong>Solution:</strong> Automatic path history with dropdown selection</p>
+                <p><strong>Benefits:</strong></p>
+                <ul>
+                    <li>Faster section creation</li>
+                    <li>Fewer typos</li>
+                    <li>Discovers frequently used paths</li>
+                </ul>
+                <p><strong>Implementation:</strong></p>
+                <ul>
+                    <li>Stores last 10 source paths</li>
+                    <li>Stores last 10 destination paths</li>
+                    <li>Persisted in <code>www/recent_paths.json</code></li>
+                    <li>Dropdown auto-populates text inputs</li>
+                </ul>
+            </div>
+            
+            <h3>✅ 7. IFX Integration Module</h3>
+            <div class="module-card">
+                <p><strong>Problem:</strong> Manual configuration for repetitive IFX reports</p>
+                <p><strong>Solution:</strong> Pre-configured templates for all 10 IFX folder types</p>
+                <p><strong>Benefits:</strong></p>
+                <ul>
+                    <li>One-click section creation</li>
+                    <li>Consistent naming conventions</li>
+                    <li>Faster report generation</li>
+                </ul>
+                <p><strong>Templates:</strong></p>
+                <ul>
+                    <li>Administration → <code>01_Administration/</code></li>
+                    <li>Projects → <code>02_Projects/</code></li>
+                    <li>PRD → <code>03_PRD/</code></li>
+                    <li>Conferences → <code>04_Conferences/</code></li>
+                    <li>Study Material → <code>05_Study_Material/</code></li>
+                    <li>Business Trips → <code>06_Business_Trips/</code></li>
+                    <li>Technical Reports → <code>07_Technical_reports/</code></li>
+                    <li>Competition → <code>08_Competition/</code></li>
+                    <li>Presentations → <code>09_My_presentations/</code></li>
+                    <li>Trainings → <code>10_IFX_internal_trainings/</code></li>
+                </ul>
+            </div>
+            
+            <h3>✅ 8. Batch Operations</h3>
+            <div class="module-card">
+                <p><strong>Problem:</strong> Manually checking/unchecking many sections</p>
+                <p><strong>Solution:</strong> "Select All" and "Deselect All" buttons</p>
+                <p><strong>Benefits:</strong></p>
+                <ul>
+                    <li>Quick bulk selection</li>
+                    <li>Selective rendering (deselect all → check specific ones)</li>
+                    <li>Workflow efficiency</li>
+                </ul>
+                <p><strong>Usage:</strong></p>
+                <pre><code># Scenario 1: Render all sections
+Click [Select All] → Click [Render Reports]
+
+# Scenario 2: Render specific sections
+Click [Deselect All]
+Manually check sections 1, 3, 5
+Click [Render Reports]</code></pre>
+            </div>
+            
+            <h3>✅ 9. Progress Indicators</h3>
+            <div class="module-card">
+                <p><strong>Problem:</strong> No feedback during long render operations</p>
+                <p><strong>Solution:</strong> Real-time progress with section counts</p>
+                <p><strong>Display:</strong></p>
+                <pre><code>Rendering reports...
+[████████░░░░░░░░] 50%
+[3/6] Rendering: IFX Business Trips 2022-2026</code></pre>
+                <p><strong>Information Shown:</strong></p>
+                <ul>
+                    <li>Current section: [3/6]</li>
+                    <li>Section title: IFX Business Trips...</li>
+                    <li>Overall progress: Visual bar + percentage</li>
+                    <li>Incremental updates after each section</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Tech Stack Tab -->
+        <div id="tech" class="tab-content">
+            <h1>Technology Stack</h1>
+            
+            <h2>Core R Packages</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Version</th>
+                        <th>Purpose</th>
+                        <th>Key Functions Used</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>shiny</strong></td>
+                        <td>1.8+</td>
+                        <td>Web application framework</td>
+                        <td>navbarPage, observeEvent, reactiveValues, renderUI</td>
+                    </tr>
+                    <tr>
+                        <td><strong>shinyjs</strong></td>
+                        <td>2.1+</td>
+                        <td>JavaScript interactions</td>
+                        <td>useShinyjs, toggle, hide, show</td>
+                    </tr>
+                    <tr>
+                        <td><strong>rmarkdown</strong></td>
+                        <td>2.30+</td>
+                        <td>Report generation</td>
+                        <td>render()</td>
+                    </tr>
+                    <tr>
+                        <td><strong>here</strong></td>
+                        <td>1.0+</td>
+                        <td>File path management</td>
+                        <td>here()</td>
+                    </tr>
+                    <tr>
+                        <td><strong>fs</strong></td>
+                        <td>1.6+</td>
+                        <td>File system operations</td>
+                        <td>dir_create(), file_copy(), path_abs()</td>
+                    </tr>
+                    <tr>
+                        <td><strong>httr</strong></td>
+                        <td>1.4+</td>
+                        <td>HTTP requests</td>
+                        <td>POST() for LLM API calls</td>
+                    </tr>
+                    <tr>
+                        <td><strong>jsonlite</strong></td>
+                        <td>1.8+</td>
+                        <td>JSON parsing</td>
+                        <td>fromJSON(), toJSON() for profiles and recent paths</td>
+                    </tr>
+                    <tr>
+                        <td><strong>xml2</strong></td>
+                        <td>1.3+</td>
+                        <td>HTML/XML parsing</td>
+                        <td>read_html(), xml_text() for chat context extraction</td>
+                    </tr>
+                    <tr>
+                        <td><strong>digest</strong></td>
+                        <td>0.6+</td>
+                        <td>Hashing</td>
+                        <td>digest() for generating unique tab IDs</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h2>RMarkdown Templates</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Template</th>
+                        <th>File</th>
+                        <th>Purpose</th>
+                        <th>Output</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Individual Report</strong></td>
+                        <td>Report_generator_ShinyApp.Rmd</td>
+                        <td>Generate separate reports per section</td>
+                        <td>HTML with TOC, images, hierarchical structure</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Master Report</strong></td>
+                        <td>Master_html_report_ShinyApp.Rmd</td>
+                        <td>Generate single comprehensive report</td>
+                        <td>HTML dashboard with all sections</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h2>External APIs & Services</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Endpoint</th>
+                        <th>Purpose</th>
+                        <th>Authentication</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Ollama</strong></td>
+                        <td>http://localhost:11434/api/generate</td>
+                        <td>Local LLM inference (tinyllama, mistral, etc.)</td>
+                        <td>None (local)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>OpenAI</strong></td>
+                        <td>https://api.openai.com/v1/chat/completions</td>
+                        <td>Cloud LLM inference (GPT-3.5, GPT-4)</td>
+                        <td>Bearer token</td>
+                    </tr>
+                    <tr>
+                        <td><strong>iShare (Valeo)</strong></td>
+                        <td>https://apps.eu.valeo.com/ishare/</td>
+                        <td>Corporate file sharing (path conversion)</td>
+                        <td>Implicit (URL mapping)</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h2>Frontend Technologies</h2>
+            <ul>
+                <li><strong>HTML5</strong> - Structure</li>
+                <li><strong>CSS3</strong> - Styling (styles.css, bootstrapMint.css)</li>
+                <li><strong>JavaScript</strong> - Client-side interactions</li>
+                <li><strong>Bootstrap</strong> - Responsive grid and components</li>
+                <li><strong>Font Awesome</strong> - Icons</li>
+            </ul>
+            
+            <h2>File Formats</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Format</th>
+                        <th>Extension</th>
+                        <th>Usage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>R Markdown</strong></td>
+                        <td>.Rmd</td>
+                        <td>Report templates with embedded R code</td>
+                    </tr>
+                    <tr>
+                        <td><strong>HTML</strong></td>
+                        <td>.html</td>
+                        <td>Rendered reports and previews</td>
+                    </tr>
+                    <tr>
+                        <td><strong>JSON</strong></td>
+                        <td>.json</td>
+                        <td>Configuration profiles, recent paths storage</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CSS</strong></td>
+                        <td>.css</td>
+                        <td>Styling (styles.css, bootstrapMint.css)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Images</strong></td>
+                        <td>.png, .jpg, .jpeg</td>
+                        <td>Logos, assets in reports</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h2>Development Environment</h2>
+            <ul>
+                <li><strong>R Version:</strong> 4.3.3+</li>
+                <li><strong>RStudio:</strong> Recommended IDE</li>
+                <li><strong>OS Support:</strong> Linux, macOS, Windows</li>
+                <li><strong>Browser:</strong> Chrome, Firefox, Edge (modern browsers)</li>
+            </ul>
+            
+            <h2>Deployment Options</h2>
+            <ul>
+                <li><strong>Local:</strong> <code>shinyApp(ui, server)</code> - Run from R console</li>
+                <li><strong>Shiny Server:</strong> Deploy to shiny-server (open-source)</li>
+                <li><strong>ShinyApps.io:</strong> Deploy to RStudio's cloud hosting</li>
+                <li><strong>Docker:</strong> Containerize with rocker/shiny base image</li>
+            </ul>
+        </div>
+        
+        <!-- File Mapping Tab -->
+        <div id="filemap" class="tab-content">
+            <h1>File Structure & Mapping</h1>
+            
+            <h2>Directory Structure</h2>
+            <pre>
+Web-page-knitter/
+├── app.R                              # Main application (1,997 lines)
+├── Modules/
+│   ├── chat_module.R                  # AI chat integration (68 lines)
+│   └── ifx_integration.R              # IFX templates (175 lines)
+├── www/
+│   ├── valeo_logo.png                 # App logo
+│   ├── baya_weaver.jpg                # Secondary logo
+│   ├── styles.css                     # Custom styles
+│   ├── bootstrapMint.css              # Bootstrap theme
+│   ├── recent_paths.json              # Recent paths history
+│   └── [rendered_reports.html]        # Rendered reports (dynamic)
+├── saved_profiles/
+│   └── [profile_name.json]            # Saved configurations
+├── Templates/
+│   ├── Report_generator_ShinyApp.Rmd  # Individual report template
+│   └── Master_html_report_ShinyApp.Rmd # Master report template
+├── Documentation/
+│   ├── NEW_FEATURES_GUIDE.md          # User guide (600+ lines)
+│   ├── IMPLEMENTATION_SUMMARY.md      # Implementation details (500+ lines)
+│   └── RECOMMENDATIONS.md             # Original analysis (675+ lines)
+└── Sample/
+    └── App_Architecture_Documentation (1).html  # Example doc
+            </pre>
+            
+            <h2>File Details</h2>
+            
+            <h3>app.R (1,997 lines)</h3>
+            <div class="module-card">
+                <p><strong>Purpose:</strong> Main application entry point with UI and server logic</p>
+                <p><strong>Sections:</strong></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Lines</th>
+                            <th>Section</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1-7</td>
+                            <td>Library Loading</td>
+                            <td>Load required R packages</td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td>Operator Definition</td>
+                            <td>Null-coalescing operator %||%</td>
+                        </tr>
+                        <tr>
+                            <td>11-560</td>
+                            <td>Helper Functions</td>
+                            <td>15+ path handling, validation, file operation functions</td>
+                        </tr>
+                        <tr>
+                            <td>570-582</td>
+                            <td>Module Sourcing</td>
+                            <td>Load chat_module.R and ifx_integration.R</td>
+                        </tr>
+                        <tr>
+                            <td>584-608</td>
+                            <td>Configuration</td>
+                            <td>Define file paths for assets and templates</td>
+                        </tr>
+                        <tr>
+                            <td>610-820</td>
+                            <td>reportTabUI</td>
+                            <td>UI module function with sidebar, navbar, sidebars</td>
+                        </tr>
+                        <tr>
+                            <td>822-1837</td>
+                            <td>reportTabServer</td>
+                            <td>Server module function with all event handlers</td>
+                        </tr>
+                        <tr>
+                            <td>1879-1915</td>
+                            <td>Main UI</td>
+                            <td>navbarPage with 3 tabs (Individual, Master, Chat)</td>
+                        </tr>
+                        <tr>
+                            <td>1917-1932</td>
+                            <td>Main Server</td>
+                            <td>Server function with module calls</td>
+                        </tr>
+                        <tr>
+                            <td>1937</td>
+                            <td>App Launch</td>
+                            <td>shinyApp(ui, server)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3>Modules/chat_module.R (68 lines)</h3>
+            <div class="module-card">
+                <p><strong>Purpose:</strong> AI chat integration with Ollama and OpenAI</p>
+                <p><strong>Functions:</strong></p>
+                <ul>
+                    <li><code>chatModuleUI(id)</code> - Chat interface UI</li>
+                    <li><code>chatModuleServer(id, llm_info)</code> - Chat logic and LLM API calls</li>
+                </ul>
+                <p><strong>Features:</strong></p>
+                <ul>
+                    <li>Model selection dropdown</li>
+                    <li>Chat history display</li>
+                    <li>Send message to LLM</li>
+                    <li>Code block extraction</li>
+                    <li>Error handling for API failures</li>
+                </ul>
+            </div>
+            
+            <h3>Modules/ifx_integration.R (175 lines)</h3>
+            <div class="module-card">
+                <p><strong>Purpose:</strong> IFX folder template integration</p>
+                <p><strong>Functions:</strong></p>
+                <ul>
+                    <li><code>ifx_integration_ui(id)</code> - Purple panel with 10 template buttons</li>
+                    <li><code>ifx_integration_server(id, parent_rv, parent_session, parent_ns)</code> - Template application logic</li>
+                    <li><code>get_ifx_example_configs()</code> - Returns 3 example configurations</li>
+                </ul>
+                <p><strong>Templates:</strong></p>
+                <ul>
+                    <li>10 IFX folder types (Administration, Projects, PRD, etc.)</li>
+                    <li>Each with pre-configured source, destination, title, author, format</li>
+                </ul>
+            </div>
+            
+            <h3>Templates/*.Rmd</h3>
+            <div class="module-card">
+                <p><strong>Report_generator_ShinyApp.Rmd:</strong></p>
+                <ul>
+                    <li>Individual report template</li>
+                    <li>Generates separate HTML per section</li>
+                    <li>Parameters: original_src_path, converted_src_path, title, author, logo</li>
+                    <li>Features: TOC, images, hierarchical structure</li>
+                </ul>
+                <p><strong>Master_html_report_ShinyApp.Rmd:</strong></p>
+                <ul>
+                    <li>Master dashboard template</li>
+                    <li>Generates single comprehensive HTML</li>
+                    <li>Parameters: All sections combined</li>
+                    <li>Features: Tabbed interface, navigation, combined content</li>
+                </ul>
+            </div>
+            
+            <h3>www/ Directory</h3>
+            <div class="module-card">
+                <p><strong>Purpose:</strong> Static assets and rendered reports served by Shiny</p>
+                <p><strong>Static Files:</strong></p>
+                <ul>
+                    <li><code>valeo_logo.png</code> - App logo (75x35px)</li>
+                    <li><code>baya_weaver.jpg</code> - Secondary logo (50px height)</li>
+                    <li><code>styles.css</code> - Custom CSS styling</li>
+                    <li><code>bootstrapMint.css</code> - Bootstrap Mint theme</li>
+                </ul>
+                <p><strong>Dynamic Files:</strong></p>
+                <ul>
+                    <li><code>recent_paths.json</code> - Recent paths history (auto-created)</li>
+                    <li><code>[report_name].html</code> - Rendered reports (auto-generated)</li>
+                    <li><code>[report_name]_files/</code> - Report assets (images, CSS, JS)</li>
+                </ul>
+            </div>
+            
+            <h3>Documentation/</h3>
+            <div class="module-card">
+                <p><strong>NEW_FEATURES_GUIDE.md (600+ lines):</strong></p>
+                <ul>
+                    <li>Comprehensive user guide</li>
+                    <li>Feature descriptions with examples</li>
+                    <li>Usage workflows</li>
+                    <li>Troubleshooting</li>
+                    <li>FAQ</li>
+                </ul>
+                <p><strong>IMPLEMENTATION_SUMMARY.md (500+ lines):</strong></p>
+                <ul>
+                    <li>Technical implementation details</li>
+                    <li>Code statistics</li>
+                    <li>Testing summary</li>
+                    <li>Integration points</li>
+                    <li>Performance metrics</li>
+                </ul>
+                <p><strong>RECOMMENDATIONS.md (675+ lines):</strong></p>
+                <ul>
+                    <li>Original feature analysis</li>
+                    <li>14 recommendations with priority</li>
+                    <li>Code examples</li>
+                    <li>Implementation phases</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Update Guide Tab -->
+        <div id="update" class="tab-content">
+            <h1>Update & Maintenance Guide</h1>
+            
+            <h2>How to Add a New Feature</h2>
+            
+            <h3>1. Adding a New Helper Function</h3>
+            <div class="module-card">
+                <p><strong>Location:</strong> <code>app.R</code> lines 11-560</p>
+                <p><strong>Steps:</strong></p>
+                <ol>
+                    <li>Define function after existing helper functions</li>
+                    <li>Add documentation comment above function</li>
+                    <li>Follow naming convention: <code>verb_noun()</code></li>
+                    <li>Return consistent data structure</li>
+                    <li>Add error handling with tryCatch()</li>
+                </ol>
+                <p><strong>Example:</strong></p>
+                <pre><code># Calculate report size in MB
+calculate_report_size <- function(report_path) {
+  tryCatch({
+    if (!file.exists(report_path)) {
+      return(list(size_mb = 0, error = "File not found"))
+    }
+    size_bytes <- file.size(report_path)
+    size_mb <- round(size_bytes / (1024^2), 2)
+    return(list(size_mb = size_mb, error = NULL))
+  }, error = function(e) {
+    return(list(size_mb = 0, error = e$message))
+  })
+}</code></pre>
+            </div>
+            
+            <h3>2. Adding a New Button to Sticky Area</h3>
+            <div class="module-card">
+                <p><strong>Location:</strong> <code>app.R</code> reportTabUI around line 745</p>
+                <p><strong>Steps:</strong></p>
+                <ol>
+                    <li>Add button in <code>div(class = "button-row")</code></li>
+                    <li>Use consistent styling: <code>class = "btn btn-primary btn-sm sticky-btn"</code></li>
+                    <li>Add icon: <code>icon = icon("icon-name")</code></li>
+                    <li>Namespace ID: <code>ns("button_id")</code></li>
+                </ol>
+                <p><strong>Example:</strong></p>
+                <pre><code>div(class = "button-row", style = "margin-top:8px;",
+    actionButton(ns("validate_all"), 
+                "Validate All", 
+                icon = icon("check-double"), 
+                class = "btn btn-success btn-sm sticky-btn"),
+    actionButton(ns("export_config"), 
+                "Export Config", 
+                icon = icon("download"), 
+                class = "btn btn-info btn-sm sticky-btn")
+)</code></pre>
+            </div>
+            
+            <h3>3. Adding a New Observer for Button</h3>
+            <div class="module-card">
+                <p><strong>Location:</strong> <code>app.R</code> reportTabServer around line 1100</p>
+                <p><strong>Steps:</strong></p>
+                <ol>
+                    <li>Add <code>observeEvent(input$button_id, { ... })</code></li>
+                    <li>Access reactive values: <code>rv$sections</code></li>
+                    <li>Show notifications for feedback</li>
+                    <li>Handle errors with tryCatch()</li>
+                </ol>
+                <p><strong>Example:</strong></p>
+                <pre><code>observeEvent(input$validate_all, {
+  sections <- rv$sections
+  if (length(sections) == 0) {
+    showNotification("No sections to validate", type = "warning")
+    return()
+  }
+  
+  tryCatch({
+    valid_count <- 0
+    for (section_id in names(sections)) {
+      section <- sections[[section_id]]
+      validation <- validate_source_path(section$source_path)
+      if (validation$valid) {
+        valid_count <- valid_count + 1
+      }
+    }
+    
+    showNotification(
+      sprintf("Validated %d/%d sections", valid_count, length(sections)),
+      type = if (valid_count == length(sections)) "message" else "warning"
+    )
+  }, error = function(e) {
+    showNotification(paste("Validation error:", e$message), type = "error")
+  })
+})</code></pre>
+            </div>
+            
+            <h3>4. Adding a New IFX Template</h3>
+            <div class="module-card">
+                <p><strong>Location:</strong> <code>Modules/ifx_integration.R</code></p>
+                <p><strong>Steps:</strong></p>
+                <ol>
+                    <li>Add button in <code>ifx_integration_ui()</code></li>
+                    <li>Add template config in module</li>
+                    <li>Add observer in <code>ifx_integration_server()</code></li>
+                </ol>
+                <p><strong>Example:</strong></p>
+                <pre><code># In ifx_integration_ui()
+actionButton(ns("apply_custom"), "Custom Template", 
+            icon = icon("star"), 
+            class = "btn-template",
+            style = "width:100%; background-color:#9c27b0;")
+
+# In ifx_integration_server()
+observeEvent(input$apply_custom, {
+  config <- list(
+    source = "IFX_2022_2025/99_Custom/",
+    destination = "IFX_2022_2025/00_Master_html_file/",
+    title = "Custom Report",
+    author = "Your Name",
+    format = "rmarkdown::html_document"
+  )
+  apply_template(config, "Custom")
+})</code></pre>
+            </div>
+            
+            <h2>Common Maintenance Tasks</h2>
+            
+            <h3>Updating Package Dependencies</h3>
+            <div class="info-box">
+                <p><strong>Check for updates:</strong></p>
+                <pre><code># In R console
+old.packages()
+
+# Update all packages
+update.packages(ask = FALSE)
+
+# Update specific package
+install.packages("shiny")</code></pre>
+                <p><strong>Test after updates:</strong></p>
+                <ol>
+                    <li>Run app locally</li>
+                    <li>Test all buttons and features</li>
+                    <li>Check for deprecation warnings in console</li>
+                    <li>Verify reports render correctly</li>
+                </ol>
+            </div>
+            
+            <h3>Clearing www/ Directory</h3>
+            <div class="warning-box">
+                <p><strong>When to clear:</strong></p>
+                <ul>
+                    <li>Testing with fresh state</li>
+                    <li>Disk space issues</li>
+                    <li>Corrupted render outputs</li>
+                </ul>
+                <p><strong>How to clear:</strong></p>
+                <pre><code># Delete all HTML files (keep assets)
+unlink("www/*.html")
+
+# Delete all rendered report folders
+unlink("www/*_files", recursive = TRUE)
+
+# Keep: valeo_logo.png, baya_weaver.jpg, styles.css, bootstrapMint.css</code></pre>
+            </div>
+            
+            <h3>Debugging Tips</h3>
+            <div class="success-box">
+                <p><strong>Enable verbose output:</strong></p>
+                <pre><code># In app.R, set verbose flag
+verbose <- TRUE  # instead of FALSE
+
+# This will print debug messages:
+# - Rendering to: /path/to/report.html
+# - Source folder (assets): /path/to/source/</code></pre>
+                <p><strong>Inspect reactive values:</strong></p>
+                <pre><code># Add observer to print state
+observe({
+  cat("rv$section_count:", rv$section_count, "\n")
+  cat("Number of sections:", length(rv$sections), "\n")
+})</code></pre>
+                <p><strong>Check for errors:</strong></p>
+                <ul>
+                    <li>R console: Look for error messages and warnings</li>
+                    <li>Browser console (F12): Check for JavaScript errors</li>
+                    <li>Network tab (F12): Verify file requests succeed</li>
+                </ul>
+            </div>
+            
+            <h2>Performance Optimization</h2>
+            
+            <h3>Reducing App Load Time</h3>
+            <ul>
+                <li>Minimize library loading (only load what's needed)</li>
+                <li>Lazy load modules (source inside functions if possible)</li>
+                <li>Cache expensive computations with <code>memoise</code> package</li>
+            </ul>
+            
+            <h3>Improving Render Speed</h3>
+            <ul>
+                <li>Use <code>knitr::opts_chunk$set(cache = TRUE)</code> in .Rmd templates</li>
+                <li>Parallelize rendering with <code>future</code> package (advanced)</li>
+                <li>Reduce image sizes in source folders</li>
+                <li>Minimize number of sections rendered at once</li>
+            </ul>
+            
+            <h3>Optimizing www/ Folder</h3>
+            <ul>
+                <li>Compress images before uploading logos</li>
+                <li>Minify CSS files (use online tools)</li>
+                <li>Clean up old rendered reports periodically</li>
+                <li>Use relative paths to reduce redundant copies</li>
+            </ul>
+        </div>
+        
+    </div>
+    
+    <footer>
+        <h3>Web-page-knitter v2.0</h3>
+        <p>Built with ❤️ using R Shiny | Modular Architecture | Production Ready</p>
+        <p>Documentation Generated: January 31, 2026</p>
+        <p>Total Lines: 2,240 (app.R: 1,997 | Modules: 243)</p>
+    </footer>
+    
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tabbuttons;
+            
+            // Hide all tab content
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            
+            // Remove active class from all buttons
+            tabbuttons = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tabbuttons.length; i++) {
+                tabbuttons[i].classList.remove("active");
+            }
+            
+            // Show the selected tab and mark button as active
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+    </script>
+</body>
+</html>
