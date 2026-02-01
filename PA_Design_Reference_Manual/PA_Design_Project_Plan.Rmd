@@ -1,0 +1,1476 @@
+---
+title: "Power Amplifier Design Reference Manual - Project Plan ✅ APPROVED"
+subtitle: "From Work Experience to Reference Manual & Automated Design System"
+author: "RF Design Expert (12 Years Experience)"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 4
+    theme: united
+    highlight: tango
+    number_sections: true
+    self_contained: true
+    css: custom_plan_styles.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 6
+)
+library(knitr)
+library(ggplot2)
+```
+
+<style>
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f8f9fa;
+}
+
+.main-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1 {
+  color: #2c3e50;
+  border-bottom: 3px solid #3498db;
+  padding-bottom: 10px;
+  margin-top: 30px;
+}
+
+h2 {
+  color: #34495e;
+  border-left: 5px solid #3498db;
+  padding-left: 15px;
+  margin-top: 25px;
+}
+
+h3 {
+  color: #555;
+  font-weight: 600;
+  margin-top: 20px;
+}
+
+.section-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  margin: 30px 0 20px 0;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.critical-point {
+  background-color: #fff3cd;
+  border-left: 5px solid #ffc107;
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 5px;
+}
+
+.motivation-box {
+  background-color: #d1ecf1;
+  border-left: 5px solid #17a2b8;
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 5px;
+}
+
+.expert-insight {
+  background-color: #d4edda;
+  border-left: 5px solid #28a745;
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 5px;
+}
+
+.timeline-box {
+  background-color: #f8f9fa;
+  border: 2px solid #6c757d;
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 5px;
+}
+
+.data-structure {
+  background-color: #e7f3ff;
+  border-left: 5px solid #007bff;
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 5px;
+  font-family: 'Courier New', monospace;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+thead {
+  background-color: #3498db;
+  color: white;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.phase-indicator {
+  display: inline-block;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.phase-1 { background-color: #17a2b8; color: white; }
+.phase-2 { background-color: #ffc107; color: #333; }
+.phase-3 { background-color: #28a745; color: white; }
+.phase-4 { background-color: #6f42c1; color: white; }
+
+.automation-highlight {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  margin: 20px 0;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+.prompt-template {
+  background-color: #2c3e50;
+  color: #ecf0f1;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 15px 0;
+  font-family: 'Courier New', monospace;
+  overflow-x: auto;
+}
+
+code {
+  background-color: #f4f4f4;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+pre {
+  background-color: #2c3e50;
+  color: #ecf0f1;
+  padding: 15px;
+  border-radius: 5px;
+  overflow-x: auto;
+}
+
+.checklist {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.checklist li:before {
+  content: "☐ ";
+  color: #3498db;
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.workflow-diagram {
+  background-color: white;
+  border: 2px solid #3498db;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.arrow {
+  font-size: 2em;
+  color: #3498db;
+  margin: 10px 0;
+}
+</style>
+
+# Executive Summary {.tabset .tabset-pills}
+
+## Project Overview
+
+<div class="section-header">
+<h2 style="color: white; border: none; padding: 0; margin: 0;">🎯 Mission Statement</h2>
+</div>
+
+<div class="motivation-box">
+**Primary Goal:** Transform 4+ years of hands-on Power Amplifier design experience (PAM-B and Tx Baseline projects) into a comprehensive, self-contained reference manual that combines:
+
+1. **Textbook Theory** + **Research Knowledge** + **Actual Work Experience**
+2. **Interview Preparation Guide** for PA Design positions
+3. **Foolproof Automation Framework** for PA design process
+</div>
+
+### Key Deliverables
+
+| Deliverable | Format | Purpose |
+|-------------|--------|---------|
+| PA Design Reference Manual | Self-contained HTML | Complete technical reference with theory, practice, and lessons learned |
+| Automated Design Framework | Prompt/Template System | Reproducible PA design process automation |
+| Design Decision Database | Structured markdown/JSON | Captured reasoning and trade-offs from actual projects |
+
+## Critical Success Factors
+
+<div class="expert-insight">
+**From 12 Years RF Design Perspective:**
+
+This document represents a **rare opportunity** to capture institutional knowledge that typically exists only in:
+- Scattered project reports
+- Email chains
+- Meeting notes
+- Designer's memory
+
+**The Challenge:** Most PA design documentation focuses on WHAT was done, not WHY decisions were made or HOW to replicate the thinking process.
+
+**Our Approach:** Extract both explicit knowledge (measurements, schematics) and tacit knowledge (design intuition, debugging strategies).
+</div>
+
+### Quality Standards
+
+<div class="critical-point">
+**Non-Negotiable Requirements:**
+
+1. **Traceability:** Every statement backed by data/measurement/reference
+2. **Reproducibility:** Sufficient detail for junior engineer to replicate designs
+3. **Contextual Understanding:** Big-picture RF system perspective maintained throughout
+4. **Critical Thinking:** Alternative approaches discussed, not just chosen path
+5. **Lessons Learned:** Failures and dead-ends documented as learning opportunities
+</div>
+
+---
+
+# 📊 Data Source Analysis {.tabset .tabset-pills}
+
+## Available Project Data
+
+### Project Structure Overview
+
+<div class="data-structure">
+**IFX_2022_2025/02_Projects/**
+├── **01_Tx_Baseline/**
+│   ├── 01_Background_overview/
+│   ├── 02_Design/
+│   ├── 03_Measurements/
+│   ├── 04_Model/
+│   ├── 05_Assembly/
+│   ├── 06_Minipac_V02/
+│   └── 07_PCB-pac/
+│
+└── **02_PAM_B/**
+    ├── 01_Overview/ (Flow charts, Roles, Responsibility, Summary)
+    ├── 02_Mini-pac_PAM_B/ (Full design cycle documentation)
+    ├── 03_Design/ (Performance, Linearity, Stability, Sensitivity, Reliability)
+    ├── 04_Layout/ (Design rules, Nominal layout)
+    ├── 06_Assembly/ (Pre/Post tape-out)
+    ├── 07_Tuning_CV/ (CV preparation, execution, BOM tracking)
+    └── 08_Results_Analysis/ (Full readouts, Delta quantification, Performance improvement)
+</div>
+
+### Document Inventory
+
+```{r data-inventory, echo=FALSE}
+# Create comprehensive inventory table
+inventory <- data.frame(
+  Category = c(
+    "Design Documentation",
+    "Simulation/Modeling",
+    "Measurement Results",
+    "Assembly/Manufacturing",
+    "Analysis/Optimization",
+    "Project Management"
+  ),
+  Count = c(
+    "35+ PDFs",
+    "15+ PDFs",
+    "40+ PDFs",
+    "30+ PDFs",
+    "25+ PDFs",
+    "10+ PDFs"
+  ),
+  Key_Topics = c(
+    "Transistor selection, Building blocks, Schematic, BOM, Linearity specs",
+    "Sensitivity analysis, Reliability, Stability, Model vs Measurement",
+    "LP measurements, Full read-outs, GSG passives, CV tuning results",
+    "Layout rules, Assembly drawings, BW heights, Dielectric thickness",
+    "Performance improvement, Gain dip correction, Delta quantification",
+    "Flow charts, Responsibility matrix, Sample tracking, Planning"
+  ),
+  Depth = c("⭐⭐⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐")
+)
+
+kable(inventory, align = "llll", caption = "Available Documentation Assessment")
+```
+
+## Data Quality Assessment
+
+### Strengths
+
+<div class="expert-insight">
+**Exceptional Documentation Quality Observed:**
+
+1. **Comprehensive Coverage:** Full product lifecycle from concept to production
+2. **Structured Organization:** Logical folder hierarchy reflects design flow
+3. **Design Decisions Captured:** Sensitivity analysis, DOE results available
+4. **Measurement Validation:** Extensive sim vs. measurement comparisons
+5. **Iterative Refinement:** Multiple design variants tracked (P41, P44, P49)
+6. **Real-World Constraints:** Reliability, FCC specs, manufacturing considerations documented
+</div>
+
+### Knowledge Gaps to Address
+
+<div class="critical-point">
+**Areas Requiring Supplementary Research:**
+
+1. **Fundamental Theory Background:** 
+   - PDFs focus on application; need to add theoretical foundations
+   - Load-pull theory, Doherty architecture, DPD concepts
+   
+2. **Design Trade-offs Rationale:**
+   - WHY P49 chosen over P41/P44?
+   - Trade-off matrices not explicit in most documents
+   
+3. **Industry Context:**
+   - How do these designs compare to state-of-the-art?
+   - Market requirements driving specifications
+   
+4. **Failure Analysis Deep-Dive:**
+   - Gain dip root cause analysis
+   - What DIDN'T work and why?
+   
+5. **Future Technology Trends:**
+   - GaN vs. LDMOS comparison
+   - Envelope tracking integration
+</div>
+
+## Extraction Strategy
+
+### Phase 1: Document Mining
+
+<div class="timeline-box">
+**Systematic Extraction Process:**
+
+1. **First Pass - Structural Analysis** (2-3 hours)
+   - Map all PDF contents
+   - Identify key figures, tables, equations
+   - Note cross-references between documents
+   
+2. **Second Pass - Content Extraction** (5-8 hours)
+   - Extract specifications, design parameters
+   - Catalog measurement data
+   - List design decisions and alternatives considered
+   
+3. **Third Pass - Synthesis** (4-6 hours)
+   - Identify common patterns across projects
+   - Extract reusable design procedures
+   - Create design flow diagrams from actual workflow
+</div>
+
+### Information Architecture
+
+**Hierarchical Knowledge Organization:**
+
+The manual will follow a three-tier information architecture:
+
+- **Level 1 (Foundations):** Fundamentals, Design Process, Implementation, Validation, Lessons Learned
+- **Level 2 (Domains):** RF Theory, PA Theory, Requirements, Architecture, Design, Layout, Assembly, Measurements, Analysis, Optimization
+- **Level 3 (Details):** Load-Pull, Stability, Linearity, Efficiency, Specifications, Reliability, Topology Selection, Building Blocks, Transistor Stages, Matching Networks, Bias Networks, Substrate Selection, Design Rules, BOM Management, DOE
+
+Each level provides increasing detail while maintaining connection to the big picture RF system perspective.
+
+---
+
+# 📖 Reference Manual Structure {.tabset .tabset-pills}
+
+## Document Outline
+
+<div class="section-header">
+<h2 style="color: white; border: none; padding: 0; margin: 0;">🏗️ Proposed Manual Organization</h2>
+<p style="margin: 10px 0 0 0; opacity: 0.95;">Following Atomic_Cosmic_RFView hierarchical approach: Concept → Theory → Practice → Evidence</p>
+</div>
+
+### Level 1: Foundations
+
+<div class="expert-insight">
+**Chapter 1: RF Power Amplifier Fundamentals**
+
+*Approach: Bridge theory to practice using actual project requirements*
+
+1.1 **Introduction**
+   - What is a Power Amplifier? (Definition grounded in 5G base station context)
+   - Key Performance Metrics: PAE, Gain, Linearity, Stability
+   - Industry Requirements: FCC regulations, 3GPP specs
+   - Big Picture: PA role in RF system (reference: PAM_B overview diagrams)
+
+1.2 **Fundamental Theory**
+   - Concept: RF Power Generation & Amplification
+   - Theoretical Analysis:
+     * Load-line theory
+     * Power classes (A, AB, C)
+     * Efficiency fundamentals
+   - Mathematical Framework:
+     * Load-pull theory
+     * Stability analysis (K-factor, µ-factor)
+   - Figures: Textbook diagrams + annotated with PAM-B actual values
+
+1.3 **Advanced Architectures**
+   - Doherty Amplifiers (PAM-B is Doherty architecture)
+   - Envelope Tracking
+   - Digital Pre-Distortion (DPD)
+   - Factual Evidence: PAM-B architecture diagrams with measured performance
+</div>
+
+### Level 2: Design Process
+
+<div class="expert-insight">
+**Chapter 2: PA Design Methodology**
+
+*Approach: Extract actual workflow from PAM-B/Tx_Baseline project flow*
+
+2.1 **Requirements Analysis**
+   - Concept: Translating System Specs to PA Specs
+   - Theoretical Framework: Link budget, linearity requirements
+   - Actual Evidence: PAM-B specification document analysis
+   - Design Decision Tree: How specs drive architecture choice
+
+2.2 **Transistor Selection & Characterization**
+   - Concept: Active device as heart of PA
+   - Theory: LDMOS physics, thermal considerations
+   - Practice: Load-pull measurements (reference: Tx_Baseline LP data)
+   - Factual Evidence: 
+     * P41 vs P44 vs P49 comparison (from PAM-B data)
+     * Why P49 was selected (extract from design review)
+   - Lessons Learned: Die selection trade-offs
+
+2.3 **Architecture Development**
+   - Concept: Multi-stage amplifier design
+   - Building Block Approach:
+     * Driver stage design (reference: PAM_B driver analysis)
+     * Main transistor optimization (P49 design doc)
+     * Peak transistor considerations (P41 peak analysis)
+   - Figures: Building block diagrams from actual PAM-B schematics
+   - Design Flow: Step-by-step procedure extracted from project timeline
+
+2.4 **Matching Network Design**
+   - Concept: Impedance transformation for power delivery
+   - Theoretical Analysis:
+     * Smith chart fundamentals
+     * Harmonic tuning
+     * Bandwidth considerations
+   - Practical Implementation:
+     * Input matching (from PAM-B schematic)
+     * Output matching (with measured data)
+     * Bias network design
+   - Sensitivity Analysis: Reference PAM-B sensitivity study
+   - Current Status: Achieved bandwidths vs. target
+   - Trends: Performance across frequency (from CV tuning data)
+</div>
+
+### Level 3: Implementation
+
+<div class="expert-insight">
+**Chapter 3: Physical Implementation**
+
+3.1 **Layout & Substrate Design**
+   - Concept: Electromagnetic considerations in physical design
+   - Theory: Substrate modes, bond wire inductance, thermal management
+   - Design Rules: 
+     * LGiT substrate requirements (reference: PAM-B design rules doc)
+     * Assembly design rules
+   - Factual Evidence: Actual PAM-B layout with annotations
+   - Lessons Learned: Dielectric thickness impact (from post-tape-out analysis)
+
+3.2 **Assembly & Manufacturing**
+   - Process Flow: Pre-tape-out to production (reference: PAM-B flow chart)
+   - BOM Management: Component selection rationale
+   - Assembly Drawings: Interpretation and critical dimensions
+   - Quality Control: BW height measurements, visual inspection
+   - Lessons Learned: Manufacturing variations and their impact
+
+3.3 **Modeling & Simulation**
+   - Concept: Virtual prototyping
+   - Theory: Circuit simulation, EM simulation
+   - Practice: Model library usage (reference: Tx_Baseline model library manual)
+   - Validation: Sim vs. Measurement (extensive PAM-B data available)
+   - Current Status: Model accuracy assessment
+   - Future Suggestions: Model improvement opportunities
+</div>
+
+### Level 4: Validation & Optimization
+
+<div class="expert-insight">
+**Chapter 4: Measurement & Characterization**
+
+4.1 **Measurement Setup & Procedures**
+   - LP Measurements: Setup, calibration, interpretation
+   - Full Read-out: Comprehensive PA characterization
+   - GSG Passive Measurements: Component verification
+   - Reference: PAM-B measurement instructions
+
+4.2 **Performance Analysis**
+   - Data Interpretation: Reading full read-out reports
+   - Performance Metrics Extraction
+   - Comparison to Simulation
+   - Trend Analysis: Performance across samples (J01A, J01B, J01G, J01M)
+   - Statistical Variation: Understanding process spread
+
+4.3 **Tuning & Optimization**
+   - CV Tuning Process: Systematic optimization (reference: PAM-B CV execution)
+   - DOE Methodology: Design of experiments approach
+   - Gain Dip Correction: Specific case study from PAM-B
+   - Delta Quantification: Socket vs. solder, assembly variations
+   - Lessons Learned: What worked, what didn't, why
+</div>
+
+### Level 5: Advanced Topics
+
+<div class="expert-insight">
+**Chapter 5: Reliability, Linearity & System Integration**
+
+5.1 **Reliability Analysis**
+   - Theory: Failure mechanisms, MTTF
+   - Practical Analysis: PAM-B reliability study (reference: reliability PDF)
+   - Design for Reliability: Guidelines and trade-offs
+
+5.2 **Linearity & Linearization**
+   - FCC Spectral Mask Requirements (reference: PAM-B FCC spec discussion)
+   - Measurement Methods: ACLR, EVM
+   - Digital Pre-Distortion: Integration considerations
+   - Factual Evidence: PAM-B linearity measurements (iDPD vs nDPD)
+
+5.3 **Stability Analysis**
+   - Small-Signal Stability: K-factor analysis
+   - Large-Signal Stability: Practical considerations
+   - Case Study: PAM-B stability analysis document
+
+5.4 **Future Directions**
+   - GaN Technology Comparison
+   - Envelope Tracking Integration
+   - Massive MIMO Considerations
+   - 6G Requirements
+</div>
+
+### Level 6: Lessons Learned & Best Practices
+
+<div class="expert-insight">
+**Chapter 6: Practical Wisdom from 4 Years of PA Design**
+
+6.1 **Design Pitfalls & Solutions**
+   - Common mistakes and how to avoid them
+   - Debugging strategies
+   - When simulation misleads
+
+6.2 **Project Management**
+   - Timeline estimation
+   - Documentation best practices
+   - Cross-functional collaboration
+
+6.3 **Interview Preparation**
+   - Key concepts every PA designer should know
+   - Common interview questions (with answers grounded in real experience)
+   - How to discuss design trade-offs effectively
+
+6.4 **References & Further Reading**
+   - Textbook recommendations
+   - Research papers cited
+   - Industry standards
+</div>
+
+## Content Development Strategy
+
+### Writing Principles
+
+<div class="critical-point">
+**As a Critical, Detail-Oriented RF Expert, I will ensure:**
+
+1. **Concept First, Then Details**
+   - Each section starts with big-picture understanding
+   - "Why does this matter?" answered before "How to do it?"
+
+2. **Theoretical Rigor**
+   - Equations derived, not just stated
+   - Physical intuition provided alongside math
+   - Assumptions explicitly stated
+
+3. **Practical Grounding**
+   - Every theory section followed by "In the PAM-B project, we..."
+   - Actual values, not just placeholders
+   - Real design trade-offs, not idealized scenarios
+
+4. **Visual Learning**
+   - Annotated schematics from actual designs
+   - Measurement data plots with interpretation
+   - Flow diagrams extracted from project workflow
+
+5. **Traceability**
+   - Every factual claim referenced to source document
+   - "See: PAM_B/03_Design/02_Linearity/02_Linearity.pdf, Figure 5"
+
+6. **Critical Analysis**
+   - "What worked" AND "What could be improved"
+   - Alternative approaches discussed
+   - Design decisions justified with data
+
+7. **Interconnected Knowledge**
+   - Cross-references throughout document
+   - "This relates to stability analysis in Section 5.3"
+   - Big-picture RF system perspective maintained
+</div>
+
+### Pedagogical Approach
+
+```{r pedagogy, echo=FALSE}
+# Learning pyramid
+pedagogy <- data.frame(
+  Level = c("Passive Reading", "Visual/Audio", "Demonstration", "Discussion", 
+            "Practice", "Teaching Others"),
+  Retention = c(10, 20, 30, 50, 75, 90),
+  Method_In_Manual = c(
+    "Theory sections with equations",
+    "Figures, plots, diagrams from actual designs",
+    "Worked examples from PAM-B/Tx_Baseline",
+    "Design decision analysis, trade-off discussions",
+    "Step-by-step procedures, checklists",
+    "Interview prep questions, design challenge scenarios"
+  )
+)
+
+kable(pedagogy, caption = "Multi-Modal Learning Approach in Manual")
+```
+
+## Implementation Plan
+
+### Content Generation Workflow
+
+<div class="workflow-diagram">
+**For Each Chapter Section:**
+
+**Step 1: Concept Definition**
+<div class="arrow">⬇</div>
+
+**Step 2: Theoretical Framework** (Textbook + Research Papers)
+<div class="arrow">⬇</div>
+
+**Step 3: Practical Application** (Extract from Project PDFs)
+<div class="arrow">⬇</div>
+
+**Step 4: Factual Evidence** (Measurements, Results, Figures)
+<div class="arrow">⬇</div>
+
+**Step 5: Trend Analysis** (If applicable - compare across variants)
+<div class="arrow">⬇</div>
+
+**Step 6: Current Status** (Achievement vs. Target)
+<div class="arrow">⬇</div>
+
+**Step 7: Future Suggestions** (Improvements, Next Steps)
+<div class="arrow">⬇</div>
+
+**Step 8: Lessons Learned** (Reflective Analysis)
+<div class="arrow">⬇</div>
+
+**Step 9: References** (Traceability to sources)
+</div>
+
+### Execution Checklist
+
+<div class="timeline-box">
+<ul class="checklist">
+  <li>Develop detailed chapter outlines with subsection topics</li>
+  <li>Create PDF extraction checklist per project folder</li>
+  <li>Extract all specifications and requirements into master table</li>
+  <li>Compile design decision log from all design review documents</li>
+  <li>Create measurement results database (organized by variant, frequency, condition)</li>
+  <li>Generate annotated figures from actual project schematics/layouts</li>
+  <li>Write theory sections with derivations and physical intuition</li>
+  <li>Integrate project data as practical examples in each theory section</li>
+  <li>Develop lessons learned summaries for each major topic</li>
+  <li>Create cross-reference index for interconnected concepts</li>
+  <li>Add interview preparation questions with sample answers</li>
+  <li>Compile comprehensive reference list</li>
+  <li>Internal technical review (consistency, accuracy)</li>
+  <li>Generate self-contained HTML with embedded figures</li>
+</ul>
+</div>
+
+---
+
+# 🤖 Automated PA Design Framework {.tabset .tabset-pills}
+
+## Motivation & Vision
+
+<div class="automation-highlight">
+<h2 style="color: white; border: none; margin-top: 0;">🎯 The Ultimate Goal: Foolproof PA Design Automation</h2>
+
+**The Challenge:**
+Power Amplifier design is currently **more art than science** - requiring years of experience to navigate the complex trade-space of:
+- Performance (gain, efficiency, linearity)
+- Reliability (thermal, voltage stress)
+- Manufacturability (tolerance, cost)
+- Time-to-market (iteration cycles)
+
+**The Vision:**
+Create a **systematic, AI-assisted design framework** that:
+1. Captures expert design knowledge as executable procedures
+2. Guides a junior engineer (or AI agent) through the design process
+3. Makes optimal design decisions based on quantitative criteria
+4. Automates repetitive analysis tasks
+5. Learns from past designs to improve future ones
+
+**The Impact:**
+- **Design Cycle Time:** 6-9 months → 4-6 weeks
+- **First-Pass Success:** 40% → 85%+
+- **Knowledge Transfer:** 2-3 years → 2-3 months
+- **Design Quality:** Highly variable → Consistently high
+</div>
+
+## Design Automation Levels
+
+<div class="expert-insight">
+**Realistic Automation Roadmap:**
+
+### Level 1: Template-Based Design (Achievable Now)
+- Standardized design procedures as checklists
+- Pre-configured simulation setups
+- Automated report generation
+- **Human in the loop:** All design decisions
+
+### Level 2: Guided Design Assistant (6-12 months)
+- AI suggests design parameters based on requirements
+- Automated sensitivity analysis
+- Trade-off visualization
+- **Human in the loop:** Final decisions, interpretation
+
+### Level 3: Semi-Autonomous Design (1-2 years)
+- AI generates initial design candidates
+- Automated optimization loops
+- Multi-objective optimization
+- **Human in the loop:** Requirements, validation, sign-off
+
+### Level 4: Fully Autonomous Design (2-5 years)
+- End-to-end design from specs to layout
+- Self-improving from measurement data
+- **Human in the loop:** Strategic direction only
+</div>
+
+## Prompt Engineering for PA Design
+
+### Master Prompt Template
+
+<div class="prompt-template">
+<pre>
+# POWER AMPLIFIER DESIGN ASSISTANT - MASTER PROMPT
+
+## ROLE & EXPERTISE
+You are an expert RF power amplifier design engineer with 12+ years of experience 
+specializing in:
+- LDMOS/GaN transistor-based PA design for wireless infrastructure
+- Doherty architecture and efficiency enhancement techniques
+- Load-pull characterization and matching network optimization
+- Layout, assembly, and measurement of high-power RF modules
+- Design for manufacturing, reliability, and regulatory compliance
+
+Your design philosophy:
+1. Requirements-driven design (never over-design)
+2. Physics-based reasoning (not just simulation)
+3. Systematic trade-off analysis (quantitative decision making)
+4. Design for testability and debuggability
+5. Learn from measurements (iterate based on data)
+
+## AVAILABLE KNOWLEDGE BASE
+You have access to:
+- [PA Design Reference Manual] - Comprehensive theory and best practices
+- [PAM-B Project Archive] - Complete design cycle example (concept to production)
+- [Tx_Baseline Project Archive] - Alternative architecture reference
+- [Load-Pull Database] - Transistor characterization data
+- [Component Library] - Qualified passive components with models
+- [Design Rule Database] - Layout and assembly constraints
+- [Measurement Database] - Historical performance data
+
+## DESIGN TASK
+[TO BE FILLED BY USER - SEE SUBTASK TEMPLATES BELOW]
+
+## DESIGN CONSTRAINTS
+- Frequency Range: [e.g., 3.4-3.8 GHz]
+- Output Power: [e.g., 46 dBm average]
+- Efficiency: [e.g., > 40% PAE at 6 dB back-off]
+- Linearity: [e.g., ACLR < -45 dBc]
+- Supply Voltage: [e.g., 28V]
+- Thermal Limit: [e.g., Tj < 200°C]
+- Size Constraint: [e.g., < 50mm x 50mm]
+- Cost Target: [e.g., < $50 BOM]
+
+## DESIGN APPROACH
+Follow this systematic procedure:
+
+1. REQUIREMENTS ANALYSIS
+   - Extract key performance targets
+   - Identify critical trade-offs
+   - Define success criteria
+   - Cross-check against Reference Manual, Section 2.1
+
+2. ARCHITECTURE SELECTION
+   - Evaluate architecture options (Class AB, Doherty, Envelope Tracking)
+   - Select based on efficiency/linearity trade-off
+   - Reference similar designs in Knowledge Base
+   - Justify decision with quantitative comparison
+
+3. TRANSISTOR SELECTION
+   - Review load-pull database for candidate transistors
+   - Calculate required device periphery from power/voltage
+   - Consider thermal, cost, availability constraints
+   - Reference: PAM-B transistor selection process (Section 2.2)
+
+4. MATCHING NETWORK DESIGN
+   - Determine optimal load impedance from load-pull
+   - Design input/output matching for gain, bandwidth, stability
+   - Consider harmonic tuning for efficiency
+   - Run sensitivity analysis on component tolerances
+   - Reference: Section 2.4, PAM-B matching network examples
+
+5. BIAS & THERMAL DESIGN
+   - Calculate bias currents for class of operation
+   - Design bias network for stability and supply noise immunity
+   - Estimate thermal resistance and power dissipation
+   - Verify junction temperature < limit
+   - Reference: Section 3.1, thermal management
+
+6. LAYOUT DESIGN
+   - Follow design rules from DRC database
+   - Optimize for minimal parasitics, thermal spreading
+   - EM simulation of critical structures
+   - Generate assembly drawings with critical dimensions
+
+7. SIMULATION & VALIDATION
+   - Harmonic balance simulation across PVT corners
+   - Stability analysis (K-factor, mu-factor)
+   - Large-signal S-parameters
+   - Load-pull verification
+   - Compare to target specs and similar designs
+
+8. RISK ASSESSMENT
+   - Identify potential failure modes
+   - Sensitivity to component variations
+   - Manufacturing feasibility
+   - Mitigation strategies
+
+9. DOCUMENTATION
+   - Design rationale for all major decisions
+   - Bill of materials with alternatives
+   - Expected performance with error bars
+   - Test plan and debug strategy
+
+## OUTPUT FORMAT
+Provide:
+1. **Design Summary** - One-page overview with key parameters
+2. **Architecture Block Diagram** - Annotated with impedances, power levels
+3. **Schematic** - Complete circuit with component values and part numbers
+4. **Design Calculations** - Show your work (not just results)
+5. **Simulation Results** - Performance plots with interpretation
+6. **Sensitivity Analysis** - Which parameters are critical?
+7. **Risk Register** - What could go wrong and mitigation
+8. **BOM** - Complete with cost, lead-time, alternatives
+9. **Next Steps** - What to do after receiving hardware
+
+## QUALITY CHECKS
+Before finalizing design, verify:
+- [ ] All specifications met with margin
+- [ ] Stability verified (K > 1 across band)
+- [ ] Thermal limit satisfied with 20% margin
+- [ ] Bill of materials complete and costed
+- [ ] Similar to proven design in Knowledge Base (if possible)
+- [ ] Design decisions justified with data/analysis
+- [ ] Failure modes identified with mitigation
+- [ ] Testability and debuggability considered
+
+## INTERACTION STYLE
+- Think out loud - show reasoning process
+- Question ambiguous requirements
+- Propose alternatives when trade-offs are tight
+- Reference relevant examples from Knowledge Base
+- Flag assumptions clearly
+- Admit unknowns rather than guess
+
+---
+END OF MASTER PROMPT
+</pre>
+</div>
+
+### Subtask Prompt Templates
+
+<div class="expert-insight">
+**Modular Prompts for Specific Design Tasks:**
+
+#### Prompt 1: Transistor Selection
+<div class="prompt-template">
+```
+TASK: Select optimal transistor for PA design
+
+INPUT:
+- Target output power: [X] dBm
+- Frequency range: [Y] GHz
+- Supply voltage: [Z] V
+- Architecture: [Doherty/ClassAB/etc]
+
+PROCEDURE:
+1. Calculate required device periphery from power and voltage
+2. Query load-pull database for matching transistors
+3. Compare efficiency, gain, linearity across candidates
+4. Evaluate thermal performance (Rth, package)
+5. Consider cost, availability, proven performance
+6. Recommend top 3 options with trade-off matrix
+
+REFERENCE: PAM-B Project - P41 vs P44 vs P49 selection
+```
+</div>
+
+#### Prompt 2: Matching Network Synthesis
+<div class="prompt-template">
+```
+TASK: Design input/output matching networks
+
+INPUT:
+- Device impedances (from load-pull or S-parameters)
+- Target system impedance (typically 50Ω)
+- Bandwidth requirement
+- Frequency range
+
+PROCEDURE:
+1. Plot impedances on Smith chart
+2. Determine transformation ratio and Q
+3. Synthesize matching network topology (L, Pi, T, multi-section)
+4. Optimize component values for bandwidth and loss
+5. Add stability network if needed (resistor, RC in parallel)
+6. Simulate with device model, iterate
+7. Sensitivity analysis for ±20% component tolerance
+8. Final component selection from qualified library
+
+REFERENCE: PAM-B input matching, output matching examples
+```
+</div>
+
+#### Prompt 3: Performance Prediction from Measurements
+<div class="prompt-template">
+```
+TASK: Predict full PA performance from load-pull data
+
+INPUT:
+- Transistor load-pull data (Pout, PAE, Gain vs. ZL)
+- Matching network S-parameters
+- Bias conditions
+
+PROCEDURE:
+1. Extract optimal load impedance from load-pull contours
+2. Calculate mismatch loss from matching network
+3. De-embed matching network to predict PA performance
+4. Account for losses (bond wires, substrate, passives)
+5. Predict PAE, gain, P1dB across band
+6. Estimate linearity (ACLR) from AM-PM characteristics
+7. Compare to target specs
+8. Sensitivity to load VSWR
+
+OUTPUT: Performance table and plots with error bars
+
+REFERENCE: Tx_Baseline load-pull to PA performance process
+```
+</div>
+</div>
+
+## Automation Architecture
+
+### System Components
+
+```{r automation-architecture, echo=FALSE}
+# Create a visual representation of the automation system
+architecture <- data.frame(
+  Layer = rep(c("UI Layer", "Orchestration", "Knowledge Base", "Tools", "Data"), each=3),
+  Component = c(
+    "Web Interface", "Chat Interface", "API",
+    "Design Flow Manager", "Prompt Router", "Results Aggregator",
+    "Reference Manual", "Project Archives", "Design Libraries",
+    "Simulator Interface", "Optimizer", "Report Generator",
+    "Transistor DB", "Measurement DB", "Component DB"
+  ),
+  Function = c(
+    "User requirements input, interactive design session",
+    "Natural language design discussion",
+    "Programmatic access for integration",
+    "Step-by-step design procedure execution",
+    "Route queries to appropriate knowledge/tool",
+    "Compile results from multiple tools",
+    "Theoretical background, best practices",
+    "Historical design examples (PAM-B, Tx_Baseline)",
+    "Qualified components, models, design rules",
+    "ADS, AWR, HFSS integration",
+    "Automated parameter sweeps, optimization",
+    "PDF/HTML report generation from design data",
+    "Load-pull data, transistor models",
+    "Historical PA performance data",
+    "Passive components with models and specs"
+  )
+)
+
+kable(architecture, caption = "Automated Design System Architecture")
+```
+
+### Data Flow
+
+<div class="workflow-diagram">
+**Automated Design Flow:**
+
+**User Input: Requirements** (Specs, Constraints, Preferences)
+<div class="arrow">⬇</div>
+
+**AI Assistant: Requirements Analysis** (Parse, validate, clarify ambiguities)
+<div class="arrow">⬇</div>
+
+**Knowledge Retrieval: Similar Designs** (Query project archives, reference manual)
+<div class="arrow">⬇</div>
+
+**AI Design: Initial Architecture** (Architecture selection, transistor selection)
+<div class="arrow">⬇</div>
+
+**Simulation Tool: Performance Prediction** (Automated simulation with initial design)
+<div class="arrow">⬇</div>
+
+**AI Optimization: Iterate Design** (Sensitivity analysis, parameter optimization)
+<div class="arrow">⬇</div>
+
+**Simulation Tool: Validation** (Multi-corner analysis, stability, thermal)
+<div class="arrow">⬇</div>
+
+**AI Analysis: Risk Assessment** (Compare to targets, identify weaknesses)
+<div class="arrow">⬇</div>
+
+**Report Generator: Documentation** (PDF with design, analysis, BOM, next steps)
+<div class="arrow">⬇</div>
+
+**Human Review: Validation & Sign-off** (Expert review before prototyping)
+</div>
+
+## Implementation Roadmap
+
+### Phase 1: Foundation (Months 1-3)
+
+<div class="timeline-box">
+**<span class="phase-indicator phase-1">Phase 1: Foundation</span>**
+
+**Goals:**
+- Complete PA Design Reference Manual
+- Structure project archives for AI access
+- Create design template library
+
+**Deliverables:**
+1. Self-contained HTML reference manual (per outline above)
+2. Structured JSON database of:
+   - PAM-B design parameters
+   - Tx_Baseline design parameters
+   - Component library
+   - Load-pull data
+3. Master prompt templates for key design tasks
+4. Validation: Manually replicate PAM-B design using prompts
+
+**Success Criteria:**
+- Reference manual reviewed by 2+ RF engineers
+- AI assistant can answer 90% of PA design questions correctly using manual
+- Template-guided design completes in < 50% time vs. from-scratch
+</div>
+
+### Phase 2: Tool Integration (Months 4-6)
+
+<div class="timeline-box">
+**<span class="phase-indicator phase-2">Phase 2: Tool Integration</span>**
+
+**Goals:**
+- Integrate simulation tools with AI assistant
+- Automate performance prediction from load-pull data
+- Develop automated report generation
+
+**Deliverables:**
+1. Simulator API wrappers (ADS/AWR via Python)
+2. Load-pull to PA performance prediction tool
+3. Automated matching network synthesis tool
+4. Sensitivity analysis automation
+5. PDF report generator from design data
+
+**Success Criteria:**
+- AI can run simulations and interpret results autonomously
+- Load-pull → PA prediction accuracy within 5% of manual calculation
+- Report generation < 5 minutes (vs. hours manual)
+</div>
+
+### Phase 3: Guided Design System (Months 7-12)
+
+<div class="timeline-box">
+**<span class="phase-indicator phase-3">Phase 3: Guided Design System</span>**
+
+**Goals:**
+- End-to-end guided design flow
+- Interactive design assistant
+- Learning from new designs
+
+**Deliverables:**
+1. Web-based design interface
+2. Conversational AI design assistant
+3. Multi-objective optimization capability
+4. Design variant comparison tool
+5. Feedback loop: Measurement → Model update
+
+**Success Criteria:**
+- Junior engineer can complete PA design in 2 weeks with AI guidance
+- First-pass success rate > 70%
+- AI suggests design improvements based on measurement data
+</div>
+
+### Phase 4: Autonomous Design (Future)
+
+<div class="timeline-box">
+**<span class="phase-indicator phase-4">Phase 4: Autonomous Design</span>**
+
+**Long-term Vision:**
+- Fully autonomous design from requirements to layout
+- Real-time optimization during measurements
+- Self-improving AI from accumulated design database
+
+**Research Questions:**
+- How to handle novel requirements outside training data?
+- Validation and trust in autonomous designs?
+- Integration with manufacturing process control?
+</div>
+
+## Key Insights for Automation
+
+<div class="critical-point">
+**What Makes PA Design Automatable (and What Doesn't):**
+
+### Highly Automatable:
+1. **Routine Calculations** - Impedance matching, power calculations, thermal analysis
+2. **Simulation Setup** - Standard analysis flows can be templated
+3. **Performance Prediction** - Load-pull → PA performance via established methods
+4. **Sensitivity Analysis** - Monte Carlo, parameter sweeps
+5. **Report Generation** - Structured documentation from design data
+6. **BOM Management** - Component selection from constraints
+
+### Partially Automatable (AI-Assisted):
+1. **Architecture Selection** - Can narrow to 2-3 options, human decides based on context
+2. **Transistor Selection** - AI suggests candidates, human validates for non-spec factors
+3. **Layout Optimization** - AI can optimize within constraints, human checks EM effects
+4. **Debugging** - AI suggests likely causes, human interprets measurements
+
+### Difficult to Automate (Human Expertise Required):
+1. **Novel Requirements** - Outside existing design space
+2. **Manufacturing Issues** - Process variations, assembly defects
+3. **Customer Interaction** - Requirements clarification, trade-off negotiation
+4. **Failure Root Cause** - Complex interactions, measurement artifacts
+5. **Strategic Decisions** - Technology selection, long-term roadmap
+
+**Design Principle:** Automate the routine, augment the complex, defer the strategic.
+</div>
+
+---
+
+# 📋 Execution Plan & Next Steps {.tabset .tabset-pills}
+
+## Immediate Actions
+
+<div class="section-header">
+<h2 style="color: white; border: none; padding: 0; margin: 0;">🚀 Getting Started: What We Do Next</h2>
+</div>
+
+### Decision Points for Discussion
+
+<div class="critical-point">
+**Before proceeding, we need to align on:**
+
+1. **Scope Confirmation**
+   - ☐ Is the proposed manual structure (6 chapters, ~200-300 pages) appropriate?
+   - ☐ Should we focus on PAM-B primarily, or equal weight to Tx_Baseline?
+   - ☐ Level of detail: Deep dive or survey coverage?
+
+2. **Automation Priority**
+   - ☐ Should we develop manual first, automation second (sequential)?
+   - ☐ Or develop both in parallel (more ambitious)?
+   - ☐ Which automation use case is highest priority?
+     * Quick performance prediction tool?
+     * Matching network synthesis?
+     * End-to-end guided design?
+
+3. **Timeline & Effort**
+   - ☐ Target completion date for manual?
+   - ☐ Available effort (hours per week)?
+   - ☐ Checkpoints for review and feedback?
+
+4. **Technical Constraints**
+   - ☐ Do you have access to project PDFs as text (not just images)?
+   - ☐ Can I extract data from PDFs, or should you provide key data separately?
+   - ☐ Access to simulation tools for automation phase?
+</div>
+
+### Proposed First Sprint
+
+<div class="timeline-box">
+**Sprint 1 (Week 1-2): Foundation & Data Extraction**
+
+**Day 1-2: Manual Structure Finalization**
+- Review and refine chapter outline
+- Define content templates for consistency
+- Create figure/table numbering scheme
+- Set up RMarkdown development environment
+
+**Day 3-5: PAM-B Data Extraction**
+- Systematically extract all specs, design parameters, results from PDFs
+- Create structured database (CSV/JSON) of key data
+- Identify missing information for each section
+- Catalog all figures/diagrams suitable for manual
+
+**Day 6-10: Chapter 1 & 2 Draft (Fundamentals & Design Process)**
+- Write theory sections with derivations
+- Integrate PAM-B data as examples
+- Create annotated figures from project
+- Add lessons learned from project documents
+
+**Day 11-14: Review & Iteration**
+- Internal consistency check
+- Validate against source documents
+- Incorporate feedback
+- Refine writing style and pedagogical flow
+
+**Sprint Deliverable:**
+- Chapters 1-2 of reference manual in HTML format
+- Data extraction database for remaining chapters
+- Updated project plan based on lessons learned
+</div>
+
+## Resource Requirements
+
+### From You (User)
+
+<div class="expert-insight">
+**To proceed efficiently, I need:**
+
+1. **Feedback on This Plan**
+   - Approve overall approach, or suggest modifications
+   - Prioritize aspects (manual vs. automation, depth vs. breadth)
+
+2. **Access to Data**
+   - Confirm PDFs are text-searchable (not scanned images)
+   - If key data needs manual extraction, identify what to prioritize
+   - Access to any non-PDF data (spreadsheets, simulation files)
+
+3. **Domain Expertise (Periodic)**
+   - Clarification on design decisions not clear from documents
+   - Validation of technical content
+   - "Why did you choose X over Y?" type questions
+
+4. **Review Cycles**
+   - Weekly review of draft sections
+   - Feedback on technical accuracy, completeness
+   - Additions/corrections based on your memory of projects
+</div>
+
+### From Me (AI Assistant)
+
+<div class="expert-insight">
+**What I bring:**
+
+1. **Content Development**
+   - Theory section writing (with derivations and explanations)
+   - Structuring information logically
+   - Creating visualizations and diagrams
+   - Integrating diverse sources cohesively
+
+2. **Data Processing**
+   - Extracting information from PDFs
+   - Organizing data into structured databases
+   - Cross-referencing between documents
+   - Identifying patterns and trends
+
+3. **Technical Analysis**
+   - Interpreting measurement data
+   - Performance prediction calculations
+   - Trade-off analysis and optimization
+   - Code development for automation tools
+
+4. **Documentation Quality**
+   - Consistent formatting and style
+   - Comprehensive cross-referencing
+   - Generating HTML/PDF outputs
+   - Creating interactive elements
+</div>
+
+## Success Metrics
+
+### Reference Manual
+
+<div class="timeline-box">
+**Quality Indicators:**
+
+- ✅ **Comprehensiveness:** Covers all major PA design topics with sufficient depth
+- ✅ **Accuracy:** No technical errors, all statements backed by data/reference
+- ✅ **Traceability:** Every project-specific claim linked to source document
+- ✅ **Pedagogical Effectiveness:** Understandable to junior engineer with RF basics
+- ✅ **Practical Utility:** Can be used as reference during actual PA design
+- ✅ **Interview Prep Value:** Covers typical PA design interview questions
+- ✅ **Completeness:** Includes lessons learned and failure cases, not just successes
+
+**Quantitative Targets:**
+- 200-300 pages of content
+- 50+ annotated figures from actual projects
+- 100+ design equations with derivations
+- 20+ worked examples from PAM-B/Tx_Baseline
+- 30+ lessons learned / expert insights
+- Complete reference list (20+ papers, 5+ textbooks)
+</div>
+
+### Automation Framework
+
+<div class="timeline-box">
+**Quality Indicators:**
+
+- ✅ **Completeness:** Covers full design flow from requirements to validation
+- ✅ **Usability:** Non-expert can follow prompts to complete design
+- ✅ **Accuracy:** Predictions within 10% of measurement for established designs
+- ✅ **Efficiency:** Reduces design time by at least 50%
+- ✅ **Reproducibility:** Same inputs → same design (deterministic)
+- ✅ **Transparency:** Design decisions are explainable, not black-box
+- ✅ **Adaptability:** Can handle variations in requirements
+
+**Quantitative Targets:**
+- 10+ task-specific prompt templates
+- Automated simulation interface (Python API)
+- Performance prediction within 5% error
+- Report generation in < 5 minutes
+- Design cycle time < 2 weeks (vs. 6 months manual)
+</div>
+
+## Risk Mitigation
+
+<div class="critical-point">
+**Potential Challenges & Mitigations:**
+
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| PDFs not text-extractable | High (delays data extraction) | Medium | Manual extraction of critical data into spreadsheets |
+| Scope creep (trying to cover everything) | Medium (delays completion) | High | Strict prioritization, define "good enough" |
+| Technical depth too shallow | High (manual not useful) | Medium | Regular expert review, compare to textbooks |
+| Project data has gaps (missing design rationale) | Medium (incomplete lessons) | Medium | Supplement with standard PA design knowledge, note limitations |
+| Automation overambitious | Medium (doesn't deliver value) | Medium | Phased approach, deliver value incrementally |
+| Time commitment exceeds expectation | High (abandonment risk) | Medium | Realistic timelines, flexible scope, iterate |
+</div>
+
+---
+
+# 🎬 Conclusion & Call to Action
+
+<div class="section-header">
+<h2 style="color: white; border: none; padding: 0; margin: 0;">🎯 Summary: A Unique Opportunity</h2>
+</div>
+
+## What We're Creating
+
+<div class="expert-insight">
+This project represents a **rare confluence** of:
+
+1. **Deep Technical Documentation** - PAM-B and Tx_Baseline are exceptionally well-documented
+2. **Real-World Design Data** - Not textbook examples, but actual commercial PA designs
+3. **AI Capabilities** - Natural language understanding for knowledge capture and guided design
+4. **Pedagogical Goal** - Interview prep and reference manual drives clarity and comprehensiveness
+5. **Automation Vision** - Foolproof design system requires codifying design expertise
+
+The result will be:
+- **Immediately Valuable:** Reference manual for PA design and interview prep
+- **Increasingly Valuable:** As automation tools mature, enables faster/better designs
+- **Strategically Valuable:** Institutional knowledge preserved and leverageable
+
+This is knowledge that typically **walks out the door** when an engineer leaves. We're capturing it **while we have access**, in a form that can be **used by humans and AI**.
+</div>
+
+## Your Decision
+
+<div class="critical-point">
+**I need your input on:**
+
+1. **Do you approve this overall plan?**
+   - Manual structure (6 chapters, concept → theory → practice → evidence)
+   - Automation framework (4 phases, template → guided → autonomous)
+   - Execution approach (systematic data extraction, structured content development)
+
+2. **What should we start with?**
+   - Option A: Manual first, automation later (sequential, lower risk)
+   - Option B: Both in parallel (ambitious, faster long-term payoff)
+   - Option C: Automation prioritized, minimal manual (faster to working tool)
+
+3. **What's your availability?**
+   - Hours per week for review/feedback
+   - Target completion timeline
+   - Preferred check-in frequency
+
+4. **Any modifications to the plan?**
+   - Different manual structure?
+   - Additional automation use cases?
+   - Different emphasis or priorities?
+</div>
+
+## Next Steps
+
+<div class="workflow-diagram">
+**Once you approve the plan:**
+
+**Step 1:** Finalize manual outline and create content templates
+<div class="arrow">⬇</div>
+
+**Step 2:** Begin systematic data extraction from PAM-B project
+<div class="arrow">⬇</div>
+
+**Step 3:** Draft Chapter 1 (Fundamentals) with theory + PAM-B examples
+<div class="arrow">⬇</div>
+
+**Step 4:** Review cycle #1 - validate approach, adjust as needed
+<div class="arrow">⬇</div>
+
+**Step 5:** Iterate through remaining chapters
+<div class="arrow">⬇</div>
+
+**Step 6:** Parallel: Develop automation prompts and test with GPT-4
+<div class="arrow">⬇</div>
+
+**Step 7:** Complete reference manual (self-contained HTML)
+<div class="arrow">⬇</div>
+
+**Step 8:** Deliver automation framework (prompts + tools)
+<div class="arrow">⬇</div>
+
+**Step 9:** Document lessons learned from this meta-project
+</div>
+
+---
+
+<div class="section-header">
+<h2 style="color: white; border: none; padding: 0; margin: 0;">✅ Ready to Proceed?</h2>
+<p style="margin: 10px 0 0 0; opacity: 0.95;">Please review this plan and let me know your thoughts. Once approved, I'll immediately begin data extraction and content development.</p>
+</div>
+

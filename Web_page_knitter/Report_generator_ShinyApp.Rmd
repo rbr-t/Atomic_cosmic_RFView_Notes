@@ -33,26 +33,22 @@ params:
 library(here)
 library(rmarkdown)
 library(knitr)
-library(readxl)
-library(gt)
-#library(officer)
+
+# Optional packages - load if available
+optional_packages <- c("readxl", "gt", "gtExtras", "readr", "openxlsx", 
+                       "janitor", "pdftools", "pandoc", "doconv", "emld", 
+                       "markdown", "jsonlite", "digest", "stringr")
+
+for (pkg in optional_packages) {
+  if (requireNamespace(pkg, quietly = TRUE)) {
+    library(pkg, character.only = TRUE)
+  }
+}
+
+# Core packages
 library(xml2)
-library(gtExtras)
 library(dplyr)
-library(readr)
-#library(xlsx)
-library(openxlsx)
-library(janitor)
-library(stringr)
 library(htmltools)
-library(pdftools)
-#library(RDCOMClient)
-library(pandoc)
-library(doconv)
-library(emld)
-library(markdown)
-library(jsonlite)
-library(digest) # For creating unique IDs for notes
 
 # Helper function to create notes box
 create_notes_box <- function(file_path, display_name) {
@@ -297,7 +293,8 @@ process_file <- function(folder_file, level) {
       cat("<p>Online viewer (if file is publicly accessible):</p>\n")
       cat("<iframe src='", office_viewer, "' width='100%' height='650px' frameborder='0'></iframe>\n\n")
     }
-    cat(create_notes_box(folder_file, display_name))    cat("<br><br>\n<hr>\n\n")
+    cat(create_notes_box(folder_file, display_name))
+    cat("<br><br>\n<hr>\n\n")
     return()
   }
 

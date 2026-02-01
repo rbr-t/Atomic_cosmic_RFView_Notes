@@ -5,6 +5,16 @@ library(here)
 library(fs)
 library(httr)
 
+# =============================================================================
+# IMPORTANT: Required Module Files
+# =============================================================================
+# This app requires the following module files to be present:
+# - Modules/chat_module.R (REQUIRED - updated version with context_resolver support)
+# - Modules/ifx_integration.R (OPTIONAL - for IFX-specific templates)
+#
+# If you see "unused argument (context_resolver)" error, update chat_module.R
+# from the repository to get the latest version with context_resolver support.
+# =============================================================================
 
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
@@ -338,8 +348,19 @@ normalize_cross_platform_path <- function(path) {
     message(paste("⚠️ Windows path detected on Unix system:", path))
   }
   
-  # Normalize slashes for current OS
-  converted_path <- normalizePath(converted_path, winslash = "/", mustWork = FALSE)
+  # Determine if path is absolute
+  is_absolute <- grepl("^/", converted_path) || 
+                 grepl("^[A-Za-z]:", converted_path) || 
+                 grepl("^\\\\\\\\", converted_path)
+  
+  # Only use normalizePath for absolute paths or network paths
+  # For relative paths, just normalize slashes to avoid duplication
+  if (is_absolute) {
+    converted_path <- normalizePath(converted_path, winslash = "/", mustWork = FALSE)
+  } else {
+    # For relative paths, just normalize slashes
+    converted_path <- gsub("\\\\", "/", converted_path)
+  }
   
   return(list(original_path = original_path, converted_path = converted_path))
 }
@@ -574,11 +595,17 @@ source(chat_module_path)
 
 # Load IFX integration module
 ifx_module_path <- here("Web_page_knitter", "Modules", "ifx_integration.R")
+ifx_module_available <- FALSE
 if (file.exists(ifx_module_path)) {
-  source(ifx_module_path)
-  message("IFX integration module loaded successfully")
+  tryCatch({
+    source(ifx_module_path)
+    ifx_module_available <- TRUE
+    message("IFX integration module loaded successfully")
+  }, error = function(e) {
+    warning("Failed to load IFX integration module: ", e$message)
+  })
 } else {
-  warning("IFX integration module not found at: ", ifx_module_path)
+  message("IFX integration module not found at: ", ifx_module_path, " (optional feature)")
 }
 
 
@@ -762,20 +789,24 @@ reportTabUI <- function(id, toc_choices = NULL) {
           ),
           hr(),
           
-          # IFX Integration Panel
-          conditionalPanel(
-            condition = sprintf("input['%s'] == true", ns("show_ifx_integration")),
-            div(id = ns("ifx_integration_panel"),
-                ifx_integration_ui(ns("ifx_module"))
+          # IFX Integration Panel (only if module is available)
+          if (ifx_module_available) {
+            tagList(
+              conditionalPanel(
+                condition = sprintf("input['%s'] == true", ns("show_ifx_integration")),
+                div(id = ns("ifx_integration_panel"),
+                    ifx_integration_ui(ns("ifx_module"))
+                )
+              ),
+              
+              # Toggle for IFX integration
+              div(style = "margin-bottom:12px;",
+                  checkboxInput(ns("show_ifx_integration"), 
+                                label = tagList(icon("briefcase"), strong(" Show IFX Integration")),
+                                value = FALSE)
+              )
             )
-          ),
-          
-          # Toggle for IFX integration
-          div(style = "margin-bottom:12px;",
-              checkboxInput(ns("show_ifx_integration"), 
-                            label = tagList(icon("briefcase"), strong(" Show IFX Integration")),
-                            value = FALSE)
-          ),
+          },
           
           br(),
           div(id = ns("dynamic_sections"), class = "dynamic-sections-hidden"),
@@ -867,23 +898,24 @@ reportTabServer <- function(id, rmd_file, report_type = "individual", toc_choice
       uid <- input$close_tab
       if (is.null(uid) || !nzchar(uid)) return()
       # lookup title for user-friendly notification
-      info <- rv$open_tabs[[uid]] %||% list(title = uid, file = file.path("www", paste0(uid, ".html")))
-      # remove only the specific tab by uid in this module's navbar
-      removeTab("dynamic_navbar", target = uid)
-      # delete the corresponding copied file inside www if present
-      if (!is.null(info$file)) {
-        # info$file is returned by copy_report_to_www (e.g. "Output/report.html") or may be an absolute path
-        candidate <- info$file
-        if (!startsWith(candidate, "/") && !grepl("^[A-Za-z]:\\\\", candidate)) {
-          candidate <- file.path("www", candidate)
+      info <- rv$open_tabs[[uid]]
+      if (!is.null(info)) {
+        # remove only the specific tab by uid in this module's navbar
+        removeTab("dynamic_navbar", target = uid)
+        # Remove the resource path if it exists
+        if (!is.null(info$resource_prefix)) {
+          tryCatch(removeResourcePath(info$resource_prefix), error = function(e) {
+            message("Failed to remove resource path: ", e$message)
+          })
         }
-        if (file.exists(candidate)) {
-          tryCatch(file.remove(candidate), error = function(e) NULL)
-        }
+        # Optionally delete the rendered file (commented out - keep the rendered report)
+        # if (!is.null(info$file) && file.exists(info$file)) {
+        #   tryCatch(file.remove(info$file), error = function(e) NULL)
+        # }
+        # drop from open_tabs map
+        rv$open_tabs[[uid]] <- NULL
+        showNotification(paste("Closed preview:", info$title), type = "message")
       }
-      # drop from open_tabs map
-      rv$open_tabs[[uid]] <- NULL
-      showNotification(paste("Closed and deleted:", info$title), type = "message")
     }, ignoreInit = TRUE)
     
     # Sidebar toggle logic
@@ -910,16 +942,26 @@ reportTabServer <- function(id, rmd_file, report_type = "individual", toc_choice
       uid <- tail(uids, 1)
       info <- ots[[uid]]
       if (is.null(info) || is.null(info$file) || !nzchar(info$file)) return(NULL)
-      candidate <- info$file
-      if (!startsWith(candidate, "/") && !grepl("^[A-Za-z]:\\\\", candidate)) candidate_path <- file.path("www", candidate) else candidate_path <- candidate
-      if (dir.exists(candidate_path)) {
-        htmls <- list.files(candidate_path, pattern = "\\.html?$", full.names = TRUE)
-        if (length(htmls) > 0) candidate_path <- htmls[1]
-      }
+      # info$file is now the actual report filepath
+      candidate_path <- info$file
       if (!file.exists(candidate_path)) return(NULL)
       tryCatch({ extract_section_text(candidate_path, anchor = sel, max_chars = 6000) }, error = function(e) NULL)
     }
-    setup_chat_handlers(input, output, session, chat_messages, llm_info, chat_context, context_resolver)
+    
+    # Call setup_chat_handlers with context_resolver if supported, otherwise without it
+    tryCatch({
+      # Try with context_resolver parameter (new version)
+      setup_chat_handlers(input, output, session, chat_messages, llm_info, chat_context, context_resolver)
+    }, error = function(e) {
+      # Fallback to old version without context_resolver
+      if (grepl("unused argument", e$message)) {
+        message("Using legacy chat_module.R without context_resolver support")
+        setup_chat_handlers(input, output, session, chat_messages, llm_info, chat_context)
+      } else {
+        stop(e)
+      }
+    })
+    
     # Ensure chat (right sidebar) is minimized/hidden on initial load
     session$onFlushed(function() {
       try({
@@ -957,23 +999,11 @@ reportTabServer <- function(id, rmd_file, report_type = "individual", toc_choice
       }
       
       info <- ots[[active_uid]]
-      # info$file may be relative like 'Master_report/report.html' or an absolute path
-      candidate <- info$file %||% ""
-      if (!nzchar(candidate)) {
+      # info$file contains the actual report filepath (not www path)
+      candidate_path <- info$file %||% ""
+      if (!nzchar(candidate_path)) {
         try({ updateSelectInput(session, "chat_context", choices = c("Introduction"), selected = "Introduction") }, silent = TRUE)
         return(invisible(NULL))
-      }
-      # construct path inside app www folder if needed
-      if (!startsWith(candidate, "/") && !grepl("^[A-Za-z]:\\\\", candidate)) {
-        candidate_path <- file.path("www", candidate)
-      } else {
-        candidate_path <- candidate
-      }
-      
-      # If the candidate is a directory, look for an index.html or an html file
-      if (dir.exists(candidate_path)) {
-        htmls <- list.files(candidate_path, pattern = "\\.html?$", full.names = TRUE)
-        if (length(htmls) > 0) candidate_path <- htmls[1]
       }
       
       if (!file.exists(candidate_path)) {
@@ -1090,9 +1120,15 @@ reportTabServer <- function(id, rmd_file, report_type = "individual", toc_choice
       )
     })
     
-    # IFX Integration Module
-    source(file.path("Modules", "ifx_integration.R"), local = TRUE)
-    ifx_integration_server("ifx_module", parent_rv = rv, parent_session = session, parent_ns = ns)
+    # IFX Integration Module (only if available)
+    if (ifx_module_available) {
+      tryCatch({
+        source(file.path("Modules", "ifx_integration.R"), local = TRUE)
+        ifx_integration_server("ifx_module", parent_rv = rv, parent_session = session, parent_ns = ns)
+      }, error = function(e) {
+        warning("Failed to initialize IFX integration module: ", e$message)
+      })
+    }
     
     # Test All Paths Button
     observeEvent(input$test_paths, {
@@ -1733,7 +1769,9 @@ reportTabServer <- function(id, rmd_file, report_type = "individual", toc_choice
                 uid <- make_tab_uid(section)
                 # keep the rendered HTML filename identical to the sanitized title (no UID suffix)
                 report_filename <- paste0(sanitized_title, ".html")
-                report_filepath <- file.path(section$destination_path, report_filename)
+                # Ensure destination_path doesn't have trailing slash to avoid double slashes
+                clean_dest_path <- gsub("/$", "", section$destination_path)
+                report_filepath <- file.path(clean_dest_path, report_filename)
                 
                 # ensure destination exists
                 dir_create(section$destination_path)
@@ -1741,10 +1779,10 @@ reportTabServer <- function(id, rmd_file, report_type = "individual", toc_choice
                 
                 # copy the shared css files into the report output folder so the Rmd will find them by basename
                 tryCatch({
-                  file.copy(styles_css_path, file.path(section$destination_path, styles_css_path), overwrite = TRUE)
+                  file.copy(styles_css_path, file.path(section$destination_path, basename(styles_css_path)), overwrite = TRUE)
                 }, error = function(e) message("Failed to copy styles.css to output dir: ", e$message))
                 tryCatch({
-                  file.copy(bootstrap_css_path, file.path(section$destination_path, bootstrap_css_path), overwrite = TRUE)
+                  file.copy(bootstrap_css_path, file.path(section$destination_path, basename(bootstrap_css_path)), overwrite = TRUE)
                 }, error = function(e) message("Failed to copy bootstrapMint.css to output dir: ", e$message))
                 
                 # Debug prints
@@ -1778,7 +1816,7 @@ reportTabServer <- function(id, rmd_file, report_type = "individual", toc_choice
                 rmarkdown::render(
                   input = rmd_file,
                   output_file = report_filename,          # exact filename
-                  output_dir  = section$destination_path, # exact folder
+                  output_dir  = clean_dest_path,          # exact folder without trailing slash
                   params = list(
                     original_src_path = as.character(original_src),
                     converted_src_path = as.character(converted_src_path),
@@ -1801,38 +1839,28 @@ reportTabServer <- function(id, rmd_file, report_type = "individual", toc_choice
                 # confirm rendered file exists
                 if (!file.exists(report_filepath)) {
                   stop("Rendered HTML not found at: ", report_filepath, ". Files in destination: ",
-                       paste(list.files(section$destination_path, pattern = "\\.html?$", full.names = TRUE), collapse = ", "))
+                       paste(list.files(clean_dest_path, pattern = "\\.html?$", full.names = TRUE), collapse = ", "))
                 }
                 
-                # Determine which source folder to copy: prefer converted_source (usable path) if it exists,
-                # otherwise fall back to original_source, and finally the report output dir.
-                src_to_copy <- NULL
-                if (!is.null(section$converted_source) && nzchar(section$converted_source) && dir.exists(section$converted_source)) {
-                  src_to_copy <- section$converted_source
-                } else if (!is.null(section$original_source) && nzchar(section$original_source) && dir.exists(section$original_source)) {
-                  src_to_copy <- section$original_source
-                } else if (!is.null(section$source_path) && nzchar(section$source_path) && dir.exists(section$source_path)) {
-                  src_to_copy <- section$source_path
-                } else {
-                  src_to_copy <- dirname(report_filepath)
+                message(sprintf("Report rendered successfully to: %s", report_filepath))
+                
+                # Instead of copying to www, use addResourcePath to serve from destination folder
+                # Create a unique prefix for this destination folder
+                resource_prefix <- paste0("report_", uid)
+                # Get the directory containing the report
+                report_dir <- dirname(report_filepath)
+                # Normalize to absolute path if needed
+                if (!startsWith(report_dir, "/") && !grepl("^[A-Za-z]:", report_dir)) {
+                  report_dir <- normalizePath(report_dir, winslash = "/", mustWork = TRUE)
                 }
                 
-                # Copy rendered report + assets -> www; pass the chosen source folder so original assets are preserved
-                iframe_src <- copy_report_to_www(
-                  report_path   = report_filepath,
-                  source_folder = src_to_copy,
-                  www_folder    = "www",
-                  verbose       = TRUE
-                )
+                # Add resource path so Shiny can serve files from this directory
+                addResourcePath(resource_prefix, report_dir)
+                message(sprintf("Added resource path: %s -> %s", resource_prefix, report_dir))
                 
-                if (is.na(iframe_src) || !nzchar(iframe_src)) {
-                  stop("copy_report_to_www failed to prepare preview for: ", report_filepath)
-                }
-                
-                # Only append the preview tab after successful copy; use returned path
-                # generate uid for this report and use it for the tab value (do not change filename)
-                # iframe_src already contains the copied path relative to www
-                iframe_src_final <- iframe_src
+                # Construct iframe source using the resource path
+                iframe_src_final <- paste0(resource_prefix, "/", basename(report_filepath))
+                message(sprintf("DEBUG: iframe_src will be: '%s'", iframe_src_final))
                 # show human title with a short UID suffix so users can distinguish duplicates
                 short_uid <- substr(uid, 1, 8)
                 # Build the tab title including a close button that directly notifies this module's namespaced close input
@@ -1873,8 +1901,13 @@ reportTabServer <- function(id, rmd_file, report_type = "individual", toc_choice
                   showNotification(paste("Tab selection failed:", e$message), type = "error")
                 })
                 # record mapping for cleanup and notifications
-                # record the actual file path used for the iframe (returned by copy_report_to_www)
-                rv$open_tabs[[uid]] <- list(title = section$title, file = iframe_src_final)
+                # Store the report file path and resource prefix for later cleanup
+                rv$open_tabs[[uid]] <- list(
+                  title = section$title, 
+                  file = report_filepath,
+                  resource_prefix = resource_prefix,
+                  resource_dir = report_dir
+                )
                 # only notify success after tab appended and selected
                 showNotification(paste0("Report successfully rendered: ", section$title), type = "message")
               },

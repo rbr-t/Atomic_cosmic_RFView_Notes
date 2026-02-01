@@ -1,0 +1,196 @@
+/* styles.css */
+.yaml-header {
+  border: 1px solid #ccc;
+  padding: 10px;
+  background-color: #f9f9f9;
+  margin-bottom: 20px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+.sidebar {
+  float: left !important;
+  width: 25%;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 10px;
+}
+
+.main-content {
+  float: left;
+  width: 1200px;
+  padding: 10px;
+  margin-left: 160px;
+}
+
+.toc {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 150px;
+  padding: 0px;
+  border-right: 1px solid #ccc;
+  z-index: 1000;
+  float: left !important;
+}
+
+.header {
+  /* remove this style or adjust its position to avoid overlapping with the TOC */
+  /* position: fixed; */
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #f0f0f0;
+  padding: 20px;
+  border-bottom: 1px solid #ccc;
+}
+
+body {
+  max-width: 1200px; /* adjust the width to your liking */
+  margin: 0 auto;
+  padding: 10px;
+}
+
+.selectize-dropdown-content {
+  overflow: visible;
+}
+
+body {
+  font-size: 1em; /* set the base font size to 1em */
+}
+
+/* adjust font size based on screen size */
+@media (max-width: 768px) {
+  body {
+    font-size: 0.8em; /* reduce font size to 0.8em on smaller screens */
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 0.6em; /* reduce font size to 0.6em on very small screens */
+  }
+}
+
+/* adjust sidebar width based on screen size */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 20%; /* reduce sidebar width to 20% on smaller screens */
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 15%; /* reduce sidebar width to 15% on very small screens */
+  }
+}
+
+/* adjust main section width based on screen size */
+@media (max-width: 768px) {
+  .main {
+    width: 80%; /* increase main section width to 80% on smaller screens */
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    width: 85%; /* increase main section width to 85% on very small screens */
+  }
+}
+
+/* Add a sidebar to the right of the page */
+.book-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 100%;
+  background-color: #f0f0f0;
+  padding: 20px;
+  border: 1px solid #ccc;
+}
+
+
+.sticky-header {
+  position: sticky;
+  top: 0;
+  background-color: #f0f0f0;
+  padding: 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+.gt_table {
+  overflow-x: visible !important;
+  overflow-y: hidden !important;
+}
+
+.gt_table thead {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1 !important;
+}
+
+.gt_table thead th:nth-child(-n+4) {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 1 !important;
+}
+
+#sidebar {
+  position: float !important;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 100%;
+  background-color: #f0f0f0;
+  padding: 20px;
+  border: 1px solid #ccc;
+}
+
+#comments {
+  padding: 20px;
+}
+
+.tocify li a:target {
+  color: #fff;
+  background-color: #333;
+}
+
+.tocify {
+  max-width: 150px; /* adjust the width as needed */
+}
+
+.custom-toc li a {
+  font-weight: bold;
+}
+
+.custom-toc li a:hover, .custom-toc li a:active, .custom-toc li a:focus {
+  color: #fff;
+  background-color: #333;
+}
+
+
+.toc ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc li {
+  margin-bottom: 10px;
+}
+
+.toc a {
+  text-decoration: none;
+  color: #337ab7;
+}
+
+.toc a:hover {
+  color: #23527c;
+}
+
+
