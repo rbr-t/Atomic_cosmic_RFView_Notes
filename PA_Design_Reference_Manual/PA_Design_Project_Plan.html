@@ -2000,20 +2000,83 @@ tuning data)</p>
 Implementation</h3>
 <div class="expert-insight">
 <p><strong>Chapter 3: Physical Implementation</strong></p>
-<p>3.1 <strong>Layout &amp; Substrate Design</strong> - Concept:
-Electromagnetic considerations in physical design - Theory: Substrate
-modes, bond wire inductance, thermal management - Design Rules: * LGiT
-substrate requirements (reference: PAM-B design rules doc) * Assembly
-design rules - Factual Evidence: Actual PAM-B layout with annotations -
-Lessons Learned: Dielectric thickness impact (from post-tape-out
-analysis)</p>
-<p>3.2 <strong>Assembly &amp; Manufacturing</strong> - Process Flow:
-Pre-tape-out to production (reference: PAM-B flow chart) - BOM
-Management: Component selection rationale - Assembly Drawings:
-Interpretation and critical dimensions - Quality Control: BW height
-measurements, visual inspection - Lessons Learned: Manufacturing
-variations and their impact</p>
-<p>3.3 <strong>Modeling &amp; Simulation</strong> - Concept: Virtual
+<p>3.1 <strong>Design Verification &amp; Analysis</strong> (Aligned with
+02_PAM_B/03_Design/) - <strong>3.1.1 Performance Analysis</strong> *
+Concept: Comprehensive design verification before fabrication *
+Practice: PAM-B performance analysis (reference:
+03_Design/01_Performance/) * Metrics: Gain, PAE, output power across
+frequency and power * Factual Evidence: Simulated vs target
+specifications</p>
+<ul>
+<li><strong>3.1.2 Linearity Analysis</strong> ⭐ CRITICAL DESIGN PHASE
+<ul>
+<li>Concept: Spectral purity and modulation quality</li>
+<li>Theory: FCC spectral mask requirements, ACLR, EVM fundamentals</li>
+<li>Practice: Linearity simulations (reference:
+03_Design/02_Linearity/)</li>
+<li>Measurement Methods: Two-tone, modulated signals</li>
+<li>Digital Pre-Distortion: Integration considerations<br />
+</li>
+<li>Factual Evidence: PAM-B linearity simulations (iDPD vs nDPD)</li>
+<li>Design Decisions: Bias point optimization for linearity-efficiency
+trade-off</li>
+</ul></li>
+<li><strong>3.1.3 Stability Analysis</strong> ⭐ DESIGN PHASE
+REQUIREMENT
+<ul>
+<li>Concept: Preventing oscillations in PA design</li>
+<li>Theory: Small-signal stability (K-factor, µ-factor analysis)</li>
+<li>Large-Signal Stability: Practical considerations</li>
+<li>Practice: Stability verification (reference:
+03_Design/03_Stability/)</li>
+<li>Case Study: PAM-B stability analysis document</li>
+<li>Design Fixes: Stabilization techniques before tape-out</li>
+</ul></li>
+<li><strong>3.1.4 Sensitivity &amp; Reliability Analysis</strong> ⭐
+PRE-FABRICATION
+<ul>
+<li>Sensitivity Analysis (reference: 03_Design/04_Sensitivity_analysis/)
+<ul>
+<li>Component tolerance effects</li>
+<li>Process variations (PVT corners)</li>
+<li>Design margins and robustness</li>
+</ul></li>
+<li>Reliability Analysis (reference: 03_Design/05_Reliability_analysis/)
+<ul>
+<li>Theory: Failure mechanisms, MTTF</li>
+<li>Thermal stress analysis</li>
+<li>Voltage stress assessment</li>
+<li>Design for Reliability: Guidelines and trade-offs</li>
+<li>Practical Analysis: PAM-B reliability study</li>
+</ul></li>
+</ul></li>
+<li><strong>3.1.5 Schematic &amp; BOM Finalization</strong>
+<ul>
+<li>Complete schematic development (reference:
+03_Design/06_Schematic_BOM/)</li>
+<li>Component selection and qualification</li>
+<li>BOM management and alternatives</li>
+<li>Design documentation for fabrication</li>
+</ul></li>
+</ul>
+<p>3.2 <strong>Layout &amp; Substrate Design</strong> (Aligned with
+02_PAM_B/04_Layout/) - Concept: Electromagnetic considerations in
+physical design - Theory: Substrate modes, bond wire inductance, thermal
+management - Design Rules: * LGiT substrate requirements (reference:
+PAM-B design rules doc) * Assembly design rules - Factual Evidence:
+Actual PAM-B layout with annotations - Lessons Learned: Dielectric
+thickness impact (from post-tape-out analysis)</p>
+<p>3.3 <strong>Tape-out &amp; EM Verification</strong> (Aligned with
+02_PAM_B/05_Tapeout/) - EM Simulation: Critical structure analysis -
+Final design verification - Manufacturing file preparation - Design
+review and sign-off</p>
+<p>3.4 <strong>Assembly &amp; Manufacturing</strong> (Aligned with
+02_PAM_B/06_Assembly/) - Process Flow: Pre-tape-out to production
+(reference: PAM-B flow chart) - BOM Management: Component selection
+rationale - Assembly Drawings: Interpretation and critical dimensions -
+Quality Control: BW height measurements, visual inspection - Lessons
+Learned: Manufacturing variations and their impact</p>
+<p>3.5 <strong>Modeling &amp; Simulation</strong> - Concept: Virtual
 prototyping - Theory: Circuit simulation, EM simulation - Practice:
 Model library usage (reference: Tx_Baseline model library manual) -
 Validation: Sim vs. Measurement (extensive PAM-B data available) -
@@ -2021,48 +2084,51 @@ Current Status: Model accuracy assessment - Future Suggestions: Model
 improvement opportunities</p>
 </div>
 </div>
-<div id="level-4-validation-optimization" class="section level3" number="3.1.4">
+<div id="level-4-validation-optimization-aligned-with-02_pam_b07_tuning_cv" class="section level3" number="3.1.4">
 <h3><span class="header-section-number">3.1.4</span> Level 4: Validation
-&amp; Optimization</h3>
+&amp; Optimization (Aligned with 02_PAM_B/07_Tuning_CV/)</h3>
 <div class="expert-insight">
-<p><strong>Chapter 4: Measurement &amp; Characterization</strong></p>
+<p><strong>Chapter 4: Measurement, Tuning &amp;
+Characterization</strong></p>
 <p>4.1 <strong>Measurement Setup &amp; Procedures</strong> - LP
 Measurements: Setup, calibration, interpretation - Full Read-out:
 Comprehensive PA characterization - GSG Passive Measurements: Component
 verification - Reference: PAM-B measurement instructions</p>
-<p>4.2 <strong>Performance Analysis</strong> - Data Interpretation:
-Reading full read-out reports - Performance Metrics Extraction -
-Comparison to Simulation - Trend Analysis: Performance across samples
-(J01A, J01B, J01G, J01M) - Statistical Variation: Understanding process
-spread</p>
-<p>4.3 <strong>Tuning &amp; Optimization</strong> - CV Tuning Process:
-Systematic optimization (reference: PAM-B CV execution) - DOE
-Methodology: Design of experiments approach - Gain Dip Correction:
-Specific case study from PAM-B - Delta Quantification: Socket
-vs. solder, assembly variations - Lessons Learned: What worked, what
-didn’t, why</p>
+<p>4.2 <strong>Tuning &amp; Optimization</strong> (Aligned with
+02_PAM_B/07_Tuning_CV/) - CV Tuning Process: Systematic optimization
+(reference: PAM-B CV execution) - DOE Methodology: Design of experiments
+approach - Gain Dip Correction: Specific case study from PAM-B - Delta
+Quantification: Socket vs. solder, assembly variations - Lessons
+Learned: What worked, what didn’t, why</p>
+<p>4.3 <strong>Performance Analysis</strong> (Aligned with
+02_PAM_B/08_Results_Analysis/) - Data Interpretation: Reading full
+read-out reports - Performance Metrics Extraction - Comparison to
+Simulation (reference: 02_PAM_B/09_Sim_vs_Meas/) - Trend Analysis:
+Performance across samples (J01A, J01B, J01G, J01M) - Statistical
+Variation: Understanding process spread - Measured Linearity
+Performance: ACLR, EVM results - Final Performance Summary (reference:
+02_PAM_B/10_Poster/)</p>
 </div>
 </div>
-<div id="level-5-advanced-topics" class="section level3" number="3.1.5">
+<div id="level-5-advanced-topics-future-directions" class="section level3" number="3.1.5">
 <h3><span class="header-section-number">3.1.5</span> Level 5: Advanced
-Topics</h3>
+Topics &amp; Future Directions</h3>
 <div class="expert-insight">
-<p><strong>Chapter 5: Reliability, Linearity &amp; System
+<p><strong>Chapter 5: Advanced PA Techniques &amp; System
 Integration</strong></p>
-<p>5.1 <strong>Reliability Analysis</strong> - Theory: Failure
-mechanisms, MTTF - Practical Analysis: PAM-B reliability study
-(reference: reliability PDF) - Design for Reliability: Guidelines and
-trade-offs</p>
-<p>5.2 <strong>Linearity &amp; Linearization</strong> - FCC Spectral
-Mask Requirements (reference: PAM-B FCC spec discussion) - Measurement
-Methods: ACLR, EVM - Digital Pre-Distortion: Integration considerations
-- Factual Evidence: PAM-B linearity measurements (iDPD vs nDPD)</p>
-<p>5.3 <strong>Stability Analysis</strong> - Small-Signal Stability:
-K-factor analysis - Large-Signal Stability: Practical considerations -
-Case Study: PAM-B stability analysis document</p>
-<p>5.4 <strong>Future Directions</strong> - GaN Technology Comparison -
-Envelope Tracking Integration - Massive MIMO Considerations - 6G
-Requirements</p>
+<p>5.1 <strong>Advanced Efficiency Techniques</strong> - Envelope
+Tracking: Theory and implementation - Outphasing architectures - Load
+modulation techniques - Practical trade-offs and system complexity</p>
+<p>5.2 <strong>Linearization Techniques Beyond Design</strong> - DPD
+Algorithm Development - Adaptive linearization - Memory effects and
+mitigation - System-level integration challenges</p>
+<p>5.3 <strong>Advanced Packaging &amp; Thermal Management</strong> -
+Advanced substrate materials - 3D packaging considerations - Liquid
+cooling integration - Thermal spreading techniques</p>
+<p>5.4 <strong>Future Technology Trends</strong> - GaN Technology
+Evolution - GaN-on-Si vs GaN-on-SiC trade-offs - Massive MIMO
+Considerations - 6G Requirements and challenges - AI/ML in PA design
+optimization</p>
 </div>
 </div>
 <div id="level-6-lessons-learned-best-practices" class="section level3" number="3.1.6">
