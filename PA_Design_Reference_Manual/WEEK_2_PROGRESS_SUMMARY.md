@@ -97,7 +97,7 @@ Based on user request: *"Could you proceed with the next phase of the PA_Design_
 
 ### 3. Chapter 1 RMarkdown Template - COMPLETE ✅
 
-**File**: `Chapters/Chapter_01_Transistor_Fundamentals.Rmd` (1,157 lines, ~72 KB)
+**File**: `manual_chapters/ch01_fundamentals/Chapter_01_Transistor_Fundamentals.Rmd` (1,157 lines, ~72 KB)
 
 **Comprehensive Structure**:
 

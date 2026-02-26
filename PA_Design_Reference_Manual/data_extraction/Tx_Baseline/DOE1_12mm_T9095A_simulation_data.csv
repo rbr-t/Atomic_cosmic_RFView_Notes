@@ -1,0 +1,29 @@
+# Tx_Baseline DOE1: 12mm T9095A Baseline
+# Project: Tx_Baseline (3.4-3.8 GHz, 5G NR FR1)
+# Transistor: T9095A (GaN HEMT)
+# Size: 12mm total gate periphery
+# Purpose: Baseline reference design
+# Source PDF: IFX_2022_2025/02_Projects/01_Tx_Baseline/02_Design/06_Simulations/Build_1_DOE1/03_DOE1_12mm_T9095A_1 _P1p5dB_Refined.pdf
+#
+# INSTRUCTIONS:
+# 1. Open the source PDF
+# 2. Find the table with Case0-Case5 performance data
+# 3. Fill in the values below (replace "TBD" with actual numbers)
+# 4. Save this file when complete
+#
+# Date Extracted: [Enter date]
+# Extracted By: [Your name]
+
+Variant,Frequency_GHz,Pin_dBm,Pout_dBm,Gain_dB,PAE_percent,Drain_Eff_percent,ACLR_Lower_dBc,ACLR_Upper_dBc,Vdd_V,Idd_A,Temp_C,Notes
+Case0,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,"Baseline configuration"
+Case1,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,"Variant 1"
+Case2,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,"Variant 2"
+Case3,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,"Variant 3"
+Case4,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,"Variant 4"
+Case5,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,"Variant 5"
+
+# Additional Parameters (if available in PDF)
+# Layout: [Input/output matching network topology]
+# Bias_Class: [Class AB, Class B, etc.]
+# Load_Impedance: [Optimum load impedance]
+# Harmonics: [2nd/3rd harmonic tuning approach]

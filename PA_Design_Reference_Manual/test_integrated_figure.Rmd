@@ -1,0 +1,411 @@
+---
+title: "PA Class Integrated Visualization - Preview"
+output:
+  html_document:
+    theme: cosmo
+    toc: false
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Integrated PA Class Visualization
+
+This combined visualization shows the I-V load line behavior alongside the corresponding input and output waveforms for different PA classes.
+
+```{r pa-class-integrated-visualization, echo=FALSE, fig.cap="Figure 1.3d: Integrated PA Class Visualization - Load Lines and Input/Output Waveforms", fig.width=14, fig.height=10}
+library(plotly)
+library(dplyr)
+
+# ========== DEVICE PARAMETERS ==========
+VDD <- 48       # Supply voltage (V)
+Vknee <- 4      # Knee voltage (V)
+Idss <- 800     # Maximum current (mA)
+Vth <- -5.5     # Threshold voltage (V)
+Rload <- 55     # Load resistance (Ohms)
+BVdss <- 100    # Breakdown voltage
+
+# ========== GENERATE I-V CURVES ==========
+VDS_curve <- seq(0.1, 100, 0.5)
+VGS_values <- seq(-5.5, 0, 0.5)
+
+iv_data <- data.frame()
+for(VGS in VGS_values) {
+  if(VGS < Vth) {
+    ID <- rep(0, length(VDS_curve))
+  } else {
+    gm_factor <- (VGS - Vth) / (0 - Vth)
+    ID_linear <- Idss * gm_factor * (VDS_curve / Vknee) * (1 - 0.5 * VDS_curve / Vknee)
+    ID_sat <- Idss * gm_factor^2 * (1 + 0.01 * (VDS_curve - Vknee))
+    ID <- ifelse(VDS_curve < Vknee, pmax(ID_linear, 0), ID_sat)
+    ID <- ifelse(VDS_curve > BVdss, ID * (1 + 0.05*(VDS_curve - BVdss)), ID)
+  }
+  iv_data <- rbind(iv_data, data.frame(VDS = VDS_curve, ID = ID, VGS = VGS))
+}
+
+# ========== TIME DOMAIN WAVEFORMS ==========
+t <- seq(0, 1, length.out = 200)
+omega <- 2 * pi
+
+# CLASS A: Full 360° conduction
+VGS_Q_A <- -2.8
+VGS_swing_A <- 0.8
+VGS_A <- VGS_Q_A + VGS_swing_A * sin(omega * t)
+gm_factor_A <- ((VGS_A - Vth) / (0 - Vth))^1.8
+ID_A <- pmax(Idss * gm_factor_A, 0)
+VDS_A <- pmax(pmin(VDD - ID_A * Rload, VDD), Vknee)
+
+# CLASS AB: ~180-270° conduction
+VGS_Q_AB <- -4.2
+VGS_swing_AB <- 1.2
+VGS_AB <- VGS_Q_AB + VGS_swing_AB * sin(omega * t)
+gm_factor_AB <- ((VGS_AB - Vth) / (0 - Vth))^1.8
+ID_AB <- pmax(Idss * gm_factor_AB, 0)
+VDS_AB <- pmax(pmin(VDD - ID_AB * Rload, VDD), Vknee)
+
+# CLASS B: 180° conduction
+VGS_Q_B <- Vth
+VGS_swing_B <- 1.5
+VGS_B <- VGS_Q_B + VGS_swing_B * sin(omega * t)
+gm_factor_B <- ((VGS_B - Vth) / (0 - Vth))^1.8
+ID_B <- pmax(Idss * gm_factor_B, 0)
+VDS_B <- pmax(pmin(VDD - ID_B * Rload, VDD), Vknee)
+
+# CLASS C: <180° conduction
+VGS_Q_C <- Vth - 1.0
+VGS_swing_C <- 2.0
+VGS_C <- VGS_Q_C + VGS_swing_C * sin(omega * t)
+gm_factor_C <- ((VGS_C - Vth) / (0 - Vth))^1.8
+ID_C <- pmax(Idss * gm_factor_C, 0)
+VDS_C <- pmax(pmin(VDD - ID_C * Rload, VDD * 1.3), Vknee)
+
+# CLASS D: Switching mode
+VGS_Q_D <- Vth - 2.0
+VGS_swing_D <- 3.0
+VGS_D <- VGS_Q_D + VGS_swing_D * sin(omega * t)
+ID_D <- ifelse(VGS_D > Vth, Idss * 0.7, 0)
+VDS_D <- ifelse(ID_D > 0, Vknee, VDD)
+
+# CLASS E: ZVS
+VGS_Q_E <- Vth - 2.0
+VGS_swing_E <- 3.5
+VGS_E <- VGS_Q_E + VGS_swing_E * sin(omega * t)
+ID_E <- ifelse(VGS_E > Vth, Idss * 0.6, 0)
+phase_shift <- pi/6
+VDS_E <- pmax(pmin(VDD * (1 + 0.8 * sin(omega * t + phase_shift)), VDD * 1.8), 0)
+
+# CLASS F: Harmonic tuning
+VGS_Q_F <- Vth - 1.5
+VGS_swing_F <- 2.5
+VGS_F <- VGS_Q_F + VGS_swing_F * sin(omega * t)
+gm_factor_F <- ((VGS_F - Vth) / (0 - Vth))^1.8
+ID_F <- pmax(Idss * gm_factor_F * 0.7, 0)
+VDS_F <- pmax(pmin(VDD * (1 + 0.6 * sin(omega * t) + 0.2 * sin(3 * omega * t)), VDD * 1.5), Vknee)
+
+# ========== LOAD LINE TRAJECTORIES ==========
+# Class A Load Line
+class_A_VDS <- c(Vknee, VDD/2, VDD)
+class_A_ID <- c(Idss * 0.9, Idss * 0.45, 0)
+
+# Class AB Load Line
+class_AB_VDS <- c(Vknee, VDD/2, VDD)
+class_AB_ID <- c(Idss * 0.85, Idss * 0.25, 0)
+
+# Class B Load Line
+class_B_VDS <- c(Vknee, VDD)
+class_B_ID <- c(Idss * 0.7, 0)
+
+# Class C Load Line
+class_C_VDS <- c(Vknee, VDD * 1.1)
+class_C_ID <- c(Idss * 0.5, 0)
+
+# Class D Load Line
+class_D_VDS <- c(Vknee, Vknee, VDD, VDD)
+class_D_ID <- c(0, Idss * 0.8, Idss * 0.8, 0)
+
+# Class E Load Line
+class_E_VDS <- c(0.5, Vknee, VDD * 1.2, VDD * 1.8, 0.5)
+class_E_ID <- c(Idss * 0.6, Idss * 0.7, Idss * 0.2, 0, Idss * 0.6)
+
+# Class F Load Line
+class_F_VDS <- seq(Vknee, VDD * 1.5, length.out = 30)
+class_F_ID <- pmax(Idss * 0.4 * (1 + 0.6*sin(2*pi*seq(0,1,length.out=30))) * exp(-0.5*seq(0,1,length.out=30)), 0)
+
+# ========== CREATE SUBPLOT 1: I-V CURVES WITH LOAD LINES ==========
+p1 <- plot_ly()
+
+# Add I-V curves (background, lighter)
+for(VGS_val in VGS_values) {
+  curve_data <- iv_data %>% filter(VGS == VGS_val)
+  p1 <- p1 %>% add_trace(
+    x = curve_data$VDS, y = curve_data$ID,
+    type = 'scatter', mode = 'lines',
+    line = list(width = 1, color = 'rgba(100,100,100,0.3)'),
+    name = paste0('VGS=', VGS_val, 'V'),
+    showlegend = FALSE,
+    hovertemplate = paste0('VGS=', VGS_val, 'V<br>VDS: %{x:.1f}V<br>ID: %{y:.0f}mA<extra></extra>')
+  )
+}
+
+# Add load lines for each class
+p1 <- p1 %>%
+  add_trace(x = class_A_VDS, y = class_A_ID, type = 'scatter', mode = 'lines+markers',
+            name = 'Class A', legendgroup = 'classA',
+            line = list(color = '#FF6F00', width = 3, dash = 'dash'),
+            marker = list(size = 8, symbol = 'circle'),
+            hovertemplate = '<b>Class A</b><br>VDS: %{x:.1f}V<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = class_AB_VDS, y = class_AB_ID, type = 'scatter', mode = 'lines+markers',
+            name = 'Class AB', legendgroup = 'classAB', visible = 'legendonly',
+            line = list(color = '#4CAF50', width = 3, dash = 'dashdot'),
+            marker = list(size = 8, symbol = 'square'),
+            hovertemplate = '<b>Class AB</b><br>VDS: %{x:.1f}V<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = class_B_VDS, y = class_B_ID, type = 'scatter', mode = 'lines+markers',
+            name = 'Class B', legendgroup = 'classB', visible = 'legendonly',
+            line = list(color = '#2196F3', width = 3, dash = 'dot'),
+            marker = list(size = 8, symbol = 'diamond'),
+            hovertemplate = '<b>Class B</b><br>VDS: %{x:.1f}V<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = class_C_VDS, y = class_C_ID, type = 'scatter', mode = 'lines+markers',
+            name = 'Class C', legendgroup = 'classC', visible = 'legendonly',
+            line = list(color = '#9C27B0', width = 3, dash = 'longdash'),
+            marker = list(size = 8, symbol = 'triangle-up'),
+            hovertemplate = '<b>Class C</b><br>VDS: %{x:.1f}V<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = class_D_VDS, y = class_D_ID, type = 'scatter', mode = 'lines+markers',
+            name = 'Class D', legendgroup = 'classD', visible = 'legendonly',
+            line = list(color = '#FF5722', width = 3, dash = 'solid'),
+            marker = list(size = 8, symbol = 'x'),
+            hovertemplate = '<b>Class D</b><br>VDS: %{x:.1f}V<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = class_E_VDS, y = class_E_ID, type = 'scatter', mode = 'lines+markers',
+            name = 'Class E', legendgroup = 'classE', visible = 'legendonly',
+            line = list(color = '#E91E63', width = 3, dash = 'dashdot'),
+            marker = list(size = 8, symbol = 'star'),
+            hovertemplate = '<b>Class E</b><br>VDS: %{x:.1f}V<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = class_F_VDS, y = class_F_ID, type = 'scatter', mode = 'lines+markers',
+            name = 'Class F', legendgroup = 'classF', visible = 'legendonly',
+            line = list(color = '#00BCD4', width = 3, dash = 'dot'),
+            marker = list(size = 7, symbol = 'hexagon'),
+            hovertemplate = '<b>Class F</b><br>VDS: %{x:.1f}V<br>ID: %{y:.0f}mA<extra></extra>')
+
+# Add reference lines
+p1 <- p1 %>%
+  add_segments(x = Vknee, xend = Vknee, y = 0, yend = 900,
+               line = list(color = 'gray', width = 1, dash = 'dash'),
+               showlegend = FALSE, hovertemplate = paste0('Vknee = ', Vknee, 'V<extra></extra>')) %>%
+  add_segments(x = VDD, xend = VDD, y = 0, yend = 900,
+               line = list(color = 'red', width = 1, dash = 'dash'),
+               showlegend = FALSE, hovertemplate = paste0('VDD = ', VDD, 'V<extra></extra>'))
+
+p1 <- p1 %>% layout(
+  xaxis = list(title = '<b>V<sub>DS</sub> [V]</b>', range = c(0, 90)),
+  yaxis = list(title = '<b>I<sub>D</sub> [mA]</b>', range = c(0, 900)),
+  annotations = list(
+    list(x = 0.5, y = 1.05, xref = 'paper', yref = 'paper',
+         text = '<b>Load Lines on I-V Curves</b>',
+         showarrow = FALSE, font = list(size = 13))
+  )
+)
+
+# ========== SUBPLOT 2: INPUT VGS WAVEFORMS ==========
+p2 <- plot_ly() %>%
+  add_trace(x = t, y = VGS_A, name = 'Class A', type = 'scatter', mode = 'lines',
+            legendgroup = 'classA', showlegend = FALSE,
+            line = list(color = '#FF6F00', width = 2.5),
+            hovertemplate = '<b>Class A</b><br>t: %{x:.3f}<br>VGS: %{y:.2f}V<extra></extra>') %>%
+  add_trace(x = t, y = VGS_AB, name = 'Class AB', type = 'scatter', mode = 'lines',
+            legendgroup = 'classAB', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#4CAF50', width = 2.5),
+            hovertemplate = '<b>Class AB</b><br>t: %{x:.3f}<br>VGS: %{y:.2f}V<extra></extra>') %>%
+  add_trace(x = t, y = VGS_B, name = 'Class B', type = 'scatter', mode = 'lines',
+            legendgroup = 'classB', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#2196F3', width = 2.5),
+            hovertemplate = '<b>Class B</b><br>t: %{x:.3f}<br>VGS: %{y:.2f}V<extra></extra>') %>%
+  add_trace(x = t, y = VGS_C, name = 'Class C', type = 'scatter', mode = 'lines',
+            legendgroup = 'classC', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#9C27B0', width = 2.5),
+            hovertemplate = '<b>Class C</b><br>t: %{x:.3f}<br>VGS: %{y:.2f}V<extra></extra>') %>%
+  add_trace(x = t, y = VGS_D, name = 'Class D', type = 'scatter', mode = 'lines',
+            legendgroup = 'classD', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#FF5722', width = 2.5),
+            hovertemplate = '<b>Class D</b><br>t: %{x:.3f}<br>VGS: %{y:.2f}V<extra></extra>') %>%
+  add_trace(x = t, y = VGS_E, name = 'Class E', type = 'scatter', mode = 'lines',
+            legendgroup = 'classE', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#E91E63', width = 2.5),
+            hovertemplate = '<b>Class E</b><br>t: %{x:.3f}<br>VGS: %{y:.2f}V<extra></extra>') %>%
+  add_trace(x = t, y = VGS_F, name = 'Class F', type = 'scatter', mode = 'lines',
+            legendgroup = 'classF', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#00BCD4', width = 2.5),
+            hovertemplate = '<b>Class F</b><br>t: %{x:.3f}<br>VGS: %{y:.2f}V<extra></extra>') %>%
+  add_segments(x = 0, xend = 1, y = Vth, yend = Vth,
+               line = list(color = 'gray', width = 1, dash = 'dash'),
+               showlegend = FALSE, hovertemplate = paste0('Vth = ', Vth, 'V<extra></extra>'))
+
+p2 <- p2 %>% layout(
+  xaxis = list(title = '', showticklabels = FALSE),
+  yaxis = list(title = '<b>V<sub>GS</sub> Input [V]</b>'),
+  annotations = list(
+    list(x = 0.5, y = 1.05, xref = 'paper', yref = 'paper',
+         text = '<b>Gate Input Waveform</b>',
+         showarrow = FALSE, font = list(size = 13))
+  )
+)
+
+# ========== SUBPLOT 3: OUTPUT VDS WAVEFORMS ==========
+p3 <- plot_ly() %>%
+  add_trace(x = t, y = VDS_A, name = 'Class A', type = 'scatter', mode = 'lines',
+            legendgroup = 'classA', showlegend = FALSE,
+            line = list(color = '#FF6F00', width = 2.5),
+            hovertemplate = '<b>Class A</b><br>t: %{x:.3f}<br>VDS: %{y:.1f}V<extra></extra>') %>%
+  add_trace(x = t, y = VDS_AB, name = 'Class AB', type = 'scatter', mode = 'lines',
+            legendgroup = 'classAB', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#4CAF50', width = 2.5),
+            hovertemplate = '<b>Class AB</b><br>t: %{x:.3f}<br>VDS: %{y:.1f}V<extra></extra>') %>%
+  add_trace(x = t, y = VDS_B, name = 'Class B', type = 'scatter', mode = 'lines',
+            legendgroup = 'classB', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#2196F3', width = 2.5),
+            hovertemplate = '<b>Class B</b><br>t: %{x:.3f}<br>VDS: %{y:.1f}V<extra></extra>') %>%
+  add_trace(x = t, y = VDS_C, name = 'Class C', type = 'scatter', mode = 'lines',
+            legendgroup = 'classC', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#9C27B0', width = 2.5),
+            hovertemplate = '<b>Class C</b><br>t: %{x:.3f}<br>VDS: %{y:.1f}V<extra></extra>') %>%
+  add_trace(x = t, y = VDS_D, name = 'Class D', type = 'scatter', mode = 'lines',
+            legendgroup = 'classD', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#FF5722', width = 2.5),
+            hovertemplate = '<b>Class D</b><br>t: %{x:.3f}<br>VDS: %{y:.1f}V<extra></extra>') %>%
+  add_trace(x = t, y = VDS_E, name = 'Class E', type = 'scatter', mode = 'lines',
+            legendgroup = 'classE', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#E91E63', width = 2.5),
+            hovertemplate = '<b>Class E</b><br>t: %{x:.3f}<br>VDS: %{y:.1f}V<extra></extra>') %>%
+  add_trace(x = t, y = VDS_F, name = 'Class F', type = 'scatter', mode = 'lines',
+            legendgroup = 'classF', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#00BCD4', width = 2.5),
+            hovertemplate = '<b>Class F</b><br>t: %{x:.3f}<br>VDS: %{y:.1f}V<extra></extra>') %>%
+  add_segments(x = 0, xend = 1, y = VDD, yend = VDD,
+               line = list(color = 'red', width = 1, dash = 'dash'),
+               showlegend = FALSE, hovertemplate = paste0('VDD = ', VDD, 'V<extra></extra>')) %>%
+  add_segments(x = 0, xend = 1, y = Vknee, yend = Vknee,
+               line = list(color = 'gray', width = 1, dash = 'dash'),
+               showlegend = FALSE, hovertemplate = paste0('Vknee = ', Vknee, 'V<extra></extra>'))
+
+p3 <- p3 %>% layout(
+  xaxis = list(title = '<b>Normalized Time (RF Cycle)</b>'),
+  yaxis = list(title = '<b>V<sub>DS</sub> Output [V]</b>'),
+  annotations = list(
+    list(x = 0.5, y = 1.05, xref = 'paper', yref = 'paper',
+         text = '<b>Drain Voltage Waveform</b>',
+         showarrow = FALSE, font = list(size = 13))
+  )
+)
+
+# ========== SUBPLOT 4: OUTPUT ID WAVEFORMS ==========
+p4 <- plot_ly() %>%
+  add_trace(x = t, y = ID_A, name = 'Class A', type = 'scatter', mode = 'lines',
+            legendgroup = 'classA', showlegend = FALSE,
+            line = list(color = '#FF6F00', width = 2.5),
+            hovertemplate = '<b>Class A</b><br>t: %{x:.3f}<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = t, y = ID_AB, name = 'Class AB', type = 'scatter', mode = 'lines',
+            legendgroup = 'classAB', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#4CAF50', width = 2.5),
+            hovertemplate = '<b>Class AB</b><br>t: %{x:.3f}<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = t, y = ID_B, name = 'Class B', type = 'scatter', mode = 'lines',
+            legendgroup = 'classB', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#2196F3', width = 2.5),
+            hovertemplate = '<b>Class B</b><br>t: %{x:.3f}<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = t, y = ID_C, name = 'Class C', type = 'scatter', mode = 'lines',
+            legendgroup = 'classC', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#9C27B0', width = 2.5),
+            hovertemplate = '<b>Class C</b><br>t: %{x:.3f}<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = t, y = ID_D, name = 'Class D', type = 'scatter', mode = 'lines',
+            legendgroup = 'classD', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#FF5722', width = 2.5),
+            hovertemplate = '<b>Class D</b><br>t: %{x:.3f}<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = t, y = ID_E, name = 'Class E', type = 'scatter', mode = 'lines',
+            legendgroup = 'classE', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#E91E63', width = 2.5),
+            hovertemplate = '<b>Class E</b><br>t: %{x:.3f}<br>ID: %{y:.0f}mA<extra></extra>') %>%
+  add_trace(x = t, y = ID_F, name = 'Class F', type = 'scatter', mode = 'lines',
+            legendgroup = 'classF', visible = 'legendonly', showlegend = FALSE,
+            line = list(color = '#00BCD4', width = 2.5),
+            hovertemplate = '<b>Class F</b><br>t: %{x:.3f}<br>ID: %{y:.0f}mA<extra></extra>')
+
+p4 <- p4 %>% layout(
+  xaxis = list(title = '<b>Normalized Time (RF Cycle)</b>'),
+  yaxis = list(title = '<b>I<sub>D</sub> Output [mA]</b>'),
+  annotations = list(
+    list(x = 0.5, y = 1.05, xref = 'paper', yref = 'paper',
+         text = '<b>Drain Current Waveform</b>',
+         showarrow = FALSE, font = list(size = 13))
+  )
+)
+
+# ========== COMBINE INTO 2x2 GRID ==========
+fig <- subplot(
+  p1, p2, p3, p4,
+  nrows = 2,
+  margin = 0.08,
+  shareX = FALSE,
+  shareY = FALSE
+) %>% layout(
+  title = list(
+    text = '<b>Integrated PA Class Visualization: Load Lines ↔ Input/Output Waveforms</b><br><sub>Click legend to toggle PA classes • Class A shown by default</sub>',
+    font = list(size = 16),
+    y = 0.98
+  ),
+  width = 1400,
+  height = 1000,
+  hovermode = 'closest',
+  plot_bgcolor = 'white',
+  margin = list(l = 60, r = 120, t = 100, b = 60),
+  legend = list(
+    orientation = 'v',
+    x = 1.01,
+    y = 1,
+    bgcolor = 'rgba(255,255,255,0.95)',
+    bordercolor = 'gray',
+    borderwidth = 2,
+    font = list(size = 11)
+  ),
+  showlegend = TRUE
+)
+
+fig
+```
+
+---
+
+## How to Use This Integrated Visualization
+
+### Layout (2×2 Grid):
+- **Top Left**: I-V curves with load line trajectories
+- **Top Right**: Input gate voltage (VGS) waveforms  
+- **Bottom Left**: Output drain voltage (VDS) waveforms
+- **Bottom Right**: Output drain current (ID) waveforms
+
+### Interactive Controls:
+1. Click any **PA class** in the legend to show/hide all four related plots
+2. **Class A** is shown by default
+3. Display **multiple classes** simultaneously for comparison
+4. **Hover** over any waveform or load line to see exact values
+
+### Understanding the Relationships:
+- **Input (VGS)** drives the gate → modulates channel conductance
+- **Drain current (ID)** responds to gate voltage based on transfer characteristic
+- **Load line** shows the constraint: `VDS = VDD - ID × RL`
+- **Operating point** moves along load line as ID varies
+- **VDS and ID are anti-phase**: When ID ↑, VDS ↓ (visible in bottom plots)
+
+### Key Insights by PA Class:
+- **Class A**: 360° conduction, symmetric waveforms, centered Q-point
+- **Class AB**: Partial clipping visible in ID waveform, 180-270° conduction
+- **Class B**: Half-wave rectified ID (180° conduction), biased at threshold
+- **Class C**: Narrow ID pulses (<180° conduction), voltage overshoot possible
+- **Class D/E**: Hard switching, square waveforms
+- **Class F**: Harmonic-shaped waveforms for efficiency
+
+---
+
+**This integrated view makes the load line behavior much clearer!** You can see how:
+1. Input signal swing varies by class
+2. Current waveform shape determines conduction angle
+3. Operating point trajectory follows the load line
+4. Output voltage is inverted and scaled version of drain current

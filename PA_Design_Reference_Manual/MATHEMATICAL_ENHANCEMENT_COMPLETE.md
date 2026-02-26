@@ -247,7 +247,7 @@ Previously completed (earlier in session):
 ### Rendering Status
 All three enhanced chapters can now be rendered to HTML/PDF with:
 ```r
-rmarkdown::render('Chapters/Chapter_01_Transistor_Fundamentals.Rmd')
+rmarkdown::render('manual_chapters/ch01_fundamentals/Chapter_01_Transistor_Fundamentals.Rmd')
 rmarkdown::render('manual_chapters/ch05_thermal/Chapter_05_Advanced_Techniques.Rmd')
 rmarkdown::render('manual_chapters/ch06_integration/Chapter_06_Lessons_Learned.Rmd')
 ```

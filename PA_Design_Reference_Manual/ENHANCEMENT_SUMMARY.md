@@ -328,7 +328,7 @@ PA_Design_Reference_Manual/
 ### Previously Created:
 - [PROJECT_PLAN.html](PA_Design_Reference_Manual/PROJECT_PLAN.html)
 - [WEEK1_COMPLETION_SUMMARY.md](PA_Design_Reference_Manual/WEEK1_COMPLETION_SUMMARY.md)
-- [Chapter_01_Transistor_Fundamentals_OUTLINE.md](PA_Design_Reference_Manual/Chapters/Chapter_01_Transistor_Fundamentals_OUTLINE.md)
+- [Chapter_01_Transistor_Fundamentals_OUTLINE.md](PA_Design_Reference_Manual/manual_chapters/ch01_fundamentals/Chapter_01_Transistor_Fundamentals_OUTLINE.md)
 
 ### To Be Updated:
 - [PROJECT_STATUS.Rmd](PA_Design_Reference_Manual/PROJECT_STATUS.Rmd) ← Update with this enhancement
