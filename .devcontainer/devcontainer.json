@@ -1,0 +1,17 @@
+{
+  "name": "bug-free space umbrella",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Ikuyadeu.r-lsp",
+        "REditorSupport.r",
+        "ms-python.python",
+        "ms-toolsai.jupyter"
+      ]
+    }
+  },
+  "forwardPorts": [],
+  "postCreateCommand": "Rscript -e 'if(!requireNamespace(\"renv\", quietly=TRUE)) install.packages(\"renv\")' || true",
+  "remoteUser": "vscode"
+}
