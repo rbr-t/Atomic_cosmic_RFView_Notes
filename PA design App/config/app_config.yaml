@@ -1,0 +1,78 @@
+app:
+  name: "PA Design Assistant"
+  version: "1.0.0"
+  domain: "rf_pa_design"
+
+theme:
+  mode: "dark"
+  accent_color: "#ff7f11"
+  primary_color: "#1b1b1b"
+
+units:
+  frequency: "GHz"
+  power: "dBm"
+  impedance: "Ohm"
+  inductance: "nH"
+  capacitance: "pF"
+  voltage: "V"
+  current: "A"
+
+ai_agents:
+  enabled: true
+  model: "gpt-4"
+  confidence_threshold: 0.7
+  max_retries: 3
+  timeout_seconds: 30
+
+database:
+  host: "localhost"
+  port: 5432
+  name: "pa_design"
+  pool_size: 10
+
+mcp_servers:
+  - name: "ads_server"
+    url: "http://localhost:8081"
+    enabled: false
+    tools:
+      - "ads_run_simulation"
+      - "ads_export_sparams"
+  
+  - name: "awr_server"
+    url: "http://localhost:8082"
+    enabled: false
+    tools:
+      - "awr_run_simulation"
+      - "awr_export_data"
+  
+  - name: "vna_server"
+    url: "http://localhost:8083"
+    enabled: false
+    tools:
+      - "vna_measure_sparams"
+      - "vna_calibrate"
+
+knowledge_base:
+  vector_db: "chroma"
+  collection: "rf_pa_knowledge"
+  embedding_model: "text-embedding-ada-002"
+  chunk_size: 500
+  chunk_overlap: 50
+
+security:
+  auth_enabled: false
+  session_timeout: 3600
+  encryption_enabled: true
+  api_key_required: false
+
+logging:
+  level: "INFO"
+  file: "logs/app.log"
+  max_size_mb: 100
+  backup_count: 5
+
+feature_flags:
+  enable_ml_predictions: true
+  enable_mcp_integration: false
+  enable_chatbot: true
+  enable_real_time_collaboration: false

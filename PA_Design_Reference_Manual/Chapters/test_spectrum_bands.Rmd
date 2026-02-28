@@ -1,0 +1,122 @@
+---
+title: "Spectrum Bands Test"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(plotly)
+```
+
+## Standalone Spectrum Test
+
+This is a minimal test to verify spectrum band visualization.
+
+```{r spectrum_test, echo=TRUE}
+# Create frequency bands
+freq_bands <- list(
+  list(name = "VHF", xmin = 0.03, xmax = 0.3, color = 'rgba(255,182,193,0.3)',
+       label_x = log10(sqrt(0.03 * 0.3)), wavelength = "10-1 m", full_freq = "30-300 MHz",
+       apps = "FM radio, Weather radio", icon = "📻"),
+  list(name = "UHF", xmin = 0.3, xmax = 3, color = 'rgba(173,216,230,0.3)',
+       label_x = log10(sqrt(0.3 * 3)), wavelength = "1-0.1 m", full_freq = "0.3-3 GHz",
+       apps = "TV, GPS, Mobile phones", icon = "📱"),
+  list(name = "SHF", xmin = 3, xmax = 30, color = 'rgba(144,238,144,0.3)',
+       label_x = log10(sqrt(3 * 30)), wavelength = "100-10 mm", full_freq = "3-30 GHz",
+       apps = "Satellite comms, Radar", icon = "🛰️"),
+  list(name = "EHF", xmin = 30, xmax = 300, color = 'rgba(255,218,185,0.3)',
+       label_x = log10(sqrt(30 * 300)), wavelength = "10-1 mm", full_freq = "30-300 GHz",
+       apps = "Advanced radar, Experimental, 5G mmWave", icon = "📡")
+)
+
+# Create base plot
+fig <- plot_ly() %>%
+  layout(
+    title = "Spectrum Bands Test - ALL VISIBLE by default",
+    xaxis = list(
+      title = "Frequency (GHz)",
+      type = "log",
+      range = c(log10(0.01), log10(300))
+    ),
+    yaxis = list(
+      title = "Gain (dB)",
+      range = c(-5, 40)
+    ),
+    showlegend = TRUE,
+    hovermode = 'closest'
+  )
+
+# Add spectrum bands - VISIBLE by default for testing
+band_idx <- 0
+for(band in freq_bands) {
+  band_idx <- band_idx + 1
+  legend_name <- if(band_idx == 1) {
+    sprintf('━━ Spectrum ━━<br>%s %s', band$icon, band$name)
+  } else {
+    sprintf('%s %s', band$icon, band$name)
+  }
+  
+  # Build hover text for display (use line-breaks for clarity)
+  hover_text <- sprintf(
+    "%s %s (%s):\n%s\nWavelength: %s",
+    band$icon, band$name, band$full_freq, band$apps, band$wavelength
+  )
+
+  # Add filled background that handles hover via 'fills'
+  fig <- fig %>%
+    add_trace(
+      x = c(band$xmin, band$xmax, band$xmax, band$xmin, band$xmin),
+      y = c(-5, -5, 40, 40, -5),
+      type = 'scatter',
+      mode = 'lines',
+      fill = 'toself',
+      fillcolor = band$color,
+      line = list(width = 0),
+      name = legend_name,
+      legendgroup = 'spectrum',
+      visible = TRUE,
+      showlegend = (band_idx == 1),
+      hoveron = 'fills',
+      text = hover_text,
+      hoverinfo = 'text',
+      hoverlabel = list(font = list(size = 12))
+    ) %>%
+    add_trace(
+      x = band$label_x,
+      y = 42,
+      type = 'scatter',
+      mode = 'text',
+      text = sprintf('<b>%s</b>', band$name),
+      textfont = list(size = 12, color = 'rgba(0,0,0,0.95)', family = 'Arial Black'),
+      textposition = 'top center',
+      legendgroup = 'spectrum',
+      visible = TRUE,
+      showlegend = FALSE,
+      hoverinfo = 'skip'
+    )
+}
+
+# Add a simple reference line
+fig <- fig %>%
+  add_trace(
+    x = c(0.01, 300),
+    y = c(20, 20),
+    type = 'scatter',
+    mode = 'lines',
+    line = list(color = 'black', width = 2),
+    name = 'Reference',
+    showlegend = TRUE
+  )
+
+fig
+```
+
+### Expected Results:
+
+1. **All 4 spectrum bands should be VISIBLE** (VHF=pink, UHF=blue, SHF=green, EHF=orange)
+2. **Band labels** (VHF, UHF, SHF, EHF) should appear at y=35
+3. **Hover over any band** should show:
+   - Large icon (16px)
+   - Format: `[icon] Band Name (frequency range): applications | Wavelength: range`
+   - Example: "📻 VHF (30-300 MHz): FM radio, Weather radio | Wavelength: 10-1 m"
+4. **Click legend "━━ Spectrum ━━"** to toggle all bands on/off together
+

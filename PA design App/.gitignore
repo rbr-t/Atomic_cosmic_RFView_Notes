@@ -1,0 +1,61 @@
+# R and RStudio files
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Shiny
+rsconnect/
+
+# Data files
+data/projects/*
+data/uploads/*
+data/exports/*
+!data/projects/.gitkeep
+!data/uploads/.gitkeep
+!data/exports/.gitkeep
+
+# Logs
+logs/*.log
+logs/agents/*.json
+
+# Database
+*.sqlite
+*.db
+
+# Environment
+.env
+.env.local
+
+# API Keys
+*api_key*
+*.pem
+*.key
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Package files
+*.tar.gz
+*.zip
+
+# Created by specific tools
+.httr-oauth
+.cache/

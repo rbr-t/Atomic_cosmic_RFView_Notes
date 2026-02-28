@@ -1,0 +1,62 @@
+
+
+processing file: Chapter_01_Transistor_Fundamentals.Rmd
+1/53                                     
+2/53 [setup]                             
+3/53                                     
+4/53 [roadmap-diagram]                   
+5/53                                     
+6/53 [hemt-structure-diagram]            
+7/53                                     
+8/53 [gan-2deg-band-diagram]             
+9/53                                     
+10/53 [technology-cross-sections]         
+11/53                                     
+12/53 [technology-comparison-table]       
+13/53                                     
+14/53 [gan-small-signal-circuit]          
+15/53                                     
+16/53 [ft-characteristics]                
+17/53                                     
+18/53 [fmax-characteristics]              
+19/53                                     
+20/53 [iv-curves-gan-hemt]                
+21/53                                     
+22/53 [load-line-animation]               
+23/53                                     
+24/53 [pa-class-integrated-visualization] 
+25/53                                     
+26/53 [pa-class-performance-comparison]   
+27/53                                     
+28/53 [transfer-curves-gan-hemt]          
+29/53                                     
+30/53 [trap-types-diagram]                
+31/53                                     
+32/53 [trapping-effects-performance]      
+33/53                                     
+34/53 [doe-device-table]                  
+35/53                                     
+36/53 [vna-setup-diagram]                 
+37/53                                     
+38/53 [stability-analysis-placeholder]    
+39/53                                     
+40/53 [loadpull-setup-diagram]            
+41/53                                     
+42/53 [loadpull-contours-placeholder]     
+43/53                                     
+44/53 [project-specs-table]               
+45/53                                     
+46/53 [doe-sequence-flowchart]            
+47/53                                     
+48/53 [selection-criteria-table]          
+49/53                                     
+50/53 [doe-results-comparison-placeholder]
+51/53                                     
+52/53 [final-decision-table-placeholder]  
+53/53                                     
+output file: Chapter_01_Transistor_Fundamentals.knit.md
+
+/usr/bin/pandoc +RTS -K512m -RTS Chapter_01_Transistor_Fundamentals.knit.md --to html4 --from markdown+autolink_bare_uris+tex_math_single_backslash --output Chapter_01_Transistor_Fundamentals.html --lua-filter /usr/lib/R/site-library/rmarkdown/rmarkdown/lua/pagebreak.lua --lua-filter /usr/lib/R/site-library/rmarkdown/rmarkdown/lua/latex-div.lua --embed-resources --standalone --variable bs3=TRUE --section-divs --table-of-contents --toc-depth 4 --variable toc_float=1 --variable toc_selectors=h1,h2,h3,h4 --variable toc_collapsed=1 --variable toc_smooth_scroll=1 --variable toc_print=1 --template /usr/lib/R/site-library/rmarkdown/rmd/h/default.html --highlight-style kate --number-sections --variable theme=cosmo --css custom_mobile_styles.css --mathjax --variable 'mathjax-url=https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML' --include-in-header /tmp/Rtmp743i7b/rmarkdown-str1356860d275d7.html --variable code_folding=hide --variable code_menu=1 --citeproc 
+[WARNING] Could not fetch resource custom_mobile_styles.css
+
+Output created: Chapter_01_Transistor_Fundamentals.html

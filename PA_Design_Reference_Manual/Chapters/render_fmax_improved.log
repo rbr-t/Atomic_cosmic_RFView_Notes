@@ -1,0 +1,43 @@
+
+
+processing file: Chapter_01_Transistor_Fundamentals.Rmd
+1/55                                     
+2/55 [setup]                             
+3/55                                     
+4/55 [roadmap-diagram]                   
+5/55                                     
+6/55 [hemt-structure-diagram]            
+7/55                                     
+8/55 [gan-2deg-band-diagram]             
+9/55                                     
+10/55 [technology-cross-sections]         
+11/55                                     
+12/55 [technology-comparison-table]       
+13/55                                     
+14/55 [gan-small-signal-circuit]          
+15/55                                     
+16/55 [ft-characteristics]                
+17/55                                     
+18/55 [parasitic-elements-table]          
+19/55                                     
+20/55 [fmax-characteristics]              
+
+Quitting from lines 2124-2475 [fmax-characteristics] (Chapter_01_Transistor_Fundamentals.Rmd)
+Error in `parse()`:
+! <text>:136:115: unexpected symbol
+135:     type = 'scatter', mode = 'lines',
+136:     name = sprintf('<b>━━ Parasitic Effects ━━</b><br>GaN: ↓Rg (%.1fΩ → fmax=%.0fGHz)', gan_Rg_low, fmax_Rg_low),\n
+                                                                                                                       ^
+Backtrace:
+  1. rmarkdown::render("Chapter_01_Transistor_Fundamentals.Rmd", output_file = "Chapter_01_Transistor_Fundamentals.html")
+  2. knitr::knit(knit_input, knit_output, envir = envir, quiet = quiet)
+  3. knitr:::process_file(text, output)
+  8. knitr:::process_group.block(group)
+  9. knitr:::call_block(x)
+     ...
+ 11. knitr:::eng_r(options)
+ 14. knitr (local) evaluate(...)
+ 15. evaluate::evaluate(...)
+ 17. evaluate:::parse_all.character(...)
+ 18. base::parse(text = x, srcfile = src)
+Execution halted

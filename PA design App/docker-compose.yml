@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # Shiny App
+  app:
+    build: .
+    container_name: pa-design-app
+    ports:
+      - "3838:3838"
+    volumes:
+      - ./data:/srv/shiny-server/pa-design-app/data
+      - ./logs:/srv/shiny-server/pa-design-app/logs
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=pa_design
+      - DB_USER=admin
+      - DB_PASSWORD=secret
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: pa-design-db
+    environment:
+      POSTGRES_DB: pa_design
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # Chroma Vector Database (for knowledge base)
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: pa-design-chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadata:/chroma/chroma
+    environment:
+      - ALLOW_RESET=TRUE
+    restart: unless-stopped
+
+  # pgAdmin (optional - for database management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pa-design-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@padesign.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  chromadata:
+
+networks:
+  default:
+    name: pa-design-network

@@ -21,6 +21,201 @@ bibliography: ../../references.bib
 ---
 
 <style>
+/* ========================================
+   COLOR SYSTEM - Accessible & Color-Blind Friendly
+   ========================================
+   
+   Color Blind Considerations:
+   - Avoiding red-green combinations (most common: deuteranopia/protanopia)
+   - Using blue-orange/yellow contrast
+   - High contrast ratios (WCAG AA: 4.5:1 for text)
+   - Patterns/styles to differentiate beyond color
+   ======================================== */
+
+:root {
+  /* === Light Mode Colors (Color-Blind Friendly) === */
+  
+  /* Primary Colors - Blue/Cyan spectrum (safe for color blindness) */
+  --primary-blue: #0077be;
+  --primary-blue-dark: #005a8d;
+  --primary-blue-light: #4a9fd8;
+  --primary-blue-pale: #d6ecf7;
+  
+  /* Secondary Colors - Orange/Amber spectrum (distinguishable from blue) */
+  --secondary-orange: #d97706;
+  --secondary-orange-dark: #b45309;
+  --secondary-orange-light: #f59e0b;
+  --secondary-orange-pale: #fef3c7;
+  
+  /* Tertiary Colors - Purple (neutral for color blindness) */
+  --tertiary-purple: #7c3aed;
+  --tertiary-purple-dark: #5b21b6;
+  --tertiary-purple-light: #a78bfa;
+  
+  /* Neutral Colors */
+  --text-primary: #1a1a1a;
+  --text-secondary: #4a4a4a;
+  --text-tertiary: #6b7280;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #e5e7eb;
+  --border-color: #d1d5db;
+  --border-color-light: #e5e7eb;
+  
+  /* Semantic Colors (Color-Blind Safe) */
+  --success-color: #0891b2; /* Cyan instead of green */
+  --warning-color: #ea580c; /* Orange */
+  --error-color: #dc2626; /* Red (used sparingly, with icons) */
+  --info-color: #0077be; /* Blue */
+  
+  /* Graph Colors (Color-Blind Friendly Palette) */
+  --graph-color-1: #0077be; /* Blue */
+  --graph-color-2: #d97706; /* Orange */
+  --graph-color-3: #7c3aed; /* Purple */
+  --graph-color-4: #0891b2; /* Cyan */
+  --graph-color-5: #ea580c; /* Deep Orange */
+  --graph-color-6: #475569; /* Slate Gray */
+  
+  /* Interactive Elements */
+  --link-color: #0077be;
+  --link-hover: #005a8d;
+  --focus-outline: #4a9fd8;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* === Dark Mode Colors (Auto-detect system preference) === */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-mode-forced) {
+    /* Primary Colors - Lighter blues for dark bg */
+    --primary-blue: #60a5fa;
+    --primary-blue-dark: #3b82f6;
+    --primary-blue-light: #93c5fd;
+    --primary-blue-pale: #1e3a5f;
+    
+    /* Secondary Colors - Softer oranges */
+    --secondary-orange: #fb923c;
+    --secondary-orange-dark: #f97316;
+    --secondary-orange-light: #fdba74;
+    --secondary-orange-pale: #3a2817;
+    
+    /* Tertiary Colors */
+    --tertiary-purple: #a78bfa;
+    --tertiary-purple-dark: #8b5cf6;
+    --tertiary-purple-light: #c4b5fd;
+    
+    /* Neutral Colors */
+    --text-primary: #e5e7eb;
+    --text-secondary: #d1d5db;
+    --text-tertiary: #9ca3af;
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --border-color: #475569;
+    --border-color-light: #334155;
+    
+    /* Semantic Colors */
+    --success-color: #22d3ee; /* Bright cyan */
+    --warning-color: #fb923c; /* Bright orange */
+    --error-color: #ef4444; /* Bright red */
+    --info-color: #60a5fa; /* Bright blue */
+    
+    /* Graph Colors (Brightened for dark background) */
+    --graph-color-1: #60a5fa; /* Bright Blue */
+    --graph-color-2: #fb923c; /* Bright Orange */
+    --graph-color-3: #a78bfa; /* Bright Purple */
+    --graph-color-4: #22d3ee; /* Bright Cyan */
+    --graph-color-5: #f97316; /* Bright Deep Orange */
+    --graph-color-6: #94a3b8; /* Light Slate */
+    
+    /* Interactive Elements */
+    --link-color: #60a5fa;
+    --link-hover: #93c5fd;
+    --focus-outline: #3b82f6;
+    
+    /* Shadows (more prominent in dark mode) */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Manual Dark Mode Override */
+body.dark-mode {
+  /* Primary Colors */
+  --primary-blue: #60a5fa;
+  --primary-blue-dark: #3b82f6;
+  --primary-blue-light: #93c5fd;
+  --primary-blue-pale: #1e3a5f;
+  
+  /* Secondary Colors */
+  --secondary-orange: #fb923c;
+  --secondary-orange-dark: #f97316;
+  --secondary-orange-light: #fdba74;
+  --secondary-orange-pale: #3a2817;
+  
+  /* Tertiary Colors */
+  --tertiary-purple: #a78bfa;
+  --tertiary-purple-dark: #8b5cf6;
+  --tertiary-purple-light: #c4b5fd;
+  
+  /* Neutral Colors */
+  --text-primary: #e5e7eb;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --border-color: #475569;
+  --border-color-light: #334155;
+  
+  /* Semantic Colors */
+  --success-color: #22d3ee;
+  --warning-color: #fb923c;
+  --error-color: #ef4444;
+  --info-color: #60a5fa;
+  
+  /* Graph Colors */
+  --graph-color-1: #60a5fa;
+  --graph-color-2: #fb923c;
+  --graph-color-3: #a78bfa;
+  --graph-color-4: #22d3ee;
+  --graph-color-5: #f97316;
+  --graph-color-6: #94a3b8;
+  
+  /* Interactive Elements */
+  --link-color: #60a5fa;
+  --link-hover: #93c5fd;
+  --focus-outline: #3b82f6;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+/* Base Styles Using CSS Variables */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+}
+
+a {
+  color: var(--link-color);
+}
+
+a:hover {
+  color: var(--link-hover);
+}
+
 /* Mobile-Friendly Responsive Design */
 @media screen and (max-width: 768px) {
   body {
@@ -52,10 +247,10 @@ bibliography: ../../references.bib
     position: static !important;
     width: 100% !important;
     margin-bottom: 20px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 5px;
     padding: 15px;
-    background-color: #f9f9f9;
+    background-color: var(--bg-secondary);
   }
   
   /* Hierarchical TOC font sizes for mobile */
@@ -102,10 +297,10 @@ bibliography: ../../references.bib
     max-height: calc(100vh - 80px);
     overflow-y: auto;
     padding: 20px;
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-lg);
   }
   
   /* Hierarchical TOC Styling */
@@ -114,8 +309,8 @@ bibliography: ../../references.bib
     font-weight: 700 !important;
     font-size: 1.1em !important;
     padding: 8px 10px !important;
-    border-left: 3px solid #1976d2;
-    color: #1976d2 !important;
+    border-left: 3px solid var(--primary-blue);
+    color: var(--primary-blue) !important;
   }
   
   /* Level 2 (Major sections) */
@@ -137,20 +332,20 @@ bibliography: ../../references.bib
     font-weight: 400 !important;
     font-size: 0.82em !important;
     padding: 4px 10px 4px 40px !important;
-    color: #555 !important;
+    color: var(--text-tertiary) !important;
   }
   
   /* Active item highlighting */
   .tocify-item.active > a,
   .tocify-focus > a {
-    background-color: #e3f2fd !important;
-    border-left: 3px solid #1976d2;
+    background-color: var(--primary-blue-pale) !important;
+    border-left: 3px solid var(--primary-blue);
     font-weight: 600 !important;
   }
   
   /* Hover effects for expand/collapse */
   .tocify-item > a:hover {
-    background-color: #e3f2fd !important;
+    background-color: var(--primary-blue-pale) !important;
     transform: translateX(2px);
   }
   
@@ -164,7 +359,7 @@ bibliography: ../../references.bib
   }
   
   #TOC a {
-    color: #2c3e50;
+    color: var(--text-secondary);
     text-decoration: none;
     display: block;
     padding: 5px 8px;
@@ -173,13 +368,13 @@ bibliography: ../../references.bib
   }
   
   #TOC a:hover {
-    background-color: #e3f2fd;
-    color: #1976d2;
+    background-color: var(--primary-blue-pale);
+    color: var(--primary-blue);
     transform: translateX(2px);
   }
   
   #TOC .active {
-    background-color: #1976d2;
+    background-color: var(--primary-blue);
     color: white !important;
     font-weight: bold;
   }
@@ -188,14 +383,14 @@ bibliography: ../../references.bib
   .tocify-icon-down:before {
     content: '\u25bc' !important;
     font-size: 0.7em;
-    color: #666;
+    color: var(--text-tertiary);
     margin-right: 5px;
   }
   
   .tocify-icon-right:before {
     content: '\u25b6' !important;
     font-size: 0.7em;
-    color: #666;
+    color: var(--text-tertiary);
     margin-right: 5px;
   }
   
@@ -210,36 +405,36 @@ bibliography: ../../references.bib
 .glossary-term {
   display: inline-block;
   position: relative;
-  color: #1976d2;
+  color: var(--primary-blue);
   font-weight: 600;
   cursor: pointer;
-  border-bottom: 2px dotted #1976d2;
+  border-bottom: 2px dotted var(--primary-blue);
   padding: 0 2px;
   transition: all 0.2s;
 }
 
 .glossary-term:hover {
-  color: #0d47a1;
-  border-bottom-color: #0d47a1;
-  background-color: #e3f2fd;
+  color: var(--link-hover);
+  border-bottom-color: var(--link-hover);
+  background-color: var(--primary-blue-pale);
 }
 
 .glossary-term::after {
   content: ' ⓘ';
   font-size: 0.8em;
-  color: #1976d2;
+  color: var(--primary-blue);
   vertical-align: super;
 }
 
 .glossary-content {
   display: none;
   position: relative;
-  background-color: #f0f7ff;
-  border-left: 4px solid #1976d2;
+  background-color: var(--primary-blue-pale);
+  border-left: 4px solid var(--primary-blue);
   padding: 15px 20px;
   margin: 10px 0;
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-md);
   animation: slideDown 0.3s ease-out;
 }
 
@@ -249,9 +444,9 @@ bibliography: ../../references.bib
 
 .glossary-content h4 {
   margin-top: 0;
-  color: #1976d2;
+  color: var(--primary-blue);
   font-size: 1.1em;
-  border-bottom: 1px solid #bbdefb;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 8px;
   margin-bottom: 12px;
 }
@@ -264,7 +459,7 @@ bibliography: ../../references.bib
 .glossary-content .close-glossary {
   float: right;
   cursor: pointer;
-  color: #666;
+  color: var(--text-tertiary);
   font-size: 1.2em;
   font-weight: bold;
   line-height: 1;
@@ -274,8 +469,8 @@ bibliography: ../../references.bib
 }
 
 .glossary-content .close-glossary:hover {
-  background-color: #ffcdd2;
-  color: #d32f2f;
+  background-color: var(--accent-orange-pale);
+  color: var(--accent-red);
 }
 
 @keyframes slideDown {
@@ -293,47 +488,111 @@ bibliography: ../../references.bib
   }
 }
 
+/* Bibliography Interactive Styling (similar to glossary) */
+.reference-item {
+  cursor: pointer;
+  color: var(--accent-orange);
+  text-decoration: none;
+  transition: all 0.2s;
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin: 2px 0;
+}
+
+.reference-item:hover {
+  background-color: var(--accent-orange-pale);
+  color: var(--link-hover);
+}
+
+.reference-item::after {
+  content: ' 📖';
+  font-size: 0.9em;
+}
+
+.reference-content {
+  display: none;
+  position: relative;
+  background-color: var(--accent-orange-pale);
+  border-left: 4px solid var(--accent-orange);
+  padding: 15px 20px;
+  margin: 10px 0;
+  border-radius: 4px;
+  box-shadow: var(--shadow-md);
+  animation: slideDown 0.3s ease-out;
+}
+
+.reference-content.active {
+  display: block;
+}
+
+.reference-content h5 {
+  margin-top: 0;
+  color: var(--accent-orange);
+  font-size: 1em;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.reference-content .close-reference {
+  float: right;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: 1.2em;
+  font-weight: bold;
+  line-height: 1;
+  padding: 0 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.reference-content .close-reference:hover {
+  background-color: var(--accent-orange-pale);
+  color: var(--accent-red);
+}
+
 /* General Improvements */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  color: #333;
-  background-color: #fff;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color: #2c3e50;
+  color: var(--text-primary);
   margin-top: 1.5em;
   margin-bottom: 0.5em;
   font-weight: 600;
 }
 
 h1 {
-  border-bottom: 3px solid #1976d2;
+  border-bottom: 3px solid var(--primary-blue);
   padding-bottom: 10px;
   margin-top: 0;
 }
 
 h2 {
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--border-color);
   padding-bottom: 8px;
 }
 
 /* Tabset Styling */
 .nav-tabs {
-  border-bottom: 2px solid #1976d2;
+  border-bottom: 2px solid var(--primary-blue);
   margin-bottom: 20px;
 }
 
 .nav-tabs > li > a {
-  color: #555;
+  color: var(--text-secondary);
   border-radius: 4px 4px 0 0;
   padding: 10px 20px;
 }
 
 .nav-tabs > li.active > a {
-  background-color: #1976d2;
+  background-color: var(--primary-blue);
   color: white;
-  border-color: #1976d2;
+  border-color: var(--primary-blue);
 }
 
 /* Table Styling */
@@ -341,35 +600,35 @@ table {
   border-collapse: collapse;
   width: 100%;
   margin: 20px 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 table thead {
-  background-color: #1976d2;
+  background-color: var(--primary-blue);
   color: white;
 }
 
 table th, table td {
   padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border-color);
 }
 
 table tbody tr:hover {
-  background-color: #f5f5f5;
+  background-color: var(--primary-blue-pale);
 }
 
 /* Code Blocks */
 pre {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 5px;
   padding: 15px;
   overflow-x: auto;
 }
 
 code {
-  background-color: #f0f0f0;
+  background-color: var(--bg-secondary);
   padding: 2px 6px;
   border-radius: 3px;
   font-family: "Courier New", monospace;
@@ -377,23 +636,23 @@ code {
 
 /* Links */
 a {
-  color: #1976d2;
+  color: var(--link-color);
   text-decoration: none;
 }
 
 a:hover {
-  color: #0d47a1;
+  color: var(--link-hover);
   text-decoration: underline;
 }
 
 /* Blockquotes */
 blockquote {
-  border-left: 4px solid #1976d2;
+  border-left: 4px solid var(--primary-blue);
   padding-left: 20px;
   margin-left: 0;
-  color: #555;
+  color: var(--text-secondary);
   font-style: italic;
-  background-color: #f9f9f9;
+  background-color: var(--bg-secondary);
   padding: 10px 20px;
   border-radius: 0 5px 5px 0;
 }
@@ -429,18 +688,74 @@ html {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background-color: #1976d2;
+  background-color: var(--primary-blue);
   color: white;
   padding: 10px 15px;
   border-radius: 50%;
   display: none;
   z-index: 1000;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .back-to-top:hover {
-  background-color: #0d47a1;
+  background-color: var(--link-hover);
+}
+
+/* ===== DARK MODE / NIGHT VIEW ===== */
+
+/* Toggle Button Styling */
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  background-color: var(--primary-blue);
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle:hover {
+  background-color: var(--link-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.theme-toggle:active {
+  transform: translateY(0);
+}
+
+.theme-icon {
+  font-size: 18px;
+}
+
+/* Dark Mode Styles - Now handled by CSS Variables defined at top of file */
+/* The CSS variables at the beginning of this file define all colors for both
+   light and dark modes. Dark mode is automatically applied via:
+   1. @media (prefers-color-scheme: dark) - auto-detects system preference
+   2. body.dark-mode class - manual toggle override */
+
+/* Smooth transition for theme changes */
+body,
+#TOC,
+table,
+pre,
+code,
+.glossary-content,
+.reference-content,
+details,
+details summary {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 </style>
 
@@ -712,6 +1027,159 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 });
+
+// Bibliography reference toggle functionality (similar to glossary)
+document.addEventListener('DOMContentLoaded', function() {
+  // Add click handlers to all bibliography reference items
+  var referenceItems = document.querySelectorAll('.reference-item');
+  
+  referenceItems.forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
+      var refId = this.getAttribute('data-ref');
+      var content = document.getElementById(refId);
+      
+      if (content) {
+        // Toggle active class
+        content.classList.toggle('active');
+        
+        // Close other open reference boxes
+        document.querySelectorAll('.reference-content.active').forEach(function(otherContent) {
+          if (otherContent !== content) {
+            otherContent.classList.remove('active');
+          }
+        });
+        
+        // Scroll to content if opened
+        if (content.classList.contains('active')) {
+          setTimeout(function() {
+            content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 100);
+        }
+      }
+    });
+  });
+  
+  // Add click handlers to close buttons
+  document.querySelectorAll('.close-reference').forEach(function(closeBtn) {
+    closeBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      this.closest('.reference-content').classList.remove('active');
+    });
+  });
+  
+  // Close reference boxes when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.reference-item') && !e.target.closest('.reference-content')) {
+      document.querySelectorAll('.reference-content.active').forEach(function(content) {
+        content.classList.remove('active');
+      });
+    }
+  });
+});
+</script>
+
+<!-- Night Mode Toggle Button -->
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+  <span class="theme-icon" id="theme-icon">🌙</span>
+  <span id="theme-text">Night View</span>
+</button>
+
+<script>
+// Dark Mode / Night View Toggle with Auto-Detection
+(function() {
+  'use strict';
+  
+  const themeToggle = document.getElementById('theme-toggle');
+  const themeIcon = document.getElementById('theme-icon');
+  const themeText = document.getElementById('theme-text');
+  const body = document.body;
+  
+  // Function to apply theme
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      body.classList.add('dark-mode');
+      themeIcon.textContent = '☀️';
+      themeText.textContent = 'Day View';
+    } else {
+      body.classList.remove('dark-mode');
+      themeIcon.textContent = '🌙';
+      themeText.textContent = 'Night View';
+    }
+  }
+  
+  // Check for saved theme preference or auto-detect from system
+  const savedTheme = localStorage.getItem('theme');
+  let currentTheme;
+  
+  if (savedTheme) {
+    // User has a saved preference - use it
+    currentTheme = savedTheme;
+    console.log('📱 Using saved theme preference:', currentTheme);
+  } else {
+    // No saved preference - auto-detect from system (prefers-color-scheme)
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    currentTheme = prefersDark ? 'dark' : 'light';
+    console.log('🌓 Auto-detected system theme preference:', currentTheme);
+  }
+  
+  // Apply the determined theme on page load
+  applyTheme(currentTheme);
+  
+  // Listen for system theme changes (if user changes OS settings)
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+    // Only auto-update if user hasn't set a manual preference
+    if (!localStorage.getItem('theme')) {
+      const newTheme = e.matches ? 'dark' : 'light';
+      console.log('🌓 System theme changed to:', newTheme);
+      applyTheme(newTheme);
+    }
+  });
+  
+  // Toggle theme on button click (manual override)
+  themeToggle.addEventListener('click', function() {
+    body.classList.toggle('dark-mode');
+    
+    let theme = 'light';
+    if (body.classList.contains('dark-mode')) {
+      theme = 'dark';
+      themeIcon.textContent = '☀️';
+      themeText.textContent = 'Day View';
+    } else {
+      themeIcon.textContent = '🌙';
+      themeText.textContent = 'Night View';
+    }
+    
+    // Save theme preference (manual override)
+    localStorage.setItem('theme', theme);
+    console.log('👤 Manual theme override to:', theme);
+  });
+  
+  // Keyboard shortcut: Ctrl+Shift+D to toggle dark mode
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+      e.preventDefault();
+      themeToggle.click();
+    }
+  });
+  
+  // Double-click the button to clear saved preference and revert to auto-detection
+  themeToggle.addEventListener('dblclick', function(e) {
+    e.preventDefault();
+    localStorage.removeItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const autoTheme = prefersDark ? 'dark' : 'light';
+    applyTheme(autoTheme);
+    console.log('🔄 Reset to auto-detect mode. Theme:', autoTheme);
+    
+    // Show brief notification
+    const notification = document.createElement('div');
+    notification.textContent = 'Auto-detect mode enabled';
+    notification.style.cssText = 'position: fixed; top: 70px; right: 20px; background: var(--primary-blue); color: white; padding: 10px 15px; border-radius: 5px; z-index: 10000; font-size: 14px;';
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 2000);
+  });
+})();
 </script>
 
 ```{r setup, include=FALSE}
@@ -877,26 +1345,27 @@ Readers should have familiarity with:
 For readers needing refreshers:
 
 1. **RF/Microwave Circuits**:
-   - Pozar, "Microwave Engineering" (Chapters 2, 4, 12)
-   - Gonzalez, "Microwave Transistor Amplifiers"
+   - Pozar, "Microwave Engineering" [@pozar2011] (Chapters 2, 4, 12)
+   - Gonzalez, "Microwave Transistor Amplifiers" [@gonzalez1997]
 
 2. **GaN Device Physics**:
-   - Mishra & Shen, "Nitride Semiconductor Devices"
-   - Pengelly et al., "A Review of GaN on SiC HEMTs"
+   - Mishra & Shen, "Nitride Semiconductor Devices" [@mishra2002]
+   - Pengelly et al., "A Review of GaN on SiC HEMTs" [@pengelly2012]
 
 3. **Power Amplifier Design**:
-   - Cripps, "RF Power Amplifiers for Wireless Communications"
-   - Grebennikov, "RF and Microwave Power Amplifier Design"
+   - Cripps, "RF Power Amplifiers for Wireless Communications" [@cripps2006]
+   - Grebennikov, "RF and Microwave Power Amplifier Design" [@grebennikov2015]
+   - Colantonio et al., "High Efficiency RF and Microwave Solid State Power Amplifiers" [@colantonio2009]
 
 ---
 
 # GaN Device Physics
 
-## 1.2.1 AlGaN/GaN HEMT Structure
+## AlGaN/GaN HEMT Structure
 
 ### Device Cross-Section
 
-The AlGaN/GaN High Electron Mobility Transistor (HEMT) exploits <span class="glossary-term" data-term="glossary-heterojunction">**heterojunction engineering**</span> to achieve superior RF performance. The fundamental structure consists of:
+The AlGaN/GaN High Electron Mobility Transistor (HEMT) exploits <span class="glossary-term" data-term="glossary-heterojunction">**heterojunction engineering**</span> to achieve superior RF performance [@mishra2002; @pengelly2012]. The fundamental structure consists of:
 
 <div id="glossary-heterojunction" class="glossary-content">
   <span class="close-glossary">×</span>
@@ -906,7 +1375,7 @@ The AlGaN/GaN High Electron Mobility Transistor (HEMT) exploits <span class="glo
   <p><strong>Why It Matters:</strong> This interface engineering creates high-density, high-mobility electron channels without requiring doping, resulting in superior RF performance compared to conventional MOSFETs.</p>
 </div>
 
-```{r hemt-structure-diagram, fig.cap="AlGaN/GaN HEMT Cross-Sectional Structure with 2DEG Formation", out.width="85%"}
+```{r hemt-structure-diagram, fig.cap="AlGaN/GaN HEMT Cross-Sectional Structure with 2DEG Formation [@mishra2002]", out.width="85%"}
 # Placeholder for device structure diagram
 # Will create visual showing:
 # - Gate, Source, Drain terminals
@@ -924,9 +1393,9 @@ The AlGaN/GaN High Electron Mobility Transistor (HEMT) exploits <span class="glo
 2. **AlGaN Barrier Layer** (~20-30 nm):
    - Higher bandgap (3.8-4.2 eV) than GaN
    - Creates conduction band discontinuity
-   - Induces piezoelectric and spontaneous polarization
+   - Induces piezoelectric and spontaneous polarization [@ibbetson2000]
 3. **GaN Channel Layer** (~1-2 μm):
-   - Wide bandgap (3.4 eV)
+   - Wide bandgap (3.4 eV) [@sze2006]
    - Location of 2DEG formation
    - Undoped or lightly doped
 4. **Buffer Layers**:
@@ -1189,7 +1658,7 @@ grid.arrange(p1, p2, p3, p4, ncol = 1, heights = c(1.2, 1, 1, 1))
 
 To appreciate GaN's advantages, it's essential to compare it with legacy RF power technologies.
 
-```{r technology-cross-sections, echo=FALSE, fig.cap="Cross-Sectional Comparison: GaN HEMT, LDMOS, and GaAs HEMT Structures", fig.width=12, fig.height=10}
+```{r technology-cross-sections, echo=FALSE, fig.cap="Cross-Sectional Comparison: GaN HEMT, LDMOS, and GaAs HEMT Structures [@pengelly2012; @mishra2002]", fig.width=12, fig.height=10}
 library(ggplot2)
 library(gridExtra)
 library(grid)
@@ -1463,7 +1932,7 @@ This makes GaN the **technology of choice** for modern base station PAs operatin
 
 ---
 
-## 1.2.2 Operating Principles
+## Operating Principles
 
 ### Charge Control and Modulation
 
@@ -1618,7 +2087,7 @@ $$
      - Minimize $C_{gd}$: Use field plates carefully (they increase $C_{gd}$)
      - Indicates power gain capability at high frequencies
    
-```{r gan-small-signal-circuit, echo=FALSE, fig.cap="Figure 1.2: GaN HEMT Small-Signal Equivalent Circuit", fig.width=10, fig.height=6}
+```{r gan-small-signal-circuit, echo=FALSE, fig.cap="Figure 1.2: GaN HEMT Small-Signal Equivalent Circuit [@gonzalez1997; @razavi2011]", fig.width=10, fig.height=6}
 # Create small-signal equivalent circuit diagram
 library(ggplot2)
 
@@ -1742,11 +2211,1417 @@ print(p)
 
 ---
 
-## 1.2.3 DC Characteristics
+### Current Gain and fT Characteristics
+
+The current-gain cutoff frequency ($f_T$) represents the frequency where the short-circuit current gain drops to unity (0 dB) [@gonzalez1997]. Understanding how parasitic capacitances affect $f_T$ is crucial for RF transistor design.
+
+<div style="background-color: #E3F2FD; padding: 15px; border-left: 4px solid #2196F3; margin-bottom: 15px;">
+<strong>📊 Interactive Feature:</strong> The following graphs include frequency spectrum band overlays (VHF, UHF, SHF, EHF) based on ITU Radio Regulations [@itu_spectrum]. These bands are <strong>hidden by default</strong>. To view them:
+<ol>
+<li>Find the <strong>"━━ Spectrum ━━"</strong> section in the legend</li>
+<li>Click on each band name (📻 VHF, 📱 UHF, 🛰️ SHF, 📡 EHF) to toggle visibility</li>
+<li>Hover over the colored regions to see detailed information: frequency range, wavelength, and applications</li>
+<li>Text labels will appear above each band when toggled ON</li>
+</ol>
+</div>
+
+```{r ft-characteristics, echo=FALSE, fig.cap="Figure 1.2a: Current Gain (|h21|) vs Frequency - Technology Comparison and Parasitic Effects [@pengelly2012; @mishra2002]", fig.width=10, fig.height=5.5}
+library(plotly)
+library(dplyr)
+
+# Frequency range - LOG scale for better visualization
+freq <- 10^seq(-2, 2.5, length.out = 500)  # 0.01 GHz to 300 GHz (extended for EHF band)
+
+# ========== TECHNOLOGY PARAMETERS ==========
+# GaN HEMT (baseline)
+gan_gm <- 350e-3  # S (350 mS/mm converted to S)
+gan_Cgs <- 1.2e-12  # F (1.2 pF converted to F)
+gan_Cgd <- 0.1e-12  # F (0.1 pF converted to F)
+gan_fT <- gan_gm / (2 * pi * (gan_Cgs + gan_Cgd)) / 1e9  # Result in GHz
+
+# LDMOS (lower frequency)
+ldmos_gm <- 180e-3  # S
+ldmos_Cgs <- 2.5e-12  # F (higher capacitance)
+ldmos_Cgd <- 0.3e-12  # F
+ldmos_fT <- ldmos_gm / (2 * pi * (ldmos_Cgs + ldmos_Cgd)) / 1e9  # GHz
+
+# GaAs pHEMT (highest frequency)
+gaas_gm <- 400e-3  # S
+gaas_Cgs <- 0.8e-12  # F (lowest capacitance)
+gaas_Cgd <- 0.05e-12  # F
+gaas_fT <- gaas_gm / (2 * pi * (gaas_Cgs + gaas_Cgd)) / 1e9  # GHz
+
+# ========== CURRENT GAIN CALCULATIONS ==========
+# By definition: |h21| crosses 0 dB at fT
+# Typical behavior: -20dB/decade rolloff
+# Therefore: |h21| (dB) = 20 * log10(fT/f)
+# This gives us 0 dB when f = fT
+
+calc_h21 <- function(freq_vec, fT_val) {
+  # Gain in dB, crosses 0 dB at fT
+  gain <- 20 * log10(fT_val / freq_vec)
+  # Limit maximum gain at low frequencies (saturation)
+  gain[gain > 30] <- 30
+  return(gain)
+}
+
+h21_gan <- calc_h21(freq, gan_fT)
+h21_ldmos <- calc_h21(freq, ldmos_fT)
+h21_gaas <- calc_h21(freq, gaas_fT)
+
+# ========== PARASITIC VARIATION ANALYSIS (GaN) ==========
+# Show effect of varying Cgs
+gan_Cgs_low <- 0.8e-12   # F (optimized)
+gan_Cgs_high <- 1.8e-12  # F (with parasitics)
+
+fT_Cgs_low <- gan_gm / (2 * pi * (gan_Cgs_low + gan_Cgd)) / 1e9
+fT_Cgs_high <- gan_gm / (2 * pi * (gan_Cgs_high + gan_Cgd)) / 1e9
+
+h21_Cgs_low <- calc_h21(freq, fT_Cgs_low)
+h21_Cgs_high <- calc_h21(freq, fT_Cgs_high)
+
+# Show effect of varying Cgd (Miller capacitance)
+gan_Cgd_low <- 0.05e-12   # F (minimized)
+gan_Cgd_high <- 0.2e-12   # F (with field plate)
+
+fT_Cgd_low <- gan_gm / (2 * pi * (gan_Cgs + gan_Cgd_low)) / 1e9
+fT_Cgd_high <- gan_gm / (2 * pi * (gan_Cgs + gan_Cgd_high)) / 1e9
+
+h21_Cgd_low <- calc_h21(freq, fT_Cgd_low)
+h21_Cgd_high <- calc_h21(freq, fT_Cgd_high)
+
+# ========== LDMOS PARASITIC VARIATIONS ==========
+# Show effect of varying Cgs for LDMOS
+ldmos_Cgs_low <- 2.0e-12   # F (optimized)
+ldmos_Cgs_high <- 3.0e-12  # F (with parasitics)
+
+fT_ldmos_Cgs_low <- ldmos_gm / (2 * pi * (ldmos_Cgs_low + ldmos_Cgd)) / 1e9
+fT_ldmos_Cgs_high <- ldmos_gm / (2 * pi * (ldmos_Cgs_high + ldmos_Cgd)) / 1e9
+
+h21_ldmos_Cgs_low <- calc_h21(freq, fT_ldmos_Cgs_low)
+h21_ldmos_Cgs_high <- calc_h21(freq, fT_ldmos_Cgs_high)
+
+# Show effect of varying Cgd for LDMOS
+ldmos_Cgd_low <- 0.2e-12   # F (minimized)
+ldmos_Cgd_high <- 0.4e-12  # F (with field plate)
+
+fT_ldmos_Cgd_low <- ldmos_gm / (2 * pi * (ldmos_Cgs + ldmos_Cgd_low)) / 1e9
+fT_ldmos_Cgd_high <- ldmos_gm / (2 * pi * (ldmos_Cgs + ldmos_Cgd_high)) / 1e9
+
+h21_ldmos_Cgd_low <- calc_h21(freq, fT_ldmos_Cgd_low)
+h21_ldmos_Cgd_high <- calc_h21(freq, fT_ldmos_Cgd_high)
+
+# ========== GaAs PARASITIC VARIATIONS ==========
+# Show effect of varying Cgs for GaAs
+gaas_Cgs_low <- 0.6e-12    # F (optimized)
+gaas_Cgs_high <- 1.0e-12   # F (with parasitics)
+
+fT_gaas_Cgs_low <- gaas_gm / (2 * pi * (gaas_Cgs_low + gaas_Cgd)) / 1e9
+fT_gaas_Cgs_high <- gaas_gm / (2 * pi * (gaas_Cgs_high + gaas_Cgd)) / 1e9
+
+h21_gaas_Cgs_low <- calc_h21(freq, fT_gaas_Cgs_low)
+h21_gaas_Cgs_high <- calc_h21(freq, fT_gaas_Cgs_high)
+
+# Show effect of varying Cgd for GaAs
+gaas_Cgd_low <- 0.03e-12   # F (minimized)
+gaas_Cgd_high <- 0.07e-12  # F (with field plate)
+
+fT_gaas_Cgd_low <- gaas_gm / (2 * pi * (gaas_Cgs + gaas_Cgd_low)) / 1e9
+fT_gaas_Cgd_high <- gaas_gm / (2 * pi * (gaas_Cgs + gaas_Cgd_high)) / 1e9
+
+h21_gaas_Cgd_low <- calc_h21(freq, fT_gaas_Cgd_low)
+h21_gaas_Cgd_high <- calc_h21(freq, fT_gaas_Cgd_high)
+
+# Store gm values for secondary axis (convert to mS/mm for display)
+gan_gm_display <- gan_gm * 1e3
+ldmos_gm_display <- ldmos_gm * 1e3
+gaas_gm_display <- gaas_gm * 1e3
+
+# ========== CREATE PLOTLY FIGURE ==========
+fig <- plot_ly()
+
+# Main technology comparison traces (GaN visible by default, others hidden)
+# NO legendgroup - makes each item individually clickable
+# CATEGORY: Characteristics
+fig <- fig %>%
+  add_trace(
+    x = freq, y = h21_gan,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('━━ Characteristics ━━<br>GaN (fT=%.1f GHz)', gan_fT),
+    line = list(color = '#FF6F00', width = 3),
+    yaxis = 'y',
+    hovertemplate = '<b>GaN HEMT</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = h21_ldmos,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('LDMOS (fT=%.1f GHz)', ldmos_fT),
+    line = list(color = '#4CAF50', width = 3),
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = h21_gaas,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs (fT=%.1f GHz)', gaas_fT),
+    line = list(color = '#2196F3', width = 3),
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs pHEMT</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  )
+
+# Parasitic effect traces (dashed lines) - individually clickable
+# CATEGORY: Parasitics - Grouped by technology and parasitic type
+fig <- fig %>%
+  add_trace(
+    x = freq, y = h21_Cgs_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('━━ Parasitics ━━<br>GaN: ↓Cgs (%.1fpF → fT=%.1fGHz)', gan_Cgs_low*1e12, fT_Cgs_low),
+    line = list(color = '#FF6F00', width = 2, dash = 'dash'),
+    legendgroup = 'gan_parasitic_Cgs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>Low Cgs</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = h21_Cgs_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaN: ↑Cgs (%.1fpF → fT=%.1fGHz)', gan_Cgs_high*1e12, fT_Cgs_high),
+    line = list(color = '#FF6F00', width = 2, dash = 'dot'),
+    legendgroup = 'gan_parasitic_Cgs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>High Cgs</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = h21_Cgd_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaN: ↓Cgd (%.2fpF → fT=%.1fGHz)', gan_Cgd_low*1e12, fT_Cgd_low),
+    line = list(color = '#E91E63', width = 2, dash = 'dash'),
+    legendgroup = 'gan_parasitic_Cgd',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>Low Cgd</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = h21_Cgd_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaN: ↑Cgd (%.2fpF → fT=%.1fGHz)', gan_Cgd_high*1e12, fT_Cgd_high),
+    line = list(color = '#E91E63', width = 2, dash = 'dot'),
+    legendgroup = 'gan_parasitic_Cgd',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>High Cgd</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  # LDMOS Parasitic variations
+  add_trace(
+    x = freq, y = h21_ldmos_Cgs_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('━━ Parasitics ━━<br>LDMOS: ↓Cgs (%.1fpF → fT=%.1fGHz)', ldmos_Cgs_low*1e12, fT_ldmos_Cgs_low),
+    line = list(color = '#4CAF50', width = 2, dash = 'dash'),
+    legendgroup = 'ldmos_parasitic_Cgs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS Low Cgs</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = h21_ldmos_Cgs_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('LDMOS: ↑Cgs (%.1fpF → fT=%.1fGHz)', ldmos_Cgs_high*1e12, fT_ldmos_Cgs_high),
+    line = list(color = '#4CAF50', width = 2, dash = 'dot'),
+    legendgroup = 'ldmos_parasitic_Cgs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS High Cgs</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = h21_ldmos_Cgd_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('LDMOS: ↓Cgd (%.1fpF → fT=%.1fGHz)', ldmos_Cgd_low*1e12, fT_ldmos_Cgd_low),
+    line = list(color = '#81C784', width = 2, dash = 'dash'),
+    legendgroup = 'ldmos_parasitic_Cgd',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS Low Cgd</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = h21_ldmos_Cgd_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('LDMOS: ↑Cgd (%.1fpF → fT=%.1fGHz)', ldmos_Cgd_high*1e12, fT_ldmos_Cgd_high),
+    line = list(color = '#81C784', width = 2, dash = 'dot'),
+    legendgroup = 'ldmos_parasitic_Cgd',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS High Cgd</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  # GaAs Parasitic variations
+  add_trace(
+    x = freq, y = h21_gaas_Cgs_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs: ↓Cgs (%.1fpF → fT=%.1fGHz)', gaas_Cgs_low*1e12, fT_gaas_Cgs_low),
+    line = list(color = '#2196F3', width = 2, dash = 'dash'),
+    legendgroup = 'gaas_parasitic_Cgs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs Low Cgs</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = h21_gaas_Cgs_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs: ↑Cgs (%.1fpF → fT=%.1fGHz)', gaas_Cgs_high*1e12, fT_gaas_Cgs_high),
+    line = list(color = '#2196F3', width = 2, dash = 'dot'),
+    legendgroup = 'gaas_parasitic_Cgs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs High Cgs</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = h21_gaas_Cgd_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs: ↓Cgd (%.2fpF → fT=%.1fGHz)', gaas_Cgd_low*1e12, fT_gaas_Cgd_low),
+    line = list(color = '#64B5F6', width = 2, dash = 'dash'),
+    legendgroup = 'gaas_parasitic_Cgd',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs Low Cgd</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = h21_gaas_Cgd_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs: ↑Cgd (%.2fpF → fT=%.1fGHz)', gaas_Cgd_high*1e12, fT_gaas_Cgd_high),
+    line = list(color = '#64B5F6', width = 2, dash = 'dot'),
+    legendgroup = 'gaas_parasitic_Cgd',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs High Cgd</b><br>Freq: %{x:.2f} GHz<br>|h21|: %{y:.1f} dB<extra></extra>'
+  )
+
+# Add gm reference lines on secondary Y-axis with category grouping
+gm_freq <- c(0.01, 300)  # Extended to 300 GHz
+fig <- fig %>%
+  add_trace(
+    x = gm_freq, y = rep(ldmos_gm_display, 2),
+    type = 'scatter', mode = 'lines',
+    name = '━━ Transconductance (gm) ━━<br>LDMOS gm',
+    line = list(color = '#4CAF50', width = 1, dash = 'dashdot'),
+    yaxis = 'y2',
+    legendgroup = 'gm_category',
+    visible = 'legendonly',
+    showlegend = TRUE,
+    hovertemplate = 'LDMOS gm: %{y:.0f} mS/mm<extra></extra>'
+  ) %>%
+  add_trace(
+    x = gm_freq, y = rep(gan_gm_display, 2),
+    type = 'scatter', mode = 'lines',
+    name = 'GaN gm',
+    line = list(color = '#FF6F00', width = 1, dash = 'dashdot'),
+    yaxis = 'y2',
+    legendgroup = 'gm_category',
+    visible = 'legendonly',
+    showlegend = FALSE,
+    hovertemplate = 'GaN gm: %{y:.0f} mS/mm<extra></extra>'
+  ) %>%
+  add_trace(
+    x = gm_freq, y = rep(gaas_gm_display, 2),
+    type = 'scatter', mode = 'lines',
+    name = 'GaAs gm',
+    line = list(color = '#2196F3', width = 1, dash = 'dashdot'),
+    yaxis = 'y2',
+    legendgroup = 'gm_category',
+    visible = 'legendonly',
+    showlegend = FALSE,
+    hovertemplate = 'GaAs gm: %{y:.0f} mS/mm<extra></extra>'
+  )
+
+# ========== FREQUENCY SPECTRUM BANDS (TOGGLEABLE) ==========
+# Add frequency spectrum bands as transparent background regions with detailed info
+# Source: ITU Radio Regulations [@itu_spectrum]
+# CATEGORY: Spectrum Distinction
+freq_bands <- list(
+    list(name = "VHF", xmin = 0.03, xmax = 0.3, color = 'rgba(255,182,193,0.15)', 
+      label_x = sqrt(0.03 * 0.3), wavelength = "10-1 m", full_freq = "30-300 MHz",
+       apps = "FM radio, Weather radio", icon = "📻"),
+    list(name = "UHF", xmin = 0.3, xmax = 3, color = 'rgba(173,216,230,0.15)', 
+      label_x = sqrt(0.3 * 3), wavelength = "1-0.1 m", full_freq = "0.3-3 GHz",
+       apps = "TV, GPS, Mobile phones", icon = "📱"),
+    list(name = "SHF", xmin = 3, xmax = 30, color = 'rgba(144,238,144,0.15)', 
+      label_x = sqrt(3 * 30), wavelength = "100-10 mm", full_freq = "3-30 GHz",
+       apps = "Satellite comms, Radar", icon = "🛰️"),
+    list(name = "EHF", xmin = 30, xmax = 300, color = 'rgba(255,218,185,0.15)', 
+      label_x = sqrt(30 * 300), wavelength = "10-1 mm", full_freq = "30-300 GHz",
+       apps = "Advanced radar, Experimental, 5G mmWave", icon = "📡")
+)
+
+# Add each band as a filled trace with enhanced hover info
+band_idx <- 0
+for(band in freq_bands) {
+  band_idx <- band_idx + 1
+  # Determine legend name - first band gets category header
+  legend_name <- if(band_idx == 1) {
+    sprintf('━━ Spectrum ━━<br>%s %s', band$icon, band$name)
+  } else {
+    sprintf('%s %s', band$icon, band$name)
+  }
+  
+  # Build hover text and use fills for hover (avoid extra invisible markers)
+  hover_text <- sprintf("%s %s (%s):\n%s\nWavelength: %s", band$icon, band$name, band$full_freq, band$apps, band$wavelength)
+
+  fig <- fig %>%
+    add_trace(
+      x = c(band$xmin, band$xmax, band$xmax, band$xmin, band$xmin),
+      y = c(-20, -20, 37, 37, -20),
+      type = 'scatter',
+      mode = 'lines',
+      fill = 'toself',
+      fillcolor = band$color,
+      line = list(width = 0),
+      name = legend_name,
+      legendgroup = 'spectrum',
+      visible = 'legendonly',
+      showlegend = (band_idx == 1),
+      hoveron = 'fills',
+      text = hover_text,
+      hoverinfo = 'text',
+      hoverlabel = list(font = list(size = 12))
+    ) %>%
+    # Add text label that toggles with the band - positioned ABOVE the bar
+    add_trace(
+      x = band$label_x,
+      y = 36,
+      type = 'scatter',
+      mode = 'text',
+      text = sprintf('<b>%s</b>', band$name),
+      textfont = list(size = 12, color = 'rgba(0,0,0,0.95)', family = 'Arial Black'),
+      textposition = 'top center',
+      legendgroup = 'spectrum',
+      visible = TRUE,
+      showlegend = FALSE,
+      hoverinfo = 'skip'
+    )
+}
+
+# Add 0 dB reference line (unity gain) - extended to 300 GHz
+fig <- fig %>%
+  add_segments(
+    x = 0.01, xend = 300,
+    y = 0, yend = 0,
+    line = list(color = 'red', width = 2, dash = 'dash'),
+    showlegend = FALSE,
+    hovertemplate = 'Unity Gain (0 dB) - fT defined here<extra></extra>'
+  )
+
+# Add fT marker annotations - STAGGERED at different heights to prevent overlap
+# Position them at the actual fT frequencies with arrows pointing to 0 dB line
+fig <- fig %>%
+  add_annotations(
+    x = log10(ldmos_fT), y = 0,
+    text = sprintf('LDMOS<br>fT=%.1f GHz', ldmos_fT),
+    showarrow = TRUE,
+    arrowhead = 2,
+    arrowsize = 1,
+    arrowwidth = 2,
+    arrowcolor = '#4CAF50',
+    ax = -40, ay = -60,  # Offset left and down
+    font = list(size = 9, color = '#4CAF50'),
+    xref = 'x', yref = 'y'
+  ) %>%
+  add_annotations(
+    x = log10(gan_fT), y = 0,
+    text = sprintf('GaN<br>fT=%.1f GHz', gan_fT),
+    showarrow = TRUE,
+    arrowhead = 2,
+    arrowsize = 1,
+    arrowwidth = 2,
+    arrowcolor = '#FF6F00',
+    ax = 0, ay = -80,  # Offset straight down (more)
+    font = list(size = 9, color = '#FF6F00', weight = 'bold'),
+    xref = 'x', yref = 'y'
+  ) %>%
+  add_annotations(
+    x = log10(gaas_fT), y = 0,
+    text = sprintf('GaAs<br>fT=%.1f GHz', gaas_fT),
+    showarrow = TRUE,
+    arrowhead = 2,
+    arrowsize = 1,
+    arrowwidth = 2,
+    arrowcolor = '#2196F3',
+    ax = 40, ay = -60,  # Offset right and down
+    font = list(size = 9, color = '#2196F3'),
+    xref = 'x', yref = 'y'
+  )
+
+# Layout with secondary Y-axis for gm (transconductance) - Legend moved below
+fig <- fig %>% layout(
+  title = list(
+    text = '<b>Current Gain Frequency Response: Technology Comparison</b><br><sub>fT = frequency where |h21| = 0 dB (unity gain) • Determined by gm/(2π(Cgs+Cgd)) • Click legend items individually • Toggle spectrum bands with icons</sub>',
+    font = list(size = 14)
+  ),
+  xaxis = list(
+    title = '<b>Frequency (GHz)</b>',
+    type = 'log',
+    range = c(log10(0.01), log10(300)),  # Extended to 300 GHz for EHF band
+    gridcolor = 'rgba(128,128,128,0.2)'
+  ),
+  yaxis = list(
+    title = '<b>Current Gain |h<sub>21</sub>| (dB)</b>',
+    range = c(-12, 37),  # Extended to accommodate spectrum labels above
+    gridcolor = 'rgba(128,128,128,0.2)'
+  ),
+  yaxis2 = list(
+    title = '<b>Transconductance g<sub>m</sub> (mS/mm)</b>',
+    overlaying = 'y',
+    side = 'right',
+    range = c(0, 450),
+    gridcolor = 'rgba(128,128,128,0.1)'
+  ),
+  width = 1100,
+  height = 600,
+  hovermode = 'closest',
+  plot_bgcolor = 'rgba(250,250,250,0.9)',
+  margin = list(l = 70, r = 250, t = 100, b = 80),
+  legend = list(
+    orientation = 'v',
+    x = 1.02,
+    y = 1,
+    xanchor = 'left',
+    yanchor = 'top',
+    bgcolor = 'rgba(255,255,255,0.95)',
+    bordercolor = 'gray',
+    borderwidth = 1,
+    font = list(size = 9)
+  )
+)
+
+fig
+
+```{r parasitic-elements-table, echo=FALSE}
+library(knitr)
+
+# Create comprehensive parasitic elements table
+parasitics_data <- data.frame(
+  Technology = c('LDMOS', 'GaN HEMT', 'GaAs pHEMT'),
+  `gm (mS/mm)` = c('150-200', '300-400', '350-450'),
+  `Cgs (pF/mm)` = c('2.0-3.0', '0.9-1.5', '0.6-1.0'),
+  `Cgd (pF/mm)` = c('0.2-0.4', '0.05-0.15', '0.03-0.07'),
+  `Rg (Ω·mm)` = c('4-6', '1.5-3.5', '1.0-2.0'),
+  `Rs (Ω·mm)` = c('2.0-3.0', '0.8-1.5', '0.6-1.2'),
+  `Lg (pH)` = c('50-100', '20-50', '15-40'),
+  `fT (GHz)` = c('8-12', '35-50', '60-90'),
+  check.names = FALSE
+)
+
+kable(
+  parasitics_data,
+  caption = "Table 1.2: Typical Parasitic Element Ranges for RF Power Transistor Technologies",
+  align = 'c'
+)
+```
+
+**Key Observations:**
+
+- **GaAs pHEMT** has highest $f_T$ (≈75 GHz) due to lowest capacitances and high $g_m$
+- **GaN HEMT** has moderate $f_T$ (≈43 GHz) - good balance of speed and power
+- **LDMOS** has lowest $f_T$ (≈10 GHz) due to high parasitic capacitances
+- **By definition**: $f_T$ is where current gain $|h_{21}|$ crosses 0 dB (unity gain)
+- **Parasitic Effects** (click legend to toggle):
+  - Increasing $C_{gs}$: Reduces $f_T$ (more input capacitance to charge)
+  - Increasing $C_{gd}$: Reduces $f_T$ (Miller effect feedback capacitance)
+- All technologies show **-20 dB/decade** rolloff (fundamental transistor limit)
+
+---
+
+### Power Gain and fmax Characteristics
+
+The maximum oscillation frequency ($f_{max}$) represents the frequency where power gain drops to unity (0 dB). Unlike $f_T$, which depends only on transconductance and capacitances, $f_{max}$ is also limited by resistive parasitics.
+
+```{r fmax-characteristics, echo=FALSE, fig.cap="Figure 1.2b: Power Gain (MAG/MSG) vs Frequency - Technology Comparison and Parasitic Effects [@gonzalez1997; @pengelly2012]", fig.width=10, fig.height=5.5}
+library(plotly)
+library(dplyr)
+
+# Frequency range - LOG scale for better visualization
+freq <- 10^seq(-2, 2.5, length.out = 500)  # 0.01 GHz to ~300 GHz
+
+# ========== TECHNOLOGY PARAMETERS ==========
+# Technology parameters from previous fT calculation
+gan_gm <- 350e-3
+gan_Cgs <- 1.2e-12
+gan_Cgd <- 0.1e-12
+gan_fT <- gan_gm / (2 * pi * (gan_Cgs + gan_Cgd)) / 1e9  # GHz
+
+ldmos_gm <- 180e-3
+ldmos_Cgs <- 2.5e-12
+ldmos_Cgd <- 0.3e-12
+ldmos_fT <- ldmos_gm / (2 * pi * (ldmos_Cgs + ldmos_Cgd)) / 1e9  # GHz
+
+gaas_gm <- 400e-3
+gaas_Cgs <- 0.8e-12
+gaas_Cgd <- 0.05e-12
+gaas_fT <- gaas_gm / (2 * pi * (gaas_Cgs + gaas_Cgd)) / 1e9  # GHz
+
+# Resistive parasitics for fmax calculation
+# fmax = fT / (2 * sqrt((Rg + Rs) / Rds))
+
+# GaN HEMT 
+gan_Rg <- 2.5   # Ω (gate resistance)
+gan_Rds <- 400  # Ω (drain-source resistance)
+gan_Rs <- 1.0   # Ω (source resistance)
+
+gan_fmax <- gan_fT / (2 * sqrt((gan_Rg + gan_Rs) / gan_Rds))  # GHz
+
+# LDMOS
+ldmos_Rg <- 5.0    # Ω (higher gate resistance)
+ldmos_Rds <- 150   # Ω (lower output resistance)
+ldmos_Rs <- 2.5    # Ω
+
+ldmos_fmax <- ldmos_fT / (2 * sqrt((ldmos_Rg + ldmos_Rs) / ldmos_Rds))  # GHz
+
+# GaAs pHEMT
+gaas_Rg <- 1.5     # Ω (lowest gate resistance)
+gaas_Rds <- 600    # Ω (highest output resistance)
+gaas_Rs <- 0.8     # Ω
+
+gaas_fmax <- gaas_fT / (2 * sqrt((gaas_Rg + gaas_Rs) / gaas_Rds))  # GHz
+
+# ========== POWER GAIN CALCULATIONS ==========
+# By definition: MAG/MSG crosses 0 dB at fmax
+# Typical behavior: starts with rolloff, crossing 0 dB exactly at fmax
+
+calc_MAG <- function(freq_vec, fT_val, fmax_val) {
+  # Power gain rolls off, crossing 0 dB at fmax
+  # Use fmax as reference point where gain = 0 dB
+  gain <- 20 * log10(fmax_val / freq_vec)
+  # Limit maximum gain at low frequencies
+  gain[gain > 35] <- 35
+  return(gain)
+}
+
+MAG_gan <- calc_MAG(freq, gan_fT, gan_fmax)
+MAG_ldmos <- calc_MAG(freq, ldmos_fT, ldmos_fmax)
+MAG_gaas <- calc_MAG(freq, gaas_fT, gaas_fmax)
+
+# ========== PARASITIC VARIATION ANALYSIS (GaN) ==========
+# Effect of varying Rg
+gan_Rg_low <- 1.5    # Ω (optimized layout)
+gan_Rg_high <- 4.0   # Ω (poor layout)
+
+fmax_Rg_low <- gan_fT / (2 * sqrt((gan_Rg_low + gan_Rs) / gan_Rds))
+fmax_Rg_high <- gan_fT / (2 * sqrt((gan_Rg_high + gan_Rs) / gan_Rds))
+
+MAG_Rg_low <- calc_MAG(freq, gan_fT, fmax_Rg_low)
+MAG_Rg_high <- calc_MAG(freq, gan_fT, fmax_Rg_high)
+
+# Effect of varying Rs
+gan_Rs_low <- 0.5    # Ω (optimized contacts)
+gan_Rs_high <- 2.0   # Ω (high contact resistance)
+
+fmax_Rs_low <- gan_fT / (2 * sqrt((gan_Rg + gan_Rs_low) / gan_Rds))
+fmax_Rs_high <- gan_fT / (2 * sqrt((gan_Rg + gan_Rs_high) / gan_Rds))
+
+MAG_Rs_low <- calc_MAG(freq, gan_fT, fmax_Rs_low)
+MAG_Rs_high <- calc_MAG(freq, gan_fT, fmax_Rs_high)
+
+# Effect of varying Rds
+gan_Rds_low <- 200   # Ω (deep saturation)
+gan_Rds_high <- 600  # Ω (light saturation)
+
+fmax_Rds_low <- gan_fT / (2 * sqrt((gan_Rg + gan_Rs) / gan_Rds_low))
+fmax_Rds_high <- gan_fT / (2 * sqrt((gan_Rg + gan_Rs) / gan_Rds_high))
+
+MAG_Rds_low <- calc_MAG(freq, gan_fT, fmax_Rds_low)
+MAG_Rds_high <- calc_MAG(freq, gan_fT, fmax_Rds_high)
+
+# ========== LDMOS PARASITIC VARIATIONS ==========
+# Effect of varying Rg for LDMOS
+ldmos_Rg_low <- 4.0    # Ω (optimized layout)
+ldmos_Rg_high <- 6.0   # Ω (poor layout)
+
+fmax_ldmos_Rg_low <- ldmos_fT / (2 * sqrt((ldmos_Rg_low + ldmos_Rs) / ldmos_Rds))
+fmax_ldmos_Rg_high <- ldmos_fT / (2 * sqrt((ldmos_Rg_high + ldmos_Rs) / ldmos_Rds))
+
+MAG_ldmos_Rg_low <- calc_MAG(freq, ldmos_fT, fmax_ldmos_Rg_low)
+MAG_ldmos_Rg_high <- calc_MAG(freq, ldmos_fT, fmax_ldmos_Rg_high)
+
+# Effect of varying Rs for LDMOS
+ldmos_Rs_low <- 2.0    # Ω (optimized contacts)
+ldmos_Rs_high <- 3.0   # Ω (high contact resistance)
+
+fmax_ldmos_Rs_low <- ldmos_fT / (2 * sqrt((ldmos_Rg + ldmos_Rs_low) / ldmos_Rds))
+fmax_ldmos_Rs_high <- ldmos_fT / (2 * sqrt((ldmos_Rg + ldmos_Rs_high) / ldmos_Rds))
+
+MAG_ldmos_Rs_low <- calc_MAG(freq, ldmos_fT, fmax_ldmos_Rs_low)
+MAG_ldmos_Rs_high <- calc_MAG(freq, ldmos_fT, fmax_ldmos_Rs_high)
+
+# Effect of varying Rds for LDMOS
+ldmos_Rds_low <- 100   # Ω (deep saturation)
+ldmos_Rds_high <- 200  # Ω (light saturation)
+
+fmax_ldmos_Rds_low <- ldmos_fT / (2 * sqrt((ldmos_Rg + ldmos_Rs) / ldmos_Rds_low))
+fmax_ldmos_Rds_high <- ldmos_fT / (2 * sqrt((ldmos_Rg + ldmos_Rs) / ldmos_Rds_high))
+
+MAG_ldmos_Rds_low <- calc_MAG(freq, ldmos_fT, fmax_ldmos_Rds_low)
+MAG_ldmos_Rds_high <- calc_MAG(freq, ldmos_fT, fmax_ldmos_Rds_high)
+
+# ========== GaAs PARASITIC VARIATIONS ==========
+# Effect of varying Rg for GaAs
+gaas_Rg_low <- 1.0     # Ω (optimized layout)
+gaas_Rg_high <- 2.0    # Ω (poor layout)
+
+fmax_gaas_Rg_low <- gaas_fT / (2 * sqrt((gaas_Rg_low + gaas_Rs) / gaas_Rds))
+fmax_gaas_Rg_high <- gaas_fT / (2 * sqrt((gaas_Rg_high + gaas_Rs) / gaas_Rds))
+
+MAG_gaas_Rg_low <- calc_MAG(freq, gaas_fT, fmax_gaas_Rg_low)
+MAG_gaas_Rg_high <- calc_MAG(freq, gaas_fT, fmax_gaas_Rg_high)
+
+# Effect of varying Rs for GaAs
+gaas_Rs_low <- 0.6     # Ω (optimized contacts)
+gaas_Rs_high <- 1.2    # Ω (high contact resistance)
+
+fmax_gaas_Rs_low <- gaas_fT / (2 * sqrt((gaas_Rg + gaas_Rs_low) / gaas_Rds))
+fmax_gaas_Rs_high <- gaas_fT / (2 * sqrt((gaas_Rg + gaas_Rs_high) / gaas_Rds))
+
+MAG_gaas_Rs_low <- calc_MAG(freq, gaas_fT, fmax_gaas_Rs_low)
+MAG_gaas_Rs_high <- calc_MAG(freq, gaas_fT, fmax_gaas_Rs_high)
+
+# Effect of varying Rds for GaAs
+gaas_Rds_low <- 400    # Ω (deep saturation)
+gaas_Rds_high <- 800   # Ω (light saturation)
+
+fmax_gaas_Rds_low <- gaas_fT / (2 * sqrt((gaas_Rg + gaas_Rs) / gaas_Rds_low))
+fmax_gaas_Rds_high <- gaas_fT / (2 * sqrt((gaas_Rg + gaas_Rs) / gaas_Rds_high))
+
+MAG_gaas_Rds_low <- calc_MAG(freq, gaas_fT, fmax_gaas_Rds_low)
+MAG_gaas_Rds_high <- calc_MAG(freq, gaas_fT, fmax_gaas_Rds_high)
+
+# ========== CREATE PLOTLY FIGURE ==========
+fig2 <- plot_ly()
+
+# Main technology comparison traces (GaN visible by default, others hidden)
+# NO legendgroup - makes each item individually clickable
+# CATEGORY: Characteristics
+fig2 <- fig2 %>%
+  add_trace(
+    x = freq, y = MAG_gan,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('━━ Characteristics ━━<br>GaN (fmax=%.0f GHz)', gan_fmax),
+    line = list(color = '#FF6F00', width = 3),
+    yaxis = 'y',
+    hovertemplate = '<b>GaN HEMT</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_ldmos,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('LDMOS (fmax=%.0f GHz)', ldmos_fmax),
+    line = list(color = '#4CAF50', width = 3),
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_gaas,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs (fmax=%.0f GHz)', gaas_fmax),
+    line = list(color = '#2196F3', width = 3),
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs pHEMT</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  )
+
+# Parasitic effect traces (dashed lines) - individually clickable
+# CATEGORY: Parasitics - Grouped by technology and parasitic type
+fig2 <- fig2 %>%
+  add_trace(
+    x = freq, y = MAG_Rg_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('━━ Parasitics ━━<br>GaN: ↓Rg (%.1fΩ → fmax=%.0fGHz)', gan_Rg_low, fmax_Rg_low),
+    line = list(color = '#FF6F00', width = 2, dash = 'dash'),
+    legendgroup = 'gan_parasitic_Rg',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>Low Rg</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_Rg_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaN: ↑Rg (%.1fΩ → fmax=%.0fGHz)', gan_Rg_high, fmax_Rg_high),
+    line = list(color = '#FF6F00', width = 2, dash = 'dot'),
+    legendgroup = 'gan_parasitic_Rg',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>High Rg</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_Rs_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaN: ↓Rs (%.1fΩ → fmax=%.0fGHz)', gan_Rs_low, fmax_Rs_low),
+    line = list(color = '#9C27B0', width = 2, dash = 'dash'),
+    legendgroup = 'gan_parasitic_Rs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>Low Rs</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_Rs_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaN: ↑Rs (%.1fΩ → fmax=%.0fGHz)', gan_Rs_high, fmax_Rs_high),
+    line = list(color = '#9C27B0', width = 2, dash = 'dot'),
+    legendgroup = 'gan_parasitic_Rs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>High Rs</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_Rds_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaN: ↓Rds (%.0fΩ → fmax=%.0fGHz)', gan_Rds_low, fmax_Rds_low),
+    line = list(color = '#E91E63', width = 2, dash = 'dash'),
+    legendgroup = 'gan_parasitic_Rds',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>Low Rds</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_Rds_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaN: ↑Rds (%.0fΩ → fmax=%.0fGHz)', gan_Rds_high, fmax_Rds_high),
+    line = list(color = '#E91E63', width = 2, dash = 'dot'),
+    legendgroup = 'gan_parasitic_Rds',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>High Rds</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  # LDMOS Parasitic variations
+  add_trace(
+    x = freq, y = MAG_ldmos_Rg_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('LDMOS: ↓Rg (%.1fΩ → fmax=%.0fGHz)', ldmos_Rg_low, fmax_ldmos_Rg_low),
+    line = list(color = '#4CAF50', width = 2, dash = 'dash'),
+    legendgroup = 'ldmos_parasitic_Rg',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS Low Rg</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_ldmos_Rg_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('LDMOS: ↑Rg (%.1fΩ → fmax=%.0fGHz)', ldmos_Rg_high, fmax_ldmos_Rg_high),
+    line = list(color = '#4CAF50', width = 2, dash = 'dot'),
+    legendgroup = 'ldmos_parasitic_Rg',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS High Rg</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_ldmos_Rs_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('LDMOS: ↓Rs (%.1fΩ → fmax=%.0fGHz)', ldmos_Rs_low, fmax_ldmos_Rs_low),
+    line = list(color = '#81C784', width = 2, dash = 'dash'),
+    legendgroup = 'ldmos_parasitic_Rs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS Low Rs</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_ldmos_Rs_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('LDMOS: ↑Rs (%.1fΩ → fmax=%.0fGHz)', ldmos_Rs_high, fmax_ldmos_Rs_high),
+    line = list(color = '#81C784', width = 2, dash = 'dot'),
+    legendgroup = 'ldmos_parasitic_Rs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS High Rs</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_ldmos_Rds_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('LDMOS: ↓Rds (%.0fΩ → fmax=%.0fGHz)', ldmos_Rds_low, fmax_ldmos_Rds_low),
+    line = list(color = '#A1887F', width = 2, dash = 'dash'),
+    legendgroup = 'ldmos_parasitic_Rds',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS Low Rds</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_ldmos_Rds_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('LDMOS: ↑Rds (%.0fΩ → fmax=%.0fGHz)', ldmos_Rds_high, fmax_ldmos_Rds_high),
+    line = list(color = '#A1887F', width = 2, dash = 'dot'),
+    legendgroup = 'ldmos_parasitic_Rds',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>LDMOS High Rds</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  # GaAs Parasitic variations
+  add_trace(
+    x = freq, y = MAG_gaas_Rg_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs: ↓Rg (%.1fΩ → fmax=%.0fGHz)', gaas_Rg_low, fmax_gaas_Rg_low),
+    line = list(color = '#2196F3', width = 2, dash = 'dash'),
+    legendgroup = 'gaas_parasitic_Rg',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs Low Rg</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_gaas_Rg_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs: ↑Rg (%.1fΩ → fmax=%.0fGHz)', gaas_Rg_high, fmax_gaas_Rg_high),
+    line = list(color = '#2196F3', width = 2, dash = 'dot'),
+    legendgroup = 'gaas_parasitic_Rg',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs High Rg</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_gaas_Rs_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs: ↓Rs (%.1fΩ → fmax=%.0fGHz)', gaas_Rs_low, fmax_gaas_Rs_low),
+    line = list(color = '#64B5F6', width = 2, dash = 'dash'),
+    legendgroup = 'gaas_parasitic_Rs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs Low Rs</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_gaas_Rs_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs: ↑Rs (%.1fΩ → fmax=%.0fGHz)', gaas_Rs_high, fmax_gaas_Rs_high),
+    line = list(color = '#64B5F6', width = 2, dash = 'dot'),
+    legendgroup = 'gaas_parasitic_Rs',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs High Rs</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_gaas_Rds_low,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs: ↓Rds (%.0fΩ → fmax=%.0fGHz)', gaas_Rds_low, fmax_gaas_Rds_low),
+    line = list(color = '#90CAF9', width = 2, dash = 'dash'),
+    legendgroup = 'gaas_parasitic_Rds',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs Low Rds</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  ) %>%
+  add_trace(
+    x = freq, y = MAG_gaas_Rds_high,
+    type = 'scatter', mode = 'lines',
+    name = sprintf('GaAs: ↑Rds (%.0fΩ → fmax=%.0fGHz)', gaas_Rds_high, fmax_gaas_Rds_high),
+    line = list(color = '#90CAF9', width = 2, dash = 'dot'),
+    legendgroup = 'gaas_parasitic_Rds',
+    visible = 'legendonly',
+    yaxis = 'y',
+    hovertemplate = '<b>GaAs High Rds</b><br>Freq: %{x:.2f} GHz<br>MAG: %{y:.1f} dB<extra></extra>'
+  )
+
+# Add resistance reference lines on secondary Y-axis
+res_freq <- c(0.01, 300)
+fig2 <- fig2 %>%
+  add_trace(
+    x = res_freq, y = rep(ldmos_Rg, 2),
+    type = 'scatter', mode = 'lines',
+    name = 'LDMOS Rg',
+    line = list(color = '#4CAF50', width = 1, dash = 'dashdot'),
+    yaxis = 'y2',
+    visible = 'legendonly',
+    showlegend = TRUE,
+    hovertemplate = 'LDMOS Rg: %{y:.1f} Ω<extra></extra>'
+  ) %>%
+  add_trace(
+    x = res_freq, y = rep(gan_Rg, 2),
+    type = 'scatter', mode = 'lines',
+    name = 'GaN Rg',
+    line = list(color = '#FF6F00', width = 1, dash = 'dashdot'),
+    yaxis = 'y2',
+    visible = 'legendonly',
+    showlegend = TRUE,
+    hovertemplate = 'GaN Rg: %{y:.1f} Ω<extra></extra>'
+  ) %>%
+  add_trace(
+    x = res_freq, y = rep(gaas_Rg, 2),
+    type = 'scatter', mode = 'lines',
+    name = 'GaAs Rg',
+    line = list(color = '#2196F3', width = 1, dash = 'dashdot'),
+    yaxis = 'y2',
+    visible = 'legendonly',
+    showlegend = TRUE,
+    hovertemplate = 'GaAs Rg: %{y:.1f} Ω<extra></extra>'
+  )
+
+# ========== FREQUENCY SPECTRUM BANDS (TOGGLEABLE) ==========
+# Add frequency spectrum bands as transparent background regions with detailed info
+# Source: ITU Radio Regulations [@itu_spectrum]
+# CATEGORY: Spectrum
+freq_bands_fmax <- list(
+  list(name = "VHF", xmin = 0.03, xmax = 0.3, color = 'rgba(255,182,193,0.15)',
+    label_x = sqrt(0.03 * 0.3), wavelength = "10-1 m", full_freq = "30-300 MHz",
+    apps = "FM radio, Weather radio", icon = "📻"),
+  list(name = "UHF", xmin = 0.3, xmax = 3, color = 'rgba(173,216,230,0.15)',
+    label_x = sqrt(0.3 * 3), wavelength = "1-0.1 m", full_freq = "0.3-3 GHz",
+    apps = "TV, GPS, Mobile phones", icon = "📱"),
+  list(name = "SHF", xmin = 3, xmax = 30, color = 'rgba(144,238,144,0.15)',
+    label_x = sqrt(3 * 30), wavelength = "100-10 mm", full_freq = "3-30 GHz",
+    apps = "Satellite comms, Radar", icon = "🛰️"),
+  list(name = "EHF", xmin = 30, xmax = 300, color = 'rgba(255,218,185,0.15)',
+    label_x = sqrt(30 * 300), wavelength = "10-1 mm", full_freq = "30-300 GHz",
+    apps = "Advanced radar, Experimental, 5G mmWave", icon = "📡")
+)
+
+band_idx <- 0
+for(band in freq_bands_fmax) {
+  band_idx <- band_idx + 1
+  legend_name <- if(band_idx == 1) {
+    sprintf('━━ Spectrum ━━<br>%s %s', band$icon, band$name)
+  } else {
+    sprintf('%s %s', band$icon, band$name)
+  }
+  hover_text <- sprintf("%s %s (%s):\n%s\nWavelength: %s", band$icon, band$name, band$full_freq, band$apps, band$wavelength)
+  fig2 <- fig2 %>%
+    add_trace(
+      x = c(band$xmin, band$xmax, band$xmax, band$xmin, band$xmin),
+      y = c(-20, -20, 37, 37, -20),
+      type = 'scatter',
+      mode = 'lines',
+      fill = 'toself',
+      fillcolor = band$color,
+      line = list(width = 0),
+      name = legend_name,
+      legendgroup = 'spectrum',
+      visible =  'legendonly',
+      showlegend = (band_idx == 1),
+      hoveron = 'fills',
+      text = hover_text,
+      hoverinfo = 'text',
+      hoverlabel = list(font = list(size = 12))
+    ) %>%
+    add_trace(
+      x = band$label_x,
+      y = 42,
+      type = 'scatter',
+      mode = 'text',
+      text = sprintf('<b>%s</b>', band$name),
+      textfont = list(size = 11, color = 'rgba(0,0,0,0.9)', family = 'Arial Black'),
+      textposition = 'top center',
+      legendgroup = 'spectrum',
+      visible = 'legendonly',
+      showlegend = FALSE,
+      hoverinfo = 'skip'
+    )
+}
+
+# Add 0 dB reference line (unity power gain)
+fig2 <- fig2 %>%
+  add_segments(
+    x = 0.01, xend = 300,
+    y = 0, yend = 0,
+    line = list(color = 'red', width = 2, dash = 'dash'),
+    showlegend = FALSE,
+    hovertemplate = 'Unity Power Gain (0 dB) - fmax defined here<extra></extra>'
+  )
+
+# Add fmax marker annotations - STAGGERED vertically to prevent overlap
+fig2 <- fig2 %>%
+  add_annotations(
+    x = log10(ldmos_fmax), y = 0,
+    text = sprintf('LDMOS<br>fmax=%.0f GHz', ldmos_fmax),
+    showarrow = TRUE,
+    arrowhead = 2,
+    arrowsize = 1,
+    arrowwidth = 2,
+    arrowcolor = '#4CAF50',
+    ax = -40, ay = -60,
+    font = list(size = 9, color = '#4CAF50'),
+    xref = 'x', yref = 'y'
+  ) %>%
+  add_annotations(
+    x = log10(gan_fmax), y = 0,
+    text = sprintf('GaN<br>fmax=%.0f GHz', gan_fmax),
+    showarrow = TRUE,
+    arrowhead = 2,
+    arrowsize = 1,
+    arrowwidth = 2,
+    arrowcolor = '#FF6F00',
+    ax = 0, ay = -80,
+    font = list(size = 9, color = '#FF6F00', weight = 'bold'),
+    xref = 'x', yref = 'y'
+  ) %>%
+  add_annotations(
+    x = log10(gaas_fmax), y = 0,
+    text = sprintf('GaAs<br>fmax=%.0f GHz', gaas_fmax),
+    showarrow = TRUE,
+    arrowhead = 2,
+    arrowsize = 1,
+    arrowwidth = 2,
+    arrowcolor = '#2196F3',
+    ax = 40, ay = -60,
+    font = list(size = 9, color = '#2196F3'),
+    xref = 'x', yref = 'y'
+  )
+
+# Layout with secondary Y-axis for resistances - Legend moved below
+fig2 <- fig2 %>% layout(
+  title = list(
+    text = '<b>Power Gain Frequency Response: Technology Comparison</b><br><sub>fmax = frequency where MAG/MSG = 0 dB (unity power gain) • Determined by fT and resistive parasitics • Click legend items individually • Toggle spectrum bands with icons</sub>',
+    font = list(size = 14)
+  ),
+  xaxis = list(
+    title = '<b>Frequency (GHz)</b>',
+    type = 'log',
+    gridcolor = 'rgba(128,128,128,0.2)'
+  ),
+  yaxis = list(
+    title = '<b>Power Gain MAG/MSG (dB)</b>',
+    range = c(-10, 37),
+    gridcolor = 'rgba(128,128,128,0.2)'
+  ),
+  yaxis2 = list(
+    title = '<b>Gate Resistance R<sub>g</sub> (Ω)</sub>',
+    overlaying = 'y',
+    side = 'right',
+    range = c(0, 7),
+    gridcolor = 'rgba(128,128,128,0.1)'
+  ),
+  width = 1100,
+  height = 600,
+  hovermode = 'closest',
+  plot_bgcolor = 'rgba(250,250,250,0.9)',
+  margin = list(l = 70, r = 250, t = 100, b = 80),
+  legend = list(
+    orientation = 'v',
+    x = 1.02,
+    y = 1,
+    xanchor = 'left',
+    yanchor = 'top',
+    bgcolor = 'rgba(255,255,255,0.95)',
+    bordercolor = 'gray',
+    borderwidth = 1,
+    font = list(size = 9)
+  )
+)
+
+fig
+```
+
+**Key Observations:**
+
+- **GaAs pHEMT** has highest $f_{max}$ (≈230 GHz) - lowest resistive losses, excellent for mmWave
+- **GaN HEMT** has moderate $f_{max}$ (≈125 GHz) - 2.9× higher than $f_T$ (good quality factor)
+- **LDMOS** has lowest $f_{max}$ (≈18 GHz) - limited by high gate resistance
+- **By definition**: $f_{max}$ is where power gain MAG/MSG crosses 0 dB (unity power gain)
+- **Parasitic Effects** (click legend to toggle):
+  - **$R_g$** (gate resistance): Higher $R_g$ → Lower $f_{max}$ (lossy input reduces power transfer)
+  - **$R_s$** (source resistance): Higher $R_s$ → Lower $f_{max}$ (source degeneration reduces effective $g_m$)
+  - **$R_{ds}$** (output resistance): Higher $R_{ds}$ → Higher $f_{max}$ (beneficial - appears in denominator of formula)
+- **Ratio $f_{max}/f_T$**: Indicates device quality factor (2-4× typical for good RF devices)
+
+---
+
+### Low-Frequency Gain Convergence
+
+An important observation from both the $f_T$ and $f_{max}$ graphs is that **all three technologies (LDMOS, GaN, GaAs) exhibit the same gain level at low frequencies**, despite having vastly different high-frequency performance.
+
+### Physical Explanation
+
+**1. Capacitances Become Negligible at Low Frequencies**
+
+At low frequencies, the capacitive reactance becomes very large:
+
+$$
+X_C = \frac{1}{2\pi f C} \rightarrow \infty \quad \text{as} \quad f \rightarrow 0
+$$
+
+- Gate-source capacitance ($C_{gs}$) and gate-drain capacitance ($C_{gd}$) act as **open circuits**
+- The transistor behaves as a **pure DC amplifier** - only transconductance ($g_m$) matters
+- Parasitic capacitances that dominate high-frequency behavior have **no effect** at low frequencies
+
+**2. Fundamental Gain Limits**
+
+The graphs show gain saturation at low frequencies due to fundamental device physics:
+
+- **Current gain** ($|h_{21}|$) saturates at **30 dB** - representing typical DC current gain ($\beta$ or $h_{FE}$)
+- **Power gain** (MAG/MSG) saturates at **35 dB** - slightly higher due to impedance transformation
+
+These saturation values are **technology-independent** and reflect:
+- DC bias conditions and operating point
+- Fundamental transistor current gain mechanisms
+- Thermal and recombination limits
+
+**3. When Do Technologies Diverge?**
+
+As frequency increases, parasitic capacitances begin to dominate:
+
+$$
+f_T = \frac{g_m}{2\pi(C_{gs} + C_{gd})}
+$$
+
+Each technology has different parasitic capacitances:
+
+| Technology | $C_{gs}$ (pF/mm) | $C_{gd}$ (pF/mm) | $f_T$ (GHz) | Divergence Point |
+|:-----------|:---------------:|:---------------:|:-----------:|:----------------|
+| **LDMOS** | 2.5 | 0.3 | 10 | Rolls off earliest due to high capacitance |
+| **GaN** | 1.2 | 0.1 | 43 | Moderate rolloff - balanced design |
+| **GaAs** | 0.8 | 0.05 | 75 | Extends to highest frequency |
+
+**Key Insight**: The **-20 dB/decade rolloff** is fundamental to all transistors, but each technology crosses the 0 dB line at its respective $f_T$ or $f_{max}$ frequency determined by its parasitic elements [@gonzalez1997; @razavi2011].
+
+<div style="background-color: #FFF3E0; padding: 12px; border-left: 4px solid #FF6F00; margin: 10px 0;">
+<strong>📌 Design Implication:</strong> When selecting a transistor technology for RF PA design:
+<ul>
+<li><strong>Low frequencies (< 500 MHz)</strong>: All technologies perform similarly - choose based on power density, cost, and ruggedness</li>
+<li><strong>Mid frequencies (0.5-6 GHz)</strong>: LDMOS or GaN - LDMOS advantage in cost, GaN in power density</li>
+<li><strong>High frequencies (> 6 GHz)</strong>: GaN or GaAs required - parasitic capacitances of LDMOS become limiting</li>
+<li><strong>mmWave (> 30 GHz)</strong>: GaAs pHEMT preferred - lowest parasitics enable operation approaching $f_T$ and $f_{max}$</li>
+</ul>
+</div>
+
+---
+
+### Power Scaling and Efficiency Comparison
+
+Practical RF power amplifier design requires balancing device-level power density, voltage capability, thermal handling, achievable efficiency, operating frequency, and cost [@pengelly2012; @milligan2007; @wood2013; @zampardi2013]. The following interactive spider plot compares typical technology-level characteristics and practical considerations for power-scaling and efficiency.
+
+```{r power-scaling-spider, echo=FALSE, fig.cap="Figure 1.2c: Technology Comparison - Power Scaling, Efficiency, and Cost Metrics [@pengelly2012; @milligan2007; @wood2013; @zampardi2013; @nanan2012]", fig.width=11, fig.height=9}
+library(plotly)
+
+# Define technology data with REAL VALUES
+# We'll normalize for plotting but show real values in hover
+tech_data <- list(
+  list(
+    name = "GaN on Si",
+    color = "#2196F3",
+    real_values = list(
+      power_density = "3-10 W/mm",
+      breakdown = "50-120 V",
+      thermal = "130-150 W/m·K",
+      efficiency = "55-80%",
+      freq_max = "40 GHz",
+      relative_cost = "Medium ($)"
+    ),
+    normalized = c(6.5, 6.0, 4.5, 7.0, 8.0, 6.0),  # Power, Voltage, Thermal, Eff, Freq, Cost
+    notes = "High power density, good high-frequency performance<br>Packaging and thermal path critical"
+  ),
+  list(
+    name = "GaN on SiC",
+    color = "#4CAF50",
+    real_values = list(
+      power_density = "8-20 W/mm",
+      breakdown = "100-200 V",
+      thermal = "300-400 W/m·K",
+      efficiency = "60-85%",
+      freq_max = "50 GHz",
+      relative_cost = "High ($$$)"
+    ),
+    normalized = c(10.0, 10.0, 10.0, 9.0, 10.0, 3.0),  # Best perf, highest cost
+    notes = "Superior thermal performance and reliability<br>Preferred for highest power and temperature"
+  ),
+  list(
+    name = "LDMOS",
+    color = "#FF9800",
+    real_values = list(
+      power_density = "0.5-3 W/mm",
+      breakdown = "60-120 V",
+      thermal = "130-150 W/m·K",
+      efficiency = "40-70%",
+      freq_max = "3.5 GHz",
+      relative_cost = "Low ($$)"
+    ),
+    normalized = c(2.5, 6.5, 4.5, 6.0, 2.0, 9.0),  # Lower freq, best cost
+    notes = "Mature, cost-effective for high-power base stations<br>Excellent at <3 GHz"
+  ),
+  list(
+    name = "GaAs",
+    color = "#9C27B0",
+    real_values = list(
+      power_density = "1-6 W/mm",
+      breakdown = "15-80 V",
+      thermal = "40-50 W/m·K",
+      efficiency = "40-75%",
+      freq_max = "100 GHz",
+      relative_cost = "Medium-High ($$)"
+    ),
+    normalized = c(4.5, 4.0, 1.0, 6.5, 9.0, 5.0),  # Good RF, poor thermal
+    notes = "Good RF performance at microwave/mmWave bands<br>Substrate thermal limits constrain power"
+  ),
+  list(
+    name = "SiGe",
+    color = "#F44336",
+    real_values = list(
+      power_density = "0.5-2 W/mm",
+      breakdown = "5-20 V",
+      thermal = "130-150 W/m·K",
+      efficiency = "30-60%",
+      freq_max = "80 GHz",
+      relative_cost = "Low ($)"
+    ),
+    normalized = c(1.5, 1.0, 4.5, 4.5, 7.5, 8.5),  # Low power, high integration
+    notes = "Excellent for integration and linearity<br>Limited power per device"
+  )
+)
+
+# Category labels (6 dimensions now)
+categories <- c(
+  'Power<br>Density<br>(W/mm)',
+  'Breakdown<br>Voltage<br>(V)',
+  'Thermal<br>Conductivity<br>(W/m·K)',
+  'Efficiency<br>(%)',
+  'Frequency<br>Range<br>(GHz)',
+  'Relative<br>Cost<br>(lower=better)'
+)
+
+# Create radar/spider plot
+fig <- plot_ly(
+  type = 'scatterpolar',
+  fill = 'toself'
+)
+
+# Add each technology as a separate trace
+for (tech in tech_data) {
+  # Close the polygon by repeating first value
+  values_closed <- c(tech$normalized, tech$normalized[1])
+  
+  # Build detailed hover text with real values
+  hover_text <- paste0(
+    '<b>', tech$name, '</b><br>',
+    '<br><b>Real Values:</b><br>',
+    'Power Density: ', tech$real_values$power_density, '<br>',
+    'Breakdown: ', tech$real_values$breakdown, '<br>',
+    'Thermal: ', tech$real_values$thermal, '<br>',
+    'Efficiency: ', tech$real_values$efficiency, '<br>',
+    'Freq Range: Up to ', tech$real_values$freq_max, '<br>',
+    'Cost: ', tech$real_values$relative_cost, '<br>',
+    '<br>', tech$notes
+  )
+  
+  fig <- fig %>% add_trace(
+    r = values_closed,
+    theta = c(categories, categories[1]),
+    name = tech$name,
+    line = list(color = tech$color, width = 2.5),
+    fillcolor = paste0(tech$color, '30'),  # 30 = ~20% opacity in hex
+    text = rep(hover_text, length(values_closed)),
+    hoverinfo = 'text',
+    hovertemplate = '%{text}<extra></extra>'
+  )
+}
+
+# Layout configuration
+fig <- fig %>% layout(
+  polar = list(
+    radialaxis = list(
+      visible = TRUE,
+      range = c(0, 10),
+      tickmode = 'array',
+      tickvals = c(0, 2, 4, 6, 8, 10),
+      ticktext = c('0', '2', '4', '6', '8', '10'),
+      showline = TRUE,
+      showgrid = TRUE,
+      gridcolor = 'rgba(128,128,128,0.3)',
+      tickfont = list(size = 10, color = '#666')
+    ),
+    angularaxis = list(
+      tickfont = list(size = 10, color = '#333'),
+      rotation = 75,  # Rotated to fit 6 dimensions
+      direction = 'clockwise'
+    ),
+    bgcolor = 'rgba(245,245,245,0.5)'
+  ),
+  title = list(
+    text = '<b>Technology Comparison: Power, Efficiency, and Cost</b><br><sub>Normalized scale (0-10 for visualization) • Hover for real values with units • Use toolbar to zoom/pan/reset</sub>',
+    font = list(size = 14),
+    y = 0.97
+  ),
+  showlegend = TRUE,
+  legend = list(
+    x = 1.08,
+    y = 1,
+    bgcolor = 'rgba(255,255,255,0.95)',
+    bordercolor = 'gray',
+    borderwidth = 1,
+    font = list(size = 10.5)
+  ),
+  width = 1000,
+  height = 850,
+  margin = list(l = 100, r = 180, t = 120, b = 100),
+  hovermode = 'closest'
+)
+
+# Enable modebar with all zoom/pan controls visible
+fig <- fig %>% config(
+  displayModeBar = TRUE,
+  modeBarButtonsToRemove = list('select2d', 'lasso2d'),  # Keep zoom and pan buttons
+  displaylogo = FALSE,
+  toImageButtonOptions = list(
+    format = 'png',
+    filename = 'technology_comparison_spider',
+    height = 850,
+    width = 1000
+  )
+)
+
+fig
+```
+
+<details class="technology-reference-table">
+<summary style="cursor: pointer; font-weight: bold; font-size: 1.05em; padding: 10px; background-color: #E3F2FD; border-left: 4px solid #2196F3; margin: 15px 0;">📊 Click to expand: Real Values Reference Table & Metric Definitions</summary>
+
+<div style="padding: 15px; background-color: #F5F5F5; border: 1px solid #ddd; margin-top: 5px;">
+
+**Real Values Reference Table:**
+
+| Technology | Power Density | Breakdown Voltage | Thermal Conductivity | Efficiency | Max Frequency | Relative Cost |
+|:-----------|:-------------|:-----------------|:---------------------|:-----------|:--------------|:--------------|
+| **GaN on Si** | 3–10 W/mm | 50–120 V | 130–150 W/m·K | 55–80% | ~40 GHz | Medium ($) |
+| **GaN on SiC** | 8–20 W/mm | 100–200 V | 300–400 W/m·K | 60–85% | ~50 GHz | High ($$$) |
+| **LDMOS** | 0.5–3 W/mm | 60–120 V | 130–150 W/m·K | 40–70% | ~3.5 GHz | Low ($$) |
+| **GaAs** | 1–6 W/mm | 15–80 V | 40–50 W/m·K | 40–75% | ~100 GHz | Medium-High ($$) |
+| **SiGe** | 0.5–2 W/mm | 5–20 V | 130–150 W/m·K | 30–60% | ~80 GHz | Low ($) |
+
+---
+
+**Metric Definitions:**
+
+- **Power Density [W/mm]**: Output power per device gate periphery at optimum load impedance [@pengelly2012; @milligan2007]
+- **Breakdown Voltage [V]**: Maximum drain-source voltage before catastrophic failure [@sze2006]
+- **Thermal Conductivity [W/m·K]**: Substrate thermal conductivity; determines heat dissipation capability [@milligan2007]
+- **Efficiency [%]**: Drain efficiency (DC to RF conversion); depends on PA class and bias [@raab2002]
+- **Frequency Range [GHz]**: Practical upper operating frequency where gain >10 dB available [@pengelly2012]
+- **Relative Cost**: Wafer cost and process complexity; $ (low) to $$$ (high) [@wood2013; @zampardi2013]
+
+</div>
+</details>
+
+**Key Design Guidance:**
+
+1. **Scale by area, not just device rating**: Deliverable output power is generally increased by paralleling device area; thermal path and matching networks become limiting factors before intrinsic device limits.
+
+2. **Voltage vs. frequency trade-off**: Higher breakdown devices (GaN on SiC, LDMOS) enable larger $V_{DD}$ and therefore higher output power at lower frequencies; at mmWave, device parasitics and transit time dominate, favouring technologies with faster carriers even if voltage is lower.
+
+3. **Thermal management is critical**: Substrate thermal conductivity (SiC >> Si >> GaAs) and package thermal resistance often determine continuous power capability and reliability. GaN on SiC excels due to superior heat dissipation.
+
+4. **Efficiency depends on PA class and linearization**: Comparing raw device efficiency is misleading unless the intended PA class (A/AB/B/C/D/E/F) and linearization (DPD, envelope tracking) strategy are considered.
+
+5. **Practical recommendation**: 
+   - Use **LDMOS** for high-power, lower-frequency base stations (<3 GHz) where cost and ruggedness matter
+   - Use **GaN on SiC** for highest power density and thermal headroom (defense, base stations)
+   - Use **GaN on Si** for cost-sensitive but high-frequency designs (commercial 5G)
+   - Use **GaAs/SiGe** for specialized microwave/linear or integrated front-ends (receivers, small-signal)
+
+**Detailed Technology Characteristics:**
+
+| Technology | Power Density | Breakdown Voltage | Thermal Conductivity | Typical Efficiency | Practical Bands |
+|:-----------|:--------------|:------------------|:--------------------|:-------------------|:----------------|
+| **GaN on Si** | 3–10 W/mm | 50–120 V | Si: ~130–150 W/m·K | 55–80% | VHF → mmWave |
+| **GaN on SiC** | 8–20 W/mm | 100–200 V | SiC: ~300–400 W/m·K | 60–85% (best) | VHF → mmWave |
+| **LDMOS** | 0.5–3 W/mm | 60–120 V | Si: ~130–150 W/m·K | 40–70% | HF → UHF |
+| **GaAs** | 1–6 W/mm | 15–80 V | GaAs: ~40–50 W/m·K | 40–75% | µWave → mmWave |
+| **SiGe** | 0.5–2 W/mm | 5–20 V | Si: ~130–150 W/m·K | 30–60% | Up to mmWave |
+
+---
+
+## DC Characteristics
 
 ### I-V Curves: Output Characteristics
 
-```{r iv-curves-gan-hemt, echo=FALSE, fig.cap="Figure 1.3: Interactive GaN HEMT Output Characteristics with PA Class Load Lines (ID vs VDS)", fig.width=12, fig.height=8}
+```{r iv-curves-gan-hemt, echo=FALSE, fig.cap="Figure 1.3: Interactive GaN HEMT Output Characteristics with PA Class Load Lines [@cripps2006; @colantonio2009]", fig.width=12, fig.height=8}
 # Generate realistic GaN HEMT I-V curves with interactive Plotly
 library(plotly)
 
@@ -2003,7 +3878,7 @@ fig
 
 The load line represents the **constraint imposed by the external circuit** on the transistor's operation. Many students find it counterintuitive that VDS decreases when the input signal increases. Here's the physical explanation:
 
-#### **The Load Line Equation**
+### The Load Line Equation
 
 For a transistor with a resistive load ($R_L$) connected between the drain and supply voltage ($V_{DD}$):
 
@@ -2011,7 +3886,7 @@ $$V_{DS} = V_{DD} - I_D \times R_L$$
 
 **Key insight**: This is Kirchhoff's Voltage Law (KVL) around the drain circuit.
 
-#### **Physical Operation During RF Cycle**
+### Physical Operation During RF Cycle
 
 1. **Input Signal Swings HIGH** → $V_{GS}$ increases:
    - Transistor channel conducts **more** → $I_D$ **increases**
@@ -2025,7 +3900,7 @@ $$V_{DS} = V_{DD} - I_D \times R_L$$
    - By KVL: $V_{DS} = V_{DD} - I_D R_L$ → $V_{DS}$ **increases**
    - Operating point moves **up and right** along load line
 
-#### **Load Line Characteristics**
+### Load Line Characteristics
 
 - **Slope** = $-1/R_L$ (always negative)
 - **Y-intercept** (VDS = 0): $I_D = V_{DD}/R_L$ (short-circuit current)
@@ -2036,7 +3911,7 @@ $$V_{DS} = V_{DD} - I_D \times R_L$$
 - Too large $R_L$ → Shallow slope → Large voltage swing, small current swing → Voltage-limited
 - **Optimal** $R_L$ → Maximizes output power swing while staying within safe operating area
 
-#### **The Voltage Inversion Concept**
+### The Voltage Inversion Concept
 
 This is the **fundamental mechanism of voltage amplification**:
 - Input signal modulates gate voltage: $v_{in}(t) = V_{GS,Q} + v_{gs}(t)$
@@ -2045,7 +3920,7 @@ This is the **fundamental mechanism of voltage amplification**:
 - **Result**: Output voltage is **180° out of phase** with drain current
 - This is why common-source amplifiers are **inverting** amplifiers
 
-#### **Load Line vs. Dynamic Load Line**
+### Load Line vs. Dynamic Load Line
 
 **DC Load Line** (what we typically plot):
 - Assumes purely resistive load
@@ -2685,13 +4560,49 @@ fig <- subplot(
 fig
 ```
 
-**Understanding the Integrated View:**
+```{r conduction-angle-table, echo=FALSE, results='asis'}
+library(knitr)
 
-1. **Synchronized Visualization**: All four plots are linked - click any PA class in the legend to toggle all related traces
-2. **Top Left**: Load line trajectories on I-V curves show the operating point path
-3. **Top Right**: Input gate voltage waveforms drive the transistor
-4. **Bottom Left**: Output drain voltage waveforms (anti-phase with current)
-5. **Bottom Right**: Output drain current waveforms (conduction angle visible)
+classes <- c('Class A','Class AB','Class B','Class C','Class D','Class E','Class F')
+angles <- c(360, 200, 180, 120, 90, 60, 'Var')
+biases <- c('VGS_Q = -2.80 V',
+            'VGS_Q = -4.20 V',
+            'VGS_Q = -5.50 V',
+            'VGS_Q = -6.50 V',
+            'VGS_Q = -7.50 V',
+            'VGS_Q = -7.50 V',
+            'VGS_Q = -7.00 V')
+
+eff <- c('35-60%','50-70%','60-80%','70-85%','80-95%','75-95%','70-90%')
+power_gain_desc <- c('High','Moderate','Good','Lower','Switching','Switching','Harmonic tuning')
+linearity_desc <- c('High','Moderate','Good','Lower','Low (switching)','Low (switching)','Mixed')
+
+conduction_table <- data.frame(
+  Class = classes,
+  Conduction_Angle_deg = angles,
+  Typical_Bias = biases,
+  Efficiency_range = eff,
+  Power_Gain = power_gain_desc,
+  Linearity = linearity_desc,
+  stringsAsFactors = FALSE
+)
+
+kable(conduction_table, format = 'html', table.attr = 'class="table table-striped table-condensed"', caption = 'Conduction angle and typical operating points for common PA classes')
+```
+
+<span class="glossary-term" data-term="glossary-integrated-view">**Understanding the Integrated View:**</span>
+
+<div id="glossary-integrated-view" class="glossary-content">
+  <span class="close-glossary">×</span>
+  <h4>📖 Understanding the Integrated View</h4>
+  <ul>
+    <li><strong>Synchronized Visualization</strong>: All four plots are linked - click any PA class in the legend to toggle all related traces</li>
+    <li><strong>Top Left</strong>: Load line trajectories on I-V curves show the operating point path</li>
+    <li><strong>Top Right</strong>: Input gate voltage waveforms drive the transistor</li>
+    <li><strong>Bottom Left</strong>: Output drain voltage waveforms (anti-phase with current)</li>
+    <li><strong>Bottom Right</strong>: Output drain current waveforms (conduction angle visible)</li>
+  </ul>
+</div>
 
 ---
 
@@ -2699,7 +4610,7 @@ fig
 
 Understanding the trade-offs between power gain, efficiency, and linearity is critical for selecting the appropriate PA class for a given application.
 
-```{r pa-class-performance-comparison, echo=FALSE, fig.cap="Figure 1.3d: PA Class Performance Metrics - Power Gain, Efficiency, and Linearity Comparison", fig.width=10, fig.height=5.5}
+```{r pa-class-performance-comparison, echo=FALSE, fig.cap="Figure 1.3d: PA Class Performance Metrics - Power Gain, Efficiency, and Linearity Comparison [@raab2002; @cripps2006]", fig.width=10, fig.height=5.5}
 library(plotly)
 
 # PA classes
@@ -2866,293 +4777,430 @@ fig
 
 ### Transfer Characteristics: $I_D$ vs. $V_{GS}$
 
-```{r transfer-curves-gan-hemt, echo=FALSE, fig.cap="Figure 1.4: Interactive Transfer Characteristics and Transconductance with PA Bias Regions", fig.width=12, fig.height=8}
-# Generate transfer curve and gm with Plotly for interactivity
-library(plotly)
+### Figure 1.4a: GaN HEMT Transfer Characteristics
 
-# VGS sweep
-VGS <- seq(-6, 0.5, 0.02)
+```{r transfer-curves-gan-hemt, echo=FALSE, fig.cap="Figure 1.4a: GaN HEMT Transfer Characteristics and Transconductance with PA Bias Regions [@sze2006; @razavi2011]", fig.width=12, fig.height=7}
+# Generate GaN HEMT transfer curve and gm with Plotly
+library(plotly)
 
 # Fixed VDS for transfer curve
 VDS_fixed <- 28  # Typical PA bias
 
+# ========== GaN HEMT (Depletion-mode) ==========
+# VGS range: -6V to +0.5V (depletion-mode device)
+VGS_gan <- seq(-6, 0.5, 0.02)
+
 # Device parameters (12mm GaN)
-Vth <- -5.5
-Idss <- 800  # mA
-gm_max_normalized <- 450  # mS
+Vth_gan <- -5.5  # V
+Idss_gan <- 800  # mA
+gm_scale_gan <- 2.5  # Scaling factor to achieve realistic peak gm (~450 mS)
 
-# Calculate ID (simplified quadratic model)
-ID <- ifelse(VGS < Vth, 0,
-             Idss * ((VGS - Vth) / (0 - Vth))^1.8)  # Slightly sub-quadratic for realism
+# Calculate ID with physical limits (cap at ~105% Idss for VGS > 0)
+ID_gan <- ifelse(VGS_gan < Vth_gan, 0,
+                 pmin(Idss_gan * ((VGS_gan - Vth_gan) / (0 - Vth_gan))^1.8,
+                      Idss_gan * 1.05))
 
-# Calculate gm (numerical derivative smoothed)
-gm <- c(0, diff(ID) / diff(VGS))
-gm_smoothed <- zoo::rollmean(c(gm[1], gm, gm[length(gm)]), k = 7, fill = 0)
-gm_smoothed <- gm_smoothed[2:(length(gm_smoothed)-1)]
+# Calculate gm with smoothing and scaling to achieve realistic peak gm
+gm_gan_raw <- c(0, diff(ID_gan) / diff(VGS_gan)) * gm_scale_gan
+gm_gan_fit <- tryCatch(loess(gm_gan_raw ~ VGS_gan, span = 0.05, degree = 2), error = function(e) NULL)
+if(!is.null(gm_gan_fit)) {
+  gm_gan <- predict(gm_gan_fit, newdata = VGS_gan)
+  gm_gan[is.na(gm_gan)] <- gm_gan_raw[is.na(gm_gan)]
+} else {
+  gm_gan <- gm_gan_raw
+}
 
 # Find gm peak
-gm_peak_idx <- which.max(gm_smoothed)
-VGS_gm_peak <- VGS[gm_peak_idx]
-ID_at_gm_peak <- ID[gm_peak_idx]
-gm_at_peak <- gm_smoothed[gm_peak_idx]
+gm_peak_idx <- which.max(gm_gan)
+VGS_gm_peak <- VGS_gan[gm_peak_idx]
+ID_at_gm_peak <- ID_gan[gm_peak_idx]
+gm_at_peak <- gm_gan[gm_peak_idx]
 
-# Create interactive figure with dual y-axes
-fig <- plot_ly()
-
-# Add ID curve (primary axis)
-fig <- fig %>% add_trace(
-  x = VGS,
-  y = ID,
-  type = 'scatter',
-  mode = 'lines',
-  name = 'ID (Drain Current)',
-  line = list(color = '#E41A1C', width = 3),
-  hovertemplate = '<b>Drain Current</b><br>VGS: %{x:.2f} V<br>ID: %{y:.0f} mA<br><extra></extra>',
-  yaxis = 'y1'
-)
-
-# Add gm curve (secondary axis)
-fig <- fig %>% add_trace(
-  x = VGS,
-  y = gm_smoothed,
-  type = 'scatter',
-  mode = 'lines',
-  name = 'gm (Transconductance)',
-  line = list(color = '#377EB8', width = 3),
-  hovertemplate = '<b>Transconductance</b><br>VGS: %{x:.2f} V<br>gm: %{y:.0f} mS<br><extra></extra>',
-  yaxis = 'y2'
-)
-
-# Mark peak gm point
-fig <- fig %>% add_trace(
-  x = VGS_gm_peak,
-  y = ID_at_gm_peak,
-  type = 'scatter',
-  mode = 'markers',
-  name = 'Peak gm Point',
-  marker = list(color = '#FF6F00', size = 15, symbol = 'star',
-                line = list(color = 'white', width = 2)),
-  hovertemplate = paste0('<b>Peak gm Operating Point</b><br>',
-                         'VGS: ', round(VGS_gm_peak, 2), ' V<br>',
-                         'ID: ', round(ID_at_gm_peak, 0), ' mA<br>',
-                         'gm: ', round(gm_at_peak, 0), ' mS<br>',
-                         '<extra></extra>'),
-  yaxis = 'y1',
-  showlegend = TRUE
-)
-
-# ========== PA CLASS BIAS REGIONS (toggleable shapes) ==========
-
-# Define bias regions based on ID and gm characteristics
+# Define PA class bias regions
 class_A_VGS_min <- VGS_gm_peak - 0.4
 class_A_VGS_max <- VGS_gm_peak + 0.3
-class_A_ID_min <- ID[which.min(abs(VGS - class_A_VGS_min))]
-class_A_ID_max <- ID[which.min(abs(VGS - class_A_VGS_max))]
 
-class_AB_VGS_min <- VGS_gm_peak - 1.5
-class_AB_VGS_max <- VGS_gm_peak - 0.4
-class_AB_ID_min <- ID[which.min(abs(VGS - class_AB_VGS_min))]
-class_AB_ID_max <- ID[which.min(abs(VGS - class_AB_VGS_max))]
-
-class_B_VGS_min <- Vth + 0.1
-class_B_VGS_max <- VGS_gm_peak - 1.5
-class_B_ID_min <- 0
-class_B_ID_max <- ID[which.min(abs(VGS - class_B_VGS_max))]
-
-class_C_VGS_min <- Vth - 0.5
-class_C_VGS_max <- Vth + 0.1
-class_C_ID_min <- 0
-class_C_ID_max <- ID[which.min(abs(VGS - (Vth + 0.1)))]
-
-# Add bias region annotations and shapes
-shapes <- list(
+# Create GaN plot
+fig_gan <- plot_ly() %>%
+  # ID trace
+  add_trace(
+    x = VGS_gan, y = ID_gan,
+    type = 'scatter', mode = 'lines',
+    name = 'ID (Drain Current)',
+    line = list(color = '#0077be', width = 3),  # Blue - color-blind friendly
+    hovertemplate = '<b>GaN HEMT - Drain Current</b><br>VGS: %{x:.2f} V<br>ID: %{y:.0f} mA<extra></extra>'
+  ) %>%
+  # gm trace
+  add_trace(
+    x = VGS_gan, y = gm_gan,
+    type = 'scatter', mode = 'lines',
+    name = 'gm (Transconductance)',
+    line = list(color = '#7c3aed', width = 3),  # Purple - color-blind friendly
+    hovertemplate = '<b>GaN HEMT - Transconductance</b><br>VGS: %{x:.2f} V<br>gm: %{y:.0f} mS<extra></extra>',
+    yaxis = 'y2'
+  ) %>%
+  # Peak gm marker
+  add_trace(
+    x = VGS_gm_peak, y = gm_at_peak,
+    type = 'scatter', mode = 'markers',
+    name = 'Peak gm Point',
+    marker = list(color = '#ea580c', size = 12, symbol = 'circle',  # Red-Orange marker
+                  line = list(color = 'white', width = 2)),
+    hovertemplate = paste0('<b>Peak gm Operating Point</b><br>VGS: ', round(VGS_gm_peak, 2), ' V<br>',
+                           'gm: ', round(gm_at_peak, 0), ' mS<br>',
+                           'ID: ', round(ID_at_gm_peak, 0), ' mA<extra></extra>'),
+    yaxis = 'y2'
+  ) %>%
+  # Vth line
+  add_segments(
+    x = Vth_gan, xend = Vth_gan, y = 0, yend = max(ID_gan),
+    line = list(color = 'gray', width = 2, dash = 'dash'),
+    name = 'Vth (Threshold)',
+    hovertemplate = paste0('Threshold Voltage<br>Vth = ', Vth_gan, ' V<extra></extra>')
+  ) %>%
   # Class A region
-  list(
-    type = "rect",
-    x0 = class_A_VGS_min, x1 = class_A_VGS_max,
-    y0 = 0, y1 = max(ID),
-    fillcolor = "#C8E6C9", opacity = 0.3,
-    line = list(color = "#388E3C", width = 2, dash = "dot"),
-    layer = "below",
-    visible = TRUE,  # Start visible
-    name = "Class A Region"
-  ),
-  # Class AB region
-  list(
-    type = "rect",
-    x0 = class_AB_VGS_min, x1 = class_AB_VGS_max,
-    y0 = 0, y1 = max(ID),
-    fillcolor = "#FFF9C4", opacity = 0.3,
-    line = list(color = "#F57F17", width = 2, dash = "dot"),
-    layer = "below",
-    visible = "legendonly",  # Start hidden
-    name = "Class AB Region"
-  ),
-  # Class B region
-  list(
-    type = "rect",
-    x0 = class_B_VGS_min, x1 = class_B_VGS_max,
-    y0 = 0, y1 = max(ID),
-    fillcolor = "#E3F2FD", opacity = 0.3,
-    line = list(color = "#1976D2", width = 2, dash = "dot"),
-    layer = "below",
-    visible = "legendonly",  # Start hidden
-    name = "Class B Region"
-  ),
-  # Class C region
-  list(
-    type = "rect",
-    x0 = class_C_VGS_min, x1 = class_C_VGS_max,
-    y0 = 0, y1 = max(ID),
-    fillcolor = "#F3E5F5", opacity = 0.3,
-    line = list(color = "#9C27B0", width = 2, dash = "dot"),
-    layer = "below",
-    visible = "legendonly",  # Start hidden
-    name = "Class C Region"
+  add_trace(
+    x = c(class_A_VGS_min, class_A_VGS_max, class_A_VGS_max, class_A_VGS_min, class_A_VGS_min),
+    y = c(0, 0, max(ID_gan), max(ID_gan), 0),
+    type = 'scatter', mode = 'lines', fill = 'toself',
+    name = 'Class A Bias Region',
+    line = list(color = '#059669', width = 0),  # Teal for Class A region
+    fillcolor = 'rgba(5, 150, 105, 0.15)',  # Teal with transparency
+    hovertemplate = paste0('<b>Class A Bias Region</b><br>VGS: ', round(class_A_VGS_min, 2), 
+                           ' to ', round(class_A_VGS_max, 2), ' V<br>',
+                           'ID quiescent: ~50% Idss (~400 mA)<br>',
+                           'Max gain, high linearity<extra></extra>')
+  ) %>%
+  layout(
+    title = list(
+      text = '<b>GaN HEMT Transfer Characteristics</b><br><sub>Depletion-mode (Vth = -5.5V) \u2022 ID and gm vs VGS \u2022 12mm device, VDS = 28V</sub>',
+      font = list(size = 16)
+    ),
+    xaxis = list(
+      title = 'Gate-Source Voltage VGS (V)',
+      gridcolor = 'rgba(128,128,128,0.2)',
+      zeroline = TRUE, zerolinecolor = 'black', zerolinewidth = 1
+    ),
+    yaxis = list(
+      title = '<b>Drain Current ID (mA)</b>',
+      titlefont = list(color = '#0077be'),  # Blue
+      tickfont = list(color = '#0077be'),
+      gridcolor = 'rgba(128,128,128,0.2)'
+    ),
+    yaxis2 = list(
+      title = '<b>Transconductance gm (mS)</b>',
+      titlefont = list(color = '#7c3aed'),  # Purple
+      tickfont = list(color = '#7c3aed'),
+      overlaying = 'y',
+      side = 'right'
+    ),
+    width = 1200,
+    height = 700,
+    margin = list(l = 80, r = 80, t = 100, b = 80),
+    hovermode = 'x unified',
+    legend = list(
+      x = 0.02, y = 0.98,
+      bgcolor = 'rgba(255,255,255,0.9)',
+      bordercolor = 'gray', borderwidth = 1
+    ),
+    plot_bgcolor = 'white'
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToRemove = list('select2d', 'lasso2d'),
+    displaylogo = FALSE,
+    toImageButtonOptions = list(
+      format = 'png',
+      filename = 'gan_transfer_characteristics',
+      height = 700,
+      width = 1200
+    )
   )
-)
 
-# Add Vth reference line
-fig <- fig %>% add_segments(
-  x = Vth, xend = Vth,
-  y = 0, yend = max(ID),
-  line = list(color = 'gray', width = 2, dash = 'dash'),
-  name = 'Vth',
-  showlegend = TRUE,
-  hovertemplate = paste0('Threshold Voltage<br>Vth = ', Vth, ' V<extra></extra>')
-)
-
-# Add toggle traces for bias regions (workaround for shape visibility)
-# Class A region boundary
-fig <- fig %>% add_trace(
-  x = c(class_A_VGS_min, class_A_VGS_max, class_A_VGS_max, class_A_VGS_min, class_A_VGS_min),
-  y = c(0, 0, max(ID), max(ID), 0),
-  type = 'scatter',
-  mode = 'lines',
-  name = 'Class A Bias Region',
-  line = list(color = '#388E3C', width = 0),
-  fill = 'toself',
-  fillcolor = 'rgba(76, 175, 80, 0.2)',
-  visible = TRUE,
-  hovertemplate = paste0('<b>Class A Bias Region</b><br>',
-                         'VGS range: ', round(class_A_VGS_min, 2), ' to ', 
-                         round(class_A_VGS_max, 2), ' V<br>',
-                         'ID quiescent: ~50% Idss<br>',
-                         'Characteristics: Max gain, high linearity<br>',
-                         '<extra></extra>'),
-  yaxis = 'y1',
-  showlegend = TRUE
-)
-
-# Class AB region boundary
-fig <- fig %>% add_trace(
-  x = c(class_AB_VGS_min, class_AB_VGS_max, class_AB_VGS_max, class_AB_VGS_min, class_AB_VGS_min),
-  y = c(0, 0, max(ID), max(ID), 0),
-  type = 'scatter',
-  mode = 'lines',
-  name = 'Class AB Bias Region',
-  line = list(color = '#F57F17', width = 0),
-  fill = 'toself',
-  fillcolor = 'rgba(255, 193, 7, 0.2)',
-  visible = 'legendonly',  # Start hidden
-  hovertemplate = paste0('<b>Class AB Bias Region</b><br>',
-                         'VGS range: ', round(class_AB_VGS_min, 2), ' to ', 
-                         round(class_AB_VGS_max, 2), ' V<br>',
-                         'ID quiescent: 10-25% Idss<br>',
-                         'Characteristics: Good gain, better efficiency<br>',
-                         '<extra></extra>'),
-  yaxis = 'y1',
-  showlegend = TRUE
-)
-
-# Class B region boundary
-fig <- fig %>% add_trace(
-  x = c(class_B_VGS_min, class_B_VGS_max, class_B_VGS_max, class_B_VGS_min, class_B_VGS_min),
-  y = c(0, 0, max(ID), max(ID), 0),
-  type = 'scatter',
-  mode = 'lines',
-  name = 'Class B Bias Region',
-  line = list(color = '#1976D2', width = 0),
-  fill = 'toself',
-  fillcolor = 'rgba(33, 150, 243, 0.2)',
-  visible = 'legendonly',  # Start hidden
-  hovertemplate = paste0('<b>Class B Bias Region</b><br>',
-                         'VGS range: ', round(class_B_VGS_min, 2), ' to ', 
-                         round(class_B_VGS_max, 2), ' V<br>',
-                         'ID quiescent: ~0 mA<br>',
-                         'Characteristics: 78.5% max efficiency<br>',
-                         '<extra></extra>'),
-  yaxis = 'y1',
-  showlegend = TRUE
-)
-
-# Class C region boundary
-fig <- fig %>% add_trace(
-  x = c(class_C_VGS_min, class_C_VGS_max, class_C_VGS_max, class_C_VGS_min, class_C_VGS_min),
-  y = c(0, 0, max(ID), max(ID), 0),
-  type = 'scatter',
-  mode = 'lines',
-  name = 'Class C Bias Region',
-  line = list(color = '#9C27B0', width = 0),
-  fill = 'toself',
-  fillcolor = 'rgba(156, 39, 176, 0.2)',
-  visible = 'legendonly',  # Start hidden
-  hovertemplate = paste0('<b>Class C Bias Region</b><br>',
-                         'VGS range: ', round(class_C_VGS_min, 2), ' to ', 
-                         round(class_C_VGS_max, 2), ' V<br>',
-                         'ID quiescent: 0 mA (below Vth)<br>',
-                         'Characteristics: High efficiency, low gain, distortion<br>',
-                         '<extra></extra>'),
-  yaxis = 'y1',
-  showlegend = TRUE
-)
-
-# Layout with dual y-axes and fixed dimensions
-fig <- fig %>% layout(
-  title = list(
-    text = '<b>GaN HEMT Transfer Characteristics (Interactive)</b><br><sub>ID and gm vs VGS with PA Bias Regions - Toggle legend to show/hide regions</sub>',
-    font = list(size = 16)
-  ),
-  xaxis = list(
-    title = 'Gate-Source Voltage VGS (V)',
-    gridcolor = 'rgba(128,128,128,0.2)',
-    zeroline = TRUE,
-    zerolinecolor = 'black',
-    zerolinewidth = 1
-  ),
-  yaxis = list(
-    title = '<b>Drain Current ID (mA)</b>',
-    titlefont = list(color = '#E41A1C'),
-    tickfont = list(color = '#E41A1C'),
-    gridcolor = 'rgba(128,128,128,0.2)',
-    side = 'left'
-  ),
-  yaxis2 = list(
-    title = '<b>Transconductance gm (mS)</b>',
-    titlefont = list(color = '#377EB8'),
-    tickfont = list(color = '#377EB8'),
-    overlaying = 'y',
-    side = 'right',
-    showgrid = FALSE,
-    range = c(0, max(gm_smoothed) * 1.1)
-  ),
-  autosize = FALSE,
-  width = 1000,
-  height = 600,
-  margin = list(l = 80, r = 80, t = 100, b = 80),
-  hovermode = 'x unified',
-  legend = list(
-    x = 0.02,
-    y = 0.98,
-    bgcolor = 'rgba(255,255,255,0.8)',
-    bordercolor = 'gray',
-    borderwidth = 1
-  ),
-  plot_bgcolor = 'white'
-)
-
-fig
+fig_gan
 ```
+
+---
+
+### Figure 1.4b: LDMOS Transfer Characteristics
+
+```{r transfer-curves-ldmos, echo=FALSE, fig.cap="Figure 1.4b: LDMOS Transfer Characteristics and Transconductance [@nanan2012; @trew2009]", fig.width=12, fig.height=7}
+# Generate LDMOS transfer curve and gm with Plotly
+library(plotly)
+
+# ========== LDMOS (Enhancement-mode) ==========
+VGS_ldmos <- seq(1, 6, 0.02)
+Vth_ldmos <- 2.0  # V (positive for enhancement-mode)
+Idss_ldmos <- 650  # mA
+gm_scale_ldmos <- 0.35  # Scaling factor to achieve realistic peak gm (~180 mS, lowest of three)
+
+ID_ldmos <- ifelse(VGS_ldmos < Vth_ldmos, 0, 
+                   pmin(Idss_ldmos * ((VGS_ldmos - Vth_ldmos) / (5.0 - Vth_ldmos))^2.2 * 
+                        (1 + 0.02 * (VGS_ldmos - Vth_ldmos)),
+                        Idss_ldmos * 1.1))
+
+gm_ldmos_raw <- c(0, diff(ID_ldmos) / diff(VGS_ldmos)) * gm_scale_ldmos
+gm_ldmos_fit <- tryCatch(loess(gm_ldmos_raw ~ VGS_ldmos, span = 0.06, degree = 2), error = function(e) NULL)
+if(!is.null(gm_ldmos_fit)) {
+  gm_ldmos <- predict(gm_ldmos_fit, newdata = VGS_ldmos)
+  gm_ldmos[is.na(gm_ldmos)] <- 0
+} else {
+  gm_ldmos <- gm_ldmos_raw
+}
+gm_ldmos[is.na(gm_ldmos) | gm_ldmos < 0] <- 0
+
+# Find gm peak for LDMOS
+gm_ldmos_peak_idx <- which.max(gm_ldmos)
+VGS_ldmos_peak <- VGS_ldmos[gm_ldmos_peak_idx]
+ID_ldmos_peak <- ID_ldmos[gm_ldmos_peak_idx]
+gm_ldmos_peak <- gm_ldmos[gm_ldmos_peak_idx]
+
+# Create LDMOS plot
+fig_ldmos <- plot_ly() %>%
+  add_trace(
+    x = VGS_ldmos, y = ID_ldmos,
+    type = 'scatter', mode = 'lines',
+    name = 'ID (Drain Current)',
+    line = list(color = '#d97706', width = 3),  # Orange - color-blind friendly
+    hovertemplate = '<b>LDMOS - Drain Current</b><br>VGS: %{x:.2f} V<br>ID: %{y:.0f} mA<extra></extra>'
+  ) %>%
+  add_trace(
+    x = VGS_ldmos, y = gm_ldmos,
+    type = 'scatter', mode = 'lines',
+    name = 'gm (Transconductance)',
+    line = list(color = '#ea580c', width = 3, dash = 'dot'),  # Red-Orange - dotted
+    hovertemplate = '<b>LDMOS - Transconductance</b><br>VGS: %{x:.2f} V<br>gm: %{y:.0f} mS<extra></extra>',
+    yaxis = 'y2'
+  ) %>%
+  add_trace(
+    x = VGS_ldmos_peak, y = gm_ldmos_peak,
+    type = 'scatter', mode = 'markers',
+    name = 'Peak gm Point',
+    marker = list(color = '#dc2626', size = 12, symbol = 'diamond',  # Red marker
+                  line = list(color = 'white', width = 2)),
+    hovertemplate = paste0('<b>Peak gm Operating Point</b><br>VGS: ', round(VGS_ldmos_peak, 2), ' V<br>',
+                           'gm: ', round(gm_ldmos_peak, 0), ' mS<br>',
+                           'ID: ', round(ID_ldmos_peak, 0), ' mA<extra></extra>'),
+    yaxis = 'y2'
+  ) %>%
+  add_segments(
+    x = Vth_ldmos, xend = Vth_ldmos, y = 0, yend = max(ID_ldmos),
+    line = list(color = 'gray', width = 2, dash = 'dash'),
+    name = 'Vth (Threshold)',
+    hovertemplate = paste0('Threshold Voltage<br>Vth = +', Vth_ldmos, ' V<extra></extra>')
+  ) %>%
+  layout(
+    title = list(
+      text = '<b>LDMOS Transfer Characteristics</b><br><sub>Enhancement-mode (Vth = +2.0V) \u2022 ID and gm vs VGS \u2022 12mm device, VDS = 28V</sub>',
+      font = list(size = 16)
+    ),
+    xaxis = list(
+      title = 'Gate-Source Voltage VGS (V)',
+      gridcolor = 'rgba(128,128,128,0.2)',
+      zeroline = TRUE, zerolinecolor = 'black', zerolinewidth = 1
+    ),
+    yaxis = list(
+      title = '<b>Drain Current ID (mA)</b>',
+      titlefont = list(color = '#d97706'),  # Orange
+      tickfont = list(color = '#d97706'),
+      gridcolor = 'rgba(128,128,128,0.2)'
+    ),
+    yaxis2 = list(
+      title = '<b>Transconductance gm (mS)</b>',
+      titlefont = list(color = '#ea580c'),  # Red-Orange
+      tickfont = list(color = '#ea580c'),
+      overlaying = 'y',
+      side = 'right'
+    ),
+    width = 1200,
+    height = 700,
+    margin = list(l = 80, r = 80, t = 100, b = 80),
+    hovermode = 'x unified',
+    legend = list(
+      x = 0.02, y = 0.98,
+      bgcolor = 'rgba(255,255,255,0.9)',
+      bordercolor = 'gray', borderwidth = 1
+    ),
+    plot_bgcolor = 'white'
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToRemove = list('select2d', 'lasso2d'),
+    displaylogo = FALSE,
+    toImageButtonOptions = list(
+      format = 'png',
+      filename = 'ldmos_transfer_characteristics',
+      height = 700,
+      width = 1200
+    )
+  )
+
+fig_ldmos
+```
+
+---
+
+### Figure 1.4c: GaAs pHEMT Transfer Characteristics
+
+```{r transfer-curves-gaas-phemt, echo=FALSE, fig.cap="Figure 1.4c: GaAs pHEMT Transfer Characteristics and Transconductance [@campbell1998; @sze2006]", fig.width=12, fig.height=7}
+# Generate GaAs pHEMT transfer curve and gm with Plotly
+library(plotly)
+
+# ========== GaAs pHEMT (Depletion-mode) ==========
+VGS_gaas <- seq(-2, 0.5, 0.02)
+Vth_gaas <- -1.0  # V
+Idss_gaas <- 450  # mA
+gm_scale_gaas <- 0.55  # Scaling factor to achieve realistic peak gm (~280 mS, between GaN and LDMOS)
+
+ID_gaas <- ifelse(VGS_gaas < Vth_gaas, 0, 
+                  pmin(Idss_gaas * ((VGS_gaas - Vth_gaas) / (0 - Vth_gaas))^2.0 * 
+                       (1 + 0.015 * (VGS_gaas - Vth_gaas)),
+                       Idss_gaas * 1.05))
+
+gm_gaas_raw <- c(0, diff(ID_gaas) / diff(VGS_gaas)) * gm_scale_gaas
+gm_gaas_fit <- tryCatch(loess(gm_gaas_raw ~ VGS_gaas, span = 0.06, degree = 2), error = function(e) NULL)
+if(!is.null(gm_gaas_fit)) {
+  gm_gaas <- predict(gm_gaas_fit, newdata = VGS_gaas)
+  gm_gaas[is.na(gm_gaas)] <- 0
+} else {
+  gm_gaas <- gm_gaas_raw
+}
+gm_gaas[is.na(gm_gaas) | gm_gaas < 0] <- 0
+
+# Find gm peak for GaAs
+gm_gaas_peak_idx <- which.max(gm_gaas)
+VGS_gaas_peak <- VGS_gaas[gm_gaas_peak_idx]
+ID_gaas_peak <- ID_gaas[gm_gaas_peak_idx]
+gm_gaas_peak <- gm_gaas[gm_gaas_peak_idx]
+
+# Create GaAs plot
+fig_gaas <- plot_ly() %>%
+  add_trace(
+    x = VGS_gaas, y = ID_gaas,
+    type = 'scatter', mode = 'lines',
+    name = 'ID (Drain Current)',
+    line = list(color = '#059669', width = 3),  # Teal/Green - color-blind friendly
+    hovertemplate = '<b>GaAs pHEMT - Drain Current</b><br>VGS: %{x:.2f} V<br>ID: %{y:.0f} mA<extra></extra>'
+  ) %>%
+  add_trace(
+    x = VGS_gaas, y = gm_gaas,
+    type = 'scatter', mode = 'lines',
+    name = 'gm (Transconductance)',
+    line = list(color = '#0891b2', width = 3, dash = 'dot'),  # Cyan - dotted
+    hovertemplate = '<b>GaAs pHEMT - Transconductance</b><br>VGS: %{x:.2f} V<br>gm: %{y:.0f} mS<extra></extra>',
+    yaxis = 'y2'
+  ) %>%
+  add_trace(
+    x = VGS_gaas_peak, y = gm_gaas_peak,
+    type = 'scatter', mode = 'markers',
+    name = 'Peak gm Point',
+    marker = list(color = '#7c3aed', size = 12, symbol = 'star',  # Purple marker
+                  line = list(color = 'white', width = 2)),
+    hovertemplate = paste0('<b>Peak gm Operating Point</b><br>VGS: ', round(VGS_gaas_peak, 2), ' V<br>',
+                           'gm: ', round(gm_gaas_peak, 0), ' mS<br>',
+                           'ID: ', round(ID_gaas_peak, 0), ' mA<extra></extra>'),
+    yaxis = 'y2'
+  ) %>%
+  add_segments(
+    x = Vth_gaas, xend = Vth_gaas, y = 0, yend = max(ID_gaas),
+    line = list(color = 'gray', width = 2, dash = 'dash'),
+    name = 'Vth (Threshold)',
+    hovertemplate = paste0('Threshold Voltage<br>Vth = ', Vth_gaas, ' V<extra></extra>')
+  ) %>%
+  layout(
+    title = list(
+      text = '<b>GaAs pHEMT Transfer Characteristics</b><br><sub>Depletion-mode (Vth = -1.0V) \u2022 ID and gm vs VGS \u2022 12mm device, VDS = 28V</sub>',
+      font = list(size = 16)
+    ),
+    xaxis = list(
+      title = 'Gate-Source Voltage VGS (V)',
+      gridcolor = 'rgba(128,128,128,0.2)',
+      zeroline = TRUE, zerolinecolor = 'black', zerolinewidth = 1
+    ),
+    yaxis = list(
+      title = '<b>Drain Current ID (mA)</b>',
+      titlefont = list(color = '#059669'),  # Teal/Green
+      tickfont = list(color = '#059669'),
+      gridcolor = 'rgba(128,128,128,0.2)'
+    ),
+    yaxis2 = list(
+      title = '<b>Transconductance gm (mS)</b>',
+      titlefont = list(color = '#0891b2'),  # Cyan
+      tickfont = list(color = '#0891b2'),
+      overlaying = 'y',
+      side = 'right'
+    ),
+    width = 1200,
+    height = 700,
+    margin = list(l = 80, r = 80, t = 100, b = 80),
+    hovermode = 'x unified',
+    legend = list(
+      x = 0.02, y = 0.98,
+      bgcolor = 'rgba(255,255,255,0.9)',
+      bordercolor = 'gray', borderwidth = 1
+    ),
+    plot_bgcolor = 'white'
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToRemove = list('select2d', 'lasso2d'),
+    displaylogo = FALSE,
+    toImageButtonOptions = list(
+      format = 'png',
+      filename = 'gaas_transfer_characteristics',
+      height = 700,
+      width = 1200
+    )
+  )
+
+fig_gaas
+```
+
+<details class="transfer-characteristics-reference">
+<summary style="cursor: pointer; font-weight: bold; font-size: 1.05em; padding: 10px; background-color: #FFF3E0; border-left: 4px solid #FF6F00; margin: 15px 0;">📖 Click to expand: Technology Comparison - Transfer Characteristics Summary</summary>
+
+<div style="padding: 15px; background-color: #FFF9E6; border: 1px solid #FFE082; margin-top: 5px;">
+
+**Technology Comparison - Transfer Characteristics:**
+
+The three plots above show each technology with its appropriate voltage range:
+
+1. **Threshold Voltage ($V_{th}$) and Operating Ranges:**
+   - **GaN HEMT**: $V_{th} = -5.5$ V (depletion-mode) → operates -6V to +0.5V, biased negative
+   - **LDMOS**: $V_{th} = +2.0$ V (enhancement-mode) → operates +2V to +5.5V, biased positive [@nanan2012]
+   - **GaAs pHEMT**: $V_{th} = -1.0$ V (depletion-mode) → operates -2V to +0.5V, less negative than GaN [@campbell1998]
+
+2. **Current Capability (12mm device width):**
+   - **GaN**: Highest $I_{Dss}$ (~800 mA) due to high 2DEG density and electron velocity
+   - **LDMOS**: Moderate $I_{Dss}$ (~650 mA), limited by Si mobility and lower carrier density
+   - **GaAs**: Lower $I_{Dss}$ (~450 mA), smaller charge density and mobility than GaN
+
+3. **Transconductance ($g_m$) Performance:**
+   - **GaN**: Highest peak $g_m$ (400-450 mS/mm) → best RF gain and efficiency
+   - **GaAs**: Good $g_m$ (270-300 mS/mm) → excellent for microwave frequencies (2-18 GHz)
+   - **LDMOS**: Lowest $g_m$ (170-200 mS/mm) → adequate for sub-3 GHz applications
+
+4. **Bias Polarity and Safety:**
+   - **LDMOS enhancement-mode**: Requires **positive gate drive** (+2.5 to +5 V), simpler bias circuits, safe fail-off (gate float → device off)
+   - **GaN/GaAs depletion-mode**: Requires **negative gate bias**, must sequence gate before drain to avoid current runaway and device damage
+   - **GaN deep-depletion**: Very negative $V_{th}$ requires precision negative supplies (-8V typical) and careful sequencing
+
+5. **PA Class Bias Examples (GaN shown in top plot):**
+   - **Class A**: Biased near peak $g_m$ for maximum gain and linearity (~50% $I_{Dss}$)
+   - **Class AB**: Biased below peak $g_m$ for efficiency/linearity balance (10-25% $I_{Dss}$)
+   - **Class B**: Biased at threshold for 78.5% theoretical efficiency
+   - **Class C**: Biased below threshold for high efficiency in narrowband applications
+
+**Design Considerations:**
+- LDMOS positive gate drive simplifies power supply design and improves reliability
+- GaN's high current density enables compact, high-power designs but requires careful thermal management
+- GaAs offers best compromise for microwave applications where GaN cost may not be justified
+- All depletion-mode devices (GaN, GaAs) require gate protection and sequencing circuits
+
+</div>
+</details>
+
+---
 
 **Threshold Voltage ($V_{th}$):**
 
@@ -3196,11 +5244,11 @@ $$
 
 ---
 
-## 1.2.4 Trapping Mechanisms in GaN HEMTs
+## Trapping Mechanisms in GaN HEMTs
 
 ### Overview of Charge Trapping
 
-<span class="glossary-term" data-term="glossary-trapping">**Trapping effects**</span> are one of the most critical reliability and performance concerns in GaN HEMTs for RF applications. Unlike idealized device models, real GaN transistors contain defects and traps that capture and release electrons dynamically, leading to:
+<span class="glossary-term" data-term="glossary-trapping">**Trapping effects**</span> are one of the most critical reliability and performance concerns in GaN HEMTs for RF applications [@vetury2001; @binari2002; @jardel2007]. Unlike idealized device models, real GaN transistors contain defects and traps that capture and release electrons dynamically, leading to:
 
 <div id="glossary-trapping" class="glossary-content">
   <span class="close-glossary">×</span>
@@ -3219,7 +5267,7 @@ $$
 
 ### Types of Traps in GaN HEMTs
 
-```{r trap-types-diagram, echo=FALSE, fig.cap="Trap Locations in GaN HEMT Structure", fig.width=10, fig.height=6}
+```{r trap-types-diagram, echo=FALSE, fig.cap="Trap Locations in GaN HEMT Structure [@binari2002; @meneghesso2008]", fig.width=10, fig.height=6}
 library(ggplot2)
 
 # Create simplified cross-section showing trap locations
@@ -3291,7 +5339,7 @@ ggplot() +
         plot.subtitle = element_text(hjust = 0.5, size = 11))
 ```
 
-#### 1. **Surface Traps** (AlGaN surface and passivation interface)
+### 1. Surface Traps (AlGaN surface and passivation interface)
 
 **Location**: Exposed AlGaN surface between gate and drain  
 **Origin**: 
@@ -3308,7 +5356,7 @@ ggplot() +
 - Surface treatment before passivation (UV-O₃, plasma)
 - Field plates to reduce surface fields
 
-#### 2. **Gate Edge Traps** (High-field regions near gate)
+### 2. Gate Edge Traps (High-field regions near gate)
 
 **Location**: AlGaN barrier near gate edges (especially drain side)  
 **Origin**: Process-induced damage from gate recess, plasma etching
@@ -3323,7 +5371,7 @@ ggplot() +
 - Field plates (source-connected or gate-connected)
 - Optimized passivation before gate metallization
 
-#### 3. **Buffer Traps** (GaN channel and buffer layers)
+### 3. Buffer Traps (GaN channel and buffer layers)
 
 **Location**: Throughout GaN bulk, especially near interfaces  
 **Origin**:
@@ -3341,7 +5389,7 @@ ggplot() +
 - Carbon doping control (too much → traps, too little → leakage)
 - High-quality epitaxy (MOCVD process optimization)
 
-#### 4. **Interface Traps** (AlGaN/GaN heterojunction)
+### 4. Interface Traps (AlGaN/GaN heterojunction)
 
 **Location**: Directly at the 2DEG channel  
 **Origin**: Lattice defects, roughness, strain relaxation
@@ -3437,7 +5485,7 @@ kable(trap_impact,
 
 ### Mitigation Strategies
 
-#### Device-Level Solutions
+**Device-Level Solutions:**
 
 1. **Advanced Passivation**:
    - **SiN₃ by PECVD**: Industry standard, good interface quality
@@ -3454,7 +5502,7 @@ kable(trap_impact,
    - **Superlattice Buffers**: AlGaN/GaN layers trap dislocations
    - **Back-Barrier Layers**: AlGaN layer below channel confines 2DEG vertically
 
-#### Circuit-Level Solutions
+**Circuit-Level Solutions:**
 
 1. **Bias Point Optimization**:
    - Operate in Class-AB (lower quiescent current → less trapping)
@@ -3533,11 +5581,11 @@ kable(doe_devices,
 
 # RF Characterization Methods
 
-## 1.3.1 Small-Signal S-Parameters
+## Small-Signal S-Parameters
 
 ### Definition and Physical Meaning
 
-**Scattering Parameters** (S-parameters) describe how RF signals **scatter** when encountering a two-port network. Unlike impedance (Z) or admittance (Y) parameters, S-parameters:
+**Scattering Parameters** (S-parameters) describe how RF signals **scatter** when encountering a two-port network [@kurokawa1965; @pozar2011]. Unlike impedance (Z) or admittance (Y) parameters, S-parameters:
 - Are measured with **matched loads** (typically 50Ω)
 - Avoid short/open circuits (safer at RF)
 - Directly relate to measurable quantities (incident and reflected waves)
@@ -3570,7 +5618,7 @@ Where:
 
 ### Measurement Setup
 
-```{r vna-setup-diagram, fig.cap="Vector Network Analyzer (VNA) Measurement Configuration for GaN Transistor Characterization", out.width="90%"}
+```{r vna-setup-diagram, fig.cap="Vector Network Analyzer (VNA) Measurement Configuration for GaN Transistor Characterization [@gonzalez1997]", out.width="90%"}
 # Placeholder for VNA measurement diagram
 # Will show:
 # - VNA ports 1 and 2
@@ -3658,7 +5706,7 @@ Where:
 ✅ If met: No combination of passive source/load impedances will cause oscillation  
 ⚠️ If not met: Must use stability circles to restrict impedance regions
 
-```{r stability-analysis-placeholder, fig.cap="Stability Circles on Smith Chart with Safe Operating Regions", out.width="90%"}
+```{r stability-analysis-placeholder, fig.cap="Stability Circles on Smith Chart with Safe Operating Regions [@gonzalez1997]", out.width="90%"}
 # Placeholder for stability circle plot
 # Will show:
 # - Input and output stability circles
@@ -3669,11 +5717,11 @@ Where:
 
 ---
 
-## 1.3.2 Large-Signal Load-Pull
+## Large-Signal Load-Pull
 
 ### Purpose and Motivation
 
-While S-parameters predict **small-signal gain**, PA design requires optimizing **large-signal performance**:
+While S-parameters predict **small-signal gain**, PA design requires optimizing **large-signal performance** [@tasker1989; @cripps1999]:
 - **Output Power** (Pout)
 - **Power Added Efficiency** (PAE)
 - **Gain Compression**
@@ -3685,7 +5733,7 @@ These metrics are **nonlinear** and cannot be predicted from S-parameters alone.
 
 **Hardware Architecture:**
 
-```{r loadpull-setup-diagram, fig.cap="Active Load-Pull Measurement System Configuration", out.width="95%"}
+```{r loadpull-setup-diagram, fig.cap="Active Load-Pull Measurement System Configuration [@tasker1989]", out.width="95%"}
 # Placeholder for load-pull diagram
 # Will show:
 # - Signal generator (CW or modulated)
@@ -3783,7 +5831,7 @@ $$
 
 ### Load-Pull Contour Plots
 
-```{r loadpull-contours-placeholder, fig.cap="Load-Pull Contours on Smith Chart: PAE and Pout Trade-off Analysis", out.width="100%", fig.height=5}
+```{r loadpull-contours-placeholder, fig.cap="Load-Pull Contours on Smith Chart: PAE and Pout Trade-off Analysis [@cripps2006; @maas2003]", out.width="100%", fig.height=5}
 # Placeholder for load-pull contour plot
 # Will show dual Smith charts:
 # Left: PAE contours (35%, 40%, 45%, 50%)
@@ -3851,7 +5899,7 @@ Each DOE build included comprehensive load-pull characterization. Key example (t
 
 # Transistor Downselection Process
 
-## 1.4.1 Project Context & Objectives
+## Project Context & Objectives
 
 ### IFX Tx_Baseline Project Overview
 
@@ -4166,7 +6214,7 @@ With transistor selected, Chapter 2 will cover:
 
 ## Key Takeaways
 
-### 1. GaN Technology Advantages
+### GaN Technology Advantages
 
 ✅ **Superior Material Properties**:
 - Wide bandgap (3.4 eV) → high breakdown voltage
@@ -4184,7 +6232,7 @@ With transistor selected, Chapter 2 will cover:
 - Reduced thermal management requirements
 - Simplified multi-stage architecture
 
-### 2. RF Characterization Essentials
+### RF Characterization Essentials
 
 **Small-Signal S-Parameters:**
 - Predict gain, stability, and input/output impedances
@@ -4199,7 +6247,7 @@ With transistor selected, Chapter 2 will cover:
 - IM3 and ACPR must be measured under modulated signals
 - DPD can improve linearity by 10-15 dB (future chapter)
 
-### 3. Systematic Downselection Process
+### Systematic Downselection Process
 
 **DOE Methodology:**
 - ✅ Systematic variation of design parameters
@@ -4216,7 +6264,7 @@ With transistor selected, Chapter 2 will cover:
 - R-series GaN emerged as most efficient
 - 3.2-2.4mm size range optimal for PAM_B application
 
-### 4. Practical Design Guidelines
+### Practical Design Guidelines
 
 **Biasing:**
 - Class-AB (Iq ~ 15-20% IDSS): Best balance of PAE and linearity
@@ -4519,6 +6567,78 @@ Typical large-signal models (Angelov, Chalmers, Root):
 6. Generate load-pull contour plots and stability circles
 7. Document final transistor selection and rationale
 8. Add actual figures from PDF sources (screenshot + attribution)
+
+---
+
+# Bibliography
+
+<div style="background-color: #fff9e6; padding: 15px; border-left: 4px solid #f57c00; margin-bottom: 20px;">
+<strong>📚 Interactive Bibliography:</strong> Click on any reference below to expand and view full citation details. Click the title again or  the × button to collapse.
+</div>
+
+<div id="refs"></div>
+
+<script>
+// Make bibliography references interactive after page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait a bit for Pandoc to generate the bibliography
+  setTimeout(function() {
+    var refEntries = document.querySelectorAll('.csl-entry');
+    
+    refEntries.forEach(function(entry, index) {
+      // Skip if already processed
+      if (entry.classList.contains('ref-processed')) return;
+      entry.classList.add('ref-processed');
+      
+      // Create wrapper for expandable content
+      var refId = entry.getAttribute('id') || ('ref-' + index);
+      entry.setAttribute('id', refId);
+      
+      // Get the title (first bold text or link)
+      var titleElem = entry.querySelector('span') || entry;
+      var titleText = entry.textContent.substring(0, 80) + '...';
+      
+      // Wrap in collapsible structure
+      var wrapper = document.createElement('div');
+      wrapper.className = 'reference-expandable';
+      wrapper.style.marginBottom = '10px';
+      
+      var header = document.createElement('div');
+      header.className = 'reference-item';
+      header.setAttribute('data-ref', refId + '-content');
+      header.innerHTML = titleText;
+      header.style.cursor = 'pointer';
+      
+      var content = document.createElement('div');
+      content.className = 'reference-content';
+      content.setAttribute('id', refId + '-content');
+      content.innerHTML = '<span class="close-reference">×</span>' + entry.innerHTML;
+      
+      // Replace original entry with new structure
+      entry.parentNode.insertBefore(wrapper, entry);
+      wrapper.appendChild(header);
+      wrapper.appendChild(content);
+      entry.style.display = 'none';
+      
+      // Add click handler
+      header.addEventListener('click', function() {
+        content.classList.toggle('active');
+      });
+      
+      // Add close button handler
+      var closeBtn = content.querySelector('.close-reference');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          content.classList.remove('active');
+        });
+      }
+    });
+  }, 500);
+});
+</script>
+
+*All cited references are listed above. Additional project-specific documents from the IFX Tx_Baseline project are listed in the References & Further Reading section.*
 
 ---
 
