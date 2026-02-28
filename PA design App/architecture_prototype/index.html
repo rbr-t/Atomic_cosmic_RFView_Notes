@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PA Design — Architecture Prototype</title>
+  <style>
+    :root{--bg:#111;--panel:#1b1b1b;--accent:#ff7f11;--muted:#cfcfcf}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#0b0b0b,#141414);color:var(--muted);font-family:Inter,Segoe UI,Arial}
+    .app{display:flex;gap:12px;height:100%;padding:12px;box-sizing:border-box}
+    .left{width:420px;background:var(--panel);border-radius:8px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.6);overflow:auto}
+    .right{flex:1;border-radius:8px;overflow:hidden;position:relative}
+    h1{margin:.2rem 0 .6rem;color:var(--accent)}
+    .layers{display:flex;flex-direction:column;gap:8px}
+    .layer{background:#0f0f0f;padding:10px;border-radius:6px;border:1px solid rgba(255,127,17,.08)}
+    .layer[contenteditable]{outline:none}
+    .controls{display:flex;gap:8px;margin-top:10px}
+    button{background:transparent;border:1px solid rgba(255,255,255,.06);color:var(--muted);padding:8px 10px;border-radius:6px;cursor:pointer}
+    button.primary{background:var(--accent);color:#000;border:none}
+    #canvas-wrap{width:100%;height:100%;background:linear-gradient(180deg,#071013,#0b1420)}
+    .help{font-size:12px;color:#9a9a9a;margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="left">
+      <h1>App Architecture — Prototype</h1>
+      <p class="help">Edit layer names inline. Click a 3D layer to select it here.</p>
+      <div class="layers" id="layers">
+        <div class="layer" contenteditable="true" data-layer="0">First principles &amp; Concepts</div>
+        <div class="layer" contenteditable="true" data-layer="1">Theoretical Calculation</div>
+        <div class="layer" contenteditable="true" data-layer="2">Architecture &amp; Topology</div>
+        <div class="layer" contenteditable="true" data-layer="3">Die selection &amp; Simulation</div>
+        <div class="layer" contenteditable="true" data-layer="4">Layout, Tapeout &amp; Assembly</div>
+        <div class="layer" contenteditable="true" data-layer="5">Measurement, Verification &amp; Lessons</div>
+      </div>
+      <div class="controls">
+        <button id="add">Add Layer</button>
+        <button id="export" class="primary">Export JSON</button>
+        <button id="reset">Reset</button>
+      </div>
+      <p class="help">Export saves current architecture to a JSON file for reuse.</p>
+    </div>
+    <div class="right">
+      <div id="canvas-wrap"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    // Lightweight 3D layered "orange peel" prototype — stacked toruses
+    const container = document.getElementById('canvas-wrap');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
+    container.appendChild(renderer.domElement);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    camera.position.set(0, 10, 30);
+    controls.update();
+
+    const light = new THREE.DirectionalLight(0xffffff, 0.8);
+    light.position.set(10,20,10);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0x404040,0.9));
+
+    const layersGroup = new THREE.Group();
+    scene.add(layersGroup);
+
+    const materialBase = new THREE.MeshStandardMaterial({color:0xff7f11,metalness:0.2,roughness:0.4});
+    const highlightMat = new THREE.MeshStandardMaterial({color:0xffbf6b,emissive:0x442200,metalness:0.1,roughness:0.5});
+
+    let meshes = [];
+
+    function buildStack(names){
+      // clear
+      meshes.forEach(m=>layersGroup.remove(m)); meshes = [];
+      const gap = 1.6; const baseRadius = 6;
+      for(let i=0;i<names.length;i++){
+        const r = baseRadius - i*0.9;
+        const tube = 0.6 - (i*0.06);
+        const geom = new THREE.TorusGeometry(r, tube, 16, 120);
+        const mesh = new THREE.Mesh(geom, materialBase.clone());
+        mesh.position.y = -i*gap;
+        mesh.userData.layerIndex = i;
+        layersGroup.add(mesh);
+        meshes.push(mesh);
+      }
+      // center a little
+      layersGroup.rotation.x = Math.PI/6;
+    }
+
+    // initial build
+    const layerEls = () => Array.from(document.querySelectorAll('.layer'));
+    function namesFromDOM(){ return layerEls().map(el=>el.innerText.trim()||'Layer'); }
+    buildStack(namesFromDOM());
+
+    // Raycast for clicks
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let selected = null;
+    function onClick(evt){
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((evt.clientX - rect.left)/rect.width)*2-1;
+      mouse.y = -((evt.clientY - rect.top)/rect.height)*2+1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(meshes);
+      if(hits.length){
+        selectLayer(hits[0].object.userData.layerIndex);
+      }
+    }
+    renderer.domElement.addEventListener('click', onClick);
+
+    function selectLayer(idx){
+      if(selected!=null && meshes[selected]) meshes[selected].material = materialBase.clone();
+      selected = idx;
+      if(meshes[selected]) meshes[selected].material = highlightMat.clone();
+      // highlight corresponding DOM element
+      layerEls().forEach(el=>el.style.borderColor='transparent');
+      const el = document.querySelector(`.layer[data-layer='${idx}']`);
+      if(el) el.style.borderColor = 'rgba(255,127,17,0.6)';
+      // scroll into view
+      if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+
+    // update when DOM changed
+    const obs = new MutationObserver(()=>{
+      buildStack(namesFromDOM());
+    });
+    obs.observe(document.getElementById('layers'),{childList:true,subtree:true,characterData:true,attributes:true});
+
+    // Add layer button
+    document.getElementById('add').addEventListener('click',()=>{
+      const container = document.getElementById('layers');
+      const idx = container.children.length;
+      const d = document.createElement('div');
+      d.className='layer'; d.contentEditable='true'; d.dataset.layer=idx; d.innerText='New Layer';
+      container.appendChild(d);
+      d.focus();
+    });
+
+    // Export
+    document.getElementById('export').addEventListener('click',()=>{
+      const data = {layers:namesFromDOM(), created:new Date().toISOString() };
+      const blob = new Blob([JSON.stringify(data, null, 2)],{type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='architecture.json'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // Reset
+    document.getElementById('reset').addEventListener('click',()=>{
+      if(!confirm('Reset prototype to defaults?')) return;
+      document.getElementById('layers').innerHTML = `
+        <div class="layer" contenteditable="true" data-layer="0">First principles &amp; Concepts</div>
+        <div class="layer" contenteditable="true" data-layer="1">Theoretical Calculation</div>
+        <div class="layer" contenteditable="true" data-layer="2">Architecture &amp; Topology</div>
+        <div class="layer" contenteditable="true" data-layer="3">Die selection &amp; Simulation</div>
+        <div class="layer" contenteditable="true" data-layer="4">Layout, Tapeout &amp; Assembly</div>
+        <div class="layer" contenteditable="true" data-layer="5">Measurement, Verification &amp; Lessons</div>`;
+      buildStack(namesFromDOM());
+    });
+
+    // Resize handling
+    window.addEventListener('resize',()=>{
+      camera.aspect = container.clientWidth / container.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene,camera); }
+    animate();
+  </script>
+</body>
+</html>
