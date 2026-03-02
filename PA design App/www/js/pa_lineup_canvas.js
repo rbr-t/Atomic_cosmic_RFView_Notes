@@ -146,8 +146,9 @@ class PALineupCanvas {
     this.powerColumns = [];
     this.powerUnit = 'dBm'; // 'dBm', 'W', or 'both'
     
-    // Central divider line
-    this.showCentralLine = true;
+    // Central divider lines
+    this.showHorizontalLine = true;
+    this.showVerticalLine = true;
     
     this.init();
   }
@@ -197,9 +198,7 @@ class PALineupCanvas {
     this.zoomGroup.node().appendChild(this.componentsLayer.node());
     
     // Draw central divider line
-    if (this.showCentralLine) {
-      this.drawCentralLine();
-    }
+    this.drawGuideLines();
     
     // Add zoom behavior
     this.zoom = d3.zoom()
@@ -270,28 +269,84 @@ class PALineupCanvas {
     }
   }
   
-  drawCentralLine() {
-    // Draw a horizontal line at canvas center to demarcate main/aux sections
+  drawGuideLines() {
+    // Clear existing guide lines
+    this.centralLineLayer.selectAll('*').remove();
+    
     const centerY = this.height / 2;
+    const centerX = this.width / 2;
     
-    this.centralLineLayer.append('line')
-      .attr('x1', 0)
-      .attr('y1', centerY)
-      .attr('x2', this.width)
-      .attr('y2', centerY)
-      .attr('stroke', '#00aaff')
-      .attr('stroke-width', 2)
-      .attr('stroke-dasharray', '10,5')
-      .attr('opacity', 0.3);
+    // Draw horizontal line if enabled
+    if (this.showHorizontalLine) {
+      this.centralLineLayer.append('line')
+        .attr('x1', 0)
+        .attr('y1', centerY)
+        .attr('x2', this.width)
+        .attr('y2', centerY)
+        .attr('stroke', '#00aaff')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '10,5')
+        .attr('opacity', 0.3);
+      
+      // Add label
+      this.centralLineLayer.append('text')
+        .attr('x', this.width - 120)
+        .attr('y', centerY - 10)
+        .attr('fill', '#00aaff')
+        .attr('font-size', '12px')
+        .attr('opacity', 0.5)
+        .text('Main/Aux Divider');
+    }
     
-    // Add label
-    this.centralLineLayer.append('text')
-      .attr('x', this.width - 100)
-      .attr('y', centerY - 10)
-      .attr('fill', '#00aaff')
-      .attr('font-size', '12px')
-      .attr('opacity', 0.5)
-      .text('Main/Aux Divider');
+    // Draw vertical line if enabled
+    if (this.showVerticalLine) {
+      this.centralLineLayer.append('line')
+        .attr('x1', centerX)
+        .attr('y1', 0)
+        .attr('x2', centerX)
+        .attr('y2', this.height)
+        .attr('stroke', '#00aaff')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '10,5')
+        .attr('opacity', 0.3);
+      
+      // Add label
+      this.centralLineLayer.append('text')
+        .attr('x', centerX + 10)
+        .attr('y', 30)
+        .attr('fill', '#00aaff')
+        .attr('font-size', '12px')
+        .attr('opacity', 0.5)
+        .text('Center');
+    }
+  }
+  
+  toggleHorizontalLine() {
+    this.showHorizontalLine = !this.showHorizontalLine;
+    this.drawGuideLines();
+    
+    // Update button state
+    const btn = document.getElementById('toggle_horizontal_line');
+    if (btn) {
+      btn.style.backgroundColor = this.showHorizontalLine ? '#28a745' : '';
+      btn.style.color = this.showHorizontalLine ? '#fff' : '';
+    }
+    
+    console.log('Horizontal line:', this.showHorizontalLine ? 'ON' : 'OFF');
+  }
+  
+  toggleVerticalLine() {
+    this.showVerticalLine = !this.showVerticalLine;
+    this.drawGuideLines();
+    
+    // Update button state
+    const btn = document.getElementById('toggle_vertical_line');
+    if (btn) {
+      btn.style.backgroundColor = this.showVerticalLine ? '#28a745' : '';
+      btn.style.color = this.showVerticalLine ? '#fff' : '';
+    }
+    
+    console.log('Vertical line:', this.showVerticalLine ? 'ON' : 'OFF');
   }
   
   createPalette() {
@@ -617,48 +672,258 @@ class PALineupCanvas {
     }
     
     if (display.includes('pout')) {
+      const poutValue = component.properties.pout || 40;
+      const poutText = this.formatPower(poutValue, this.powerUnit);
       group.append('text')
         .attr('x', 15)
         .attr('y', yOffset)
         .attr('text-anchor', 'middle')
         .attr('fill', '#ff88ff')
         .attr('font-size', '8px')
-        .text(`Pout: ${component.properties.pout || 40} dBm`);
+        .text(`Pout: ${poutText}`);
       yOffset += 10;
     }
   }
   
   renderMatching(group, component) {
-    // Transmission line
-    group.append('line')
-      .attr('x1', -20)
-      .attr('y1', 0)
-      .attr('x2', 20)
-      .attr('y2', 0)
-      .attr('stroke', '#00ff88')
-      .attr('stroke-width', 4);
+    // Get matching type
+    const matchType = component.properties.matchType || 'generic';
     
-    // Double line for emphasis
-    group.append('line')
-      .attr('x1', -20)
-      .attr('y1', -3)
-      .attr('x2', 20)
-      .attr('y2', -3)
-      .attr('stroke', '#00ff88')
-      .attr('stroke-width', 1);
-    
-    group.append('line')
-      .attr('x1', -20)
-      .attr('y1', 3)
-      .attr('x2', 20)
-      .attr('y2', 3)
-      .attr('stroke', '#00ff88')
-      .attr('stroke-width', 1);
+    // Draw based on type  
+    if (matchType === 'L') {
+      // L-section matching: series-shunt
+      // Box container
+      group.append('rect')
+        .attr('x', -25)
+        .attr('y', -12)
+        .attr('width', 50)
+        .attr('height', 24)
+        .attr('fill', 'none')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+      
+      // Series inductor (horizontal line with coil)
+      group.append('path')
+        .attr('d', 'M -15,-0 Q -10,-5 -5,0 Q 0,5 5,0')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2)
+        .attr('fill', 'none');
+      
+      // Shunt capacitor (vertical line with plates)
+      group.append('line')
+        .attr('x1', 5)
+        .attr('y1', 0)
+        .attr('x2', 5)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+      group.append('line')
+        .attr('x1', 2)
+        .attr('y1', 8)
+        .attr('x2', 8)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+        
+    } else if (matchType === 'Pi') {
+      // Pi matching: shunt-series-shunt
+      group.append('rect')
+        .attr('x', -25)
+        .attr('y', -12)
+        .attr('width', 50)
+        .attr('height', 24)
+        .attr('fill', 'none')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+      
+      // Left shunt cap
+      group.append('line')
+        .attr('x1', -10)
+        .attr('y1', 0)
+        .attr('x2', -10)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+      group.append('line')
+        .attr('x1', -13)
+        .attr('y1', 8)
+        .attr('x2', -7)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+      
+      // Series inductor
+      group.append('path')
+        .attr('d', 'M -10,0 Q -5,-5 0,0 Q 5,5 10,0')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2)
+        .attr('fill', 'none');
+      
+      // Right shunt cap
+      group.append('line')
+        .attr('x1', 10)
+        .attr('y1', 0)
+        .attr('x2', 10)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+      group.append('line')
+        .attr('x1', 7)
+        .attr('y1', 8)
+        .attr('x2', 13)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+        
+    } else if (matchType === 'T') {
+      // T matching: series-shunt-series
+      group.append('rect')
+        .attr('x', -25)
+        .attr('y', -12)
+        .attr('width', 50)
+        .attr('height', 24)
+        .attr('fill', 'none')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+      
+      // Left series inductor
+      group.append('path')
+        .attr('d', 'M -15,0 Q -12,-4 -9,0')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2)
+        .attr('fill', 'none');
+      
+      // Center shunt cap
+      group.append('line')
+        .attr('x1', 0)
+        .attr('y1', 0)
+        .attr('x2', 0)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+      group.append('line')
+        .attr('x1', -3)
+        .attr('y1', 8)
+        .attr('x2', 3)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+      
+      // Right series inductor
+      group.append('path')
+        .attr('d', 'M 9,0 Q 12,-4 15,0')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2)
+        .attr('fill', 'none');
+        
+    } else if (matchType === 'Transformer') {
+      // Transformer symbol
+      group.append('rect')
+        .attr('x', -25)
+        .attr('y', -12)
+        .attr('width', 50)
+        .attr('height', 24)
+        .attr('fill', 'none')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+      
+      // Left coil
+      group.append('path')
+        .attr('d', 'M -10,-6 Q -10,-2 -8,0 Q -10,2 -10,6')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2)
+        .attr('fill', 'none');
+      
+      // Right coil
+      group.append('path')
+        .attr('d', 'M 10,-6 Q 10,-2 8,0 Q 10,2 10,6')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2)
+        .attr('fill', 'none');
+      
+      // Core
+      group.append('line')
+        .attr('x1', -2)
+        .attr('y1', -8)
+        .attr('x2', -2)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 1);
+      group.append('line')
+        .attr('x1', 2)
+        .attr('y1', -8)
+        .attr('x2', 2)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 1);
+        
+    } else if (matchType === 'TL-stub') {
+      // Transmission line stub
+      group.append('rect')
+        .attr('x', -25)
+        .attr('y', -12)
+        .attr('width', 50)
+        .attr('height', 24)
+        .attr('fill', 'none')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 2);
+      
+      // Main transmission line
+      group.append('line')
+        .attr('x1', -15)
+        .attr('y1', 0)
+        .attr('x2', 15)
+        .attr('y2', 0)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 3);
+      
+      // Stub (perpendicular line)
+      group.append('line')
+        .attr('x1', 0)
+        .attr('y1', 0)
+        .attr('x2', 0)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 3);
+      group.append('line')
+        .attr('x1', -3)
+        .attr('y1', 8)
+        .attr('x2', 3)
+        .attr('y2', 8)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 3);
+        
+    } else {
+      // Generic matching (double transmission line - original design)
+      group.append('line')
+        .attr('x1', -20)
+        .attr('y1', 0)
+        .attr('x2', 20)
+        .attr('y2', 0)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 4);
+      
+      group.append('line')
+        .attr('x1', -20)
+        .attr('y1', -3)
+        .attr('x2', 20)
+        .attr('y2', -3)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 1);
+      
+      group.append('line')
+        .attr('x1', -20)
+        .attr('y1', 3)
+        .attr('x2', 20)
+        .attr('y2', 3)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 1);
+    }
     
     // Input port
     const matchInputPort = group.append('circle')
       .attr('class', 'port port-input')
-      .attr('cx', -20)
+      .attr('cx', -25)
       .attr('cy', 0)
       .attr('r', 4)
       .attr('fill', '#00ff88')
@@ -672,7 +937,7 @@ class PALineupCanvas {
     // Output port
     const matchOutputPort = group.append('circle')
       .attr('class', 'port port-output')
-      .attr('cx', 20)
+      .attr('cx', 25)
       .attr('cy', 0)
       .attr('r', 4)
       .attr('fill', '#ff7f11')
@@ -719,7 +984,7 @@ class PALineupCanvas {
         .attr('text-anchor', 'middle')
         .attr('fill', '#aaffaa')
         .attr('font-size', '8px')
-        .text(component.properties.type || 'L-section');
+        .text(matchType);
       yOffset += 10;
     }
   }
@@ -1081,6 +1346,22 @@ class PALineupCanvas {
         console.log('Loading Dual Driver Doherty...');
         this.createDualDriverDoherty();
         break;
+      case 'conventional_doherty':
+        console.log('Loading Conventional Doherty...');
+        this.createConventionalDoherty();
+        break;
+      case 'inverted_doherty':
+        console.log('Loading Inverted Doherty...');
+        this.createInvertedDoherty();
+        break;
+      case 'symmetric_doherty':
+        console.log('Loading Symmetric Doherty...');
+        this.createSymmetricDoherty();
+        break;
+      case 'asymmetric_doherty':
+        console.log('Loading Asymmetric Doherty...');
+        this.createAsymmetricDoherty();
+        break;
       case 'triple_stage':
         console.log('Loading Triple Stage...');
         this.createTripleStage();
@@ -1202,6 +1483,360 @@ class PALineupCanvas {
     this.createConnection(match2.id, finalPA.id, 'output', 'input');
     
     console.log('Triple Stage created with connections');
+  }
+  
+  createConventionalDoherty() {
+    console.log('Creating Conventional Doherty preset...');
+    
+    // Driver
+    const driver = this.addComponent('transistor', 120, 300, {
+      label: 'Driver',
+      gain: 15,
+      pout: 35
+    });
+    
+    // Interstage matching
+    const match = this.addComponent('matching', 220, 300, {
+      label: 'Interstage',
+      matchType: 'L',
+      loss: 0.5
+    });
+    
+    // Splitter (90-degree hybrid)
+    const splitter = this.addComponent('splitter', 320, 300, {
+      label: '90° Splitter',
+      type: 'Hybrid'
+    });
+    
+    // Main path matching
+    const mainMatch = this.addComponent('matching', 420, 240, {
+      label: 'Main Match',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    // Aux path matching (with 90° phase shift)
+    const auxMatch = this.addComponent('matching', 420, 360, {
+      label: 'Aux Match',
+      matchType: 'TL-stub',
+      loss: 0.3
+    });
+    
+    // Main PA (Class AB)
+    const mainPA = this.addComponent('transistor', 540, 240, {
+      label: 'Main PA',
+      technology: 'GaN',
+      gain: 12,
+      pout: 46,
+      pae: 55
+    });
+    
+    // Auxiliary PA (Class C)
+    const auxPA = this.addComponent('transistor', 540, 360, {
+      label: 'Aux PA',
+      technology: 'GaN',
+      gain: 12,
+      pout: 43,
+      pae: 50
+    });
+    
+    // Main output matching (impedance transformer)
+    const mainOutMatch = this.addComponent('matching', 660, 240, {
+      label: 'λ/4',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    // Aux output matching
+    const auxOutMatch = this.addComponent('matching', 660, 360, {
+      label: 'Offset',
+      matchType: 'TL-stub',
+      loss: 0.2
+    });
+    
+    // Doherty combiner (load modulation node)
+    const combiner = this.addComponent('combiner', 780, 300, {
+      label: 'Doherty',
+      type: 'Load-Modulation'
+    });
+    
+    // Create pre-connected wires
+    this.createConnection(driver.id, match.id, 'output', 'input');
+    this.createConnection(match.id, splitter.id, 'output', 'input');
+    this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
+    this.createConnection(splitter.id, auxMatch.id, 'output2', 'input');
+    this.createConnection(mainMatch.id, mainPA.id, 'output', 'input');
+    this.createConnection(auxMatch.id, auxPA.id, 'output', 'input');
+    this.createConnection(mainPA.id, mainOutMatch.id, 'output', 'input');
+    this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
+    this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
+    this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
+    
+    console.log('Conventional Doherty created with connections');
+  }
+  
+  createInvertedDoherty() {
+    console.log('Creating Inverted Doherty preset...');
+    
+    // Driver
+    const driver = this.addComponent('transistor', 120, 300, {
+      label: 'Driver',
+      gain: 15,
+      pout: 35
+    });
+    
+    // Interstage matching
+    const match = this.addComponent('matching', 220, 300, {
+      label: 'Interstage',
+      matchType: 'Pi',
+      loss: 0.5
+    });
+    
+    // Splitter
+    const splitter = this.addComponent('splitter', 320, 300, {
+      label: 'Splitter',
+      type: 'Wilkinson'
+    });
+    
+    // Main path (inverted - gets 90° delay)
+    const mainMatch = this.addComponent('matching', 420, 240, {
+      label: 'Main λ/4',
+      matchType: 'TL-stub',
+      loss: 0.3
+    });
+    
+    // Aux path (no additional phase shift)
+    const auxMatch = this.addComponent('matching', 420, 360, {
+      label: 'Aux Match',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    // Main PA
+    const mainPA = this.addComponent('transistor', 540, 240, {
+      label: 'Main PA',
+      technology: 'GaN',
+      gain: 12,
+      pout: 46
+    });
+    
+    // Auxiliary PA
+    const auxPA = this.addComponent('transistor', 540, 360, {
+      label: 'Aux PA',
+      technology: 'GaN',
+      gain: 12,
+      pout: 43
+    });
+    
+    // Output matching
+    const mainOutMatch = this.addComponent('matching', 660, 240, {
+      label: 'Out Match',
+      matchType: 'L',
+      loss: 0.2
+    });
+    
+    const auxOutMatch = this.addComponent('matching', 660, 360, {
+      label: 'λ/4',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    // Inverted Doherty combiner
+    const combiner = this.addComponent('combiner', 780, 300, {
+      label: 'Inverted',
+      type: 'Inverted-Doherty'
+    });
+    
+    // Create pre-connected wires
+    this.createConnection(driver.id, match.id, 'output', 'input');
+    this.createConnection(match.id, splitter.id, 'output', 'input');
+    this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
+    this.createConnection(splitter.id, auxMatch.id, 'output2', 'input');
+    this.createConnection(mainMatch.id, mainPA.id, 'output', 'input');
+    this.createConnection(auxMatch.id, auxPA.id, 'output', 'input');
+    this.createConnection(mainPA.id, mainOutMatch.id, 'output', 'input');
+    this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
+    this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
+    this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
+    
+    console.log('Inverted Doherty created with connections');
+  }
+  
+  createSymmetricDoherty() {
+    console.log('Creating Symmetric Doherty preset...');
+    
+    // Driver
+    const driver = this.addComponent('transistor', 120, 300, {
+      label: 'Driver',
+      gain: 15,
+      pout: 36
+    });
+    
+    // Interstage matching
+    const match = this.addComponent('matching', 220, 300, {
+      label: 'Interstage',
+      matchType: 'T',
+      loss: 0.5
+    });
+    
+    // Splitter
+    const splitter = this.addComponent('splitter', 320, 300, {
+      label: 'Splitter',
+      type: 'Wilkinson'
+    });
+    
+    // Main and Aux paths (equal power rating - symmetric)
+    const mainMatch = this.addComponent('matching', 420, 240, {
+      label: 'Main Match',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    const auxMatch = this.addComponent('matching', 420, 360, {
+      label: 'Aux Match',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    // Main PA (equal power)
+    const mainPA = this.addComponent('transistor', 540, 240, {
+      label: 'Main PA',
+      technology: 'GaN',
+      gain: 12,
+      pout: 46,
+      pae: 55
+    });
+    
+    // Auxiliary PA (equal power - symmetric)
+    const auxPA = this.addComponent('transistor', 540, 360, {
+      label: 'Aux PA',
+      technology: 'GaN',
+      gain: 12,
+      pout: 46,
+      pae: 55
+    });
+    
+    // Output matching (symmetric)
+    const mainOutMatch = this.addComponent('matching', 660, 240, {
+      label: 'λ/4',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    const auxOutMatch = this.addComponent('matching', 660, 360, {
+      label: 'λ/4',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    // Symmetric combiner
+    const combiner = this.addComponent('combiner', 780, 300, {
+      label: 'Symmetric',
+      type: 'Symmetric-Doherty'
+    });
+    
+    // Create pre-connected wires
+    this.createConnection(driver.id, match.id, 'output', 'input');
+    this.createConnection(match.id, splitter.id, 'output', 'input');
+    this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
+    this.createConnection(splitter.id, auxMatch.id, 'output2', 'input');
+    this.createConnection(mainMatch.id, mainPA.id, 'output', 'input');
+    this.createConnection(auxMatch.id, auxPA.id, 'output', 'input');
+    this.createConnection(mainPA.id, mainOutMatch.id, 'output', 'input');
+    this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
+    this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
+    this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
+    
+    console.log('Symmetric Doherty created with connections');
+  }
+  
+  createAsymmetricDoherty() {
+    console.log('Creating Asymmetric Doherty preset...');
+    
+    // Driver
+    const driver = this.addComponent('transistor', 120, 300, {
+      label: 'Driver',
+      gain: 15,
+      pout: 36
+    });
+    
+    // Interstage matching
+    const match = this.addComponent('matching', 220, 300, {
+      label: 'Interstage',
+      matchType: 'L',
+      loss: 0.5
+    });
+    
+    // Unequal power splitter
+    const splitter = this.addComponent('splitter', 320, 300, {
+      label: '2:1 Splitter',
+      type: 'Asymmetric'
+    });
+    
+    // Main path (higher power)
+    const mainMatch = this.addComponent('matching', 420, 240, {
+      label: 'Main Match',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    // Aux path (lower power)
+    const auxMatch = this.addComponent('matching', 420, 360, {
+      label: 'Aux Match',
+      matchType: 'L',
+      loss: 0.3
+    });
+    
+    // Main PA (higher power - 2x Aux)
+    const mainPA = this.addComponent('transistor', 540, 240, {
+      label: 'Main PA',
+      technology: 'GaN',
+      gain: 12,
+      pout: 49,
+      pae: 55
+    });
+    
+    // Auxiliary PA (lower power)
+    const auxPA = this.addComponent('transistor', 540, 360, {
+      label: 'Aux PA',
+      technology: 'GaN',
+      gain: 12,
+      pout: 43,
+      pae: 50
+    });
+    
+    // Output matching (asymmetric impedance transformation)
+    const mainOutMatch = this.addComponent('matching', 660, 240, {
+      label: 'λ/4 (25Ω)',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    const auxOutMatch = this.addComponent('matching', 660, 360, {
+      label: 'λ/4 (50Ω)',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    // Asymmetric combiner
+    const combiner = this.addComponent('combiner', 780, 300, {
+      label: 'Asymmetric 2:1',
+      type: 'Asymmetric-Doherty'
+    });
+    
+    // Create pre-connected wires
+    this.createConnection(driver.id, match.id, 'output', 'input');
+    this.createConnection(match.id, splitter.id, 'output', 'input');
+    this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
+    this.createConnection(splitter.id, auxMatch.id, 'output2', 'input');
+    this.createConnection(mainMatch.id, mainPA.id, 'output', 'input');
+    this.createConnection(auxMatch.id, auxPA.id, 'output', 'input');
+    this.createConnection(mainPA.id, mainOutMatch.id, 'output', 'input');
+    this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
+    this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
+    this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
+    
+    console.log('Asymmetric Doherty created with connections');
   }
   
   // Zoom control methods
@@ -2355,6 +2990,9 @@ class PALineupCanvas {
       const labels = { 'dBm': 'dBm', 'W': 'Watts', 'both': 'Both' };
       btn.textContent = ` Unit: ${labels[this.powerUnit]}`;
     }
+    
+    // Re-render components to update Pout display
+    this.render();
     
     // Redraw power display if active
     if (this.showPowerDisplay) {

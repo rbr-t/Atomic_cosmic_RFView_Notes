@@ -427,6 +427,22 @@ ui <- dashboardPage(
                               h5("Dual Driver Doherty"),
                               p("Dual drivers → Main/Aux paths")
                             ),
+                            div(class = "preset-template", `data-preset` = "conventional_doherty",
+                              h5("Conventional Doherty"),
+                              p("Standard λ/4 impedance transformation")
+                            ),
+                            div(class = "preset-template", `data-preset` = "inverted_doherty",
+                              h5("Inverted Doherty"),
+                              p("Inverted phase configuration")
+                            ),
+                            div(class = "preset-template", `data-preset` = "symmetric_doherty",
+                              h5("Symmetric Doherty"),
+                              p("Equal power Main & Aux PAs")
+                            ),
+                            div(class = "preset-template", `data-preset` = "asymmetric_doherty",
+                              h5("Asymmetric Doherty"),
+                              p("2:1 power ratio for extended efficiency")
+                            ),
                             div(class = "preset-template", `data-preset` = "blank",
                               h5("Blank Canvas"),
                               p("Start from scratch")
@@ -550,6 +566,26 @@ ui <- dashboardPage(
                               class = "btn btn-default btn-block btn-sm",
                               icon("ruler"),
                               " Unit: dBm"
+                            ),
+                            # Guide Lines Section
+                            div(class = "sidebar-section-title", icon("grip-lines"), " Guide Lines"),
+                            div(class = "icon-button-group",
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.toggleHorizontalLine();",
+                                id = "toggle_horizontal_line",
+                                class = "btn btn-success btn-icon",
+                                style = "background-color: #28a745; color: #fff;",
+                                icon("minus"),
+                                title = "Horizontal Line"
+                              ),
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.toggleVerticalLine();",
+                                id = "toggle_vertical_line",
+                                class = "btn btn-success btn-icon",
+                                style = "background-color: #28a745; color: #fff;",
+                                HTML("|"),
+                                title = "Vertical Line"
+                              )
                             ),
                             tags$button(
                               onclick = "if(window.paCanvas) paCanvas.clear();",
