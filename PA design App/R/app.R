@@ -380,13 +380,15 @@ ui <- dashboardPage(
                     title = tagList(
                       icon("paint-brush"), 
                       "Interactive PA Lineup Canvas",
-                      tags$button(
-                        id = "canvas_fullscreen_btn",
-                        class = "btn btn-sm btn-default pull-right",
-                        style = "margin-top: -5px; margin-left: 10px;",
-                        onclick = "toggleCanvasFullscreen();",
-                        icon("expand"),
-                        title = "Toggle Fullscreen"
+                      div(style = "float: right;",
+                        tags$button(
+                          id = "canvas_fullscreen_btn",
+                          class = "btn btn-sm btn-default",
+                          style = "margin-top: -5px;",
+                          onclick = "toggleCanvasFullscreen();",
+                          icon("expand"),
+                          title = "Toggle Fullscreen"
+                        )
                       )
                     ),
                     width = 12,
@@ -1666,9 +1668,13 @@ server <- function(input, output, session) {
           h4(paste0("Transistor: ", getProp("label", "Transistor"))),
           textInput(paste0("prop_", selected, "_label"), "Label", 
             value = getProp("label", "Transistor")),
-          selectInput(paste0("prop_", selected, "_technology"), "Technology", 
-            choices = c("GaN", "LDMOS", "GaAs", "SiC", "Si-LDMOS"),
-            selected = getProp("technology", "GaN")),
+          selectizeInput(paste0("prop_", selected, "_technology"), "Technology", 
+            choices = c("GaN", "GaN_Si", "GaN_SiC", "LDMOS", "GaAs", "SiC", "Si-LDMOS", "InP", "GaN-HEMT"),
+            selected = getProp("technology", "GaN"),
+            options = list(
+              create = TRUE,
+              placeholder = 'Select or type custom technology'
+            )),
           hr(),
           h5("Performance Parameters"),
           numericInput(paste0("prop_", selected, "_pout"), "Pout (dBm)", 

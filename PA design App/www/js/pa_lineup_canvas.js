@@ -146,9 +146,18 @@ class PALineupCanvas {
     this.powerColumns = [];
     this.powerUnit = 'dBm'; // 'dBm', 'W', or 'both'
     
+    // Impedance display columns
+    this.showImpedanceDisplay = false;
+    this.impedanceColumns = [];
+    this.impedanceUnit = 'rectangular'; // 'rectangular' (50+j10), 'polar' (51∠11°), or 'vswr'
+    
     // Central divider lines
     this.showHorizontalLine = true;
     this.showVerticalLine = true;
+    
+    // Canvas origin (center point where crosshairs meet)
+    this.originX = this.width / 2;  // 600
+    this.originY = this.height / 2; // 300
     
     this.init();
   }
@@ -273,8 +282,9 @@ class PALineupCanvas {
     // Clear existing guide lines
     this.centralLineLayer.selectAll('*').remove();
     
-    const centerY = this.height / 2;
-    const centerX = this.width / 2;
+    // Use origin as center point
+    const centerY = this.originY;
+    const centerX = this.originX;
     
     // Draw horizontal line if enabled
     if (this.showHorizontalLine) {
@@ -317,7 +327,17 @@ class PALineupCanvas {
         .attr('fill', '#00aaff')
         .attr('font-size', '12px')
         .attr('opacity', 0.5)
-        .text('Center');
+        .text('Origin');
+    }
+   
+    // Add origin marker (circle at crosshair intersection)
+    if (this.showHorizontalLine && this.showVerticalLine) {
+      this.centralLineLayer.append('circle')
+        .attr('cx', centerX)
+        .attr('cy', centerY)
+        .attr('r', 3)
+        .attr('fill', '#00aaff')
+        .attr('opacity', 0.5);
     }
   }
   
@@ -432,7 +452,85 @@ class PALineupCanvas {
   addComponentFromPalette(type) {
     const x = this.width / 2;
     const y = this.height / 2;
-    this.addComponent(type, x, y);
+    
+    // For matching, splitter, and combiner: prompt for sub-type
+    if (type === 'matching') {
+      const matchTypes = ['generic', 'L', 'Pi', 'T', 'Transformer', 'TL-stub'];
+      const matchLabels = {
+        'generic': 'Generic (Double TL)',
+        'L': 'L-section',
+        'Pi': 'Pi Network',
+        'T': 'T Network',
+        'Transformer': 'Transformer (λ/4)',
+        'TL-stub': 'TL with Stub'
+      };
+      
+      let selection = prompt(
+        'Select Matching Network Type:\n\n' +
+        '1) Generic (Double TL)\n' +
+        '2) L-section\n' +
+        '3) Pi Network\n' +
+        '4) T Network\n' +
+        '5) Transformer (λ/4)\n' +
+        '6) TL with Stub\n\n' +
+        'Enter number (1-6):', '1'
+      );
+      
+      if (selection === null) return; // User cancelled
+      const index = parseInt(selection) - 1;
+      if (index >= 0 && index < matchTypes.length) {
+        this.addComponent(type, x, y, { matchType: matchTypes[index] });
+      } else {
+        this.addComponent(type, x, y, { matchType: 'generic' });
+      }
+      
+    } else if (type === 'splitter') {
+      const splitterTypes = ['Wilkinson', 'Hybrid', '90-degree', 'Rat-race', 'Asymmetric'];
+      
+      let selection = prompt(
+        'Select Splitter Type:\n\n' +
+        '1) Wilkinson (Equal power)\n' +
+        '2) Hybrid (90° phase)\n' +
+        '3) 90-degree\n' +
+        '4) Rat-race\n' +
+        '5) Asymmetric (2:1 ratio)\n\n' +
+        'Enter number (1-5):', '1'
+      );
+      
+      if (selection === null) return; // User cancelled
+      const index = parseInt(selection) - 1;
+      if (index >= 0 && index < splitterTypes.length) {
+        this.addComponent(type, x, y, { type: splitterTypes[index] });
+      } else {
+        this.addComponent(type, x, y, { type: 'Wilkinson' });
+      }
+      
+    } else if (type === 'combiner') {
+      const combinerTypes = ['Doherty', 'Wilkinson', 'Hybrid', 'Corporate', 'Inverted-Doherty', 'Symmetric-Doherty'];
+      
+      let selection = prompt(
+        'Select Combiner Type:\n\n' +
+        '1) Doherty (Load modulation)\n' +
+        '2) Wilkinson (Equal power)\n' +
+        '3) Hybrid (90° phase)\n' +
+        '4) Corporate\n' +
+        '5) Inverted Doherty\n' +
+        '6) Symmetric Doherty\n\n' +
+        'Enter number (1-6):', '1'
+      );
+      
+      if (selection === null) return; // User cancelled
+      const index = parseInt(selection) - 1;
+      if (index >= 0 && index < combinerTypes.length) {
+        this.addComponent(type, x, y, { type: combinerTypes[index] });
+      } else {
+        this.addComponent(type, x, y, { type: 'Doherty' });
+      }
+      
+    } else {
+      // For other types (transistor, blank), add normally
+      this.addComponent(type, x, y);
+    }
   }
   
   addComponent(type, x, y, properties = {}) {
@@ -1377,8 +1475,12 @@ class PALineupCanvas {
   createSingleDriverDoherty() {
     console.log('Creating Single Driver Doherty preset...');
     
+    // Center template around origin
+    const offsetX = this.originX - 400;
+    const offsetY = this.originY - 300;
+    
     // Driver
-    const driver = this.addComponent('transistor', 150, 300, {
+    const driver = this.addComponent('transistor', 150 + offsetX, 300 + offsetY, {
       label: 'Driver',
       gain: 15,
       pae: 40,
@@ -1387,19 +1489,19 @@ class PALineupCanvas {
     });
     
     // Interstage matching
-    const match = this.addComponent('matching', 250, 300, {
+    const match = this.addComponent('matching', 250 + offsetX, 300 + offsetY, {
       label: 'Interstage',
       loss: 0.5
     });
     
     // Splitter
-    const splitter = this.addComponent('splitter', 350, 300, {
+    const splitter = this.addComponent('splitter', 350 + offsetX, 300 + offsetY, {
       label: 'Splitter',
       type: 'Wilkinson'
     });
     
     // Main PA
-    const mainPA = this.addComponent('transistor', 500, 250, {
+    const mainPA = this.addComponent('transistor', 500 + offsetX, 250 + offsetY, {
       label: 'Main PA',
       gain: 12,
       pae: 55,
@@ -1408,7 +1510,7 @@ class PALineupCanvas {
     });
     
     // Auxiliary PA
-    const auxPA = this.addComponent('transistor', 500, 350, {
+    const auxPA = this.addComponent('transistor', 500 + offsetX, 350 + offsetY, {
       label: 'Aux PA',
       gain: 12,
       pae: 50,
@@ -1417,7 +1519,7 @@ class PALineupCanvas {
     });
     
     // Doherty combiner
-    const combiner = this.addComponent('combiner', 650, 300, {
+    const combiner = this.addComponent('combiner', 650 + offsetX, 300 + offsetY, {
       label: 'Doherty',
       type: 'Doherty',
       load_modulation: true
@@ -1437,19 +1539,23 @@ class PALineupCanvas {
   createDualDriverDoherty() {
     console.log('Creating Dual Driver Doherty preset...');
     
+    // Center template around origin
+    const offsetX = this.originX - 300;
+    const offsetY = this.originY - 300;
+    
     // Main driver
-    const mainDriver = this.addComponent('transistor', 100, 250, {label: 'Main Driver'});
+    const mainDriver = this.addComponent('transistor', 100 + offsetX, 250 + offsetY, {label: 'Main Driver'});
     // Aux driver  
-    const auxDriver = this.addComponent('transistor', 100, 350, {label: 'Aux Driver'});
+    const auxDriver = this.addComponent('transistor', 100 + offsetX, 350 + offsetY, {label: 'Aux Driver'});
     // Matching networks - positioned at midpoint between driver and PA
-    const mainMatch = this.addComponent('matching', 225, 250);
-    const auxMatch = this.addComponent('matching', 225, 350);
+    const mainMatch = this.addComponent('matching', 225 + offsetX, 250 + offsetY);
+    const auxMatch = this.addComponent('matching', 225 + offsetX, 350 + offsetY);
     // Main PA
-    const mainPA = this.addComponent('transistor', 350, 250, {label: 'Main PA', pout: 46});
+    const mainPA = this.addComponent('transistor', 350 + offsetX, 250 + offsetY, {label: 'Main PA', pout: 46});
     // Aux PA
-    const auxPA = this.addComponent('transistor', 350, 350, {label: 'Aux PA', pout: 43});
+    const auxPA = this.addComponent('transistor', 350 + offsetX, 350 + offsetY, {label: 'Aux PA', pout: 43});
     // Combiner
-    const combiner = this.addComponent('combiner', 500, 300, {
+    const combiner = this.addComponent('combiner', 500 + offsetX, 300 + offsetY, {
       label: 'Doherty',
       type: 'Doherty',
       load_modulation: true
@@ -1469,12 +1575,16 @@ class PALineupCanvas {
   createTripleStage() {
     console.log('Creating Triple Stage preset...');
     
+    // Center template around origin
+    const offsetX = this.originX - 350;
+    const offsetY = this.originY - 300;
+    
     // Simple 3-stage cascade
-    const predriver = this.addComponent('transistor', 150, 300, {label: 'Pre-driver', gain: 12});
-    const match1 = this.addComponent('matching', 250, 300);
-    const driver = this.addComponent('transistor', 350, 300, {label: 'Driver', gain: 15});
-    const match2 = this.addComponent('matching', 450, 300);
-    const finalPA = this.addComponent('transistor', 550, 300, {label: 'Final PA', gain: 12, pout: 46});
+    const predriver = this.addComponent('transistor', 150 + offsetX, 300 + offsetY, {label: 'Pre-driver', gain: 12});
+    const match1 = this.addComponent('matching', 250 + offsetX, 300 + offsetY);
+    const driver = this.addComponent('transistor', 350 + offsetX, 300 + offsetY, {label: 'Driver', gain: 15});
+    const match2 = this.addComponent('matching', 450 + offsetX, 300 + offsetY);
+    const finalPA = this.addComponent('transistor', 550 + offsetX, 300 + offsetY, {label: 'Final PA', gain: 12, pout: 46});
     
     // Create pre-connected wires
     this.createConnection(predriver.id, match1.id, 'output', 'input');
@@ -1488,42 +1598,46 @@ class PALineupCanvas {
   createConventionalDoherty() {
     console.log('Creating Conventional Doherty preset...');
     
+    // Center template around origin
+    const offsetX = this.originX - 450;
+    const offsetY = this.originY - 300;
+    
     // Driver
-    const driver = this.addComponent('transistor', 120, 300, {
+    const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
       label: 'Driver',
       gain: 15,
       pout: 35
     });
     
     // Interstage matching
-    const match = this.addComponent('matching', 220, 300, {
+    const match = this.addComponent('matching', 220 + offsetX, 300 + offsetY, {
       label: 'Interstage',
       matchType: 'L',
       loss: 0.5
     });
     
     // Splitter (90-degree hybrid)
-    const splitter = this.addComponent('splitter', 320, 300, {
+    const splitter = this.addComponent('splitter', 320 + offsetX, 300 + offsetY, {
       label: '90° Splitter',
       type: 'Hybrid'
     });
     
     // Main path matching
-    const mainMatch = this.addComponent('matching', 420, 240, {
+    const mainMatch = this.addComponent('matching', 420 + offsetX, 240 + offsetY, {
       label: 'Main Match',
       matchType: 'Pi',
       loss: 0.3
     });
     
     // Aux path matching (with 90° phase shift)
-    const auxMatch = this.addComponent('matching', 420, 360, {
+    const auxMatch = this.addComponent('matching', 420 + offsetX, 360 + offsetY, {
       label: 'Aux Match',
       matchType: 'TL-stub',
       loss: 0.3
     });
     
     // Main PA (Class AB)
-    const mainPA = this.addComponent('transistor', 540, 240, {
+    const mainPA = this.addComponent('transistor', 540 + offsetX, 240 + offsetY, {
       label: 'Main PA',
       technology: 'GaN',
       gain: 12,
@@ -1532,7 +1646,7 @@ class PALineupCanvas {
     });
     
     // Auxiliary PA (Class C)
-    const auxPA = this.addComponent('transistor', 540, 360, {
+    const auxPA = this.addComponent('transistor', 540 + offsetX, 360 + offsetY, {
       label: 'Aux PA',
       technology: 'GaN',
       gain: 12,
@@ -1541,21 +1655,21 @@ class PALineupCanvas {
     });
     
     // Main output matching (impedance transformer)
-    const mainOutMatch = this.addComponent('matching', 660, 240, {
+    const mainOutMatch = this.addComponent('matching', 660 + offsetX, 240 + offsetY, {
       label: 'λ/4',
       matchType: 'Transformer',
       loss: 0.2
     });
     
     // Aux output matching
-    const auxOutMatch = this.addComponent('matching', 660, 360, {
+    const auxOutMatch = this.addComponent('matching', 660 + offsetX, 360 + offsetY, {
       label: 'Offset',
       matchType: 'TL-stub',
       loss: 0.2
     });
     
     // Doherty combiner (load modulation node)
-    const combiner = this.addComponent('combiner', 780, 300, {
+    const combiner = this.addComponent('combiner', 780 + offsetX, 300 + offsetY, {
       label: 'Doherty',
       type: 'Load-Modulation'
     });
@@ -1578,42 +1692,46 @@ class PALineupCanvas {
   createInvertedDoherty() {
     console.log('Creating Inverted Doherty preset...');
     
+    // Center template around origin
+    const offsetX = this.originX - 450;
+    const offsetY = this.originY - 300;
+    
     // Driver
-    const driver = this.addComponent('transistor', 120, 300, {
+    const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
       label: 'Driver',
       gain: 15,
       pout: 35
     });
     
     // Interstage matching
-    const match = this.addComponent('matching', 220, 300, {
+    const match = this.addComponent('matching', 220 + offsetX, 300 + offsetY, {
       label: 'Interstage',
       matchType: 'Pi',
       loss: 0.5
     });
     
     // Splitter
-    const splitter = this.addComponent('splitter', 320, 300, {
+    const splitter = this.addComponent('splitter', 320 + offsetX, 300 + offsetY, {
       label: 'Splitter',
       type: 'Wilkinson'
     });
     
     // Main path (inverted - gets 90° delay)
-    const mainMatch = this.addComponent('matching', 420, 240, {
+    const mainMatch = this.addComponent('matching', 420 + offsetX, 240 + offsetY, {
       label: 'Main λ/4',
       matchType: 'TL-stub',
       loss: 0.3
     });
     
     // Aux path (no additional phase shift)
-    const auxMatch = this.addComponent('matching', 420, 360, {
+    const auxMatch = this.addComponent('matching', 420 + offsetX, 360 + offsetY, {
       label: 'Aux Match',
       matchType: 'Pi',
       loss: 0.3
     });
     
     // Main PA
-    const mainPA = this.addComponent('transistor', 540, 240, {
+    const mainPA = this.addComponent('transistor', 540 + offsetX, 240 + offsetY, {
       label: 'Main PA',
       technology: 'GaN',
       gain: 12,
@@ -1621,7 +1739,7 @@ class PALineupCanvas {
     });
     
     // Auxiliary PA
-    const auxPA = this.addComponent('transistor', 540, 360, {
+    const auxPA = this.addComponent('transistor', 540 + offsetX, 360 + offsetY, {
       label: 'Aux PA',
       technology: 'GaN',
       gain: 12,
@@ -1629,20 +1747,20 @@ class PALineupCanvas {
     });
     
     // Output matching
-    const mainOutMatch = this.addComponent('matching', 660, 240, {
+    const mainOutMatch = this.addComponent('matching', 660 + offsetX, 240 + offsetY, {
       label: 'Out Match',
       matchType: 'L',
       loss: 0.2
     });
     
-    const auxOutMatch = this.addComponent('matching', 660, 360, {
+    const auxOutMatch = this.addComponent('matching', 660 + offsetX, 360 + offsetY, {
       label: 'λ/4',
       matchType: 'Transformer',
       loss: 0.2
     });
     
     // Inverted Doherty combiner
-    const combiner = this.addComponent('combiner', 780, 300, {
+    const combiner = this.addComponent('combiner', 780 + offsetX, 300 + offsetY, {
       label: 'Inverted',
       type: 'Inverted-Doherty'
     });
@@ -1665,41 +1783,45 @@ class PALineupCanvas {
   createSymmetricDoherty() {
     console.log('Creating Symmetric Doherty preset...');
     
+    // Center template around origin
+    const offsetX = this.originX - 450;
+    const offsetY = this.originY - 300;
+    
     // Driver
-    const driver = this.addComponent('transistor', 120, 300, {
+    const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
       label: 'Driver',
       gain: 15,
       pout: 36
     });
     
     // Interstage matching
-    const match = this.addComponent('matching', 220, 300, {
+    const match = this.addComponent('matching', 220 + offsetX, 300 + offsetY, {
       label: 'Interstage',
       matchType: 'T',
       loss: 0.5
     });
     
     // Splitter
-    const splitter = this.addComponent('splitter', 320, 300, {
+    const splitter = this.addComponent('splitter', 320 + offsetX, 300 + offsetY, {
       label: 'Splitter',
       type: 'Wilkinson'
     });
     
     // Main and Aux paths (equal power rating - symmetric)
-    const mainMatch = this.addComponent('matching', 420, 240, {
+    const mainMatch = this.addComponent('matching', 420 + offsetX, 240 + offsetY, {
       label: 'Main Match',
       matchType: 'Pi',
       loss: 0.3
     });
     
-    const auxMatch = this.addComponent('matching', 420, 360, {
+    const auxMatch = this.addComponent('matching', 420 + offsetX, 360 + offsetY, {
       label: 'Aux Match',
       matchType: 'Pi',
       loss: 0.3
     });
     
     // Main PA (equal power)
-    const mainPA = this.addComponent('transistor', 540, 240, {
+    const mainPA = this.addComponent('transistor', 540 + offsetX, 240 + offsetY, {
       label: 'Main PA',
       technology: 'GaN',
       gain: 12,
@@ -1708,7 +1830,7 @@ class PALineupCanvas {
     });
     
     // Auxiliary PA (equal power - symmetric)
-    const auxPA = this.addComponent('transistor', 540, 360, {
+    const auxPA = this.addComponent('transistor', 540 + offsetX, 360 + offsetY, {
       label: 'Aux PA',
       technology: 'GaN',
       gain: 12,
@@ -1717,20 +1839,20 @@ class PALineupCanvas {
     });
     
     // Output matching (symmetric)
-    const mainOutMatch = this.addComponent('matching', 660, 240, {
+    const mainOutMatch = this.addComponent('matching', 660 + offsetX, 240 + offsetY, {
       label: 'λ/4',
       matchType: 'Transformer',
       loss: 0.2
     });
     
-    const auxOutMatch = this.addComponent('matching', 660, 360, {
+    const auxOutMatch = this.addComponent('matching', 660 + offsetX, 360 + offsetY, {
       label: 'λ/4',
       matchType: 'Transformer',
       loss: 0.2
     });
     
     // Symmetric combiner
-    const combiner = this.addComponent('combiner', 780, 300, {
+    const combiner = this.addComponent('combiner', 780 + offsetX, 300 + offsetY, {
       label: 'Symmetric',
       type: 'Symmetric-Doherty'
     });
@@ -1753,42 +1875,46 @@ class PALineupCanvas {
   createAsymmetricDoherty() {
     console.log('Creating Asymmetric Doherty preset...');
     
+    // Center template around origin
+    const offsetX = this.originX - 450;
+    const offsetY = this.originY - 300;
+    
     // Driver
-    const driver = this.addComponent('transistor', 120, 300, {
+    const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
       label: 'Driver',
       gain: 15,
       pout: 36
     });
     
     // Interstage matching
-    const match = this.addComponent('matching', 220, 300, {
+    const match = this.addComponent('matching', 220 + offsetX, 300 + offsetY, {
       label: 'Interstage',
       matchType: 'L',
       loss: 0.5
     });
     
     // Unequal power splitter
-    const splitter = this.addComponent('splitter', 320, 300, {
+    const splitter = this.addComponent('splitter', 320 + offsetX, 300 + offsetY, {
       label: '2:1 Splitter',
       type: 'Asymmetric'
     });
     
     // Main path (higher power)
-    const mainMatch = this.addComponent('matching', 420, 240, {
+    const mainMatch = this.addComponent('matching', 420 + offsetX, 240 + offsetY, {
       label: 'Main Match',
       matchType: 'Pi',
       loss: 0.3
     });
     
     // Aux path (lower power)
-    const auxMatch = this.addComponent('matching', 420, 360, {
+    const auxMatch = this.addComponent('matching', 420 + offsetX, 360 + offsetY, {
       label: 'Aux Match',
       matchType: 'L',
       loss: 0.3
     });
     
     // Main PA (higher power - 2x Aux)
-    const mainPA = this.addComponent('transistor', 540, 240, {
+    const mainPA = this.addComponent('transistor', 540 + offsetX, 240 + offsetY, {
       label: 'Main PA',
       technology: 'GaN',
       gain: 12,
@@ -1797,7 +1923,7 @@ class PALineupCanvas {
     });
     
     // Auxiliary PA (lower power)
-    const auxPA = this.addComponent('transistor', 540, 360, {
+    const auxPA = this.addComponent('transistor', 540 + offsetX, 360 + offsetY, {
       label: 'Aux PA',
       technology: 'GaN',
       gain: 12,
@@ -1806,20 +1932,20 @@ class PALineupCanvas {
     });
     
     // Output matching (asymmetric impedance transformation)
-    const mainOutMatch = this.addComponent('matching', 660, 240, {
+    const mainOutMatch = this.addComponent('matching', 660 + offsetX, 240 + offsetY, {
       label: 'λ/4 (25Ω)',
       matchType: 'Transformer',
       loss: 0.2
     });
     
-    const auxOutMatch = this.addComponent('matching', 660, 360, {
+    const auxOutMatch = this.addComponent('matching', 660 + offsetX, 360 + offsetY, {
       label: 'λ/4 (50Ω)',
       matchType: 'Transformer',
       loss: 0.2
     });
     
     // Asymmetric combiner
-    const combiner = this.addComponent('combiner', 780, 300, {
+    const combiner = this.addComponent('combiner', 780 + offsetX, 300 + offsetY, {
       label: 'Asymmetric 2:1',
       type: 'Asymmetric-Doherty'
     });
@@ -1855,11 +1981,16 @@ class PALineupCanvas {
   }
   
   resetZoom() {
+    // Center the view on the origin (crosshair intersection)
+    const scale = 1;
+    const translateX = this.width / 2 - this.originX * scale;
+    const translateY = this.height / 2 - this.originY * scale;
+    
     this.svg.transition().duration(500).call(
       this.zoom.transform,
-      d3.zoomIdentity
+      d3.zoomIdentity.translate(translateX, translateY).scale(scale)
     );
-    console.log('Zoom reset');
+    console.log('Zoom reset to origin:', this.originX, this.originY);
   }
   
   handlePortClick(event, component, portType) {
