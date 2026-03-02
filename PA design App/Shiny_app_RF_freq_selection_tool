@@ -1,0 +1,243 @@
+# ============================================================
+# RF Power Amplifier Frequency Planning Tool
+# ============================================================
+
+library(shiny)
+library(plotly)
+library(dplyr)
+library(rmarkdown)
+
+# ------------------------------------------------------------
+# Physical Models
+# ------------------------------------------------------------
+
+# Atmospheric attenuation simplified model (dB/km)
+atm_loss_model <- function(fGHz) {
+  o2_peak <- 15 * exp(-((fGHz - 60)^2) / (2*5^2))
+  h2o_peak <- 8 * exp(-((fGHz - 22)^2) / (2*3^2))
+  baseline <- 0.01 * fGHz
+  baseline + o2_peak + h2o_peak
+}
+
+# PA efficiency models
+eff_ldmos <- function(f) pmax(65 - 0.8*f, 5)
+eff_gan   <- function(f) pmax(70 - 0.3*f, 20)
+eff_sige  <- function(f) pmax(50 - 0.15*f, 10)
+
+# ------------------------------------------------------------
+# Technology suitability
+# ------------------------------------------------------------
+
+tech_map <- data.frame(
+  tech = c("LDMOS","GaN","SiGe"),
+  fmin = c(0.01, 1, 20),
+  fmax = c(4, 100, 300),
+  color = c("rgba(0,0,255,0.15)",
+            "rgba(0,255,0,0.15)",
+            "rgba(255,0,0,0.15)")
+)
+
+# 6G candidate band
+band_6g <- data.frame(
+  name="6G Sub-THz",
+  xmin=100,
+  xmax=300,
+  color='rgba(200,0,200,0.2)'
+)
+
+# ------------------------------------------------------------
+# UI
+# ------------------------------------------------------------
+
+ui <- fluidPage(
+  
+  titlePanel("📡 RF Power Amplifier Frequency Planning Tool"),
+  
+  sidebarLayout(
+    
+    sidebarPanel(
+      
+      numericInput("target_freq","Target Frequency (GHz)", value=28),
+      numericInput("target_power","Target Output Power (W)", value=20),
+      
+      checkboxInput("show_eff","Show PA Efficiency Curves", TRUE),
+      checkboxInput("show_atm","Show Atmospheric Attenuation", TRUE),
+      checkboxInput("show_loadpull","Show Load-Pull Visualization", TRUE),
+      checkboxInput("show_tech","Show Technology Suitability", TRUE),
+      checkboxInput("show_6g","Show 6G Candidate Band", TRUE),
+      
+      actionButton("export","Export Report")
+    ),
+    
+    mainPanel(
+      plotlyOutput("rf_plot", height="650px"),
+      br(),
+      htmlOutput("recommendation")
+    )
+  )
+)
+
+# ------------------------------------------------------------
+# Server
+# ------------------------------------------------------------
+
+server <- function(input, output, session){
+  
+  # Frequency sweep
+  freq <- reactive(seq(0.1,300,length.out=800))
+  
+  output$rf_plot <- renderPlotly({
+    
+    f <- freq()
+    
+    fig <- plot_ly()
+    
+    # --------------------------------------------------------
+    # Technology Suitability Map
+    # --------------------------------------------------------
+    if(input$show_tech){
+      for(i in 1:nrow(tech_map)){
+        fig <- fig %>%
+          add_trace(
+            x=c(tech_map$fmin[i],tech_map$fmax[i],
+                tech_map$fmax[i],tech_map$fmin[i],tech_map$fmin[i]),
+            y=c(0,0,100,100,0),
+            type="scatter",
+            mode="lines",
+            fill="toself",
+            fillcolor=tech_map$color[i],
+            line=list(width=0),
+            name=tech_map$tech[i],
+            hoverinfo="text",
+            text=paste("Technology:",tech_map$tech[i])
+          )
+      }
+    }
+    
+    # --------------------------------------------------------
+    # Efficiency curves
+    # --------------------------------------------------------
+    if(input$show_eff){
+      
+      fig <- fig %>%
+        add_lines(x=f,y=eff_ldmos(f),name="LDMOS Efficiency (%)") %>%
+        add_lines(x=f,y=eff_gan(f),name="GaN Efficiency (%)") %>%
+        add_lines(x=f,y=eff_sige(f),name="SiGe Efficiency (%)")
+    }
+    
+    # --------------------------------------------------------
+    # Atmospheric attenuation
+    # --------------------------------------------------------
+    if(input$show_atm){
+      fig <- fig %>%
+        add_lines(x=f,y=atm_loss_model(f),
+                  name="Atmospheric Loss (dB/km)",
+                  yaxis="y2")
+    }
+    
+    # --------------------------------------------------------
+    # 6G band
+    # --------------------------------------------------------
+    if(input$show_6g){
+      fig <- fig %>%
+        add_trace(
+          x=c(band_6g$xmin,band_6g$xmax,
+              band_6g$xmax,band_6g$xmin,band_6g$xmin),
+          y=c(0,0,100,100,0),
+          type="scatter",
+          fill="toself",
+          fillcolor=band_6g$color,
+          line=list(width=0),
+          name="6G Sub-THz",
+          hoverinfo="text",
+          text="6G Candidate Band"
+        )
+    }
+    
+    # --------------------------------------------------------
+    # Load-pull visualization (simplified contour)
+    # --------------------------------------------------------
+    if(input$show_loadpull){
+      
+      theta <- seq(0,2*pi,length.out=200)
+      r <- 0.2 + 0.05*sin(3*theta)
+      
+      fig <- fig %>%
+        add_trace(
+          x=28 + 5*r*cos(theta),
+          y=50 + 10*r*sin(theta),
+          mode="lines",
+          name="Load-Pull Efficiency Contour"
+        )
+    }
+    
+    # Target marker
+    fig <- fig %>%
+      add_markers(x=input$target_freq,
+                  y=60,
+                  marker=list(size=12,color="black"),
+                  name="Target Frequency")
+    
+    fig %>%
+      layout(
+        xaxis=list(title="Frequency (GHz)",type="log",
+                   range=c(log10(0.1),log10(300))),
+        yaxis=list(title="Efficiency (%)"),
+        yaxis2=list(title="Atmospheric Loss (dB/km)",
+                    overlaying="y",
+                    side="right"),
+        legend=list(orientation="h"),
+        hovermode="closest"
+      )
+  })
+  
+  # ----------------------------------------------------------
+  # Technology Recommendation Logic
+  # ----------------------------------------------------------
+  output$recommendation <- renderUI({
+    
+    f <- input$target_freq
+    
+    tech <- if(f < 4) {
+      "LDMOS (High power, macro base stations)"
+    } else if(f < 100) {
+      "GaN (Best tradeoff efficiency & power density)"
+    } else {
+      "SiGe / Advanced GaN MMIC (Sub-THz)"
+    }
+    
+    HTML(paste0(
+      "<h4>Recommended Technology</h4>",
+      "<b>Frequency:</b> ",f," GHz<br>",
+      "<b>Output Power:</b> ",input$target_power," W<br><br>",
+      "<b>Suggested Device:</b> ",tech
+    ))
+  })
+  
+  # ----------------------------------------------------------
+  # Export Report
+  # ----------------------------------------------------------
+  observeEvent(input$export,{
+    
+    tempReport <- tempfile(fileext = ".Rmd")
+    
+    writeLines(c(
+      "---",
+      "title: \"RF PA Planning Report\"",
+      "output: html_document",
+      "---",
+      "",
+      paste("**Target Frequency:**",input$target_freq,"GHz"),
+      "",
+      paste("**Target Power:**",input$target_power,"W"),
+      "",
+      "## Technology Recommendation",
+      output$recommendation()
+    ), tempReport)
+    
+    rmarkdown::render(tempReport, output_file="RF_PA_Report.html")
+  })
+  
+}
+
+shinyApp(ui, server)

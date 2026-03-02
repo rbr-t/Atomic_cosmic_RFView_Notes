@@ -1,0 +1,38 @@
+/* PA Design App Custom Styles */
+
+.skin-black .main-header .logo { 
+  background-color: #1b1b1b; 
+}
+
+.skin-black .main-header .navbar { 
+  background-color: #1b1b1b; 
+}
+
+.content-wrapper { 
+  background-color: #0b0b0b; 
+}
+
+.box { 
+  background-color: #1b1b1b; 
+  border-top-color: #ff7f11; 
+}
+
+/* Additional custom styles */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.btn-primary {
+  background-color: #ff7f11 !important;
+  border-color: #ff7f11 !important;
+}
+
+.btn-primary:hover {
+  background-color: #e66d00 !important;
+  border-color: #e66d00 !important;
+}
+
+.btn-success {
+  background-color: #00cc66 !important;
+  border-color: #00cc66 !important;
+}
