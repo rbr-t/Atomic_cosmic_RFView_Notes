@@ -418,19 +418,19 @@ ui <- dashboardPage(
                       # Zoom Controls
                       div(style = "display: flex; gap: 5px; padding: 5px; background: #2a2a2a; border-radius: 4px;",
                         tags$button(
-                          onclick = "if(window.paCanvas){paCanvas.zoomIn();}",
+                          onclick = "console.log('Zoom In clicked'); if(window.paCanvas){console.log('Canvas exists, zooming in'); paCanvas.zoomIn();} else {console.error('Canvas not found!');}",
                           class = "btn btn-default btn-sm",
                           icon("search-plus"),
                           title = "Zoom In"
                         ),
                         tags$button(
-                          onclick = "if(window.paCanvas){paCanvas.zoomOut();}",
+                          onclick = "console.log('Zoom Out clicked'); if(window.paCanvas){console.log('Canvas exists, zooming out'); paCanvas.zoomOut();} else {console.error('Canvas not found!');}",
                           class = "btn btn-default btn-sm",
                           icon("search-minus"),
                           title = "Zoom Out"
                         ),
                         tags$button(
-                          onclick = "if(window.paCanvas){paCanvas.resetZoom();}",
+                          onclick = "console.log('Reset View clicked'); if(window.paCanvas){console.log('Canvas exists, resetting zoom'); paCanvas.resetZoom();} else {console.error('Canvas not found!');}",
                           class = "btn btn-default btn-sm",
                           icon("home"),
                           title = "Reset View"
@@ -438,14 +438,14 @@ ui <- dashboardPage(
                       ),
                       # Component Actions
                       tags$button(
-                        onclick = "if(window.paCanvas){paCanvas.deleteSelected();}",
+                        onclick = "console.log('Delete clicked'); if(window.paCanvas){console.log('Canvas exists, deleting selected'); paCanvas.deleteSelected();} else {console.error('Canvas not found!');}",
                         class = "btn btn-danger btn-sm",
                         icon("trash"),
                         "Delete",
                         title = "Delete Selected Component"
                       ),
                       tags$button(
-                        onclick = "if(window.paCanvas){paCanvas.toggleWireMode();}",
+                        onclick = "console.log('Wire mode clicked'); if(window.paCanvas){console.log('Canvas exists, toggling wire mode'); paCanvas.toggleWireMode();} else {console.error('Canvas not found!');}",
                         id = "wire_mode_btn",
                         class = "btn btn-info btn-sm",
                         icon("project-diagram"),
@@ -1378,26 +1378,42 @@ server <- function(input, output, session) {
   # Update component list when canvas changes
   observeEvent(input$lineup_components, {
     if(!is.null(input$lineup_components)) {
-      # Ensure components are properly formatted as a list
-      comps <- input$lineup_components
+      # Components are sent as a JSON string from JavaScript
+      comps_json <- input$lineup_components
       
-      # Debug output
-      # print("Received components from JavaScript:")
-      # print(str(comps))
+      cat(sprintf("[Components Update] Received data from JavaScript\n"))
+      cat(sprintf("[Components Update] Data class: %s, length: %d\n", class(comps_json), length(comps_json)))
+      cat(sprintf("[Components Update] First 200 chars: %s\n", substr(comps_json, 1, 200)))
       
-      # If it's already a list, use it directly
-      if(is.list(comps)) {
-        lineup_components(comps)
-      } else {
-        # Otherwise, try to convert it
-        lineup_components(as.list(comps))
-      }
+      # Parse JSON string to R list
+      comps <- tryCatch({
+        parsed <- jsonlite::fromJSON(comps_json, simplifyVector = FALSE)
+        cat(sprintf("[Components Update] Successfully parsed %d components\n", length(parsed)))
+        
+        if(length(parsed) > 0) {
+          cat(sprintf("[Components Update] First component - ID: %s, Type: %s\n", 
+                      if(!is.null(parsed[[1]]$id)) parsed[[1]]$id else "NULL",
+                      if(!is.null(parsed[[1]]$type)) parsed[[1]]$type else "NULL"))
+        }
+        
+        parsed
+      }, error = function(e) {
+        cat(sprintf("[Components Update] JSON parse error: %s\n", e$message))
+        cat(sprintf("[Components Update] Full JSON string length: %d\n", nchar(comps_json)))
+        list()
+      })
+      
+      # Store the parsed components
+      lineup_components(comps)
     }
   })
   
   # Dynamic Property Editor based on selected component
   output$lineup_property_editor <- renderUI({
     selected <- input$lineup_selected_component
+    
+    cat(sprintf("[Property Editor] renderUI called, selected = %s\n", 
+                if(is.null(selected)) "NULL" else selected))
     
     if(is.null(selected) || length(selected) == 0) {
       return(tags$div(
@@ -1407,9 +1423,22 @@ server <- function(input, output, session) {
     }
     
     components <- lineup_components()
+    cat(sprintf("[Property Editor] Components count: %d\n", length(components)))
+    
     if(is.null(components) || length(components) == 0) {
       return(tags$div(style = "padding: 20px;", "No components in lineup"))
     }
+    
+    # Debug: Print component structure
+    cat("[Property Editor] Component IDs in list:\n")
+    for(i in seq_along(components)) {
+      c <- components[[i]]
+      comp_id <- if(is.list(c) && !is.null(c$id)) c$id else "NO_ID"
+      comp_type <- if(is.list(c) && !is.null(c$type)) c$type else "NO_TYPE"
+      cat(sprintf("  [%d] ID=%s, Type=%s\n", i, comp_id, comp_type))
+    }
+    cat(sprintf("[Property Editor] Looking for component with ID: %s (class: %s)\n", 
+                selected, class(selected)))
     
     # Debug: Check component structure
     # print(paste("Selected component ID:", selected))
@@ -1423,16 +1452,23 @@ server <- function(input, output, session) {
         # Handle both list and vector access
         comp_id <- if(is.list(c)) c$id else if(is.vector(c) && "id" %in% names(c)) c["id"] else NULL
         
+        cat(sprintf("[Property Editor] Checking component %d: ID=%s (class: %s), selected=%s (class: %s), match=%s\n", 
+                    i, comp_id, class(comp_id), selected, class(selected), 
+                    if(!is.null(comp_id)) comp_id == selected else "NULL_ID"))
+        
         if(!is.null(comp_id) && comp_id == selected) {
           comp <- c
+          cat(sprintf("[Property Editor] MATCH FOUND at index %d!\n", i))
           break
         }
       }
     }, error = function(e) {
-      print(paste("Error finding component:", e$message))
+      cat(sprintf("[Property Editor] ERROR finding component: %s\n", e$message))
+      print(e)
     })
     
     if(is.null(comp)) {
+      cat(sprintf("[Property Editor] Component %s NOT FOUND!\n", selected))
       return(tags$div(
         style = "padding: 20px; color: #888;",
         "Component not found. ID: ", selected,
@@ -1440,6 +1476,9 @@ server <- function(input, output, session) {
         tags$small("Try clicking on a component again")
       ))
     }
+    
+    cat(sprintf("[Property Editor] Component found! Type: %s\n", 
+                if(is.list(comp) && !is.null(comp$type)) comp$type else "unknown"))
     
     # Safely extract properties
     tryCatch({
@@ -1473,6 +1512,7 @@ server <- function(input, output, session) {
       
       # Generate property inputs based on component type
       if(comp_type == "transistor") {
+        cat(sprintf("[Property Editor] Generating UI for transistor component %s\n", selected))
         tagList(
           h4(paste0("Transistor: ", getProp("label", "Transistor"))),
           textInput(paste0("prop_", selected, "_label"), "Label", 
@@ -1509,7 +1549,7 @@ server <- function(input, output, session) {
           hr(),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
             class = "btn-primary btn-block",
-            onclick = sprintf("console.log('Apply button clicked for component %s, button ID: %s');", selected, paste0('apply_props_', selected)))
+            onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
         )
       } else if(comp_type == "matching") {
         tagList(
@@ -1529,7 +1569,7 @@ server <- function(input, output, session) {
             value = as.numeric(getProp("bandwidth", 10)), step = 1),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
             class = "btn-primary btn-block",
-            onclick = sprintf("console.log('Apply button clicked for component %s, button ID: %s');", selected, paste0('apply_props_', selected)))
+            onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
         )
       } else if(comp_type == "splitter") {
         tagList(
@@ -1547,7 +1587,7 @@ server <- function(input, output, session) {
             value = as.numeric(getProp("split_ratio", 0)), step = 0.5),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
             class = "btn-primary btn-block",
-            onclick = sprintf("console.log('Apply button clicked for component %s, button ID: %s');", selected, paste0('apply_props_', selected)))
+            onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
         )
       } else if(comp_type == "combiner") {
         tagList(
@@ -1571,7 +1611,7 @@ server <- function(input, output, session) {
           ),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
             class = "btn-primary btn-block",
-            onclick = sprintf("console.log('Apply button clicked for component %s, button ID: %s');", selected, paste0('apply_props_', selected)))
+            onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
         )
       } else {
         tagList(
@@ -1865,90 +1905,87 @@ server <- function(input, output, session) {
     )
   })
   
-  # Property apply button observer - dynamic for any component
-  observe({
+  # Property apply button observer - uses reactive approach for dynamic buttons
+  observeEvent(input$lineup_selected_component, {
     selected <- input$lineup_selected_component
     
     if(is.null(selected) || length(selected) == 0) return()
     
-    # Get the apply button ID - MUST access button value outside if() to create reactive dep
     btn_id <- paste0("apply_props_", selected)
-    btn_value <- input[[btn_id]]  # This creates the reactive dependency!
     
-    cat(sprintf("[Property Observer] Selected: %s, Button ID: %s, Button Value: %s\n", 
-                selected, btn_id, if(is.null(btn_value)) "NULL" else btn_value))
+    cat(sprintf("[Property Observer] Component %s selected, setting up observer for button: %s\n", 
+                selected, btn_id))
     
-    if(!is.null(btn_value) && btn_value > 0) {
-      cat(sprintf("[Property Observer] Apply button clicked! Value=%s, Collecting properties...\n", btn_value))
+    # Create a NEW observer for this specific button
+    observeEvent(input[[btn_id]], {
+      cat(sprintf("[Property Observer] Button %s clicked! Value: %s\n", 
+                  btn_id, input[[btn_id]]))
       
-      isolate({
-        components <- lineup_components()
-        
-        # Find the component
-        comp_idx <- which(sapply(components, function(c) {
-          if(is.list(c) && !is.null(c$id)) c$id == selected else FALSE
-        }))
-        
-        if(length(comp_idx) == 0) {
-          showNotification("Component not found", type = "error")
-          return()
-        }
-        
-        comp <- components[[comp_idx]]
-        comp_type <- if(is.list(comp) && !is.null(comp$type)) comp$type else "transistor"
-        
-        cat(sprintf("[Property Observer] Component type: %s\n", comp_type))
-        
-        # Collect properties based on component type (NOTE: IDs are prop_{id}_{field})
-        properties <- list()
-        
-        if(comp_type == "transistor") {
-          properties$label <- input[[paste0("prop_", selected, "_label")]]
-          properties$technology <- input[[paste0("prop_", selected, "_technology")]]
-          properties$gain <- input[[paste0("prop_", selected, "_gain")]]
-          properties$pout <- input[[paste0("prop_", selected, "_pout")]]
-          properties$p1db <- input[[paste0("prop_", selected, "_p1db")]]
-          properties$pae <- input[[paste0("prop_", selected, "_pae")]]
-          properties$vdd <- input[[paste0("prop_", selected, "_vdd")]]
-          properties$rth <- input[[paste0("prop_", selected, "_rth")]]
-          properties$freq <- input[[paste0("prop_", selected, "_freq")]]
-          properties$display <- input[[paste0("prop_", selected, "_display")]]
-        } else if(comp_type == "matching") {
-          properties$label <- input[[paste0("prop_", selected, "_label")]]
-          properties$type <- input[[paste0("prop_", selected, "_type")]]
-          properties$loss <- input[[paste0("prop_", selected, "_loss")]]
-          properties$z_in <- input[[paste0("prop_", selected, "_z_in")]]
-          properties$z_out <- input[[paste0("prop_", selected, "_z_out")]]
-          properties$bandwidth <- input[[paste0("prop_", selected, "_bandwidth")]]
-        } else if(comp_type == "splitter") {
-          properties$label <- input[[paste0("prop_", selected, "_label")]]
-          properties$type <- input[[paste0("prop_", selected, "_type")]]
-          properties$split_ratio <- input[[paste0("prop_", selected, "_split_ratio")]]
-          properties$isolation <- input[[paste0("prop_", selected, "_isolation")]]
-          properties$loss <- input[[paste0("prop_", selected, "_loss")]]
-        } else if(comp_type == "combiner") {
-          properties$label <- input[[paste0("prop_", selected, "_label")]]
-          properties$type <- input[[paste0("prop_", selected, "_type")]]
-          properties$isolation <- input[[paste0("prop_", selected, "_isolation")]]
-          properties$loss <- input[[paste0("prop_", selected, "_loss")]]
-          properties$load_modulation <- input[[paste0("prop_", selected, "_load_modulation")]]
-          properties$modulation_factor <- input[[paste0("prop_", selected, "_modulation_factor")]]
-        }
-        
-        cat(sprintf("[Property Observer] Collected properties: %s\n", 
-                    paste(names(properties), properties, sep="=", collapse=", ")))
-        
-        # Send to JavaScript
-        cat(sprintf("[Property Observer] Sending updateComponent message to JavaScript...\n"))
-        session$sendCustomMessage("updateComponent", list(
-          id = selected,
-          properties = properties
-        ))
-        
-        showNotification("Component properties updated", type = "message")
-      })
-    }
-  })
+      components <- lineup_components()
+      
+      # Find the component
+      comp_idx <- which(sapply(components, function(c) {
+        if(is.list(c) && !is.null(c$id)) c$id == selected else FALSE
+      }))
+      
+      if(length(comp_idx) == 0) {
+        showNotification("Component not found", type = "error")
+        return()
+      }
+      
+      comp <- components[[comp_idx]]
+      comp_type <- if(is.list(comp) && !is.null(comp$type)) comp$type else "transistor"
+      
+      cat(sprintf("[Property Observer] Component type: %s\n", comp_type))
+      
+      # Collect properties based on component type (NOTE: IDs are prop_{id}_{field})
+      properties <- list()
+      
+      if(comp_type == "transistor") {
+        properties$label <- input[[paste0("prop_", selected, "_label")]]
+        properties$technology <- input[[paste0("prop_", selected, "_technology")]]
+        properties$gain <- input[[paste0("prop_", selected, "_gain")]]
+        properties$pout <- input[[paste0("prop_", selected, "_pout")]]
+        properties$p1db <- input[[paste0("prop_", selected, "_p1db")]]
+        properties$pae <- input[[paste0("prop_", selected, "_pae")]]
+        properties$vdd <- input[[paste0("prop_", selected, "_vdd")]]
+        properties$rth <- input[[paste0("prop_", selected, "_rth")]]
+        properties$freq <- input[[paste0("prop_", selected, "_freq")]]
+        properties$display <- input[[paste0("prop_", selected, "_display")]]
+      } else if(comp_type == "matching") {
+        properties$label <- input[[paste0("prop_", selected, "_label")]]
+        properties$type <- input[[paste0("prop_", selected, "_type")]]
+        properties$loss <- input[[paste0("prop_", selected, "_loss")]]
+        properties$z_in <- input[[paste0("prop_", selected, "_z_in")]]
+        properties$z_out <- input[[paste0("prop_", selected, "_z_out")]]
+        properties$bandwidth <- input[[paste0("prop_", selected, "_bandwidth")]]
+      } else if(comp_type == "splitter") {
+        properties$label <- input[[paste0("prop_", selected, "_label")]]
+        properties$type <- input[[paste0("prop_", selected, "_type")]]
+        properties$split_ratio <- input[[paste0("prop_", selected, "_split_ratio")]]
+        properties$isolation <- input[[paste0("prop_", selected, "_isolation")]]
+        properties$loss <- input[[paste0("prop_", selected, "_loss")]]
+      } else if(comp_type == "combiner") {
+        properties$label <- input[[paste0("prop_", selected, "_label")]]
+        properties$type <- input[[paste0("prop_", selected, "_type")]]
+        properties$isolation <- input[[paste0("prop_", selected, "_isolation")]]
+        properties$loss <- input[[paste0("prop_", selected, "_loss")]]
+        properties$load_modulation <- input[[paste0("prop_", selected, "_load_modulation")]]
+        properties$modulation_factor <- input[[paste0("prop_", selected, "_modulation_factor")]]
+      }
+      
+      cat(sprintf("[Property Observer] Collected %d properties\n", length(properties)))
+      cat(sprintf("[Property Observer] Sending updateComponent message to JavaScript...\n"))
+      
+      # Send to JavaScript
+      session$sendCustomMessage("updateComponent", list(
+        id = selected,
+        properties = properties
+      ))
+      
+      showNotification("Component properties updated", type = "message")
+    }, ignoreNULL = TRUE, ignoreInit = TRUE)
+  }, ignoreNULL = TRUE, ignoreInit = FALSE)
   
   # Calculation results output
   output$lineup_results <- renderUI({

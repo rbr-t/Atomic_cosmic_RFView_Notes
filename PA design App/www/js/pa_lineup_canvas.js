@@ -212,7 +212,7 @@ class PALineupCanvas {
     
     // Notify Shiny
     if (window.Shiny) {
-      Shiny.setInputValue('lineup_components', this.components, {priority: 'event'});
+      Shiny.setInputValue('lineup_components', JSON.stringify(this.components), {priority: 'event'});
     }
     
     console.log('Component added:', component);
@@ -627,7 +627,7 @@ class PALineupCanvas {
     
     // Notify Shiny
     if (window.Shiny) {
-      Shiny.setInputValue('lineup_components', this.components, {priority: 'event'});
+      Shiny.setInputValue('lineup_components', JSON.stringify(this.components), {priority: 'event'});
     }
   }
   
@@ -887,26 +887,38 @@ class PALineupCanvas {
   }
   
   updateComponent(id, properties) {
-    console.log('updateComponent called with ID:', id, 'Properties:', properties);
+    console.log('=== updateComponent method called ===');
+    console.log('ID:', id, 'Type:', typeof id);
+    console.log('Properties:', properties);
+    console.log('Current components:', this.components);
     
     // Find component by ID
-    const comp = this.components.find(c => c.id === id);
+    const comp = this.components.find(c => {
+      console.log('Checking component:', c.id, 'Type:', typeof c.id, 'Match:', c.id == id);
+      return c.id == id; // Use == for loose comparison
+    });
+    
     if (!comp) {
-      console.warn('Component not found:', id);
+      console.warn('Component not found with ID:', id);
+      console.warn('Available component IDs:', this.components.map(c => c.id));
       return;
     }
     
     console.log('Found component:', comp);
+    console.log('Old properties:', JSON.stringify(comp.properties));
     
     // Update properties
     Object.assign(comp.properties, properties);
     
-    console.log('Updated component properties:', comp.properties);
+    console.log('New properties:', JSON.stringify(comp.properties));
     
     // Re-render the component
     const compElement = this.componentsLayer.select(`[data-id="${id}"]`);
+    console.log('Found DOM element:', !compElement.empty());
+    
     if (!compElement.empty()) {
       compElement.remove();
+      console.log('Removed old element');
     }
     
     // Render updated component
@@ -914,7 +926,9 @@ class PALineupCanvas {
       .attr('class', 'component')
       .attr('data-id', comp.id)
       .attr('transform', `translate(${comp.x}, ${comp.y})`)
-      .classed('selected', this.selectedComponent === id);
+      .classed('selected', this.selectedComponent && this.selectedComponent.id === comp.id);
+    
+    console.log('Created new group element');
     
     if (comp.type === 'transistor') {
       this.renderTransistor(g, comp);
@@ -926,15 +940,17 @@ class PALineupCanvas {
       this.renderCombiner(g, comp);
     }
     
+    console.log('Rendered component of type:', comp.type);
+    
     // Reapply drag behavior
     g.call(this.drag);
     
     // Update Shiny
     if (window.Shiny) {
-      Shiny.setInputValue('lineup_components', this.components, {priority: 'event'});
+      Shiny.setInputValue('lineup_components', JSON.stringify(this.components), {priority: 'event'});
     }
     
-    console.log('Component re-rendered successfully');
+    console.log('=== Component update complete ===');
   }
   
   deleteSelected() {
@@ -970,7 +986,7 @@ class PALineupCanvas {
     
     // Update Shiny
     if (window.Shiny) {
-      Shiny.setInputValue('lineup_components', this.components, {priority: 'event'});
+      Shiny.setInputValue('lineup_components', JSON.stringify(this.components), {priority: 'event'});
       Shiny.setInputValue('lineup_selected_component', null, {priority: 'event'});
       Shiny.setInputValue('lineup_connections', this.connections, {priority: 'event'});
     }
@@ -1116,66 +1132,159 @@ document.addEventListener('DOMContentLoaded', function() {
     const templates = document.querySelectorAll('.preset-template');
     console.log('Found preset templates:', templates.length);
     
-    templates.forEach(template => {
-      template.addEventListener('click', function() {
-        const preset = this.getAttribute('data-preset');
-        console.log('Preset clicked:', preset);
-        
-        if (!window.paCanvas) {
-          console.error('Canvas not initialized! Attempting to initialize...');
-          const initialized = initializePACanvas();
-          if (!initialized) {
-            alert('Canvas not ready. Please try again in a moment.');
-            return;
-          }
-          // Wait a bit for initialization to complete
-          setTimeout(() => {
-            if (window.paCanvas) {
-              if (preset === 'blank') {
-                window.paCanvas.clear();
-              } else {
-                window.paCanvas.loadPreset(preset);
-              }
-            }
-          }, 500);
-        } else {
-          if (preset === 'blank') {
-            window.paCanvas.clear();
-          } else {
-            window.paCanvas.loadPreset(preset);
-          }
+    if (templates.length === 0) {
+      console.warn('No preset templates found! Checking again in 1 second...');
+      setTimeout(function() {
+        const templates2 = document.querySelectorAll('.preset-template');
+        console.log('Second attempt - found templates:', templates2.length);
+        if (templates2.length > 0) {
+          setupTemplateHandlers(templates2);
         }
-        
-        // Visual feedback
-        templates.forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
-      });
-      
-      // Add hover effect
-      template.style.cursor = 'pointer';
-    });
+      }, 1000);
+    } else {
+      setupTemplateHandlers(templates);
+    }
   }, 1000);
 });
 
-// Custom message handlers for Shiny
-if (typeof Shiny !== 'undefined') {
-  console.log('Registering Shiny custom message handler: updateComponent');
+function setupTemplateHandlers(templates) {
+  console.log('Setting up click handlers for', templates.length, 'templates');
   
-  Shiny.addCustomMessageHandler('updateComponent', function(data) {
-    console.log('=== RECEIVED updateComponent MESSAGE FROM R ===');
-    console.log('Data:', data);
-    console.log('Component ID:', data.id);
-    console.log('Properties:', data.properties);
+  templates.forEach((template, index) => {
+    console.log('Template', index, ':', template.getAttribute('data-preset'));
     
-    if (window.paCanvas) {
-      console.log('Calling paCanvas.updateComponent...');
-      window.paCanvas.updateComponent(data.id, data.properties);
-    } else {
-      console.error('paCanvas not found! Cannot update component.');
-    }
+    template.addEventListener('click', function() {
+      const preset = this.getAttribute('data-preset');
+      console.log('=== TEMPLATE CLICKED ===');
+      console.log('Preset:', preset);
+      console.log('Canvas exists?', !!window.paCanvas);
+      
+      if (!window.paCanvas) {
+        console.error('Canvas not initialized! Attempting to initialize...');
+        alert('Initializing canvas...');
+        const initialized = initializePACanvas();
+        if (!initialized) {
+          alert('Canvas not ready. Please try again in a moment.');
+          return;
+        }
+        // Wait a bit for initialization to complete
+        setTimeout(() => {
+          if (window.paCanvas) {
+            console.log('Canvas initialized, loading preset:', preset);
+            if (preset === 'blank') {
+              window.paCanvas.clear();
+            } else {
+              window.paCanvas.loadPreset(preset);
+            }
+          }
+        }, 500);
+      } else {
+        console.log('Canvas ready, loading preset:', preset);
+        if (preset === 'blank') {
+          window.paCanvas.clear();
+        } else {
+          window.paCanvas.loadPreset(preset);
+        }
+      }
+      
+      // Visual feedback
+      templates.forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+    });
+    
+    // Add hover effect
+    template.style.cursor = 'pointer';
   });
   
-  console.log('Shiny message handler registered successfully');
+  console.log('✓ All template handlers set up successfully');
+}
+
+// Custom message handlers for Shiny
+console.log('pa_lineup_canvas.js: Script loaded at', new Date().toISOString());
+console.log('pa_lineup_canvas.js: Shiny object available?', typeof Shiny !== 'undefined');
+console.log('pa_lineup_canvas.js: window.Shiny available?', typeof window.Shiny !== 'undefined');
+
+// Function to register message handler (can be called multiple times safely)
+function registerMessageHandlers() {
+  if (typeof Shiny === 'undefined' && typeof window.Shiny === 'undefined') {
+    console.warn('Shiny not available yet, will retry...');
+    return false;
+  }
+  
+  const ShinyObj = typeof Shiny !== 'undefined' ? Shiny : window.Shiny;
+  
+  console.log('Registering Shiny custom message handler: updateComponent');
+  
+  // Remove existing handler if present
+  if (ShinyObj.addCustomMessageHandler) {
+    ShinyObj.addCustomMessageHandler('updateComponent', function(data) {
+      console.log('=== RECEIVED updateComponent MESSAGE FROM R ===');
+      console.log('Timestamp:', new Date().toISOString());
+      console.log('Data:', data);
+      console.log('Component ID:', data.id, 'Type:', typeof data.id);
+      console.log('Properties:', data.properties);
+      console.log('window.paCanvas exists?', !!window.paCanvas);
+      
+      if (!window.paCanvas) {
+        console.error('ERROR: paCanvas not found! Attempting to initialize...');
+        alert('Canvas not initialized! Check console for details.');
+        const success = initializePACanvas();
+        if (!success) {
+          console.error('Failed to initialize paCanvas');
+          alert('Canvas initialization failed. Please refresh the page.');
+          return;
+        }
+        // Wait a moment and try again
+        setTimeout(() => {
+          if (window.paCanvas) {
+            console.log('Canvas initialized, retrying update...');
+            window.paCanvas.updateComponent(data.id, data.properties);
+          }
+        }, 500);
+      } else {
+        console.log('Calling paCanvas.updateComponent with ID:', data.id);
+        try {
+          window.paCanvas.updateComponent(data.id, data.properties);
+          console.log('Update completed successfully');
+        } catch (e) {
+          console.error('Error updating component:', e);
+          console.error('Stack trace:', e.stack);
+          alert('Error updating component: ' + e.message);
+        }
+      }
+    });
+    
+    console.log('✓ Shiny message handler registered successfully');
+    return true;
+  } else {
+    console.error('ShinyObj.addCustomMessageHandler not available!');
+    return false;
+  }
+}
+
+// Try to register immediately
+if (typeof Shiny !== 'undefined' || typeof window.Shiny !== 'undefined') {
+  registerMessageHandlers();
 } else {
-  console.warn('Shiny object not available - message handler not registered');
+  console.warn('Shiny object not available - will register on DOMContentLoaded');
+}
+
+// Also try on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOMContentLoaded: Attempting to register message handlers');
+  registerMessageHandlers();
+});
+
+// And on window load
+window.addEventListener('load', function() {
+  console.log('Window load: Attempting to register message handlers');
+  registerMessageHandlers();
+});
+
+// And when Shiny is connected
+if (typeof $ !== 'undefined') {
+  $(document).on('shiny:connected', function() {
+    console.log('Shiny connected event: Registering message handlers');
+    registerMessageHandlers();
+  });
 }
