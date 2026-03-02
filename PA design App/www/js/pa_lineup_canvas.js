@@ -47,9 +47,45 @@ function toggleCanvasTopSidebar() {
   }
 }
 
+function toggleCanvasFullscreen() {
+  const container = document.getElementById('pa_lineup_canvas_container');
+  
+  if (!container) {
+    console.error('Canvas container not found!');
+    return;
+  }
+  
+  if (!document.fullscreenElement) {
+    // Enter fullscreen
+    container.requestFullscreen().then(() => {
+      console.log('Entered fullscreen');
+      container.classList.add('fullscreen-mode');
+      const btn = document.getElementById('fullscreen_btn');
+      if (btn) {
+        btn.innerHTML = '<i class="fa fa-compress"></i> Exit Fullscreen';
+      }
+    }).catch((err) => {
+      console.error('Error entering fullscreen:', err);
+    });
+  } else {
+    // Exit fullscreen
+    document.exitFullscreen().then(() => {
+      console.log('Exited fullscreen');
+      container.classList.remove('fullscreen-mode');
+      const btn = document.getElementById('fullscreen_btn');
+      if (btn) {
+        btn.innerHTML = '<i class="fa fa-expand"></i> Fullscreen';
+      }
+    }).catch((err) => {
+      console.error('Error exiting fullscreen:', err);
+    });
+  }
+}
+
 // Make functions globally accessible
 window.toggleCanvasSidebar = toggleCanvasSidebar;
 window.toggleCanvasTopSidebar = toggleCanvasTopSidebar;
+window.toggleCanvasFullscreen = toggleCanvasFullscreen;
 
 console.log('✓ Toggle functions loaded and exposed to window');
 
@@ -510,20 +546,20 @@ class PALineupCanvas {
       .attr('font-weight', 'bold')
       .text(component.properties.label || 'PA');
     
-    // Display options
-    const display = component.properties.display || ['technology', 'pout'];
-    let yOffset = 50;  // Start below the component
+    // Display technology text in center of triangle
+    const technology = component.properties.technology || 'GaN';
+    group.append('text')
+      .attr('x', 22)
+      .attr('y', 5)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#ffffff')
+      .attr('font-size', '11px')
+      .attr('font-weight', 'bold')
+      .text(technology);
     
-    if (display.includes('technology')) {
-      group.append('text')
-        .attr('x', 15)
-        .attr('y', -30)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#ff7f11')
-        .attr('font-size', '9px')
-        .attr('font-weight', 'bold')
-        .text(component.properties.technology || 'GaN');
-    }
+    // Display options
+    const display = component.properties.display || ['pout'];
+    let yOffset = 50;  // Start below the component
     
     if (display.includes('gain')) {
       group.append('text')
@@ -705,6 +741,7 @@ class PALineupCanvas {
     // Output ports
     const splitOutput1 = group.append('circle')
       .attr('class', 'port port-output')
+      .attr('data-port-id', 'output1')
       .attr('cx', 20)
       .attr('cy', -15)
       .attr('r', 4)
@@ -712,12 +749,13 @@ class PALineupCanvas {
       .attr('stroke', '#ff7f11')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'output'))
+      .on('click', (event) => this.handlePortClick(event, component, 'output1'))
       .on('mouseenter', () => this.onPortHover(splitOutput1.node(), true))
       .on('mouseleave', () => this.onPortHover(splitOutput1.node(), false));
     
     const splitOutput2 = group.append('circle')
       .attr('class', 'port port-output')
+      .attr('data-port-id', 'output2')
       .attr('cx', 20)
       .attr('cy', 15)
       .attr('r', 4)
@@ -725,7 +763,7 @@ class PALineupCanvas {
       .attr('stroke', '#ff7f11')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'output'))
+      .on('click', (event) => this.handlePortClick(event, component, 'output2'))
       .on('mouseenter', () => this.onPortHover(splitOutput2.node(), true))
       .on('mouseleave', () => this.onPortHover(splitOutput2.node(), false));
     
@@ -803,8 +841,9 @@ class PALineupCanvas {
       .attr('fill', '#ff00aa');
     
     // Input ports
-const combInput1 = group.append('circle')
+    const combInput1 = group.append('circle')
       .attr('class', 'port port-input')
+      .attr('data-port-id', 'input1')
       .attr('cx', -20)
       .attr('cy', -15)
       .attr('r', 4)
@@ -812,12 +851,13 @@ const combInput1 = group.append('circle')
       .attr('stroke', '#00ff88')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'input'))
+      .on('click', (event) => this.handlePortClick(event, component, 'input1'))
       .on('mouseenter', () => this.onPortHover(combInput1.node(), true))
       .on('mouseleave', () => this.onPortHover(combInput1.node(), false));
     
     const combInput2 = group.append('circle')
       .attr('class', 'port port-input')
+      .attr('data-port-id', 'input2')
       .attr('cx', -20)
       .attr('cy', 15)
       .attr('r', 4)
@@ -825,7 +865,7 @@ const combInput1 = group.append('circle')
       .attr('stroke', '#00ff88')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'input'))
+      .on('click', (event) => this.handlePortClick(event, component, 'input2'))
       .on('mouseenter', () => this.onPortHover(combInput2.node(), true))
       .on('mouseleave', () => this.onPortHover(combInput2.node(), false));
     
@@ -947,37 +987,41 @@ const combInput1 = group.append('circle')
    * Get the actual port position for a component based on type and port type
    * Returns {x, y} in canvas coordinates
    */
-  getPortPosition(component, portType, portIndex = 0) {
+  getPortPosition(component, portId = 'output') {
     const baseX = component.x;
     const baseY = component.y;
     
     switch (component.type) {
       case 'transistor':
-        return portType === 'input' 
+        return portId === 'input' || portId.startsWith('input')
           ? { x: baseX - 25, y: baseY }    // Input port at left
           : { x: baseX + 35, y: baseY };    // Output port at right
       
       case 'matching':
-        return portType === 'input'
+        return portId === 'input' || portId.startsWith('input')
           ? { x: baseX - 20, y: baseY }    // Input port
           : { x: baseX + 20, y: baseY };    // Output port
       
       case 'splitter':
-        if (portType === 'input') {
+        if (portId === 'input' || portId.startsWith('input')) {
           return { x: baseX - 20, y: baseY };  // Single input
+        } else if (portId === 'output1') {
+          return { x: baseX + 20, y: baseY - 15 };  // Upper output
+        } else if (portId === 'output2') {
+          return { x: baseX + 20, y: baseY + 15 };  // Lower output
         } else {
-          // Two output ports
-          return portIndex === 0
-            ? { x: baseX + 20, y: baseY - 15 }  // Upper output
-            : { x: baseX + 20, y: baseY + 15 };  // Lower output
+          // Default to first output for legacy
+          return { x: baseX + 20, y: baseY - 15 };
         }
       
       case 'combiner':
-        if (portType === 'input') {
-          // Two input ports
-          return portIndex === 0
-            ? { x: baseX - 20, y: baseY - 15 }  // Upper input
-            : { x: baseX - 20, y: baseY + 15 };  // Lower input
+        if (portId === 'input1') {
+          return { x: baseX - 20, y: baseY - 15 };  // Upper input
+        } else if (portId === 'input2') {
+          return { x: baseX - 20, y: baseY + 15 };  // Lower input
+        } else if (portId === 'input' || portId.startsWith('input')) {
+          // Default to first input for legacy
+          return { x: baseX - 20, y: baseY - 15 };
         } else {
           return { x: baseX + 20, y: baseY };    // Single output
         }
@@ -1065,44 +1109,66 @@ const combInput1 = group.append('circle')
       load_modulation: true
     });
     
-    console.log('Single Driver Doherty created');
+    // Create pre-connected wires
+    this.createConnection(driver.id, match.id, 'output', 'input');
+    this.createConnection(match.id, splitter.id, 'output', 'input');
+    this.createConnection(splitter.id, mainPA.id, 'output1', 'input');
+    this.createConnection(splitter.id, auxPA.id, 'output2', 'input');
+    this.createConnection(mainPA.id, combiner.id, 'output', 'input1');
+    this.createConnection(auxPA.id, combiner.id, 'output', 'input2');
+    
+    console.log('Single Driver Doherty created with connections');
   }
   
   createDualDriverDoherty() {
     console.log('Creating Dual Driver Doherty preset...');
     
     // Main driver
-    this.addComponent('transistor', 100, 250, {label: 'Main Driver'});
+    const mainDriver = this.addComponent('transistor', 100, 250, {label: 'Main Driver'});
     // Aux driver  
-    this.addComponent('transistor', 100, 350, {label: 'Aux Driver'});
+    const auxDriver = this.addComponent('transistor', 100, 350, {label: 'Aux Driver'});
     // Matching networks
-    this.addComponent('matching', 200, 250);
-    this.addComponent('matching', 200, 350);
+    const mainMatch = this.addComponent('matching', 200, 250);
+    const auxMatch = this.addComponent('matching', 200, 350);
     // Main PA
-    this.addComponent('transistor', 350, 250, {label: 'Main PA', pout: 46});
+    const mainPA = this.addComponent('transistor', 350, 250, {label: 'Main PA', pout: 46});
     // Aux PA
-    this.addComponent('transistor', 350, 350, {label: 'Aux PA', pout: 43});
+    const auxPA = this.addComponent('transistor', 350, 350, {label: 'Aux PA', pout: 43});
     // Combiner
-    this.addComponent('combiner', 500, 300, {
+    const combiner = this.addComponent('combiner', 500, 300, {
       label: 'Doherty',
       type: 'Doherty',
       load_modulation: true
     });
     
-    console.log('Dual Driver Doherty created');
+    // Create pre-connected wires
+    this.createConnection(mainDriver.id, mainMatch.id, 'output', 'input');
+    this.createConnection(auxDriver.id, auxMatch.id, 'output', 'input');
+    this.createConnection(mainMatch.id, mainPA.id, 'output', 'input');
+    this.createConnection(auxMatch.id, auxPA.id, 'output', 'input');
+    this.createConnection(mainPA.id, combiner.id, 'output', 'input1');
+    this.createConnection(auxPA.id, combiner.id, 'output', 'input2');
+    
+    console.log('Dual Driver Doherty created with connections');
   }
   
   createTripleStage() {
     console.log('Creating Triple Stage preset...');
     
     // Simple 3-stage cascade
-    this.addComponent('transistor', 150, 300, {label: 'Pre-driver', gain: 12});
-    this.addComponent('matching', 250, 300);
-    this.addComponent('transistor', 350, 300, {label: 'Driver', gain: 15});
-    this.addComponent('matching', 450, 300);
-    this.addComponent('transistor', 550, 300, {label: 'Final PA', gain: 12, pout: 46});
+    const predriver = this.addComponent('transistor', 150, 300, {label: 'Pre-driver', gain: 12});
+    const match1 = this.addComponent('matching', 250, 300);
+    const driver = this.addComponent('transistor', 350, 300, {label: 'Driver', gain: 15});
+    const match2 = this.addComponent('matching', 450, 300);
+    const finalPA = this.addComponent('transistor', 550, 300, {label: 'Final PA', gain: 12, pout: 46});
     
-    console.log('Triple Stage created');
+    // Create pre-connected wires
+    this.createConnection(predriver.id, match1.id, 'output', 'input');
+    this.createConnection(match1.id, driver.id, 'output', 'input');
+    this.createConnection(driver.id, match2.id, 'output', 'input');
+    this.createConnection(match2.id, finalPA.id, 'output', 'input');
+    
+    console.log('Triple Stage created with connections');
   }
   
   // Zoom control methods
@@ -1153,9 +1219,18 @@ const combInput1 = group.append('circle')
     } else {
       // Second port clicked - complete wire
       // Validate connection (output -> input, and not same component)
-      if (this.wireStart.portType === 'output' && portType === 'input' && 
+      const isOutputPort = portType.startsWith('output');
+      const isInputPort = portType.startsWith('input');
+      const isStartOutput = this.wireStart.portType.startsWith('output');
+      
+      if (isStartOutput && isInputPort && 
           this.wireStart.componentId !== component.id) {
-        this.createConnection(this.wireStart.componentId, component.id);
+        this.createConnection(
+          this.wireStart.componentId, 
+          component.id, 
+          this.wireStart.portType, 
+          portType
+        );
         
         // Clear highlighted port
         this.clearPortHighlights();
@@ -1192,14 +1267,14 @@ const combInput1 = group.append('circle')
     }
   }
   
-  createConnection(fromId, toId) {
-    // Check if connection already exists
+  createConnection(fromId, toId, fromPort = 'output', toPort = 'input') {
+    // Check if connection already exists from same port
     const existing = this.connections.find(c => 
-      c.from === fromId && c.to === toId
+      c.from === fromId && c.to === toId && c.fromPort === fromPort && c.toPort === toPort
     );
     
     if (existing) {
-      console.warn('Connection already exists between these components');
+      console.warn('Connection already exists between these ports');
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
           message: 'Connection already exists',
@@ -1214,6 +1289,8 @@ const combInput1 = group.append('circle')
       id: this.connections.length + 1,
       from: fromId,
       to: toId,
+      fromPort: fromPort,
+      toPort: toPort,
       properties: {
         impedance: 50,
         length: 0.25,
@@ -1317,9 +1394,11 @@ const combInput1 = group.append('circle')
         return;
       }
       
-      // Get actual port positions using the new function
-      const fromPort = this.getPortPosition(fromComp, 'output', 0);
-      const toPort = this.getPortPosition(toComp, 'input', 0);
+      // Get actual port positions using port IDs from connection
+      const fromPortId = connection.fromPort || 'output';
+      const toPortId = connection.toPort || 'input';
+      const fromPort = this.getPortPosition(fromComp, fromPortId);
+      const toPort = this.getPortPosition(toComp, toPortId);
       
       const x1 = fromPort.x;
       const y1 = fromPort.y;
@@ -1821,6 +1900,31 @@ const combInput1 = group.append('circle')
   // ============================================================
   // CUT/COPY/PASTE FUNCTIONALITY
   // ============================================================
+  // Cut/Copy/Paste Operations
+  // ============================================================
+  
+  selectAll() {
+    // Deselect all (equivalent to pressing Esc)
+    this.selectedComponent = null;
+    this.selectedConnection = null;
+    d3.selectAll('.component').classed('selected', false);
+    d3.selectAll('.connection-line').classed('selected', false);
+    
+    if (this.wireMode) {
+      this.wireMode = false;
+      this.wireStart = null;
+      if (this.tempWireLine) {
+        this.tempWireLine.remove();
+        this.tempWireLine = null;
+      }
+      const wireModeBtn = document.getElementById('wire_mode_btn');
+      if (wireModeBtn) {
+        wireModeBtn.classList.remove('active');
+      }
+    }
+    
+    console.log('Deselected all components and connections');
+  }
   
   copy() {
     if (!this.selectedComponent) {
@@ -2197,7 +2301,33 @@ const combInput1 = group.append('circle')
       
       // Determine if component is above or below center line
       const isAboveCenterLine = comp.y < centerY;
-      const infoY = isAboveCenterLine ? paddingTop : paddingBottom - 100; // 100 is approx box height
+      
+      // Get component bounding box to calculate outer edge distance
+      const compElement = this.componentsLayer.select(`[data-component-id="${comp.id}"]`);
+      let componentBoundary = comp.y; // Default to center position
+      
+      if (compElement && !compElement.empty()) {
+        try {
+          const bbox = compElement.node().getBBox();
+          // Calculate outer edge based on position relative to center
+          if (isAboveCenterLine) {
+            componentBoundary = comp.y + bbox.y; // Top edge
+          } else {
+            componentBoundary = comp.y + bbox.y + bbox.height; // Bottom edge
+          }
+        } catch (e) {
+          console.warn('Could not get bbox for component', comp.id, e);
+        }
+      }
+      
+      // Calculate distance from center to component outer edge
+      const distanceFromCenter = Math.abs(componentBoundary - centerY);
+      
+      // Position box 20% beyond the component boundary
+      const boxOffset = distanceFromCenter * 0.2;
+      const infoY = isAboveCenterLine 
+        ? componentBoundary - boxOffset - 110 // Above: move up (110 is approx box height)
+        : componentBoundary + boxOffset; // Below: move down
       
       // Draw power information box
       const infoGroup = this.powerLayer.append('g')

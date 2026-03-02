@@ -471,17 +471,52 @@ ui <- dashboardPage(
                             class = "sidebar-section",
                             div(class = "sidebar-section-title", icon("cogs"), " Actions"),
                             tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.toggleWireMode();",
+                              id = "wire_mode_btn",
+                              class = "btn btn-info btn-block btn-sm",
+                              icon("project-diagram"),
+                              " Wire Mode"
+                            ),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.selectAll();",
+                              id = "select_all_btn",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("check-square"),
+                              " Select (Esc)"
+                            ),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.copy();",
+                              id = "copy_btn",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("copy"),
+                              " Copy (Ctrl+C)"
+                            ),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.cut();",
+                              id = "cut_btn",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("cut"),
+                              " Cut (Ctrl+X)"
+                            ),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.paste();",
+                              id = "paste_btn",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("paste"),
+                              " Paste (Ctrl+V)"
+                            ),
+                            tags$button(
                               onclick = "if(window.paCanvas) paCanvas.deleteSelected();",
                               class = "btn btn-danger btn-block btn-sm",
                               icon("trash"),
                               " Delete"
                             ),
                             tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.toggleWireMode();",
-                              id = "wire_mode_btn",
-                              class = "btn btn-info btn-block btn-sm",
-                              icon("project-diagram"),
-                              " Wire Mode"
+                              onclick = "toggleCanvasFullscreen();",
+                              id = "fullscreen_btn",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("expand"),
+                              " Fullscreen"
                             ),
                             tags$button(
                               onclick = "if(window.paCanvas) paCanvas.undo();",
