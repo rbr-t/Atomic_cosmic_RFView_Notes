@@ -505,6 +505,13 @@ ui <- dashboardPage(
                               " Power Display"
                             ),
                             tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.togglePowerUnit();",
+                              id = "power_unit_toggle",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("ruler"),
+                              " Unit: dBm"
+                            ),
+                            tags$button(
                               onclick = "if(window.paCanvas) paCanvas.clear();",
                               class = "btn btn-warning btn-block btn-sm",
                               icon("eraser"),

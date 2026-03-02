@@ -84,6 +84,10 @@ class PALineupCanvas {
     // Power display columns
     this.showPowerDisplay = false;
     this.powerColumns = [];
+    this.powerUnit = 'dBm'; // 'dBm', 'W', or 'both'
+    
+    // Central divider line
+    this.showCentralLine = true;
     
     this.init();
   }
@@ -119,14 +123,23 @@ class PALineupCanvas {
     
     // Create groups for layers
     this.gridLayer = this.svg.append('g').attr('class', 'grid-layer');
+    this.centralLineLayer = this.svg.append('g').attr('class', 'central-line-layer');
+    this.powerLayer = this.svg.append('g').attr('class', 'power-layer');
     this.connectionsLayer = this.svg.append('g').attr('class', 'connections-layer');
     this.componentsLayer = this.svg.append('g').attr('class', 'components-layer');
     
     // Create zoom group that contains all drawable layers
     this.zoomGroup = this.svg.insert('g', ':first-child').attr('class', 'zoom-group');
     this.zoomGroup.node().appendChild(this.gridLayer.node());
+    this.zoomGroup.node().appendChild(this.centralLineLayer.node());
+    this.zoomGroup.node().appendChild(this.powerLayer.node());
     this.zoomGroup.node().appendChild(this.connectionsLayer.node());
     this.zoomGroup.node().appendChild(this.componentsLayer.node());
+    
+    // Draw central divider line
+    if (this.showCentralLine) {
+      this.drawCentralLine();
+    }
     
     // Add zoom behavior
     this.zoom = d3.zoom()
@@ -195,6 +208,30 @@ class PALineupCanvas {
         .attr('stroke', '#2a2a2a')
         .attr('stroke-width', 0.5);
     }
+  }
+  
+  drawCentralLine() {
+    // Draw a horizontal line at canvas center to demarcate main/aux sections
+    const centerY = this.height / 2;
+    
+    this.centralLineLayer.append('line')
+      .attr('x1', 0)
+      .attr('y1', centerY)
+      .attr('x2', this.width)
+      .attr('y2', centerY)
+      .attr('stroke', '#00aaff')
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', '10,5')
+      .attr('opacity', 0.3);
+    
+    // Add label
+    this.centralLineLayer.append('text')
+      .attr('x', this.width - 100)
+      .attr('y', centerY - 10)
+      .attr('fill', '#00aaff')
+      .attr('font-size', '12px')
+      .attr('opacity', 0.5)
+      .text('Main/Aux Divider');
   }
   
   createPalette() {
@@ -415,6 +452,15 @@ class PALineupCanvas {
     group.on('click', (event) => {
       event.stopPropagation();
       this.selectComponent(component);
+    });
+    
+    // Add hover behavior for power display
+    group.on('mouseenter', (event) => {
+      this.showPowerTooltip(component, event);
+    });
+    
+    group.on('mouseleave', () => {
+      this.hidePowerTooltip();
     });
   }
   
@@ -865,6 +911,9 @@ const combInput1 = group.append('circle')
     if (this.showPowerDisplay) {
       this.drawPowerColumns();
     }
+    
+    // Save to history after drag completes
+    this.saveHistory();
     
     // Notify Shiny
     if (window.Shiny) {
@@ -1519,6 +1568,9 @@ const combInput1 = group.append('circle')
     // Clear selection
     this.selectedComponent = null;
     
+    // Save to history after deletion
+    this.saveHistory();
+    
     // Update Shiny
     if (window.Shiny) {
       Shiny.setInputValue('lineup_components', JSON.stringify(this.components), {priority: 'event'});
@@ -1946,6 +1998,131 @@ const combInput1 = group.append('circle')
   // POWER DISPLAY COLUMNS
   // ============================================================
   
+  togglePowerUnit() {
+    // Cycle through dBm -> W -> both -> dBm
+    const units = ['dBm', 'W', 'both'];
+    const currentIndex = units.indexOf(this.powerUnit);
+    this.powerUnit = units[(currentIndex + 1) % units.length];
+    
+    console.log('Power unit changed to:', this.powerUnit);
+    
+    // Update button text
+    const btn = document.getElementById('power_unit_toggle');
+    if (btn) {
+      const labels = { 'dBm': 'dBm', 'W': 'Watts', 'both': 'Both' };
+      btn.textContent = ` Unit: ${labels[this.powerUnit]}`;
+    }
+    
+    // Redraw power display if active
+    if (this.showPowerDisplay) {
+      this.drawPowerColumns();
+    }
+    
+    if (window.Shiny && window.Shiny.notifications) {
+      Shiny.notifications.show({
+        message: `Power unit: ${this.powerUnit}`,
+        type: 'message',
+        duration: 1
+      });
+    }
+  }
+  
+  showPowerTooltip(component, event) {
+    // Calculate power for this component
+    const index = this.components.findIndex(c => c.id === component.id);
+    
+    // Get previous component's output power
+    let previousPout = 0;
+    if (index > 0) {
+      const sortedComponents = [...this.components].sort((a, b) => a.x - b.x);
+      const sortedIndex = sortedComponents.findIndex(c => c.id === component.id);
+      if (sortedIndex > 0) {
+        const prevComp = sortedComponents[sortedIndex - 1];
+        const prevPowerInfo = this.calculateComponentPower(prevComp, 0, sortedIndex - 1 === 0);
+        previousPout = prevPowerInfo.pout_dbm;
+      }
+    }
+    
+    const powerInfo = this.calculateComponentPower(component, previousPout, index === 0);
+    
+    // Create or update tooltip
+    if (!this.powerTooltip) {
+      this.powerTooltip = this.svg.append('g')
+        .attr('class', 'power-tooltip')
+        .style('pointer-events', 'none');
+    }
+    
+    this.powerTooltip.selectAll('*').remove();
+    
+    // Position tooltip near component
+    const tooltipX = component.x + 80;
+    const tooltipY = component.y - 60;
+    
+    // Background
+    this.powerTooltip.append('rect')
+      .attr('x', tooltipX)
+      .attr('y', tooltipY)
+      .attr('width', 150)
+      .attr('height', powerInfo.power_bo_dbm ? 95 : 80)
+      .attr('fill', '#000')
+      .attr('stroke', '#00aaff')
+      .attr('stroke-width', 2)
+      .attr('rx', 5)
+      .attr('opacity', 0.95);
+    
+    let yPos = tooltipY + 20;
+    
+    // Input power
+    const pinText = this.formatPower(powerInfo.pin_dbm, this.powerUnit);
+    this.powerTooltip.append('text')
+      .attr('x', tooltipX + 10)
+      .attr('y', yPos)
+      .attr('fill', '#00ff88')
+      .attr('font-size', '11px')
+      .text(`Pin: ${pinText}`);
+    yPos += 18;
+    
+    // Output power
+    const poutText = this.formatPower(powerInfo.pout_dbm, this.powerUnit);
+    this.powerTooltip.append('text')
+      .attr('x', tooltipX + 10)
+      .attr('y', yPos)
+      .attr('fill', '#ff7f11')
+      .attr('font-size', '11px')
+      .text(`Pout: ${poutText}`);
+    yPos += 18;
+    
+    // P1dB (if available)
+    if (powerInfo.p1db_dbm) {
+      const p1dbText = this.formatPower(powerInfo.p1db_dbm, this.powerUnit);
+      this.powerTooltip.append('text')
+        .attr('x', tooltipX + 10)
+        .attr('y', yPos)
+        .attr('fill', '#ffaa00')
+        .attr('font-size', '11px')
+        .text(`P1dB: ${p1dbText}`);
+      yPos += 18;
+    }
+    
+    // Power at back-off
+    if (powerInfo.power_bo_dbm) {
+      const pboText = this.formatPower(powerInfo.power_bo_dbm, this.powerUnit);
+      this.powerTooltip.append('text')
+        .attr('x', tooltipX + 10)
+        .attr('y', yPos)
+        .attr('fill', '#ffaa00')
+        .attr('font-size', '11px')
+        .text(`P_BO: ${pboText}`);
+    }
+  }
+  
+  hidePowerTooltip() {
+    if (this.powerTooltip) {
+      this.powerTooltip.remove();
+      this.powerTooltip = null;
+    }
+  }
+  
   togglePowerDisplay() {
     this.showPowerDisplay = !this.showPowerDisplay;
     
@@ -1986,12 +2163,6 @@ const combInput1 = group.append('circle')
   drawPowerColumns() {
     if (!this.showPowerDisplay) return;
     
-    // Create power layer if it doesn't exist
-    if (!this.powerLayer) {
-      this.powerLayer = this.svg.insert('g', ':first-child')
-        .attr('class', 'power-layer');
-    }
-    
     // Clear existing power display
     this.powerLayer.selectAll('*').remove();
     
@@ -1999,6 +2170,11 @@ const combInput1 = group.append('circle')
     
     // Sort components by x position (signal flow left to right)
     const sortedComponents = [...this.components].sort((a, b) => a.x - b.x);
+    
+    // Calculate 20% padding from boundaries
+    const paddingTop = this.height * 0.2;
+    const paddingBottom = this.height * 0.8;
+    const centerY = this.height / 2;
     
     // Calculate power at each stage
     let currentPower = 0; // Will be set from first component
@@ -2019,16 +2195,21 @@ const combInput1 = group.append('circle')
       // Calculate input and output power for this component
       const powerInfo = this.calculateComponentPower(comp, currentPower, index === 0);
       
-      // Draw power information box at top left of column
-      const infoGroup = this.powerLayer.append('g')
-        .attr('transform', `translate(${x - columnWidth/2 + 10}, 20)`);
+      // Determine if component is above or below center line
+      const isAboveCenterLine = comp.y < centerY;
+      const infoY = isAboveCenterLine ? paddingTop : paddingBottom - 100; // 100 is approx box height
       
-      // Background box
+      // Draw power information box
+      const infoGroup = this.powerLayer.append('g')
+        .attr('transform', `translate(${x - columnWidth/2 + 10}, ${infoY})`);
+      
+      // Background box (height depends on content)
+      const boxHeight = powerInfo.power_bo_dbm ? 100 : 85;
       infoGroup.append('rect')
         .attr('x', 0)
         .attr('y', 0)
         .attr('width', 130)
-        .attr('height', 85)
+        .attr('height', boxHeight)
         .attr('fill', '#1a1a1a')
         .attr('stroke', '#00aaff')
         .attr('stroke-width', 1)
@@ -2044,49 +2225,60 @@ const combInput1 = group.append('circle')
         .attr('font-weight', 'bold')
         .text(comp.properties.label || comp.type);
       
+      let yOffset = 32;
+      
       // Input power
+      const pinText = this.formatPower(powerInfo.pin_dbm, this.powerUnit);
       infoGroup.append('text')
         .attr('x', 5)
-        .attr('y', 32)
+        .attr('y', yOffset)
         .attr('fill', '#00ff88')
         .attr('font-size', '10px')
-        .text(`Pin: ${powerInfo.pin_dbm.toFixed(1)} dBm`);
+        .text(`Pin: ${pinText}`);
+      yOffset += 15;
       
       // Output power
+      const poutText = this.formatPower(powerInfo.pout_dbm, this.powerUnit);
       infoGroup.append('text')
         .attr('x', 5)
-        .attr('y', 47)
+        .attr('y', yOffset)
         .attr('fill', '#ff7f11')
         .attr('font-size', '10px')
-        .text(`Pout: ${powerInfo.pout_dbm.toFixed(1)} dBm`);
+        .text(`Pout: ${poutText}`);
+      yOffset += 15;
       
       // P1dB (if available)
       if (powerInfo.p1db_dbm) {
+        const p1dbText = this.formatPower(powerInfo.p1db_dbm, this.powerUnit);
         infoGroup.append('text')
           .attr('x', 5)
-          .attr('y', 62)
+          .attr('y', yOffset)
           .attr('fill', '#ffaa00')
           .attr('font-size', '10px')
-          .text(`P1dB: ${powerInfo.p1db_dbm.toFixed(1)} dBm`);
+          .text(`P1dB: ${p1dbText}`);
+        yOffset += 15;
       }
       
-      // Back-off (if applicable)
-      if (powerInfo.backoff_db) {
+      // Power at back-off (if applicable)
+      if (powerInfo.power_bo_dbm) {
+        const pboText = this.formatPower(powerInfo.power_bo_dbm, this.powerUnit);
         infoGroup.append('text')
           .attr('x', 5)
-          .attr('y', 77)
+          .attr('y', yOffset)
           .attr('fill', '#ffaa00')
           .attr('font-size', '10px')
-          .text(`BO: ${powerInfo.backoff_db.toFixed(1)} dB`);
+          .text(`P_BO: ${pboText}`);
+        yOffset += 15;
       }
       
       // Forward arrow (signal flow direction)
       if (index < sortedComponents.length - 1) {
         const nextX = sortedComponents[index + 1].x;
         const arrowX = x + (nextX - x) / 2;
+        const arrowY = isAboveCenterLine ? paddingTop + 40 : paddingBottom - 60;
         
         this.powerLayer.append('path')
-          .attr('d', `M ${arrowX - 20},30 L ${arrowX + 10},30 L ${arrowX + 5},25 M ${arrowX + 10},30 L ${arrowX + 5},35`)
+          .attr('d', `M ${arrowX - 20},${arrowY} L ${arrowX + 10},${arrowY} L ${arrowX + 5},${arrowY - 5} M ${arrowX + 10},${arrowY} L ${arrowX + 5},${arrowY + 5}`)
           .attr('stroke', '#00aaff')
           .attr('stroke-width', 2)
           .attr('fill', 'none');
@@ -2099,9 +2291,25 @@ const combInput1 = group.append('circle')
     console.log('Power columns drawn for', sortedComponents.length, 'components');
   }
   
+  formatPower(power_dbm, unit) {
+    // Convert dBm to Watts
+    const power_w = Math.pow(10, power_dbm / 10) / 1000;
+    
+    switch (unit) {
+      case 'dBm':
+        return `${power_dbm.toFixed(1)} dBm`;
+      case 'W':
+        return `${power_w.toFixed(3)} W`;
+      case 'both':
+        return `${power_dbm.toFixed(1)} dBm (${power_w.toFixed(3)} W)`;
+      default:
+        return `${power_dbm.toFixed(1)} dBm`;
+    }
+  }
+  
   calculateComponentPower(component, previousPout, isFirst) {
     const props = component.properties;
-    let pin_dbm, pout_dbm, p1db_dbm, backoff_db;
+    let pin_dbm, pout_dbm, p1db_dbm, backoff_db, power_bo_dbm;
     
     // Get input power
     if (isFirst) {
@@ -2118,7 +2326,18 @@ const combInput1 = group.append('circle')
         const gain = props.gain || 10;
         pout_dbm = pin_dbm + gain;
         p1db_dbm = props.pout || 40; // P1dB from properties
-        backoff_db = p1db_dbm - pout_dbm; // Back-off from P1dB
+        
+        // Get back-off value from properties or calculate from PAPR
+        if (props.backoff_db !== undefined) {
+          backoff_db = props.backoff_db;
+        } else if (props.papr_db !== undefined) {
+          backoff_db = props.papr_db; // PAPR = back-off for this calculation
+        } else {
+          backoff_db = p1db_dbm - pout_dbm; // Default: back-off from P1dB
+        }
+        
+        // Calculate power at back-off
+        power_bo_dbm = p1db_dbm - backoff_db;
         break;
         
       case 'matching':
@@ -2146,7 +2365,8 @@ const combInput1 = group.append('circle')
       pin_dbm,
       pout_dbm,
       p1db_dbm,
-      backoff_db
+      backoff_db,
+      power_bo_dbm
     };
   }
   
