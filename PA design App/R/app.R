@@ -196,6 +196,7 @@ ui <- dashboardPage(
             width = 12,
             status = "primary",
             solidHeader = TRUE,
+            collapsible = TRUE,
             selectInput("calc_project_select", "Select Project", choices = NULL),
             verbatimTextOutput("calc_project_specs")
           )
@@ -413,11 +414,49 @@ ui <- dashboardPage(
                   box(
                     title = "Canvas Actions",
                     width = 12,
-                    div(class = "lineup-actions",
-                      actionButton("lineup_save_config", "Save Configuration", icon = icon("save"), class = "success"),
-                      actionButton("lineup_load_config", "Load Configuration", icon = icon("folder-open")),
-                      actionButton("lineup_export_diagram", "Export Diagram", icon = icon("image")),
-                      actionButton("lineup_generate_report", "Generate Report", icon = icon("file-pdf"))
+                    div(style = "display: flex; gap: 10px; flex-wrap: wrap;",
+                      # Zoom Controls
+                      div(style = "display: flex; gap: 5px; padding: 5px; background: #2a2a2a; border-radius: 4px;",
+                        tags$button(
+                          onclick = "if(window.paCanvas){paCanvas.zoomIn();}",
+                          class = "btn btn-default btn-sm",
+                          icon("search-plus"),
+                          title = "Zoom In"
+                        ),
+                        tags$button(
+                          onclick = "if(window.paCanvas){paCanvas.zoomOut();}",
+                          class = "btn btn-default btn-sm",
+                          icon("search-minus"),
+                          title = "Zoom Out"
+                        ),
+                        tags$button(
+                          onclick = "if(window.paCanvas){paCanvas.resetZoom();}",
+                          class = "btn btn-default btn-sm",
+                          icon("home"),
+                          title = "Reset View"
+                        )
+                      ),
+                      # Component Actions
+                      tags$button(
+                        onclick = "if(window.paCanvas){paCanvas.deleteSelected();}",
+                        class = "btn btn-danger btn-sm",
+                        icon("trash"),
+                        "Delete",
+                        title = "Delete Selected Component"
+                      ),
+                      tags$button(
+                        onclick = "if(window.paCanvas){paCanvas.toggleWireMode();}",
+                        id = "wire_mode_btn",
+                        class = "btn btn-info btn-sm",
+                        icon("project-diagram"),
+                        "Wire",
+                        title = "Draw Connection Wire"
+                      ),
+                      # File Actions
+                      actionButton("lineup_save_config", "Save", icon = icon("save"), class = "btn-success btn-sm"),
+                      actionButton("lineup_load_config", "Load", icon = icon("folder-open"), class = "btn-sm"),
+                      actionButton("lineup_export_diagram", "Export", icon = icon("image"), class = "btn-sm"),
+                      actionButton("lineup_generate_report", "Report", icon = icon("file-pdf"), class = "btn-sm")
                     )
                   )
                 ),
@@ -428,6 +467,7 @@ ui <- dashboardPage(
                   box(
                     title = "Component Properties",
                     width = 12,
+                    collapsible = TRUE,
                     status = "warning",
                     solidHeader = TRUE,
                     uiOutput("lineup_property_editor")
@@ -1338,7 +1378,20 @@ server <- function(input, output, session) {
   # Update component list when canvas changes
   observeEvent(input$lineup_components, {
     if(!is.null(input$lineup_components)) {
-      lineup_components(input$lineup_components)
+      # Ensure components are properly formatted as a list
+      comps <- input$lineup_components
+      
+      # Debug output
+      # print("Received components from JavaScript:")
+      # print(str(comps))
+      
+      # If it's already a list, use it directly
+      if(is.list(comps)) {
+        lineup_components(comps)
+      } else {
+        # Otherwise, try to convert it
+        lineup_components(as.list(comps))
+      }
     }
   })
   
@@ -1358,87 +1411,184 @@ server <- function(input, output, session) {
       return(tags$div(style = "padding: 20px;", "No components in lineup"))
     }
     
+    # Debug: Check component structure
+    # print(paste("Selected component ID:", selected))
+    # print(paste("Components structure:", str(components)))
+    
+    # Find the selected component
     comp <- NULL
-    for(c in components) {
-      if(!is.null(c$id) && c$id == selected) {
-        comp <- c
-        break
+    tryCatch({
+      for(i in seq_along(components)) {
+        c <- components[[i]]
+        # Handle both list and vector access
+        comp_id <- if(is.list(c)) c$id else if(is.vector(c) && "id" %in% names(c)) c["id"] else NULL
+        
+        if(!is.null(comp_id) && comp_id == selected) {
+          comp <- c
+          break
+        }
       }
-    }
+    }, error = function(e) {
+      print(paste("Error finding component:", e$message))
+    })
     
     if(is.null(comp)) {
-      return(tags$div(style = "padding: 20px;", "Component not found"))
+      return(tags$div(
+        style = "padding: 20px; color: #888;",
+        "Component not found. ID: ", selected,
+        tags$br(),
+        tags$small("Try clicking on a component again")
+      ))
     }
     
-    props <- comp$properties
-    comp_type <- comp$type
-    
-    # Generate property inputs based on component type
-    if(comp_type == "transistor") {
-      tagList(
-        h4(paste0("Transistor: ", props$label)),
-        textInput(paste0("prop_", selected, "_label"), "Label", value = props$label),
-        selectInput(paste0("prop_", selected, "_technology"), "Technology", 
-          choices = c("GaN", "LDMOS", "GaAs", "SiC", "Si-LDMOS"),
-          selected = props$technology),
-        numericInput(paste0("prop_", selected, "_pout"), "Pout (dBm)", value = props$pout, step = 0.5),
-        numericInput(paste0("prop_", selected, "_p1db"), "P1dB (dBm)", value = props$p1db, step = 0.5),
-        numericInput(paste0("prop_", selected, "_gain"), "Gain (dB)", value = props$gain, step = 0.1),
-        numericInput(paste0("prop_", selected, "_pae"), "PAE (%)", value = props$pae, min = 0, max = 100, step = 1),
-        numericInput(paste0("prop_", selected, "_vdd"), "VDD (V)", value = props$vdd, step = 0.5),
-        numericInput(paste0("prop_", selected, "_rth"), "Rth (°C/W)", value = props$rth, step = 0.1),
-        numericInput(paste0("prop_", selected, "_freq"), "Frequency (GHz)", value = props$freq, step = 0.1),
-        actionButton(paste0("apply_props_", selected), "Apply Changes", class = "btn-primary btn-block")
+    # Safely extract properties
+    tryCatch({
+      # Handle both list and vector access
+      props <- if(is.list(comp) && !is.null(comp$properties)) {
+        comp$properties
+      } else if("properties" %in% names(comp)) {
+        comp[["properties"]]
+      } else {
+        list()
+      }
+      
+      comp_type <- if(is.list(comp) && !is.null(comp$type)) {
+        comp$type
+      } else if("type" %in% names(comp)) {
+        comp[["type"]]
+      } else {
+        "unknown"
+      }
+      
+      # Helper function to safely get property value
+      getProp <- function(name, default = "") {
+        if(is.list(props) && !is.null(props[[name]])) {
+          return(props[[name]])
+        } else if(!is.null(names(props)) && name %in% names(props)) {
+          return(props[[name]])
+        } else {
+          return(default)
+        }
+      }
+      
+      # Generate property inputs based on component type
+      if(comp_type == "transistor") {
+        tagList(
+          h4(paste0("Transistor: ", getProp("label", "Transistor"))),
+          textInput(paste0("prop_", selected, "_label"), "Label", 
+            value = getProp("label", "Transistor")),
+          selectInput(paste0("prop_", selected, "_technology"), "Technology", 
+            choices = c("GaN", "LDMOS", "GaAs", "SiC", "Si-LDMOS"),
+            selected = getProp("technology", "GaN")),
+          hr(),
+          h5("Performance Parameters"),
+          numericInput(paste0("prop_", selected, "_pout"), "Pout (dBm)", 
+            value = as.numeric(getProp("pout", 43)), step = 0.5),
+          numericInput(paste0("prop_", selected, "_p1db"), "P1dB (dBm)", 
+            value = as.numeric(getProp("p1db", 43)), step = 0.5),
+          numericInput(paste0("prop_", selected, "_gain"), "Gain (dB)", 
+            value = as.numeric(getProp("gain", 15)), step = 0.1),
+          numericInput(paste0("prop_", selected, "_pae"), "PAE (%)", 
+            value = as.numeric(getProp("pae", 50)), min = 0, max = 100, step = 1),
+          hr(),
+          h5("Electrical"),
+          numericInput(paste0("prop_", selected, "_vdd"), "VDD (V)", 
+            value = as.numeric(getProp("vdd", 28)), step = 0.5),
+          numericInput(paste0("prop_", selected, "_rth"), "Rth (°C/W)", 
+            value = as.numeric(getProp("rth", 2.5)), step = 0.1),
+          numericInput(paste0("prop_", selected, "_freq"), "Frequency (GHz)", 
+            value = as.numeric(getProp("freq", 2.6)), step = 0.1),
+          hr(),
+          h5("Display on Canvas"),
+          checkboxGroupInput(paste0("prop_", selected, "_display"),
+            label = NULL,
+            choices = c("Technology" = "technology", "Gain" = "gain", "PAE" = "pae", "Pout" = "pout"),
+            selected = c("technology", "pout"),
+            inline = FALSE
+          ),
+          hr(),
+          actionButton(paste0("apply_props_", selected), "Apply Changes", 
+            class = "btn-primary btn-block",
+            onclick = sprintf("console.log('Apply button clicked for component %s, button ID: %s');", selected, paste0('apply_props_', selected)))
+        )
+      } else if(comp_type == "matching") {
+        tagList(
+          h4(paste0("Matching Network: ", getProp("label", "Matching"))),
+          textInput(paste0("prop_", selected, "_label"), "Label", 
+            value = getProp("label", "Matching")),
+          selectInput(paste0("prop_", selected, "_type"), "Type", 
+            choices = c("L-section", "Pi", "T", "Transformer", "TL-stub"),
+            selected = getProp("type", "L-section")),
+          numericInput(paste0("prop_", selected, "_loss"), "Loss (dB)", 
+            value = as.numeric(getProp("loss", 0.5)), min = 0, step = 0.05),
+          numericInput(paste0("prop_", selected, "_z_in"), "Z_in (Ω)", 
+            value = as.numeric(getProp("z_in", 50)), step = 0.5),
+          numericInput(paste0("prop_", selected, "_z_out"), "Z_out (Ω)", 
+            value = as.numeric(getProp("z_out", 50)), step = 0.5),
+          numericInput(paste0("prop_", selected, "_bandwidth"), "Bandwidth (%)", 
+            value = as.numeric(getProp("bandwidth", 10)), step = 1),
+          actionButton(paste0("apply_props_", selected), "Apply Changes", 
+            class = "btn-primary btn-block",
+            onclick = sprintf("console.log('Apply button clicked for component %s, button ID: %s');", selected, paste0('apply_props_', selected)))
+        )
+      } else if(comp_type == "splitter") {
+        tagList(
+          h4(paste0("Splitter: ", getProp("label", "Splitter"))),
+          textInput(paste0("prop_", selected, "_label"), "Label", 
+            value = getProp("label", "Splitter")),
+          selectInput(paste0("prop_", selected, "_type"), "Type", 
+            choices = c("Wilkinson", "Hybrid", "T-junction", "Branchline"),
+            selected = getProp("type", "Wilkinson")),
+          numericInput(paste0("prop_", selected, "_loss"), "Insertion Loss (dB)", 
+            value = as.numeric(getProp("loss", 0.3)), min = 0, step = 0.05),
+          numericInput(paste0("prop_", selected, "_isolation"), "Isolation (dB)", 
+            value = as.numeric(getProp("isolation", 20)), step = 1),
+          numericInput(paste0("prop_", selected, "_split_ratio"), "Split Ratio (dB)", 
+            value = as.numeric(getProp("split_ratio", 0)), step = 0.5),
+          actionButton(paste0("apply_props_", selected), "Apply Changes", 
+            class = "btn-primary btn-block",
+            onclick = sprintf("console.log('Apply button clicked for component %s, button ID: %s');", selected, paste0('apply_props_', selected)))
+        )
+      } else if(comp_type == "combiner") {
+        tagList(
+          h4(paste0("Combiner: ", getProp("label", "Combiner"))),
+          textInput(paste0("prop_", selected, "_label"), "Label", 
+            value = getProp("label", "Combiner")),
+          selectInput(paste0("prop_", selected, "_type"), "Type", 
+            choices = c("Wilkinson", "Hybrid", "Doherty", "Chireix", "Outphasing"),
+            selected = getProp("type", "Wilkinson")),
+          numericInput(paste0("prop_", selected, "_loss"), "Insertion Loss (dB)", 
+            value = as.numeric(getProp("loss", 0.3)), min = 0, step = 0.05),
+          numericInput(paste0("prop_", selected, "_isolation"), "Isolation (dB)", 
+            value = as.numeric(getProp("isolation", 20)), step = 1),
+          checkboxInput(paste0("prop_", selected, "_load_modulation"), "Load Modulation", 
+            value = isTRUE(getProp("load_modulation", FALSE))),
+          conditionalPanel(
+            condition = sprintf("input['prop_%s_load_modulation'] == true", selected),
+            numericInput(paste0("prop_", selected, "_modulation_factor"), "Modulation Factor", 
+              value = as.numeric(getProp("modulation_factor", 2.0)), 
+              min = 1, max = 4, step = 0.1)
+          ),
+          actionButton(paste0("apply_props_", selected), "Apply Changes", 
+            class = "btn-primary btn-block",
+            onclick = sprintf("console.log('Apply button clicked for component %s, button ID: %s');", selected, paste0('apply_props_', selected)))
+        )
+      } else {
+        tagList(
+          h4("Unknown Component Type"),
+          p(paste0("Type: ", comp_type)),
+          p("This component type is not yet supported for editing")
+        )
+      }
+    }, error = function(e) {
+      tags$div(
+        class = "alert alert-danger",
+        tags$h4("Error Loading Properties"),
+        tags$p("Could not parse component data:"),
+        tags$pre(e$message),
+        tags$small("This is a data structure issue. Check browser console for details.")
       )
-    } else if(comp_type == "matching") {
-      tagList(
-        h4(paste0("Matching Network: ", props$label)),
-        textInput(paste0("prop_", selected, "_label"), "Label", value = props$label),
-        selectInput(paste0("prop_", selected, "_type"), "Type", 
-          choices = c("L-section", "Pi", "T", "Transformer", "TL-stub"),
-          selected = props$type),
-        numericInput(paste0("prop_", selected, "_loss"), "Loss (dB)", value = props$loss, min = 0, step = 0.05),
-        numericInput(paste0("prop_", selected, "_z_in"), "Z_in (Ω)", value = props$z_in, step = 0.5),
-        numericInput(paste0("prop_", selected, "_z_out"), "Z_out (Ω)", value = props$z_out, step = 0.5),
-        numericInput(paste0("prop_", selected, "_bandwidth"), "Bandwidth (%)", value = props$bandwidth, step = 1),
-        actionButton(paste0("apply_props_", selected), "Apply Changes", class = "btn-primary btn-block")
-      )
-    } else if(comp_type == "splitter") {
-      tagList(
-        h4(paste0("Splitter: ", props$label)),
-        textInput(paste0("prop_", selected, "_label"), "Label", value = props$label),
-        selectInput(paste0("prop_", selected, "_type"), "Type", 
-          choices = c("Wilkinson", "Hybrid", "T-junction", "Branchline"),
-          selected = props$type),
-        numericInput(paste0("prop_", selected, "_loss"), "Insertion Loss (dB)", value = props$loss, min = 0, step = 0.05),
-        numericInput(paste0("prop_", selected, "_isolation"), "Isolation (dB)", value = props$isolation, step = 1),
-        numericInput(paste0("prop_", selected, "_split_ratio"), "Split Ratio (dB)", value = props$split_ratio, step = 0.5),
-        actionButton(paste0("apply_props_", selected), "Apply Changes", class = "btn-primary btn-block")
-      )
-    } else if(comp_type == "combiner") {
-      tagList(
-        h4(paste0("Combiner: ", props$label)),
-        textInput(paste0("prop_", selected, "_label"), "Label", value = props$label),
-        selectInput(paste0("prop_", selected, "_type"), "Type", 
-          choices = c("Wilkinson", "Hybrid", "Doherty", "Chireix", "Outphasing"),
-          selected = props$type),
-        numericInput(paste0("prop_", selected, "_loss"), "Insertion Loss (dB)", value = props$loss, min = 0, step = 0.05),
-        numericInput(paste0("prop_", selected, "_isolation"), "Isolation (dB)", value = props$isolation, step = 1),
-        checkboxInput(paste0("prop_", selected, "_load_modulation"), "Load Modulation", value = props$load_modulation),
-        conditionalPanel(
-          condition = sprintf("input['prop_%s_load_modulation'] == true", selected),
-          numericInput(paste0("prop_", selected, "_modulation_factor"), "Modulation Factor", 
-            value = ifelse(!is.null(props$modulation_factor), props$modulation_factor, 2.0), 
-            min = 1, max = 4, step = 0.1)
-        ),
-        actionButton(paste0("apply_props_", selected), "Apply Changes", class = "btn-primary btn-block")
-      )
-    } else {
-      tagList(
-        h4("Unknown Component Type"),
-        p(paste0("Type: ", comp_type))
-      )
-    }
+    })
   })
   
   # PA Lineup Calculation Engine with Rationale
@@ -1451,6 +1601,19 @@ server <- function(input, output, session) {
       ))
     }
     
+    # Helper function to safely extract property values
+    safeProp <- function(props, name, default) {
+      if(is.null(props)) return(default)
+      
+      if(is.list(props) && !is.null(props[[name]])) {
+        return(props[[name]])
+      } else if(!is.null(names(props)) && name %in% names(props)) {
+        return(props[[name]])
+      } else {
+        return(default)
+      }
+    }
+    
     rationale <- c()
     rationale <- c(rationale, "═══════════════════════════════════════")
     rationale <- c(rationale, "  PA LINEUP CALCULATION RATIONALE")
@@ -1459,7 +1622,13 @@ server <- function(input, output, session) {
       input_power_dbm, 10^(input_power_dbm/10)/1000))
     
     # Sort components by x position (left to right flow)
-    components <- components[order(sapply(components, function(c) c$x))]
+    tryCatch({
+      components <- components[order(sapply(components, function(c) {
+        if(is.list(c) && !is.null(c$x)) c$x else if("x" %in% names(c)) c[["x"]] else 0
+      }))]
+    }, error = function(e) {
+      # If sorting fails, just use as-is
+    })
     
     # Initialize cascade variables
     current_pin <- input_power_dbm
@@ -1472,21 +1641,38 @@ server <- function(input, output, session) {
     
     for(i in seq_along(components)) {
       comp <- components[[i]]
-      props <- comp$properties
-      stage_name <- props$label
       
-      rationale <- c(rationale, sprintf("[%d] %s (%s)", i, stage_name, comp$type))
+      # Safe property extraction
+      props <- if(is.list(comp) && !is.null(comp$properties)) {
+        comp$properties
+      } else if("properties" %in% names(comp)) {
+        comp[["properties"]]
+      } else {
+        list()
+      }
+      
+      comp_type <- if(is.list(comp) && !is.null(comp$type)) {
+        comp$type
+      } else if("type" %in% names(comp)) {
+        comp[["type"]]
+      } else {
+        "unknown"
+      }
+      
+      stage_name <- safeProp(props, "label", paste0("Stage_", i))
+      
+      rationale <- c(rationale, sprintf("[%d] %s (%s)", i, stage_name, comp_type))
       rationale <- c(rationale, sprintf("    Input Power: %.2f dBm", current_pin))
       
-      if(comp$type == "transistor") {
+      if(comp_type == "transistor") {
         # Transistor stage calculations
-        gain <- props$gain
+        gain <- as.numeric(safeProp(props, "gain", 15))
         pout_dbm <- current_pin + gain
         pout_w <- 10^(pout_dbm/10) / 1000
-        p1db <- props$p1db
-        pae <- props$pae / 100
-        vdd <- props$vdd
-        rth <- props$rth
+        p1db <- as.numeric(safeProp(props, "p1db", 43))
+        pae <- as.numeric(safeProp(props, "pae", 50)) / 100
+        vdd <- as.numeric(safeProp(props, "vdd", 28))
+        rth <- as.numeric(safeProp(props, "rth", 2.5))
         
         # Check compression
         compressed <- pout_dbm > p1db
@@ -1529,27 +1715,27 @@ server <- function(input, output, session) {
           pin_dbm = current_pin,
           pout_dbm = pout_dbm,
           gain_db = gain,
-          pae_pct = props$pae,
+          pae_pct = as.numeric(safeProp(props, "pae", 50)),
           pdc_w = pdc_w,
           pdiss_w = pdiss_w,
           idc_a = idc_a,
           tj_c = tj_c,
           compressed = compressed,
-          technology = props$technology
+          technology = safeProp(props, "technology", "GaN")
         )
         
         current_pin <- pout_dbm
         total_gain <- total_gain + gain
         total_pdc <- total_pdc + pdc_w
         
-      } else if(comp$type == "matching") {
+      } else if(comp_type == "matching") {
         # Matching network: just loss, no DC power
-        loss_db <- props$loss
+        loss_db <- as.numeric(safeProp(props, "loss", 0.5))
         pout_dbm <- current_pin - loss_db
         
         rationale <- c(rationale, sprintf("    Loss: %.2f dB → Output: %.2f dBm", loss_db, pout_dbm))
         rationale <- c(rationale, sprintf("    Impedance transformation: %.1f Ω → %.1f Ω", 
-          props$z_in, props$z_out))
+          as.numeric(safeProp(props, "z_in", 50)), as.numeric(safeProp(props, "z_out", 50))))
         
         stage_results[[length(stage_results) + 1]] <- list(
           stage = stage_name,
@@ -1562,10 +1748,10 @@ server <- function(input, output, session) {
         current_pin <- pout_dbm
         total_gain <- total_gain - loss_db
         
-      } else if(comp$type == "splitter") {
+      } else if(comp_type == "splitter") {
         # Splitter: loss + split
-        loss_db <- props$loss
-        split_ratio_db <- props$split_ratio
+        loss_db <- as.numeric(safeProp(props, "loss", 0.3))
+        split_ratio_db <- as.numeric(safeProp(props, "split_ratio", 0))
         pout_dbm <- current_pin - loss_db
         
         rationale <- c(rationale, sprintf("    Insertion Loss: %.2f dB, Split Ratio: %.2f dB", 
@@ -1584,13 +1770,15 @@ server <- function(input, output, session) {
         current_pin <- pout_dbm
         total_gain <- total_gain - loss_db
         
-      } else if(comp$type == "combiner") {
+      } else if(comp_type == "combiner") {
         # Combiner: combine + loss
-        loss_db <- props$loss
+        loss_db <- as.numeric(safeProp(props, "loss", 0.3))
+        combiner_type <- safeProp(props, "type", "Wilkinson")
         
         # If Doherty with load modulation, efficiency boost
-        if(props$type == "Doherty" && props$load_modulation) {
-          modulation_factor <- ifelse(!is.null(props$modulation_factor), props$modulation_factor, 2.0)
+        load_modulation <- isTRUE(safeProp(props, "load_modulation", FALSE))
+        if(combiner_type == "Doherty" && load_modulation) {
+          modulation_factor <- as.numeric(safeProp(props, "modulation_factor", 2.0))
           rationale <- c(rationale, sprintf("    Doherty Combiner with Load Modulation (Factor: %.1f)", 
             modulation_factor))
           rationale <- c(rationale, "    Load modulation improves back-off efficiency")
@@ -1675,6 +1863,91 @@ server <- function(input, output, session) {
       if(result$success) "Calculation complete" else "Calculation failed",
       type = if(result$success) "message" else "error"
     )
+  })
+  
+  # Property apply button observer - dynamic for any component
+  observe({
+    selected <- input$lineup_selected_component
+    
+    if(is.null(selected) || length(selected) == 0) return()
+    
+    # Get the apply button ID - MUST access button value outside if() to create reactive dep
+    btn_id <- paste0("apply_props_", selected)
+    btn_value <- input[[btn_id]]  # This creates the reactive dependency!
+    
+    cat(sprintf("[Property Observer] Selected: %s, Button ID: %s, Button Value: %s\n", 
+                selected, btn_id, if(is.null(btn_value)) "NULL" else btn_value))
+    
+    if(!is.null(btn_value) && btn_value > 0) {
+      cat(sprintf("[Property Observer] Apply button clicked! Value=%s, Collecting properties...\n", btn_value))
+      
+      isolate({
+        components <- lineup_components()
+        
+        # Find the component
+        comp_idx <- which(sapply(components, function(c) {
+          if(is.list(c) && !is.null(c$id)) c$id == selected else FALSE
+        }))
+        
+        if(length(comp_idx) == 0) {
+          showNotification("Component not found", type = "error")
+          return()
+        }
+        
+        comp <- components[[comp_idx]]
+        comp_type <- if(is.list(comp) && !is.null(comp$type)) comp$type else "transistor"
+        
+        cat(sprintf("[Property Observer] Component type: %s\n", comp_type))
+        
+        # Collect properties based on component type (NOTE: IDs are prop_{id}_{field})
+        properties <- list()
+        
+        if(comp_type == "transistor") {
+          properties$label <- input[[paste0("prop_", selected, "_label")]]
+          properties$technology <- input[[paste0("prop_", selected, "_technology")]]
+          properties$gain <- input[[paste0("prop_", selected, "_gain")]]
+          properties$pout <- input[[paste0("prop_", selected, "_pout")]]
+          properties$p1db <- input[[paste0("prop_", selected, "_p1db")]]
+          properties$pae <- input[[paste0("prop_", selected, "_pae")]]
+          properties$vdd <- input[[paste0("prop_", selected, "_vdd")]]
+          properties$rth <- input[[paste0("prop_", selected, "_rth")]]
+          properties$freq <- input[[paste0("prop_", selected, "_freq")]]
+          properties$display <- input[[paste0("prop_", selected, "_display")]]
+        } else if(comp_type == "matching") {
+          properties$label <- input[[paste0("prop_", selected, "_label")]]
+          properties$type <- input[[paste0("prop_", selected, "_type")]]
+          properties$loss <- input[[paste0("prop_", selected, "_loss")]]
+          properties$z_in <- input[[paste0("prop_", selected, "_z_in")]]
+          properties$z_out <- input[[paste0("prop_", selected, "_z_out")]]
+          properties$bandwidth <- input[[paste0("prop_", selected, "_bandwidth")]]
+        } else if(comp_type == "splitter") {
+          properties$label <- input[[paste0("prop_", selected, "_label")]]
+          properties$type <- input[[paste0("prop_", selected, "_type")]]
+          properties$split_ratio <- input[[paste0("prop_", selected, "_split_ratio")]]
+          properties$isolation <- input[[paste0("prop_", selected, "_isolation")]]
+          properties$loss <- input[[paste0("prop_", selected, "_loss")]]
+        } else if(comp_type == "combiner") {
+          properties$label <- input[[paste0("prop_", selected, "_label")]]
+          properties$type <- input[[paste0("prop_", selected, "_type")]]
+          properties$isolation <- input[[paste0("prop_", selected, "_isolation")]]
+          properties$loss <- input[[paste0("prop_", selected, "_loss")]]
+          properties$load_modulation <- input[[paste0("prop_", selected, "_load_modulation")]]
+          properties$modulation_factor <- input[[paste0("prop_", selected, "_modulation_factor")]]
+        }
+        
+        cat(sprintf("[Property Observer] Collected properties: %s\n", 
+                    paste(names(properties), properties, sep="=", collapse=", ")))
+        
+        # Send to JavaScript
+        cat(sprintf("[Property Observer] Sending updateComponent message to JavaScript...\n"))
+        session$sendCustomMessage("updateComponent", list(
+          id = selected,
+          properties = properties
+        ))
+        
+        showNotification("Component properties updated", type = "message")
+      })
+    }
   })
   
   # Calculation results output
