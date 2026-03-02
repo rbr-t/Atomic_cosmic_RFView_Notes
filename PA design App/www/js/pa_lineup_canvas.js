@@ -65,12 +65,25 @@ class PALineupCanvas {
     this.components = [];
     this.connections = [];
     this.selectedComponent = null;
+    this.selectedConnection = null;
     this.draggedComponent = null;
     this.nextId = 1;
     this.wireMode = false;
     this.wireStart = null;
     this.tempWireLine = null;  // Temporary line while drawing wire
     this.hoveredPort = null;   // Track hovered port for snap detection
+    
+    // Undo/Redo functionality
+    this.history = [];
+    this.historyIndex = -1;
+    this.maxHistorySize = 50;
+    
+    // Clipboard for cut/copy/paste
+    this.clipboard = null;
+    
+    // Power display columns
+    this.showPowerDisplay = false;
+    this.powerColumns = [];
     
     this.init();
   }
@@ -270,6 +283,9 @@ class PALineupCanvas {
       type: type,
       x: x,
       y: y,
+      rotation: 0,
+      flipH: false,
+      flipV: false,
       properties: this.getDefaultProperties(type, properties)
     };
     
@@ -282,6 +298,14 @@ class PALineupCanvas {
     if (this.instructionText && this.components.length > 0) {
       this.instructionText.style('display', 'none');
     }
+    
+    // Redraw power columns if enabled
+    if (this.showPowerDisplay) {
+      this.drawPowerColumns();
+    }
+    
+    // Save to history
+    this.saveHistory();
     
     // Notify Shiny
     if (window.Shiny) {
@@ -340,8 +364,26 @@ class PALineupCanvas {
   renderComponent(component) {
     const group = this.componentsLayer.append('g')
       .attr('class', `component component-${component.type}`)
-      .attr('data-id', component.id)
-      .attr('transform', `translate(${component.x}, ${component.y})`);
+      .attr('data-id', component.id);
+    
+    // Apply rotation and flip transformations
+    let transform = `translate(${component.x}, ${component.y})`;
+    
+    if (component.rotation || component.flipH || component.flipV) {
+      // Add rotation
+      if (component.rotation) {
+        transform += ` rotate(${component.rotation})`;
+      }
+      
+      // Add flipping
+      let scaleX = component.flipH ? -1 : 1;
+      let scaleY = component.flipV ? -1 : 1;
+      if (scaleX !== 1 || scaleY !== 1) {
+        transform += ` scale(${scaleX}, ${scaleY})`;
+      }
+    }
+    
+    group.attr('transform', transform);
     
     // Render based on type
     switch (component.type) {
@@ -412,10 +454,10 @@ class PALineupCanvas {
       .on('mouseenter', () => this.onPortHover(outputPort.node(), true))
       .on('mouseleave', () => this.onPortHover(outputPort.node(), false));
     
-    // Label
+    // Label - positioned ABOVE component to avoid overlap
     group.append('text')
       .attr('x', 22)
-      .attr('y', 45)
+      .attr('y', -35)
       .attr('text-anchor', 'middle')
       .attr('fill', '#fff')
       .attr('font-size', '14px')
@@ -424,7 +466,7 @@ class PALineupCanvas {
     
     // Display options
     const display = component.properties.display || ['technology', 'pout'];
-    let yOffset = 45;
+    let yOffset = 50;  // Start below the component
     
     if (display.includes('technology')) {
       group.append('text')
@@ -819,9 +861,14 @@ const combInput1 = group.append('circle')
     // Re-render connections to update their positions
     this.renderConnections();
     
+    // Redraw power columns if enabled
+    if (this.showPowerDisplay) {
+      this.drawPowerColumns();
+    }
+    
     // Notify Shiny
     if (window.Shiny) {
-      Shiny.setInputValue('lineup_components', JSON.stringify(this.components), {priority: 'event'});
+      Shiny.setInputValue('lineup_components', JSON.stringify(this.components), { priority: 'event'});
     }
   }
   
@@ -1268,8 +1315,47 @@ const combInput1 = group.append('circle')
   selectConnection(connection) {
     console.log('Connection selected:', connection);
     
-    // Future: Could add connection property editor here
-    // For now, just log it
+    // Deselect previous
+    d3.selectAll('.connection-line').classed('selected', false);
+    
+    // Select this connection
+    this.selectedConnection = connection;
+    d3.select(`.connection-line[data-connection-id="${connection.id}"]`)
+      .classed('selected', true);
+    
+    // Deselect any selected component
+    this.selectedComponent = null;
+    d3.selectAll('.component').classed('selected', false);
+    
+    console.log('Connection selected for deletion (press Delete key)');
+  }
+  
+  deleteSelectedConnection() {
+    if (!this.selectedConnection) {
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'No connection selected',
+          type: 'warning'
+        });
+      }
+      return;
+    }
+    
+    const id = this.selectedConnection.id;
+    
+    // Remove from array
+    this.connections = this.connections.filter(c => c.id !== id);
+    
+    // Redraw connections
+    this.renderConnections();
+    
+    // Clear selection
+    this.selectedConnection = null;
+    
+    // Save to history
+    this.saveHistory();
+    
+    console.log('Connection deleted:', id);
   }
   
   drawConnection(connection) {
@@ -1425,6 +1511,11 @@ const combInput1 = group.append('circle')
     // Redraw connections
     this.renderConnections();
     
+    // Redraw power columns if enabled
+    if (this.showPowerDisplay) {
+      this.drawPowerColumns();
+    }
+    
     // Clear selection
     this.selectedComponent = null;
     
@@ -1483,29 +1574,580 @@ const combInput1 = group.append('circle')
     // Click on canvas to deselect
     this.svg.on('click', () => {
       this.selectedComponent = null;
+      this.selectedConnection = null;
       d3.selectAll('.component').classed('selected', false);
+      d3.selectAll('.connection-line').classed('selected', false);
       
       if (window.Shiny) {
         Shiny.setInputValue('lineup_selected_component', null, {priority: 'event'});
       }
     });
     
-    // Keyboard event handler for delete
+    // Keyboard event handlers
     document.addEventListener('keydown', (event) => {
-      // Check if Delete or Backspace was pressed
+      // Prevent actions when editing inputs
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      // Delete key - delete selected component or connection
       if (event.key === 'Delete' || event.key === 'Backspace') {
-        // Prevent default backspace navigation
-        if (event.key === 'Backspace' && event.target.tagName !== 'INPUT' && event.target.tagName !== 'TEXTAREA') {
-          event.preventDefault();
-        }
+        event.preventDefault();
         
-        // Only delete if a component is selected and not editing an input
-        if (this.selectedComponent && event.target.tagName !== 'INPUT' && event.target.tagName !== 'TEXTAREA') {
-          event.preventDefault();
+        if (this.selectedComponent) {
           this.deleteSelected();
+        } else if (this.selectedConnection) {
+          this.deleteSelectedConnection();
         }
       }
+      
+      // Undo: Ctrl+Z
+      if (event.ctrlKey && event.key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        this.undo();
+      }
+      
+      // Redo: Ctrl+Shift+Z or Ctrl+Y
+      if ((event.ctrlKey && event.shiftKey && event.key === 'Z') || (event.ctrlKey && event.key === 'y')) {
+        event.preventDefault();
+        this.redo();
+      }
+      
+      // Cut: Ctrl+X
+      if (event.ctrlKey && event.key === 'x') {
+        event.preventDefault();
+        this.cut();
+      }
+      
+      // Copy: Ctrl+C
+      if (event.ctrlKey && event.key === 'c') {
+        event.preventDefault();
+        this.copy();
+      }
+      
+      // Paste: Ctrl+V
+      if (event.ctrlKey && event.key === 'v') {
+        event.preventDefault();
+        this.paste();
+      }
+      
+      // Rotate: R key
+      if (event.key === 'r' || event.key === 'R') {
+        event.preventDefault();
+        this.rotateSelected();
+      }
+      
+      // Flip horizontal: H key
+      if (event.key === 'h' || event.key === 'H') {
+        event.preventDefault();
+        this.flipSelected('horizontal');
+      }
+      
+      // Flip vertical: V key  
+      if (event.key === 'v' || event.key === 'V') {
+        event.preventDefault();
+        this.flipSelected('vertical');
+      }
     });
+  }
+  
+  // ============================================================
+  // UNDO/REDO FUNCTIONALITY
+  // ============================================================
+  
+  saveHistory() {
+    // Create a snapshot of current state
+    const state = {
+      components: JSON.parse(JSON.stringify(this.components)),
+      connections: JSON.parse(JSON.stringify(this.connections)),
+      nextId: this.nextId
+    };
+    
+    // Remove any states after current index (when undoing then making new changes)
+    this.history = this.history.slice(0, this.historyIndex + 1);
+    
+    // Add new state
+    this.history.push(state);
+    
+    // Limit history size
+    if (this.history.length > this.maxHistorySize) {
+      this.history.shift();
+    } else {
+      this.historyIndex++;
+    }
+    
+    this.updateUndoRedoButtons();
+  }
+  
+  undo() {
+    if (this.historyIndex <= 0) {
+      console.log('Nothing to undo');
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Nothing to undo',
+          type: 'warning',
+          duration: 2
+        });
+      }
+      return;
+    }
+    
+    this.historyIndex--;
+    this.restoreState(this.history[this.historyIndex]);
+    
+    console.log('Undo - history index:', this.historyIndex);
+    this.updateUndoRedoButtons();
+    
+    if (window.Shiny && window.Shiny.notifications) {
+      Shiny.notifications.show({
+        message: 'Undo',
+        type: 'message',
+        duration: 1
+      });
+    }
+  }
+  
+  redo() {
+    if (this.historyIndex >= this.history.length - 1) {
+      console.log('Nothing to redo');
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Nothing to redo',
+          type: 'warning',
+          duration: 2
+        });
+      }
+      return;
+    }
+    
+    this.historyIndex++;
+    this.restoreState(this.history[this.historyIndex]);
+    
+    console.log('Redo - history index:', this.historyIndex);
+    this.updateUndoRedoButtons();
+    
+    if (window.Shiny && window.Shiny.notifications) {
+      Shiny.notifications.show({
+        message: 'Redo',
+        type: 'message',
+        duration: 1
+      });
+    }
+  }
+  
+  restoreState(state) {
+    this.components = JSON.parse(JSON.stringify(state.components));
+    this.connections = JSON.parse(JSON.stringify(state.connections));
+    this.nextId = state.nextId;
+    
+    // Clear and re-render
+    this.componentsLayer.selectAll('*').remove();
+    this.connectionsLayer.selectAll('*').remove();
+    
+    this.components.forEach(comp => {
+      this.renderComponent(comp);
+    });
+    
+    this.renderConnections();
+  }
+  
+  updateUndoRedoButtons() {
+    const undoBtn = document.getElementById('lineup_undo');
+    const redoBtn = document.getElementById('lineup_redo');
+    
+    if (undoBtn) {
+      undoBtn.disabled = this.historyIndex <= 0;
+      undoBtn.style.opacity = this.historyIndex <= 0 ? '0.5' : '1';
+    }
+    
+    if (redoBtn) {
+      redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+      redoBtn.style.opacity = this.historyIndex >= this.history.length - 1 ? '0.5' : '1';
+    }
+  }
+  
+  // ============================================================
+  // CUT/COPY/PASTE FUNCTIONALITY
+  // ============================================================
+  
+  copy() {
+    if (!this.selectedComponent) {
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'No component selected to copy',
+          type: 'warning',
+          duration: 2
+        });
+      }
+      return;
+    }
+    
+    const comp = this.components.find(c => c.id === this.selectedComponent);
+    if (comp) {
+      this.clipboard = JSON.parse(JSON.stringify(comp));
+      console.log('Copied component:', comp.properties.label);
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: `Copied: ${comp.properties.label || comp.type}`,
+          type: 'message',
+          duration: 2
+        });
+      }
+    }
+  }
+  
+  cut() {
+    if (!this.selectedComponent) {
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'No component selected to cut',
+          type: 'warning',
+          duration: 2
+        });
+      }
+      return;
+    }
+    
+    const comp = this.components.find(c => c.id === this.selectedComponent);
+    if (comp) {
+      this.clipboard = JSON.parse(JSON.stringify(comp));
+      console.log('Cut component:', comp.properties.label);
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: `Cut: ${comp.properties.label || comp.type}`,
+          type: 'message',
+          duration: 2
+        });
+      }
+      
+      // Delete the component
+      this.deleteSelected();
+    }
+  }
+  
+  paste() {
+    if (!this.clipboard) {
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Clipboard is empty',
+          type: 'warning',
+          duration: 2
+        });
+      }
+      return;
+    }
+    
+    // Paste at offset position
+    const offsetX = 50;
+    const offsetY = 50;
+    const newX = this.clipboard.x + offsetX;
+    const newY = this.clipboard.y + offsetY;
+    
+    this.addComponent(
+      this.clipboard.type,
+      newX,
+      newY,
+      JSON.parse(JSON.stringify(this.clipboard.properties))
+    );
+    
+    console.log('Pasted component at:', newX, newY);
+    
+    if (window.Shiny && window.Shiny.notifications) {
+      Shiny.notifications.show({
+        message: `Pasted: ${this.clipboard.properties.label || this.clipboard.type}`,
+        type: 'message',
+        duration: 2
+      });
+    }
+  }
+  
+  // ============================================================
+  // ROTATE/FLIP FUNCTIONALITY
+  // ============================================================
+  
+  rotateSelected() {
+    if (!this.selectedComponent) {
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'No component selected to rotate',
+          type: 'warning',
+          duration: 2
+        });
+      }
+      return;
+    }
+    
+    const comp = this.components.find(c => c.id === this.selectedComponent);
+    if (!comp) return;
+    
+    // Rotate 90 degrees clockwise
+    comp.rotation = ((comp.rotation || 0) + 90) % 360;
+    
+    // Re-render component
+    this.componentsLayer.select(`[data-id="${comp.id}"]`).remove();
+    this.renderComponent(comp);
+    this.renderConnections();
+    
+    console.log('Rotated component to:', comp.rotation);
+    
+    if (window.Shiny && window.Shiny.notifications) {
+      Shiny.notifications.show({
+        message: `Rotated: ${comp.rotation}°`,
+        type: 'message',
+        duration: 1
+      });
+    }
+    
+    this.saveHistory();
+  }
+  
+  flipSelected(direction) {
+    if (!this.selectedComponent) {
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'No component selected to flip',
+          type: 'warning',
+          duration: 2
+        });
+      }
+      return;
+    }
+    
+    const comp = this.components.find(c => c.id === this.selectedComponent);
+    if (!comp) return;
+    
+    if (direction === 'horizontal') {
+      comp.flipH = !comp.flipH;
+    } else {
+      comp.flipV = !comp.flipV;
+    }
+    
+    // Re-render component
+    this.componentsLayer.select(`[data-id="${comp.id}"]`).remove();
+    this.renderComponent(comp);
+    this.renderConnections();
+    
+    console.log('Flipped component', direction);
+    
+    if (window.Shiny && window.Shiny.notifications) {
+      Shiny.notifications.show({
+        message: `Flipped ${direction}`,
+        type: 'message',
+        duration: 1
+      });
+    }
+    
+    this.saveHistory();
+  }
+  
+  // ============================================================
+  // POWER DISPLAY COLUMNS
+  // ============================================================
+  
+  togglePowerDisplay() {
+    this.showPowerDisplay = !this.showPowerDisplay;
+    
+    const btn = document.getElementById('power_display_toggle');
+    if (btn) {
+      btn.style.backgroundColor = this.showPowerDisplay ? '#28a745' : '';
+      btn.style.color = this.showPowerDisplay ? '#fff' : '';
+    }
+    
+    if (this.showPowerDisplay) {
+      this.drawPowerColumns();
+      console.log('Power display enabled');
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Power display enabled',
+          type: 'message',
+          duration: 2
+        });
+      }
+    } else {
+      // Clear power display layer
+      if (this.powerLayer) {
+        this.powerLayer.selectAll('*').remove();
+      }
+      console.log('Power display disabled');
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Power display disabled',
+          type: 'message',
+          duration: 2
+        });
+      }
+    }
+  }
+  
+  drawPowerColumns() {
+    if (!this.showPowerDisplay) return;
+    
+    // Create power layer if it doesn't exist
+    if (!this.powerLayer) {
+      this.powerLayer = this.svg.insert('g', ':first-child')
+        .attr('class', 'power-layer');
+    }
+    
+    // Clear existing power display
+    this.powerLayer.selectAll('*').remove();
+    
+    if (this.components.length === 0) return;
+    
+    // Sort components by x position (signal flow left to right)
+    const sortedComponents = [...this.components].sort((a, b) => a.x - b.x);
+    
+    // Calculate power at each stage
+    let currentPower = 0; // Will be set from first component
+    
+    sortedComponents.forEach((comp, index) => {
+      const x = comp.x;
+      const columnWidth = 150;
+      
+      // Draw vertical divider line (semi-transparent)
+      this.powerLayer.append('rect')
+        .attr('x', x - columnWidth/2)
+        .attr('y', 0)
+        .attr('width', 2)
+        .attr('height', this.height)
+        .attr('fill', '#00aaff')
+        .attr('opacity', 0.3);
+      
+      // Calculate input and output power for this component
+      const powerInfo = this.calculateComponentPower(comp, currentPower, index === 0);
+      
+      // Draw power information box at top left of column
+      const infoGroup = this.powerLayer.append('g')
+        .attr('transform', `translate(${x - columnWidth/2 + 10}, 20)`);
+      
+      // Background box
+      infoGroup.append('rect')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', 130)
+        .attr('height', 85)
+        .attr('fill', '#1a1a1a')
+        .attr('stroke', '#00aaff')
+        .attr('stroke-width', 1)
+        .attr('rx', 3);
+      
+      // Component label
+      infoGroup.append('text')
+        .attr('x', 65)
+        .attr('y', 15)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#fff')
+        .attr('font-size', '11px')
+        .attr('font-weight', 'bold')
+        .text(comp.properties.label || comp.type);
+      
+      // Input power
+      infoGroup.append('text')
+        .attr('x', 5)
+        .attr('y', 32)
+        .attr('fill', '#00ff88')
+        .attr('font-size', '10px')
+        .text(`Pin: ${powerInfo.pin_dbm.toFixed(1)} dBm`);
+      
+      // Output power
+      infoGroup.append('text')
+        .attr('x', 5)
+        .attr('y', 47)
+        .attr('fill', '#ff7f11')
+        .attr('font-size', '10px')
+        .text(`Pout: ${powerInfo.pout_dbm.toFixed(1)} dBm`);
+      
+      // P1dB (if available)
+      if (powerInfo.p1db_dbm) {
+        infoGroup.append('text')
+          .attr('x', 5)
+          .attr('y', 62)
+          .attr('fill', '#ffaa00')
+          .attr('font-size', '10px')
+          .text(`P1dB: ${powerInfo.p1db_dbm.toFixed(1)} dBm`);
+      }
+      
+      // Back-off (if applicable)
+      if (powerInfo.backoff_db) {
+        infoGroup.append('text')
+          .attr('x', 5)
+          .attr('y', 77)
+          .attr('fill', '#ffaa00')
+          .attr('font-size', '10px')
+          .text(`BO: ${powerInfo.backoff_db.toFixed(1)} dB`);
+      }
+      
+      // Forward arrow (signal flow direction)
+      if (index < sortedComponents.length - 1) {
+        const nextX = sortedComponents[index + 1].x;
+        const arrowX = x + (nextX - x) / 2;
+        
+        this.powerLayer.append('path')
+          .attr('d', `M ${arrowX - 20},30 L ${arrowX + 10},30 L ${arrowX + 5},25 M ${arrowX + 10},30 L ${arrowX + 5},35`)
+          .attr('stroke', '#00aaff')
+          .attr('stroke-width', 2)
+          .attr('fill', 'none');
+      }
+      
+      // Update current power for next stage
+      currentPower = powerInfo.pout_dbm;
+    });
+    
+    console.log('Power columns drawn for', sortedComponents.length, 'components');
+  }
+  
+  calculateComponentPower(component, previousPout, isFirst) {
+    const props = component.properties;
+    let pin_dbm, pout_dbm, p1db_dbm, backoff_db;
+    
+    // Get input power
+    if (isFirst) {
+      // First component: use specified input power or default
+      pin_dbm = props.pin || 0;
+    } else {
+      // Subsequent components: input is previous output
+      pin_dbm = previousPout;
+    }
+    
+    // Calculate output power based on component type
+    switch (component.type) {
+      case 'transistor':
+        const gain = props.gain || 10;
+        pout_dbm = pin_dbm + gain;
+        p1db_dbm = props.pout || 40; // P1dB from properties
+        backoff_db = p1db_dbm - pout_dbm; // Back-off from P1dB
+        break;
+        
+      case 'matching':
+        const loss = props.loss || 0.5;
+        pout_dbm = pin_dbm - loss;
+        break;
+        
+      case 'splitter':
+        const split_loss = props.loss || 3;
+        pout_dbm = pin_dbm - split_loss;
+        break;
+        
+      case 'combiner':
+        const combine_loss = props.loss || 0.5;
+        // Combiner adds power (assuming N-way combiner)
+        const ways = props.ways || 2;
+        pout_dbm = pin_dbm + 10 * Math.log10(ways) - combine_loss;
+        break;
+        
+      default:
+        pout_dbm = pin_dbm;
+    }
+    
+    return {
+      pin_dbm,
+      pout_dbm,
+      p1db_dbm,
+      backoff_db
+    };
   }
   
   exportConfiguration() {

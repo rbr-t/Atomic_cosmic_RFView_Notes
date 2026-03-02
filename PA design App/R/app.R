@@ -484,6 +484,27 @@ ui <- dashboardPage(
                               " Wire Mode"
                             ),
                             tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.undo();",
+                              id = "lineup_undo",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("undo"),
+                              " Undo (Ctrl+Z)"
+                            ),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.redo();",
+                              id = "lineup_redo",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("redo"),
+                              " Redo (Ctrl+Y)"
+                            ),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.togglePowerDisplay();",
+                              id = "power_display_toggle",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("bolt"),
+                              " Power Display"
+                            ),
+                            tags$button(
                               onclick = "if(window.paCanvas) paCanvas.clear();",
                               class = "btn btn-warning btn-block btn-sm",
                               icon("eraser"),
@@ -2036,7 +2057,9 @@ server <- function(input, output, session) {
         actionButton("lineup_load_confirm", "Load", class = "btn-success")
       ),
       fileInput("lineup_config_file", "Select Configuration File (.json)",
-                accept = c(".json", "application/json"))
+                accept = c(".json", "application/json")),
+      helpText(icon("info-circle"), " Saved configurations are in your Downloads folder or the directory where you saved them.",
+               style = "color: #888; font-size: 12px; margin-top: -10px;")
     ))
   })
   
