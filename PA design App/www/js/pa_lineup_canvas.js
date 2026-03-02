@@ -3,6 +3,60 @@
 // D3.js-based drag-and-drop lineup builder
 // ============================================================
 
+// ============================================================
+// Global Toggle Functions - Defined First for Immediate Availability
+// ============================================================
+
+function toggleCanvasSidebar() {
+  const sidebar = document.getElementById('canvas_sidebar');
+  
+  if (!sidebar) {
+    console.error('Sidebar not found!');
+    return;
+  }
+  
+  // Toggle between collapsed and expanded states
+  if (sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
+    sidebar.classList.add('expanded');
+    console.log('Sidebar expanded');
+  } else {
+    sidebar.classList.remove('expanded');
+    sidebar.classList.add('collapsed');
+    console.log('Sidebar collapsed');
+  }
+}
+
+function toggleCanvasTopSidebar() {
+  const sidebar = document.getElementById('canvas_top_sidebar');
+  
+  if (!sidebar) {
+    console.error('Top sidebar not found!');
+    return;
+  }
+  
+  // Toggle between collapsed and expanded states
+  if (sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
+    sidebar.classList.add('expanded');
+    console.log('Top sidebar expanded');
+  } else {
+    sidebar.classList.remove('expanded');
+    sidebar.classList.add('collapsed');
+    console.log('Top sidebar collapsed');
+  }
+}
+
+// Make functions globally accessible
+window.toggleCanvasSidebar = toggleCanvasSidebar;
+window.toggleCanvasTopSidebar = toggleCanvasTopSidebar;
+
+console.log('✓ Toggle functions loaded and exposed to window');
+
+// ============================================================
+// PALineupCanvas Class
+// ============================================================
+
 class PALineupCanvas {
   constructor(containerId, config = {}) {
     this.containerId = containerId;
@@ -15,6 +69,8 @@ class PALineupCanvas {
     this.nextId = 1;
     this.wireMode = false;
     this.wireStart = null;
+    this.tempWireLine = null;  // Temporary line while drawing wire
+    this.hoveredPort = null;   // Track hovered port for snap detection
     
     this.init();
   }
@@ -63,10 +119,16 @@ class PALineupCanvas {
     this.zoom = d3.zoom()
       .scaleExtent([0.1, 4])
       .on('zoom', (event) => {
+        console.log('Zoom event - transform:', event.transform.toString());
         this.zoomGroup.attr('transform', event.transform);
       });
     
     this.svg.call(this.zoom);
+    
+    // Reset zoom to identity (scale=1, translate=0,0) on initialization
+    console.log('Resetting zoom to identity...');
+    this.svg.call(this.zoom.transform, d3.zoomIdentity);
+    console.log('Zoom reset complete. Transform should be: translate(0,0) scale(1)');
     
     // Initialize drag behavior for components
     this.drag = d3.drag()
@@ -141,7 +203,7 @@ class PALineupCanvas {
       .style('padding', '10px 0')
       .style('gap', '15px')
       .style('transition', 'width 0.3s')
-      .style('z-index', '100')
+      .style('z-index', '1100')  // Higher than sidebars to stay visible
       .on('mouseenter', function() {
         d3.select(this).style('width', '200px');
         d3.selectAll('.palette-label').style('display', 'block');
@@ -212,13 +274,9 @@ class PALineupCanvas {
     };
     
     this.components.push(component);
-    console.log('Component added to array. Total components:', this.components.length);
-    console.log('Component details:', component);
     
     // Render the component
-    console.log('Calling renderComponent...');
     this.renderComponent(component);
-    console.log('renderComponent completed');
     
     // Hide instruction text when first component is added
     if (this.instructionText && this.components.length > 0) {
@@ -230,7 +288,7 @@ class PALineupCanvas {
       Shiny.setInputValue('lineup_components', JSON.stringify(this.components), {priority: 'event'});
     }
     
-    console.log('Component added successfully:', component);
+    console.log('Component added:', type, '(ID:', component.id + ') Total:', this.components.length);
     
     return component;
   }
@@ -254,14 +312,16 @@ class PALineupCanvas {
         loss: 0.5,
         z_in: 50,
         z_out: 50,
-        bandwidth: 10
+        bandwidth: 10,
+        display: ['label', 'loss']
       },
       splitter: {
         label: 'Splitter',
         type: 'Wilkinson',
         loss: 0.3,
         isolation: 20,
-        split_ratio: 0
+        split_ratio: 0,
+        display: ['label', 'loss']
       },
       combiner: {
         label: 'Combiner',
@@ -269,7 +329,8 @@ class PALineupCanvas {
         loss: 0.3,
         isolation: 20,
         load_modulation: false,
-        modulation_factor: 2.0
+        modulation_factor: 2.0,
+        display: ['label', 'loss']
       }
     };
     
@@ -277,40 +338,28 @@ class PALineupCanvas {
   }
   
   renderComponent(component) {
-    console.log('=== renderComponent called ===');
-    console.log('Component:', component);
-    console.log('Components layer exists?', !!this.componentsLayer);
-    
     const group = this.componentsLayer.append('g')
       .attr('class', `component component-${component.type}`)
       .attr('data-id', component.id)
       .attr('transform', `translate(${component.x}, ${component.y})`);
     
-    console.log('Group created:', group.node());
-    
     // Render based on type
     switch (component.type) {
       case 'transistor':
-        console.log('Rendering transistor...');
         this.renderTransistor(group, component);
         break;
       case 'matching':
-        console.log('Rendering matching network...');
         this.renderMatching(group, component);
         break;
       case 'splitter':
-        console.log('Rendering splitter...');
         this.renderSplitter(group, component);
         break;
       case 'combiner':
-        console.log('Rendering combiner...');
         this.renderCombiner(group, component);
         break;
       default:
         console.warn('Unknown component type:', component.type);
     }
-    
-    console.log('Component type rendered');
     
     // Store component reference in DOM for drag behavior
     group.datum(component);
@@ -318,9 +367,6 @@ class PALineupCanvas {
     // Add drag behavior using the initialized drag handler
     if (this.drag) {
       group.call(this.drag);
-      console.log('Drag behavior added');
-    } else {
-      console.error('this.drag is undefined!');
     }
     
     // Add click behavior
@@ -328,9 +374,6 @@ class PALineupCanvas {
       event.stopPropagation();
       this.selectComponent(component);
     });
-    
-    console.log('Click behavior added');
-    console.log('=== renderComponent complete ===');
   }
   
   renderTransistor(group, component) {
@@ -347,11 +390,13 @@ class PALineupCanvas {
       .attr('cx', -8)
       .attr('cy', 0)
       .attr('r', 5)
-      .attr('fill', '#44ff44')
-      .attr('stroke', '#fff')
+      .attr('fill', '#00ff88')
+      .attr('stroke', '#00ff88')
       .attr('stroke-width', 2)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'input'));
+      .on('click', (event) => this.handlePortClick(event, component, 'input'))
+      .on('mouseenter', () => this.onPortHover(inputPort.node(), true))
+      .on('mouseleave', () => this.onPortHover(inputPort.node(), false));
     
     // Output port (right) - adjusted for larger size
     const outputPort = group.append('circle')
@@ -359,11 +404,13 @@ class PALineupCanvas {
       .attr('cx', 53)
       .attr('cy', 0)
       .attr('r', 5)
-      .attr('fill', '#ff4444')
-      .attr('stroke', '#fff')
+      .attr('fill', '#ff7f11')
+      .attr('stroke', '#ff7f11')
       .attr('stroke-width', 2)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'output'));
+      .on('click', (event) => this.handlePortClick(event, component, 'output'))
+      .on('mouseenter', () => this.onPortHover(outputPort.node(), true))
+      .on('mouseleave', () => this.onPortHover(outputPort.node(), false));
     
     // Label
     group.append('text')
@@ -452,38 +499,72 @@ class PALineupCanvas {
       .attr('stroke-width', 1);
     
     // Input port
-    group.append('circle')
+    const matchInputPort = group.append('circle')
       .attr('class', 'port port-input')
       .attr('cx', -20)
       .attr('cy', 0)
       .attr('r', 4)
-      .attr('fill', '#44ff44')
-      .attr('stroke', '#fff')
+      .attr('fill', '#00ff88')
+      .attr('stroke', '#00ff88')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'input'));
+      .on('click', (event) => this.handlePortClick(event, component, 'input'))
+      .on('mouseenter', () => this.onPortHover(matchInputPort.node(), true))
+      .on('mouseleave', () => this.onPortHover(matchInputPort.node(), false));
     
     // Output port
-    group.append('circle')
+    const matchOutputPort = group.append('circle')
       .attr('class', 'port port-output')
       .attr('cx', 20)
       .attr('cy', 0)
       .attr('r', 4)
-      .attr('fill', '#ff4444')
-      .attr('stroke', '#fff')
+      .attr('fill', '#ff7f11')
+      .attr('stroke', '#ff7f11')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'output'));
+      .on('click', (event) => this.handlePortClick(event, component, 'output'))
+      .on('mouseenter', () => this.onPortHover(matchOutputPort.node(), true))
+      .on('mouseleave', () => this.onPortHover(matchOutputPort.node(), false));
     
-    // Label
-    group.append('text')
-      .attr('x', 0)
-      .attr('y', 25)
-      .attr('text-anchor', 'middle')
-      .attr('fill', '#fff')
-      .attr('font-size', '12px')
-      .attr('font-weight', 'bold')
-      .text(`${component.properties.loss || 0.5}dB`);
+    // Labels - configurable display
+    const display = component.properties.display || ['label', 'loss'];
+    
+    // Position label ABOVE the component to avoid overlap
+    if (display.includes('label')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', -25)  // Above the component
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#fff')
+        .attr('font-size', '12px')
+        .attr('font-weight', 'bold')
+        .text(component.properties.label || 'Match');
+    }
+    
+    // Property text below the component with proper spacing
+    let yOffset = 20;
+    
+    if (display.includes('loss')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#88ffaa')
+        .attr('font-size', '9px')
+        .text(`Loss: ${component.properties.loss || 0.5}dB`);
+      yOffset += 11;
+    }
+    
+    if (display.includes('type')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#aaffaa')
+        .attr('font-size', '8px')
+        .text(component.properties.type || 'L-section');
+      yOffset += 10;
+    }
   }
   
   renderSplitter(group, component) {
@@ -520,48 +601,84 @@ class PALineupCanvas {
       .attr('fill', '#ffaa00');
     
     // Input port
-    group.append('circle')
+    const splitInputPort = group.append('circle')
       .attr('class', 'port port-input')
       .attr('cx', -20)
       .attr('cy', 0)
       .attr('r', 4)
-      .attr('fill', '#44ff44')
-      .attr('stroke', '#fff')
+      .attr('fill', '#00ff88')
+      .attr('stroke', '#00ff88')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'input'));
+      .on('click', (event) => this.handlePortClick(event, component, 'input'))
+      .on('mouseenter', () => this.onPortHover(splitInputPort.node(), true))
+      .on('mouseleave', () => this.onPortHover(splitInputPort.node(), false));
     
     // Output ports
-    group.append('circle')
+    const splitOutput1 = group.append('circle')
       .attr('class', 'port port-output')
       .attr('cx', 20)
       .attr('cy', -15)
       .attr('r', 4)
-      .attr('fill', '#ff4444')
-      .attr('stroke', '#fff')
+      .attr('fill', '#ff7f11')
+      .attr('stroke', '#ff7f11')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'output'));
+      .on('click', (event) => this.handlePortClick(event, component, 'output'))
+      .on('mouseenter', () => this.onPortHover(splitOutput1.node(), true))
+      .on('mouseleave', () => this.onPortHover(splitOutput1.node(), false));
     
-    group.append('circle')
+    const splitOutput2 = group.append('circle')
       .attr('class', 'port port-output')
       .attr('cx', 20)
       .attr('cy', 15)
       .attr('r', 4)
-      .attr('fill', '#ff4444')
-      .attr('stroke', '#fff')
+      .attr('fill', '#ff7f11')
+      .attr('stroke', '#ff7f11')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'output'));
+      .on('click', (event) => this.handlePortClick(event, component, 'output'))
+      .on('mouseenter', () => this.onPortHover(splitOutput2.node(), true))
+      .on('mouseleave', () => this.onPortHover(splitOutput2.node(), false));
     
-    // Label
-    group.append('text')
-      .attr('x', 0)
-      .attr('y', 30)
-      .attr('text-anchor', 'middle')
-      .attr('fill', '#fff')
-      .attr('font-size', '9px')
-      .text(component.properties.label || 'Split');
+    // Labels - configurable display
+    const display = component.properties.display || ['label', 'loss'];
+    
+    // Position label ABOVE the component to avoid overlap
+    if (display.includes('label')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', -35)  // Above the splitter
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#fff')
+        .attr('font-size', '11px')
+        .attr('font-weight', 'bold')
+        .text(component.properties.label || 'Split');
+    }
+    
+    // Property text below the component with proper spacing
+    let yOffset = 32;
+    
+    if (display.includes('loss')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ffcc88')
+        .attr('font-size', '8px')
+        .text(`${component.properties.loss || 0.3}dB`);
+      yOffset += 10;
+    }
+    
+    if (display.includes('type')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ffddaa')
+        .attr('font-size', '7px')
+        .text(component.properties.type || 'Wilkinson');
+    }
   }
   
   renderCombiner(group, component) {
@@ -598,48 +715,84 @@ class PALineupCanvas {
       .attr('fill', '#ff00aa');
     
     // Input ports
-    group.append('circle')
+const combInput1 = group.append('circle')
       .attr('class', 'port port-input')
       .attr('cx', -20)
       .attr('cy', -15)
       .attr('r', 4)
-      .attr('fill', '#44ff44')
-      .attr('stroke', '#fff')
+      .attr('fill', '#00ff88')
+      .attr('stroke', '#00ff88')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'input'));
+      .on('click', (event) => this.handlePortClick(event, component, 'input'))
+      .on('mouseenter', () => this.onPortHover(combInput1.node(), true))
+      .on('mouseleave', () => this.onPortHover(combInput1.node(), false));
     
-    group.append('circle')
+    const combInput2 = group.append('circle')
       .attr('class', 'port port-input')
       .attr('cx', -20)
       .attr('cy', 15)
       .attr('r', 4)
-      .attr('fill', '#44ff44')
-      .attr('stroke', '#fff')
+      .attr('fill', '#00ff88')
+      .attr('stroke', '#00ff88')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'input'));
+      .on('click', (event) => this.handlePortClick(event, component, 'input'))
+      .on('mouseenter', () => this.onPortHover(combInput2.node(), true))
+      .on('mouseleave', () => this.onPortHover(combInput2.node(), false));
     
     // Output port
-    group.append('circle')
+    const combOutputPort = group.append('circle')
       .attr('class', 'port port-output')
       .attr('cx', 20)
       .attr('cy', 0)
       .attr('r', 4)
-      .attr('fill', '#ff4444')
-      .attr('stroke', '#fff')
+      .attr('fill', '#ff7f11')
+      .attr('stroke', '#ff7f11')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'output'));
+      .on('click', (event) => this.handlePortClick(event, component, 'output'))
+      .on('mouseenter', () => this.onPortHover(combOutputPort.node(), true))
+      .on('mouseleave', () => this.onPortHover(combOutputPort.node(), false));
     
-    // Label
-    group.append('text')
-      .attr('x', 0)
-      .attr('y', 30)
-      .attr('text-anchor', 'middle')
-      .attr('fill', '#fff')
-      .attr('font-size', '9px')
-      .text(component.properties.label || 'Combine');
+    // Labels - configurable display
+    const display = component.properties.display || ['label', 'loss'];
+    
+    // Position label ABOVE the component to avoid overlap
+    if (display.includes('label')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', -35)  // Above the combiner
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#fff')
+        .attr('font-size', '11px')
+        .attr('font-weight', 'bold')
+        .text(component.properties.label || 'Combine');
+    }
+    
+    // Property text below the component with proper spacing
+    let yOffset = 32;
+    
+    if (display.includes('loss')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ffaacc')
+        .attr('font-size', '8px')
+        .text(`${component.properties.loss || 0.3}dB`);
+      yOffset += 10;
+    }
+    
+    if (display.includes('type')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ffccdd')
+        .attr('font-size', '7px')
+        .text(component.properties.type || 'Wilkinson');
+    }
   }
   
   onDragStart(event, component) {
@@ -663,6 +816,9 @@ class PALineupCanvas {
     d3.select(`.component[data-id="${component.id}"]`)
       .style('opacity', 1);
     
+    // Re-render connections to update their positions
+    this.renderConnections();
+    
     // Notify Shiny
     if (window.Shiny) {
       Shiny.setInputValue('lineup_components', JSON.stringify(this.components), {priority: 'event'});
@@ -673,8 +829,8 @@ class PALineupCanvas {
     // Deselect previous
     d3.selectAll('.component').classed('selected', false);
     
-    // Select new
-    this.selectedComponent = component;
+    // Select new - store the ID, not the full component object
+    this.selectedComponent = component.id;
     d3.select(`.component[data-id="${component.id}"]`)
       .classed('selected', true);
     
@@ -689,6 +845,51 @@ class PALineupCanvas {
   updateConnections() {
     // Auto-connect nearby components (simplified for now)
     // Full implementation would detect input/output ports
+  }
+  
+  /**
+   * Get the actual port position for a component based on type and port type
+   * Returns {x, y} in canvas coordinates
+   */
+  getPortPosition(component, portType, portIndex = 0) {
+    const baseX = component.x;
+    const baseY = component.y;
+    
+    switch (component.type) {
+      case 'transistor':
+        return portType === 'input' 
+          ? { x: baseX - 25, y: baseY }    // Input port at left
+          : { x: baseX + 35, y: baseY };    // Output port at right
+      
+      case 'matching':
+        return portType === 'input'
+          ? { x: baseX - 20, y: baseY }    // Input port
+          : { x: baseX + 20, y: baseY };    // Output port
+      
+      case 'splitter':
+        if (portType === 'input') {
+          return { x: baseX - 20, y: baseY };  // Single input
+        } else {
+          // Two output ports
+          return portIndex === 0
+            ? { x: baseX + 20, y: baseY - 15 }  // Upper output
+            : { x: baseX + 20, y: baseY + 15 };  // Lower output
+        }
+      
+      case 'combiner':
+        if (portType === 'input') {
+          // Two input ports
+          return portIndex === 0
+            ? { x: baseX - 20, y: baseY - 15 }  // Upper input
+            : { x: baseX - 20, y: baseY + 15 };  // Lower input
+        } else {
+          return { x: baseX + 20, y: baseY };    // Single output
+        }
+      
+      default:
+        console.warn('Unknown component type:', component.type);
+        return { x: baseX, y: baseY };
+    }
   }
   
   loadPreset(presetName) {
@@ -841,46 +1042,82 @@ class PALineupCanvas {
       this.wireStart = {
         componentId: component.id,
         portType: portType,
-        x: component.x + (portType === 'input' ? -5 : 35),
-        y: component.y
+        component: component
       };
+      
+      // Highlight the starting port
+      d3.select(event.target)
+        .attr('stroke', '#ffff00')
+        .attr('stroke-width', 3);
+      
+      // Set up mouse move listener for live wire drawing
+      this.setupLiveWireDrawing();
+      
       console.log('Wire start:', this.wireStart);
     } else {
       // Second port clicked - complete wire
-      const wireEnd = {
-        componentId: component.id,
-        portType: portType,
-        x: component.x + (portType === 'input' ? -5 : 35),
-        y: component.y
-      };
-      
-      // Validate connection (output -> input)
-      if (this.wireStart.portType === 'output' && portType === 'input') {
-        this.createConnection(this.wireStart, wireEnd);
+      // Validate connection (output -> input, and not same component)
+      if (this.wireStart.portType === 'output' && portType === 'input' && 
+          this.wireStart.componentId !== component.id) {
+        this.createConnection(this.wireStart.componentId, component.id);
+        
+        // Clear highlighted port
+        this.clearPortHighlights();
       } else {
+        let message = 'Invalid connection: ';
+        if (this.wireStart.portType !== 'output') {
+          message += 'Start from an output port';
+        } else if (portType !== 'input') {
+          message += 'End at an input port';
+        } else if (this.wireStart.componentId === component.id) {
+          message += 'Cannot connect component to itself';
+        }
+        
+        console.warn(message);
         if (window.Shiny && window.Shiny.notifications) {
           Shiny.notifications.show({
-            message: 'Invalid connection: Must connect output to input',
-            type: 'warning'
+            message: message,
+            type: 'warning',
+            duration: 3
           });
         }
+        
+        this.clearPortHighlights();
+      }
+      
+      // Clear temporary wire line
+      if (this.tempWireLine) {
+        this.tempWireLine.remove();
+        this.tempWireLine = null;
       }
       
       this.wireStart = null;
+      this.removeLiveWireDrawing();
     }
   }
   
-  createConnection(start, end) {
+  createConnection(fromId, toId) {
+    // Check if connection already exists
+    const existing = this.connections.find(c => 
+      c.from === fromId && c.to === toId
+    );
+    
+    if (existing) {
+      console.warn('Connection already exists between these components');
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Connection already exists',
+          type: 'warning',
+          duration: 2
+        });
+      }
+      return;
+    }
+    
     const connection = {
       id: this.connections.length + 1,
-      from: {
-        component: start.componentId,
-        port: start.portType
-      },
-      to: {
-        component: end.componentId,
-        port: end.portType
-      },
+      from: fromId,
+      to: toId,
       properties: {
         impedance: 50,
         length: 0.25,
@@ -889,14 +1126,150 @@ class PALineupCanvas {
     };
     
     this.connections.push(connection);
-    this.drawConnection(connection);
+    this.renderConnections();
     
     // Update Shiny
     if (window.Shiny) {
-      Shiny.setInputValue('lineup_connections', this.connections, {priority: 'event'});
+      Shiny.setInputValue('lineup_connections', JSON.stringify(this.connections), {priority: 'event'});
     }
     
     console.log('Connection created:', connection);
+    console.log('Total connections:', this.connections.length);
+  }
+  
+  
+  setupLiveWireDrawing() {
+    // Create temporary line for visual feedback
+    this.tempWireLine = this.connectionsLayer.append('line')
+      .attr('class', 'temp-wire')
+      .attr('stroke', '#ffff00')
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', '5,5')
+      .attr('opacity', 0.7);
+    
+    // Track mouse movement
+    const self = this;
+    this.svg.on('mousemove', function(event) {
+      if (!self.wireStart || !self.tempWireLine) return;
+      
+      const [mx, my] = d3.pointer(event, self.zoomGroup.node());
+      const startComp = self.components.find(c => c.id === self.wireStart.componentId);
+      if (!startComp) return;
+      
+      const x1 = startComp.x + 35;  // Output port position
+      const y1 = startComp.y;
+      
+      self.tempWireLine
+        .attr('x1', x1)
+        .attr('y1', y1)
+        .attr('x2', mx)
+        .attr('y2', my);
+    });
+  }
+  
+  removeLiveWireDrawing() {
+    this.svg.on('mousemove', null);
+    if (this.tempWireLine) {
+      this.tempWireLine.remove();
+      this.tempWireLine = null;
+    }
+  }
+  
+  clearPortHighlights() {
+    // Reset all port styling
+    this.componentsLayer.selectAll('.port-input, .port-output')
+      .attr('stroke', function() {
+        return d3.select(this).classed('port-input') ? '#00ff88' : '#ff7f11';
+      })
+      .attr('stroke-width', 2)
+      .attr('r', 5);
+  }
+  
+  onPortHover(portElement, isEntering) {
+    if (!this.wireMode) return;  // Only show hover effects in wire mode
+    
+    const port = d3.select(portElement);
+    
+    if (isEntering) {
+      port.attr('r', 7)
+          .attr('stroke', '#ffff00')
+          .attr('stroke-width', 3);
+    } else {
+      // Don't reset if this is the wireStart port
+      if (this.wireStart) {
+        const isStartPort = port.attr('class').includes(this.wireStart.portType);
+        if (isStartPort) return;
+      }
+      
+      port.attr('r', 5)
+          .attr('stroke', port.classed('port-input') ? '#00ff88' : '#ff7f11')
+          .attr('stroke-width', 2);
+    }
+  }
+  
+  renderConnections() {
+    // Clear existing connections
+    this.connectionsLayer.selectAll('*').remove();
+    
+    // Draw each connection
+    this.connections.forEach(connection => {
+      const fromComp = this.components.find(c => c.id === connection.from);
+      const toComp = this.components.find(c => c.id === connection.to);
+      
+      if (!fromComp || !toComp) {
+        console.warn('Cannot draw connection - component not found:', connection);
+        return;
+      }
+      
+      // Get actual port positions using the new function
+      const fromPort = this.getPortPosition(fromComp, 'output', 0);
+      const toPort = this.getPortPosition(toComp, 'input', 0);
+      
+      const x1 = fromPort.x;
+      const y1 = fromPort.y;
+      const x2 = toPort.x;
+      const y2 = toPort.y;
+      
+      // Calculate control points for smooth curve
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const controlOffset = Math.min(dist * 0.4, 100);
+      
+      // Draw curved path with arrow
+      const path = this.connectionsLayer.append('path')
+        .attr('d', `M ${x1},${y1} C ${x1 + controlOffset},${y1} ${x2 - controlOffset},${y2} ${x2},${y2}`)
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 3)
+        .attr('fill', 'none')
+        .attr('marker-end', 'url(#arrowhead)')
+        .attr('data-connection-id', connection.id)
+        .attr('class', 'connection-line')
+        .style('cursor', 'pointer')
+        .on('click', (event) => {
+          event.stopPropagation();
+          this.selectConnection(connection);
+        })
+        .on('mouseenter', function() {
+          d3.select(this)
+            .attr('stroke', '#ffff00')
+            .attr('stroke-width', 4);
+        })
+        .on('mouseleave', function() {
+          d3.select(this)
+            .attr('stroke', '#00ff88')
+            .attr('stroke-width', 3);
+        });
+    });
+    
+    console.log('Rendered', this.connections.length, 'connections');
+  }
+  
+  selectConnection(connection) {
+    console.log('Connection selected:', connection);
+    
+    // Future: Could add connection property editor here
+    // For now, just log it
   }
   
   drawConnection(connection) {
@@ -934,6 +1307,8 @@ class PALineupCanvas {
         .attr('points', '0 0, 10 3, 0 6')
         .attr('fill', '#00ff88');
     }
+    
+    // Deprecated - use renderConnections() instead
   }
   
   updateComponent(id, properties) {
@@ -1042,14 +1417,13 @@ class PALineupCanvas {
     // Remove from canvas
     this.componentsLayer.select(`[data-id="${id}"]`).remove();
     
-    // Remove any connections to/from this component
+    // Remove any connections to/from this component (using simplified structure)
     this.connections = this.connections.filter(conn => 
-      conn.from.component !== id && conn.to.component !== id
+      conn.from !== id && conn.to !== id
     );
     
     // Redraw connections
-    this.connectionsLayer.selectAll('*').remove();
-    // TODO: Re-render all connections
+    this.renderConnections();
     
     // Clear selection
     this.selectedComponent = null;
@@ -1058,10 +1432,11 @@ class PALineupCanvas {
     if (window.Shiny) {
       Shiny.setInputValue('lineup_components', JSON.stringify(this.components), {priority: 'event'});
       Shiny.setInputValue('lineup_selected_component', null, {priority: 'event'});
-      Shiny.setInputValue('lineup_connections', this.connections, {priority: 'event'});
+      Shiny.setInputValue('lineup_connections', JSON.stringify(this.connections), {priority: 'event'});
     }
     
     console.log('Component deleted:', id);
+    console.log('Connections remaining:', this.connections.length);
   }
   
   toggleWireMode() {
@@ -1114,6 +1489,23 @@ class PALineupCanvas {
         Shiny.setInputValue('lineup_selected_component', null, {priority: 'event'});
       }
     });
+    
+    // Keyboard event handler for delete
+    document.addEventListener('keydown', (event) => {
+      // Check if Delete or Backspace was pressed
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        // Prevent default backspace navigation
+        if (event.key === 'Backspace' && event.target.tagName !== 'INPUT' && event.target.tagName !== 'TEXTAREA') {
+          event.preventDefault();
+        }
+        
+        // Only delete if a component is selected and not editing an input
+        if (this.selectedComponent && event.target.tagName !== 'INPUT' && event.target.tagName !== 'TEXTAREA') {
+          event.preventDefault();
+          this.deleteSelected();
+        }
+      }
+    });
   }
   
   exportConfiguration() {
@@ -1133,11 +1525,125 @@ class PALineupCanvas {
       this.addComponent(comp.type, comp.x, comp.y, comp.properties);
     });
   }
+  
+  /**
+   * Validate that all components are properly connected
+   * Returns {valid: boolean, errors: string[], warnings: string[]}
+   */
+  validateConnections() {
+    const errors = [];
+    const warnings = [];
+    
+    if (this.components.length === 0) {
+      errors.push('No components in lineup');
+      return { valid: false, errors, warnings };
+    }
+    
+    if (this.components.length === 1) {
+      warnings.push('Only one component - no connections needed');
+      return { valid: true, errors, warnings };
+    }
+    
+    // Check each component (except first) has input connection
+    this.components.forEach((comp, index) => {
+      if (index === 0) return; // First component doesn't need input
+      
+      const hasInput = this.connections.some(conn => conn.to === comp.id);
+      if (!hasInput) {
+        errors.push(`${comp.properties.label || 'Component ' + comp.id} has no input connection`);
+      }
+    });
+    
+    // Check each component (except last) has output connection
+    this.components.forEach((comp, index) => {
+      if (index === this.components.length - 1) return; // Last component doesn't need output
+      
+      const hasOutput = this.connections.some(conn => conn.from === comp.id);
+      if (!hasOutput) {
+        warnings.push(`${comp.properties.label || 'Component ' + comp.id} has no output connection`);
+      }
+    });
+    
+    // Check for isolated components (no connections at all)
+    this.components.forEach(comp => {
+      const hasConnection = this.connections.some(conn => 
+        conn.from === comp.id || conn.to === comp.id
+      );
+      if (!hasConnection && this.components.length > 1) {
+        errors.push(`${comp.properties.label || 'Component ' + comp.id} is completely disconnected`);
+      }
+    });
+    
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+  
+  /**
+   * Show validation results with visual feedback
+   */
+  showValidationResults() {
+    const result = this.validateConnections();
+    
+    // Clear previous highlights
+    this.componentsLayer.selectAll('.component')
+      .classed('invalid', false)
+      .classed('warning', false);
+    
+    if (result.valid && result.warnings.length === 0) {
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: '✓ All components properly connected',
+          type: 'message'
+        });
+      }
+      return true;
+    }
+    
+    // Highlight disconnected components
+    if (result.errors.length > 0) {
+      this.components.forEach(comp => {
+        const hasConnection = this.connections.some(conn =>
+          conn.from === comp.id || conn.to === comp.id
+        );
+        if (!hasConnection) {
+          d3.select(`.component[data-id="${comp.id}"]`)
+            .classed('invalid', true);
+        }
+      });
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: '✗ Connection errors: ' + result.errors.join('; '),
+          type: 'error',
+          duration: 10
+        });
+      }
+    }
+    
+    if (result.warnings.length > 0 && window.Shiny && window.Shiny.notifications) {
+      Shiny.notifications.show({
+        message: '⚠ Warnings: ' + result.warnings.join('; '),
+        type: 'warning',
+        duration: 8
+      });
+    }
+    
+    return result.valid;
+  }
 }
 
 // Initialize canvas with error handling and multiple triggers
 function initializePACanvas() {
   console.log('Attempting to initialize PA Lineup Canvas...');
+  
+  // Check if already initialized
+  if (window.paCanvas) {
+    console.log('⚠️ PA Lineup Canvas already initialized, skipping re-initialization');
+    return true;
+  }
   
   // Check if container exists
   const container = document.getElementById('pa_lineup_canvas_container');
@@ -1286,10 +1792,11 @@ function registerMessageHandlers() {
   
   const ShinyObj = typeof Shiny !== 'undefined' ? Shiny : window.Shiny;
   
-  console.log('Registering Shiny custom message handler: updateComponent');
+  console.log('Registering Shiny custom message handlers');
   
   // Remove existing handler if present
   if (ShinyObj.addCustomMessageHandler) {
+    // Handler 1: Update Component
     ShinyObj.addCustomMessageHandler('updateComponent', function(data) {
       console.log('=== RECEIVED updateComponent MESSAGE FROM R ===');
       console.log('Timestamp:', new Date().toISOString());
@@ -1327,7 +1834,71 @@ function registerMessageHandlers() {
       }
     });
     
-    console.log('✓ Shiny message handler registered successfully');
+    // Handler 2: Load Configuration
+    ShinyObj.addCustomMessageHandler('loadConfiguration', function(config) {
+      console.log('=== RECEIVED loadConfiguration MESSAGE FROM R ===');
+      console.log('Config:', config);
+      
+      if (!window.paCanvas) {
+        console.error('ERROR: paCanvas not found!');
+        alert('Canvas not initialized!');
+        return;
+      }
+      
+      try {
+        // Clear existing lineup
+        window.paCanvas.clear();
+        
+        // Load components
+        if (config.components && Array.isArray(config.components)) {
+          console.log('Loading', config.components.length, 'components...');
+          config.components.forEach((comp, index) => {
+            console.log(`Loading component ${index}:`, comp.type, 'at', comp.x, comp.y);
+            window.paCanvas.addComponent(
+              comp.type,
+              comp.x,
+              comp.y,
+              comp.properties || {}
+            );
+          });
+        }
+        
+        // Load connections
+        if (config.connections && Array.isArray(config.connections)) {
+          console.log('Loading', config.connections.length, 'connections...');
+          window.paCanvas.connections = config.connections;
+          window.paCanvas.renderConnections();
+        }
+        
+        console.log('✓ Configuration loaded successfully');
+        alert('Configuration loaded successfully!');
+        
+      } catch (e) {
+        console.error('Error loading configuration:', e);
+        alert('Error loading configuration: ' + e.message);
+      }
+    });
+    
+    // Handler 3: Validate and Calculate
+    ShinyObj.addCustomMessageHandler('validateAndCalculate', function(data) {
+      console.log('=== RECEIVED validateAndCalculate MESSAGE FROM R ===');
+      
+      if (!window.paCanvas) {
+        console.error('ERROR: paCanvas not found!');
+        return;
+      }
+      
+      // Run validation with visual feedback
+      const isValid = window.paCanvas.showValidationResults();
+      
+      if (!isValid) {
+        console.log('Validation failed - calculation blocked');
+      } else {
+        console.log('Validation passed - calculation will proceed');
+      }
+    });
+    
+    console.log('✓ Shiny message handlers registered successfully');
     return true;
   } else {
     console.error('ShinyObj.addCustomMessageHandler not available!');
@@ -1361,3 +1932,44 @@ if (typeof $ !== 'undefined') {
     registerMessageHandlers();
   });
 }
+
+// ============================================================
+// Canvas Sidebar Toggle Function
+// ============================================================
+
+function toggleCanvasSidebar() {
+  const sidebar = document.getElementById('canvas_sidebar');
+  const toggle = document.getElementById('sidebar_toggle');
+  
+  if (!sidebar) {
+    console.error('Sidebar not found!');
+    return;
+  }
+  
+  // Toggle between collapsed and expanded states
+  if (sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
+    sidebar.classList.add('expanded');
+    console.log('Sidebar expanded');
+  } else {
+    sidebar.classList.remove('expanded');
+    sidebar.classList.add('collapsed');
+    console.log('Sidebar collapsed');
+  }
+}
+
+// Initialize sidebars as collapsed on page load
+document.addEventListener('DOMContentLoaded', function() {
+  const sidebar = document.getElementById('canvas_sidebar');
+  if (sidebar) {
+    sidebar.classList.add('collapsed');
+    console.log('Right sidebar initialized in collapsed state');
+  }
+  
+  const topSidebar = document.getElementById('canvas_top_sidebar');
+  if (topSidebar) {
+    topSidebar.classList.add('collapsed');
+    console.log('Top sidebar initialized in collapsed state');
+  }
+});
+

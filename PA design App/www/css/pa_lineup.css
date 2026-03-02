@@ -4,9 +4,14 @@
    ============================================================ */
 
 .component-palette {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #ff7f11 #2a2a2a;
+  z-index: 1100 !important;
+  pointer-events: auto !important;
 }
 
 .component-palette::-webkit-scrollbar {
@@ -30,7 +35,7 @@
 
 .component {
   cursor: move;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, filter 0.2s;
 }
 
 .component.selected {
@@ -39,6 +44,24 @@
 
 .component:hover {
   filter: drop-shadow(0 0 5px rgba(255, 127, 17, 0.8));
+}
+
+.component.invalid {
+  filter: drop-shadow(0 0 12px rgba(255, 0, 0, 0.9));
+  animation: pulse-error 1.5s infinite;
+}
+
+.component.warning {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 0, 0.7));
+}
+
+@keyframes pulse-error {
+  0%, 100% {
+    filter: drop-shadow(0 0 12px rgba(255, 0, 0, 0.9));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(255, 0, 0, 1));
+  }
 }
 
 #pa_lineup_canvas_container {

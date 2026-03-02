@@ -373,34 +373,6 @@ ui <- dashboardPage(
               title = tagList(icon("project-diagram"), "PA Lineup"),
               value = "pa_lineup",
               
-              # Preset Templates
-              fluidRow(
-                box(
-                  title = "Architecture Templates",
-                  width = 12,
-                  status = "primary",
-                  solidHeader = TRUE,
-                  div(class = "preset-templates",
-                    div(class = "preset-template", `data-preset` = "triple_stage",
-                      h5("3-Stage Cascade"),
-                      p("Pre-driver → Driver → Final PA")
-                    ),
-                    div(class = "preset-template", `data-preset` = "single_doherty",
-                      h5("Single Driver Doherty"),
-                      p("Driver → Splitter → Main/Aux PA")
-                    ),
-                    div(class = "preset-template", `data-preset` = "dual_doherty",
-                      h5("Dual Driver Doherty"),
-                      p("Dual drivers → Main/Aux paths")
-                    ),
-                    div(class = "preset-template", `data-preset` = "blank",
-                      h5("Blank Canvas"),
-                      p("Start from scratch")
-                    )
-                  )
-                )
-              ),
-              
               fluidRow(
                 # Left: Interactive Canvas
                 column(8,
@@ -409,54 +381,127 @@ ui <- dashboardPage(
                     width = 12,
                     status = "info",
                     solidHeader = TRUE,
-                    div(id = "pa_lineup_canvas_container", style = "position: relative;")
-                  ),
-                  box(
-                    title = "Canvas Actions",
-                    width = 12,
-                    div(style = "display: flex; gap: 10px; flex-wrap: wrap;",
-                      # Zoom Controls
-                      div(style = "display: flex; gap: 5px; padding: 5px; background: #2a2a2a; border-radius: 4px;",
+                    div(
+                      id = "pa_lineup_canvas_container", 
+                      style = "position: relative;",
+                      
+                      # Floating top sidebar for architecture templates
+                      div(
+                        id = "canvas_top_sidebar",
+                        class = "canvas-top-sidebar collapsed",
+                        
+                        # Toggle button
                         tags$button(
-                          onclick = "console.log('Zoom In clicked'); if(window.paCanvas){console.log('Canvas exists, zooming in'); paCanvas.zoomIn();} else {console.error('Canvas not found!');}",
-                          class = "btn btn-default btn-sm",
-                          icon("search-plus"),
-                          title = "Zoom In"
+                          id = "top_sidebar_toggle",
+                          class = "top-sidebar-toggle",
+                          onclick = "toggleCanvasTopSidebar()",
+                          icon("chevron-down"),
+                          " Templates"
                         ),
-                        tags$button(
-                          onclick = "console.log('Zoom Out clicked'); if(window.paCanvas){console.log('Canvas exists, zooming out'); paCanvas.zoomOut();} else {console.error('Canvas not found!');}",
-                          class = "btn btn-default btn-sm",
-                          icon("search-minus"),
-                          title = "Zoom Out"
-                        ),
-                        tags$button(
-                          onclick = "console.log('Reset View clicked'); if(window.paCanvas){console.log('Canvas exists, resetting zoom'); paCanvas.resetZoom();} else {console.error('Canvas not found!');}",
-                          class = "btn btn-default btn-sm",
-                          icon("home"),
-                          title = "Reset View"
+                        
+                        # Top sidebar content
+                        div(
+                          class = "top-sidebar-content",
+                          div(class = "top-sidebar-title", icon("layer-group"), " Architecture Templates"),
+                          div(class = "top-sidebar-templates",
+                            div(class = "preset-template", `data-preset` = "triple_stage",
+                              h5("3-Stage Cascade"),
+                              p("Pre-driver → Driver → Final PA")
+                            ),
+                            div(class = "preset-template", `data-preset` = "single_doherty",
+                              h5("Single Driver Doherty"),
+                              p("Driver → Splitter → Main/Aux PA")
+                            ),
+                            div(class = "preset-template", `data-preset` = "dual_doherty",
+                              h5("Dual Driver Doherty"),
+                              p("Dual drivers → Main/Aux paths")
+                            ),
+                            div(class = "preset-template", `data-preset` = "blank",
+                              h5("Blank Canvas"),
+                              p("Start from scratch")
+                            )
+                          )
                         )
                       ),
-                      # Component Actions
-                      tags$button(
-                        onclick = "console.log('Delete clicked'); if(window.paCanvas){console.log('Canvas exists, deleting selected'); paCanvas.deleteSelected();} else {console.error('Canvas not found!');}",
-                        class = "btn btn-danger btn-sm",
-                        icon("trash"),
-                        "Delete",
-                        title = "Delete Selected Component"
-                      ),
-                      tags$button(
-                        onclick = "console.log('Wire mode clicked'); if(window.paCanvas){console.log('Canvas exists, toggling wire mode'); paCanvas.toggleWireMode();} else {console.error('Canvas not found!');}",
-                        id = "wire_mode_btn",
-                        class = "btn btn-info btn-sm",
-                        icon("project-diagram"),
-                        "Wire",
-                        title = "Draw Connection Wire"
-                      ),
-                      # File Actions
-                      actionButton("lineup_save_config", "Save", icon = icon("save"), class = "btn-success btn-sm"),
-                      actionButton("lineup_load_config", "Load", icon = icon("folder-open"), class = "btn-sm"),
-                      actionButton("lineup_export_diagram", "Export", icon = icon("image"), class = "btn-sm"),
-                      actionButton("lineup_generate_report", "Report", icon = icon("file-pdf"), class = "btn-sm")
+                      
+                      # Floating right sidebar for canvas actions
+                      div(
+                        id = "canvas_sidebar",
+                        class = "canvas-sidebar collapsed",
+                        
+                        # Toggle button
+                        tags$button(
+                          id = "sidebar_toggle",
+                          class = "sidebar-toggle",
+                          onclick = "toggleCanvasSidebar()",
+                          icon("chevron-left"),
+                          title = "Canvas Actions"
+                        ),
+                        
+                        # Sidebar content
+                        div(
+                          class = "sidebar-content",
+                          
+                          # Zoom Controls Section
+                          div(
+                            class = "sidebar-section",
+                            div(class = "sidebar-section-title", icon("search"), " Zoom"),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.zoomIn();",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("search-plus"),
+                              " Zoom In"
+                            ),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.zoomOut();",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("search-minus"),
+                              " Zoom Out"
+                            ),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.resetZoom();",
+                              class = "btn btn-default btn-block btn-sm",
+                              icon("home"),
+                              " Reset View"
+                            )
+                          ),
+                          
+                          # Component Actions Section
+                          div(
+                            class = "sidebar-section",
+                            div(class = "sidebar-section-title", icon("cogs"), " Actions"),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.deleteSelected();",
+                              class = "btn btn-danger btn-block btn-sm",
+                              icon("trash"),
+                              " Delete"
+                            ),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.toggleWireMode();",
+                              id = "wire_mode_btn",
+                              class = "btn btn-info btn-block btn-sm",
+                              icon("project-diagram"),
+                              " Wire Mode"
+                            ),
+                            tags$button(
+                              onclick = "if(window.paCanvas) paCanvas.clear();",
+                              class = "btn btn-warning btn-block btn-sm",
+                              icon("eraser"),
+                              " Clear All"
+                            )
+                          ),
+                          
+                          # File Actions Section
+                          div(
+                            class = "sidebar-section",
+                            div(class = "sidebar-section-title", icon("file"), " File"),
+                            actionButton("lineup_save_config", "Save", icon = icon("save"), class = "btn-success btn-block btn-sm"),
+                            actionButton("lineup_load_config", "Load", icon = icon("folder-open"), class = "btn-default btn-block btn-sm"),
+                            actionButton("lineup_export_diagram", "Export", icon = icon("image"), class = "btn-default btn-block btn-sm"),
+                            actionButton("lineup_generate_report", "Report", icon = icon("file-pdf"), class = "btn-default btn-block btn-sm")
+                          )
+                        )
+                      )
                     )
                   )
                 ),
@@ -1567,6 +1612,15 @@ server <- function(input, output, session) {
             value = as.numeric(getProp("z_out", 50)), step = 0.5),
           numericInput(paste0("prop_", selected, "_bandwidth"), "Bandwidth (%)", 
             value = as.numeric(getProp("bandwidth", 10)), step = 1),
+          hr(),
+          h5("Display on Canvas"),
+          checkboxGroupInput(paste0("prop_", selected, "_display"),
+            label = NULL,
+            choices = c("Label" = "label", "Loss" = "loss", "Type" = "type"),
+            selected = c("label", "loss"),
+            inline = FALSE
+          ),
+          hr(),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
             class = "btn-primary btn-block",
             onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
@@ -1585,6 +1639,15 @@ server <- function(input, output, session) {
             value = as.numeric(getProp("isolation", 20)), step = 1),
           numericInput(paste0("prop_", selected, "_split_ratio"), "Split Ratio (dB)", 
             value = as.numeric(getProp("split_ratio", 0)), step = 0.5),
+          hr(),
+          h5("Display on Canvas"),
+          checkboxGroupInput(paste0("prop_", selected, "_display"),
+            label = NULL,
+            choices = c("Label" = "label", "Loss" = "loss", "Type" = "type"),
+            selected = c("label", "loss"),
+            inline = FALSE
+          ),
+          hr(),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
             class = "btn-primary btn-block",
             onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
@@ -1609,6 +1672,15 @@ server <- function(input, output, session) {
               value = as.numeric(getProp("modulation_factor", 2.0)), 
               min = 1, max = 4, step = 0.1)
           ),
+          hr(),
+          h5("Display on Canvas"),
+          checkboxGroupInput(paste0("prop_", selected, "_display"),
+            label = NULL,
+            choices = c("Label" = "label", "Loss" = "loss", "Type" = "type"),
+            selected = c("label", "loss"),
+            inline = FALSE
+          ),
+          hr(),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
             class = "btn-primary btn-block",
             onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
@@ -1893,6 +1965,12 @@ server <- function(input, output, session) {
       return()
     }
     
+    # Validate connections via JavaScript (client-side validation)
+    session$sendCustomMessage("validateAndCalculate", list(
+      components = components,
+      connections = lineup_connections()
+    ))
+    
     # Get input power from first component or use default
     input_power <- 0  # Default 0 dBm
     
@@ -1904,6 +1982,195 @@ server <- function(input, output, session) {
       type = if(result$success) "message" else "error"
     )
   })
+  
+  # ============================================================
+  # FILE OPERATIONS: Save, Load, Export, Report
+  # ============================================================
+  
+  # Save Configuration
+  observeEvent(input$lineup_save_config, {
+    components <- lineup_components()
+    connections <- lineup_connections()
+    
+    if(is.null(components) || length(components) == 0) {
+      showNotification("No lineup to save", type = "warning")
+      return()
+    }
+    
+    config <- list(
+      components = components,
+      connections = connections,
+      metadata = list(
+        timestamp = Sys.time(),
+        version = "1.0",
+        app = "PA Lineup Designer"
+      )
+    )
+    
+    # Create filename with timestamp
+    filename <- sprintf("pa_lineup_%s.json", format(Sys.time(), "%Y%m%d_%H%M%S"))
+    filepath <- file.path(tempdir(), filename)
+    
+    tryCatch({
+      jsonlite::write_json(config, filepath, auto_unbox = TRUE, pretty = TRUE)
+      showNotification(
+        sprintf("Configuration saved to: %s", filename),
+        type = "message",
+        duration = 5
+      )
+      cat(sprintf("[Save] Configuration saved to: %s\n", filepath))
+    }, error = function(e) {
+      showNotification(
+        sprintf("Save failed: %s", e$message),
+        type = "error"
+      )
+    })
+  })
+  
+  # Load Configuration
+  observeEvent(input$lineup_load_config, {
+    showModal(modalDialog(
+      title = "Load Configuration",
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("lineup_load_confirm", "Load", class = "btn-success")
+      ),
+      fileInput("lineup_config_file", "Select Configuration File (.json)",
+                accept = c(".json", "application/json"))
+    ))
+  })
+  
+  observeEvent(input$lineup_load_confirm, {
+    req(input$lineup_config_file)
+    
+    file_info <- input$lineup_config_file
+    
+    tryCatch({
+      config <- jsonlite::read_json(file_info$datapath, simplifyVector = TRUE)
+      
+      # Validate config structure
+      if(!is.list(config) || is.null(config$components)) {
+        stop("Invalid configuration file format")
+      }
+      
+      # Send to JavaScript
+      session$sendCustomMessage("loadConfiguration", config)
+      
+      showNotification("Configuration loaded successfully", type = "message")
+      removeModal()
+      
+      cat(sprintf("[Load] Configuration loaded from: %s\n", file_info$name))
+      cat(sprintf("[Load] Components: %d, Connections: %d\n", 
+                  length(config$components), 
+                  length(config$connections)))
+      
+    }, error = function(e) {
+      showNotification(
+        sprintf("Load failed: %s", e$message),
+        type = "error"
+      )
+    })
+  })
+  
+  # Export Diagram (SVG)
+  observeEvent(input$lineup_export_diagram, {
+    components <- lineup_components()
+    
+    if(is.null(components) || length(components) == 0) {
+      showNotification("No lineup to export", type = "warning")
+      return()
+    }
+    
+    showNotification(
+      "Export feature: Right-click on canvas → 'Save Image As...' to export SVG",
+      type = "message",
+      duration = 8
+    )
+    
+    # Future enhancement: Trigger JavaScript to export SVG
+    # session$sendCustomMessage("exportSVG", list())
+  })
+  
+  # Generate Report (PDF)
+  observeEvent(input$lineup_generate_report, {
+    components <- lineup_components()
+    results <- lineup_calc_results()
+    
+    if(is.null(components) || length(components) == 0) {
+      showNotification("No lineup to report", type = "warning")
+      return()
+    }
+    
+    if(is.null(results) || !results$success) {
+      showNotification("Please calculate lineup before generating report", type = "warning")
+      return()
+    }
+    
+    showModal(modalDialog(
+      title = "Generate Report",
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("lineup_report_confirm", "Generate", class = "btn-success")
+      ),
+      textInput("lineup_report_title", "Report Title", value = "PA Lineup Design Report"),
+      textInput("lineup_report_author", "Author", value = ""),
+      textAreaInput("lineup_report_notes", "Additional Notes", rows = 3)
+    ))
+  })
+  
+  observeEvent(input$lineup_report_confirm, {
+    tryCatch({
+      # Generate simple text report (PDF generation would require rmarkdown/reportlab)
+      report_lines <- c(
+        "================================",
+        input$lineup_report_title,
+        "================================",
+        "",
+        sprintf("Generated: %s", format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
+        if(nchar(input$lineup_report_author) > 0) sprintf("Author: %s", input$lineup_report_author) else NULL,
+        "",
+        "LINEUP CONFIGURATION",
+        "--------------------",
+        sprintf("Components: %d", length(lineup_components())),
+        sprintf("Total Gain: %.2f dB", lineup_calc_results()$total_gain),
+        sprintf("Output Power: %.2f dBm (%.3f W)", 
+                lineup_calc_results()$final_pout_dbm,
+                lineup_calc_results()$final_pout_w),
+        sprintf("System PAE: %.1f%%", lineup_calc_results()$system_pae),
+        sprintf("DC Power: %.3f W", lineup_calc_results()$total_pdc),
+        "",
+        "CALCULATION RATIONALE",
+        "--------------------",
+        lineup_calc_results()$rationale,
+        "",
+        if(nchar(input$lineup_report_notes) > 0) c("ADDITIONAL NOTES", "----------------", input$lineup_report_notes) else NULL
+      )
+      
+      # Save to temp file
+      filename <- sprintf("pa_lineup_report_%s.txt", format(Sys.time(), "%Y%m%d_%H%M%S"))
+      filepath <- file.path(tempdir(), filename)
+      writeLines(report_lines, filepath)
+      
+      showNotification(
+        sprintf("Report saved to: %s", filename),
+        type = "message",
+        duration = 5
+      )
+      removeModal()
+      
+      cat(sprintf("[Report] Generated: %s\n", filepath))
+      
+    }, error = function(e) {
+      showNotification(
+        sprintf("Report generation failed: %s", e$message),
+        type = "error"
+      )
+    })
+  })
+  
+  # ============================================================
+  # END FILE OPERATIONS
+  # ============================================================
   
   # Property apply button observer - uses reactive approach for dynamic buttons
   observeEvent(input$lineup_selected_component, {
@@ -1959,12 +2226,14 @@ server <- function(input, output, session) {
         properties$z_in <- input[[paste0("prop_", selected, "_z_in")]]
         properties$z_out <- input[[paste0("prop_", selected, "_z_out")]]
         properties$bandwidth <- input[[paste0("prop_", selected, "_bandwidth")]]
+        properties$display <- input[[paste0("prop_", selected, "_display")]]
       } else if(comp_type == "splitter") {
         properties$label <- input[[paste0("prop_", selected, "_label")]]
         properties$type <- input[[paste0("prop_", selected, "_type")]]
         properties$split_ratio <- input[[paste0("prop_", selected, "_split_ratio")]]
         properties$isolation <- input[[paste0("prop_", selected, "_isolation")]]
         properties$loss <- input[[paste0("prop_", selected, "_loss")]]
+        properties$display <- input[[paste0("prop_", selected, "_display")]]
       } else if(comp_type == "combiner") {
         properties$label <- input[[paste0("prop_", selected, "_label")]]
         properties$type <- input[[paste0("prop_", selected, "_type")]]
@@ -1972,6 +2241,7 @@ server <- function(input, output, session) {
         properties$loss <- input[[paste0("prop_", selected, "_loss")]]
         properties$load_modulation <- input[[paste0("prop_", selected, "_load_modulation")]]
         properties$modulation_factor <- input[[paste0("prop_", selected, "_modulation_factor")]]
+        properties$display <- input[[paste0("prop_", selected, "_display")]]
       }
       
       cat(sprintf("[Property Observer] Collected %d properties\n", length(properties)))

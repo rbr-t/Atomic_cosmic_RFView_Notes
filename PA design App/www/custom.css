@@ -36,3 +36,286 @@ body {
   background-color: #00cc66 !important;
   border-color: #00cc66 !important;
 }
+
+/* ============================================================ */
+/* Canvas Sidebar - Floating Right Panel with Hide/Hover       */
+/* ============================================================ */
+
+.canvas-sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 100%;
+  background: rgba(26, 26, 26, 0.95);
+  border-left: 2px solid #ff7f11;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  z-index: 1000;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.canvas-sidebar.collapsed {
+  transform: translateX(calc(100% - 40px));
+  opacity: 0.8;
+}
+
+.canvas-sidebar:hover {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.canvas-sidebar.expanded {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  left: -40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 60px;
+  background: #ff7f11;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.2s, left 0.3s;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar-toggle:hover {
+  background: #e66d00;
+}
+
+.canvas-sidebar.expanded .sidebar-toggle i {
+  transform: rotate(180deg);
+  transition: transform 0.3s;
+}
+
+.sidebar-content {
+  padding: 15px 10px;
+  padding-top: 10px;
+}
+
+.sidebar-section {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.sidebar-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.sidebar-section-title {
+  color: #ff7f11;
+  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-section .btn {
+  margin-bottom: 5px;
+  font-size: 12px;
+  padding: 6px 10px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-section .btn i {
+  margin-right: 5px;
+  width: 14px;
+  display: inline-block;
+}
+
+/* Scrollbar styling for sidebar */
+.canvas-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.canvas-sidebar::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.canvas-sidebar::-webkit-scrollbar-thumb {
+  background: #ff7f11;
+  border-radius: 3px;
+}
+
+.canvas-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #e66d00;
+}
+
+/* Make canvas container accommodate sidebar */
+#pa_lineup_canvas_container {
+  position: relative;
+  min-height: 650px;
+}
+
+/* Component palette should overlay canvas - high z-index to stay on top */
+.component-palette {
+  z-index: 1100 !important;
+  pointer-events: auto;
+}
+
+/* ============================================================ */
+/* Canvas Top Sidebar - Floating Template Panel with Hide/Hover */
+/* ============================================================ */
+
+.canvas-top-sidebar {
+  position: absolute;
+  top: 0;
+  left: 60px; /* Account for component palette */
+  right: 40px; /* Leave space for right sidebar */
+  height: auto;
+  max-height: 200px;
+  background: rgba(26, 26, 26, 0.95);
+  border-bottom: 2px solid #ff7f11;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  z-index: 999;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.canvas-top-sidebar.collapsed {
+  transform: translateY(calc(-100% + 40px));
+  opacity: 0.8;
+}
+
+.canvas-top-sidebar:hover {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.canvas-top-sidebar.expanded {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.top-sidebar-toggle {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 40px;
+  background: #ff7f11;
+  border: none;
+  border-radius: 0 0 8px 8px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s, bottom 0.3s;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.top-sidebar-toggle:hover {
+  background: #e66d00;
+}
+
+.canvas-top-sidebar.expanded .top-sidebar-toggle i {
+  transform: rotate(180deg);
+  transition: transform 0.3s;
+}
+
+.top-sidebar-content {
+  padding: 15px 20px;
+  padding-bottom: 10px;
+}
+
+.top-sidebar-title {
+  color: #ff7f11;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  text-align: center;  /* Center the title */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+  letter-spacing: 0.5px;
+}
+
+.top-sidebar-templates {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.top-sidebar-templates .preset-template {
+  flex: 1;
+  min-width: 180px;
+  max-width: 250px;
+  padding: 12px 15px;
+  background: #2a2a2a;
+  border: 2px solid #444;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.top-sidebar-templates .preset-template:hover {
+  border-color: #ff7f11;
+  background: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 127, 17, 0.3);
+}
+
+.top-sidebar-templates .preset-template.active {
+  border-color: #ff7f11;
+  background: #3a2a1a;
+  box-shadow: 0 0 15px rgba(255, 127, 17, 0.4);
+}
+
+.top-sidebar-templates .preset-template h5 {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 5px 0;
+}
+
+.top-sidebar-templates .preset-template p {
+  color: #aaa;
+  font-size: 11px;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* Scrollbar styling for top sidebar */
+.canvas-top-sidebar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.canvas-top-sidebar::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.canvas-top-sidebar::-webkit-scrollbar-thumb {
+  background: #ff7f11;
+  border-radius: 3px;
+}
+
+.canvas-top-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #e66d00;
+}
