@@ -457,23 +457,25 @@ ui <- dashboardPage(
                           div(
                             class = "sidebar-section",
                             div(class = "sidebar-section-title", icon("search"), " Zoom"),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.zoomIn();",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("search-plus"),
-                              " Zoom In"
-                            ),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.zoomOut();",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("search-minus"),
-                              " Zoom Out"
-                            ),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.resetZoom();",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("home"),
-                              " Reset View"
+                            div(class = "icon-button-group",
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.zoomIn();",
+                                class = "btn btn-default btn-icon",
+                                icon("search-plus"),
+                                title = "Zoom In"
+                              ),
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.zoomOut();",
+                                class = "btn btn-default btn-icon",
+                                icon("search-minus"),
+                                title = "Zoom Out"
+                              ),
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.resetZoom();",
+                                class = "btn btn-default btn-icon",
+                                icon("home"),
+                                title = "Reset View"
+                              )
                             )
                           ),
                           
@@ -481,53 +483,59 @@ ui <- dashboardPage(
                           div(
                             class = "sidebar-section",
                             div(class = "sidebar-section-title", icon("cogs"), " Actions"),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.selectAll();",
-                              id = "select_all_btn",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("check-square"),
-                              " Select (Esc)"
+                            div(class = "icon-button-group",
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.toggleBoxSelect();",
+                                id = "box_select_btn",
+                                class = "btn btn-default btn-icon",
+                                icon("object-group"),
+                                title = "Box Select (Ctrl+B)"
+                              ),
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.deleteSelected();",
+                                class = "btn btn-danger btn-icon",
+                                icon("trash"),
+                                title = "Delete (Del)"
+                              )
                             ),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.copy();",
-                              id = "copy_btn",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("copy"),
-                              " Copy (Ctrl+C)"
+                            div(class = "icon-button-group",
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.copy();",
+                                id = "copy_btn",
+                                class = "btn btn-default btn-icon",
+                                icon("copy"),
+                                title = "Copy (Ctrl+C)"
+                              ),
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.cut();",
+                                id = "cut_btn",
+                                class = "btn btn-default btn-icon",
+                                icon("cut"),
+                                title = "Cut (Ctrl+X)"
+                              ),
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.paste();",
+                                id = "paste_btn",
+                                class = "btn btn-default btn-icon",
+                                icon("paste"),
+                                title = "Paste (Ctrl+V)"
+                              )
                             ),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.cut();",
-                              id = "cut_btn",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("cut"),
-                              " Cut (Ctrl+X)"
-                            ),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.paste();",
-                              id = "paste_btn",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("paste"),
-                              " Paste (Ctrl+V)"
-                            ),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.deleteSelected();",
-                              class = "btn btn-danger btn-block btn-sm",
-                              icon("trash"),
-                              " Delete"
-                            ),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.undo();",
-                              id = "lineup_undo",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("undo"),
-                              " Undo (Ctrl+Z)"
-                            ),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.redo();",
-                              id = "lineup_redo",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("redo"),
-                              " Redo (Ctrl+Y)"
+                            div(class = "icon-button-group",
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.undo();",
+                                id = "lineup_undo",
+                                class = "btn btn-default btn-icon",
+                                icon("undo"),
+                                title = "Undo (Ctrl+Z)"
+                              ),
+                              tags$button(
+                                onclick = "if(window.paCanvas) paCanvas.redo();",
+                                id = "lineup_redo",
+                                class = "btn btn-default btn-icon",
+                                icon("redo"),
+                                title = "Redo (Ctrl+Y)"
+                              )
                             ),
                             tags$button(
                               onclick = "if(window.paCanvas) paCanvas.togglePowerDisplay();",

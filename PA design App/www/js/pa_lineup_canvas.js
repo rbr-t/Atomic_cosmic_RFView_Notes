@@ -121,6 +121,7 @@ class PALineupCanvas {
     this.components = [];
     this.connections = [];
     this.selectedComponent = null;
+    this.selectedComponents = []; // Array for multi-select
     this.selectedConnection = null;
     this.draggedComponent = null;
     this.nextId = 1;
@@ -128,6 +129,9 @@ class PALineupCanvas {
     this.wireStart = null;
     this.tempWireLine = null;  // Temporary line while drawing wire
     this.hoveredPort = null;   // Track hovered port for snap detection
+    this.boxSelectMode = false;
+    this.selectionBox = null;
+    this.selectionStart = null;
     
     // Undo/Redo functionality
     this.history = [];
@@ -324,7 +328,7 @@ class PALineupCanvas {
       { type: 'matching', icon: '═', label: 'Matching', color: '#00ff88' },
       { type: 'splitter', icon: '⊥', label: 'Splitter', color: '#ffaa00' },
       { type: 'combiner', icon: '⊤', label: 'Combiner', color: '#ff00aa' },
-      { type: 'wire', icon: '╳', label: 'Wire Mode', color: '#ff7f11', isAction: true }
+      { type: 'wire', icon: '━', label: 'Wire Mode', color: '#ff7f11', isAction: true }
     ];
     
     console.log('Adding components to palette:', components.length);
@@ -1642,6 +1646,12 @@ class PALineupCanvas {
   }
   
   deleteSelected() {
+    // Check if multiple components selected
+    if (this.selectedComponents.length > 0) {
+      this.deleteSelectedMultiple();
+      return;
+    }
+    
     if (!this.selectedComponent) {
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
@@ -1730,15 +1740,84 @@ class PALineupCanvas {
   }
   
   setupEventHandlers() {
-    // Click on canvas to deselect
+    // Click on canvas to deselect (unless in box select mode or wire mode)
     this.svg.on('click', () => {
-      this.selectedComponent = null;
-      this.selectedConnection = null;
-      d3.selectAll('.component').classed('selected', false);
-      d3.selectAll('.connection-line').classed('selected', false);
-      
-      if (window.Shiny) {
-        Shiny.setInputValue('lineup_selected_component', null, {priority: 'event'});
+      if (!this.boxSelectMode && !this.wireMode) {
+        this.selectedComponent = null;
+        this.selectedComponents = [];
+        this.selectedConnection = null;
+        d3.selectAll('.component').classed('selected', false);
+        d3.selectAll('.connection-line').classed('selected', false);
+        
+        if (window.Shiny) {
+          Shiny.setInputValue('lineup_selected_component', null, {priority: 'event'});
+        }
+      }
+    });
+    
+    // Box select mouse handlers
+    this.svg.on('mousedown', (event) => {
+      if (this.boxSelectMode && event.button === 0) {
+        event.preventDefault();
+        const [x, y] = d3.pointer(event);
+        this.selectionStart = { x, y };
+        
+        // Create selection box rectangle
+        this.selectionBox = this.svg.append('rect')
+          .attr('class', 'selection-box')
+          .attr('x', x)
+          .attr('y', y)
+          .attr('width', 0)
+          .attr('height', 0)
+          .style('stroke', '#ff7f11')
+          .style('stroke-width', 2)
+          .style('stroke-dasharray', '5,5')
+          .style('fill', 'rgba(255, 127, 17, 0.1)')
+          .style('pointer-events', 'none');
+      }
+    });
+    
+    this.svg.on('mousemove', (event) => {
+      if (this.boxSelectMode && this.selectionBox && this.selectionStart) {
+        const [x, y] = d3.pointer(event);
+        const width = x - this.selectionStart.x;
+        const height = y - this.selectionStart.y;
+        
+        // Update selection box
+        this.selectionBox
+          .attr('x', width < 0 ? x : this.selectionStart.x)
+          .attr('y', height < 0 ? y : this.selectionStart.y)
+          .attr('width', Math.abs(width))
+          .attr('height', Math.abs(height));
+      }
+    });
+    
+    this.svg.on('mouseup', (event) => {
+      if (this.boxSelectMode && this.selectionBox && this.selectionStart) {
+        const [x, y] = d3.pointer(event);
+        const boxX1 = Math.min(this.selectionStart.x, x);
+        const boxY1 = Math.min(this.selectionStart.y, y);
+        const boxX2 = Math.max(this.selectionStart.x, x);
+        const boxY2 = Math.max(this.selectionStart.y, y);
+        
+        // Find components within selection box
+        this.selectedComponents = this.components.filter(comp => {
+          return comp.x >= boxX1 && comp.x <= boxX2 && 
+                 comp.y >= boxY1 && comp.y <= boxY2;
+        });
+        
+        // Highlight selected components
+        d3.selectAll('.component').classed('selected', false);
+        this.selectedComponents.forEach(comp => {
+          d3.select(`[data-component-id=\"${comp.id}\"]`).classed('selected', true);
+        });
+        
+        console.log('Selected components:', this.selectedComponents.length);
+        
+        // Remove selection box
+        this.selectionBox.remove();
+        this.selectionBox = null;
+        this.selectionStart = null;
       }
     });
     
@@ -1749,15 +1828,39 @@ class PALineupCanvas {
         return;
       }
       
-      // Delete key - delete selected component or connection
+      // Box Select: Ctrl+B
+      if (event.ctrlKey && event.key === 'b') {
+        event.preventDefault();
+        this.toggleBoxSelect();
+      }
+      
+      // Delete key - delete selected component(s) or connection
       if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault();
         
-        if (this.selectedComponent) {
+        if (this.selectedComponents.length > 0) {
+          this.deleteSelectedMultiple();
+        } else if (this.selectedComponent) {
           this.deleteSelected();
         } else if (this.selectedConnection) {
           this.deleteSelectedConnection();
         }
+      }
+      
+      // Escape key - cancel modes and deselect
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (this.boxSelectMode) {
+          this.toggleBoxSelect();
+        }
+        if (this.wireMode) {
+          this.toggleWireMode();
+        }
+        this.selectedComponent = null;
+        this.selectedComponents = [];
+        this.selectedConnection = null;
+        d3.selectAll('.component').classed('selected', false);
+        d3.selectAll('.connection-line').classed('selected', false);
       }
       
       // Undo: Ctrl+Z
@@ -1931,9 +2034,37 @@ class PALineupCanvas {
   // Cut/Copy/Paste Operations
   // ============================================================
   
+  toggleBoxSelect() {
+    this.boxSelectMode = !this.boxSelectMode;
+    
+    // Update button visual state
+    const boxSelectBtn = document.getElementById('box_select_btn');
+    if (boxSelectBtn) {
+      if (this.boxSelectMode) {
+        boxSelectBtn.classList.add('active');
+        boxSelectBtn.style.backgroundColor = '#ff7f11';
+        boxSelectBtn.style.color = '#fff';
+      } else {
+        boxSelectBtn.classList.remove('active');
+        boxSelectBtn.style.backgroundColor = '';
+        boxSelectBtn.style.color = '';
+      }
+    }
+    
+    // Change cursor style
+    if (this.boxSelectMode) {
+      this.svg.style('cursor', 'crosshair');
+    } else {
+      this.svg.style('cursor', 'default');
+    }
+    
+    console.log('Box select mode:', this.boxSelectMode ? 'ON' : 'OFF');
+  }
+  
   selectAll() {
     // Deselect all (equivalent to pressing Esc)
     this.selectedComponent = null;
+    this.selectedComponents = [];
     this.selectedConnection = null;
     d3.selectAll('.component').classed('selected', false);
     d3.selectAll('.connection-line').classed('selected', false);
@@ -1945,16 +2076,38 @@ class PALineupCanvas {
         this.tempWireLine.remove();
         this.tempWireLine = null;
       }
-      const wireModeBtn = document.getElementById('wire_mode_btn');
-      if (wireModeBtn) {
-        wireModeBtn.classList.remove('active');
+      // Update palette wire button
+      const paletteWireBtn = d3.select('.palette-action[data-type="wire"]');
+      if (!paletteWireBtn.empty()) {
+        paletteWireBtn.style('background', 'transparent')
+                      .style('border', 'none');
       }
+    }
+    
+    if (this.boxSelectMode) {
+      this.toggleBoxSelect();
     }
     
     console.log('Deselected all components and connections');
   }
   
   copy() {
+    // Check if multiple components selected
+    if (this.selectedComponents.length > 0) {
+      this.clipboard = JSON.parse(JSON.stringify(this.selectedComponents));
+      console.log('Copied components:', this.selectedComponents.length);
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: `Copied ${this.selectedComponents.length} component(s)`,
+          type: 'message',
+          duration: 2
+        });
+      }
+      return;
+    }
+    
+    // Single component copy
     if (!this.selectedComponent) {
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
@@ -1968,7 +2121,7 @@ class PALineupCanvas {
     
     const comp = this.components.find(c => c.id === this.selectedComponent);
     if (comp) {
-      this.clipboard = JSON.parse(JSON.stringify(comp));
+      this.clipboard = [JSON.parse(JSON.stringify(comp))];
       console.log('Copied component:', comp.properties.label);
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -1982,6 +2135,25 @@ class PALineupCanvas {
   }
   
   cut() {
+    // Check if multiple components selected
+    if (this.selectedComponents.length > 0) {
+      this.clipboard = JSON.parse(JSON.stringify(this.selectedComponents));
+      console.log('Cut components:', this.selectedComponents.length);
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: `Cut ${this.selectedComponents.length} component(s)`,
+          type: 'message',
+          duration: 2
+        });
+      }
+      
+      // Delete the components
+      this.deleteSelectedMultiple();
+      return;
+    }
+    
+    // Single component cut
     if (!this.selectedComponent) {
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
@@ -1995,7 +2167,7 @@ class PALineupCanvas {
     
     const comp = this.components.find(c => c.id === this.selectedComponent);
     if (comp) {
-      this.clipboard = JSON.parse(JSON.stringify(comp));
+      this.clipboard = [JSON.parse(JSON.stringify(comp))];
       console.log('Cut component:', comp.properties.label);
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -2012,7 +2184,7 @@ class PALineupCanvas {
   }
   
   paste() {
-    if (!this.clipboard) {
+    if (!this.clipboard || this.clipboard.length === 0) {
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
           message: 'Clipboard is empty',
@@ -2023,24 +2195,63 @@ class PALineupCanvas {
       return;
     }
     
-    // Paste at offset position
-    const offsetX = 50;
-    const offsetY = 50;
-    const newX = this.clipboard.x + offsetX;
-    const newY = this.clipboard.y + offsetY;
+    // Paste multiple components
+    if (Array.isArray(this.clipboard)) {
+      const offsetX = 50;
+      const offsetY = 50;
+      
+      this.clipboard.forEach(comp => {
+        const newX = comp.x + offsetX;
+        const newY = comp.y + offsetY;
+        
+        this.addComponent(
+          comp.type,
+          newX,
+          newY,
+          JSON.parse(JSON.stringify(comp.properties))
+        );
+      });
+      
+      console.log('Pasted components:', this.clipboard.length);
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: `Pasted ${this.clipboard.length} component(s)`,
+          type: 'message',
+          duration: 2
+        });
+      }
+    }
+  }
+  
+  deleteSelectedMultiple() {
+    if (this.selectedComponents.length === 0) return;
     
-    this.addComponent(
-      this.clipboard.type,
-      newX,
-      newY,
-      JSON.parse(JSON.stringify(this.clipboard.properties))
+    const count = this.selectedComponents.length;
+    const componentIds = this.selectedComponents.map(c => c.id);
+    
+    // Remove components
+    this.components = this.components.filter(c => !componentIds.includes(c.id));
+    
+    // Remove connections related to deleted components
+    this.connections = this.connections.filter(conn => 
+      !componentIds.includes(conn.from) && !componentIds.includes(conn.to)
     );
     
-    console.log('Pasted component at:', newX, newY);
+    // Clear selection
+    this.selectedComponents = [];
+    
+    // Re-render
+    this.render();
+    
+    // Save history
+    this.saveHistory();
+    
+    console.log(`Deleted ${count} component(s)`);
     
     if (window.Shiny && window.Shiny.notifications) {
       Shiny.notifications.show({
-        message: `Pasted: ${this.clipboard.properties.label || this.clipboard.type}`,
+        message: `Deleted ${count} component(s)`,
         type: 'message',
         duration: 2
       });
