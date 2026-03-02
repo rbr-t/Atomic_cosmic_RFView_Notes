@@ -68,6 +68,12 @@ class PALineupCanvas {
     
     this.svg.call(this.zoom);
     
+    // Initialize drag behavior for components
+    this.drag = d3.drag()
+      .on('start', (event, d) => this.onDragStart(event, d))
+      .on('drag', (event, d) => this.onDrag(event, d))
+      .on('end', (event, d) => this.onDragEnd(event, d));
+    
     // Add instruction text
     this.instructionText = this.svg.append('text')
       .attr('x', this.width / 2)
@@ -194,6 +200,9 @@ class PALineupCanvas {
   }
   
   addComponent(type, x, y, properties = {}) {
+    console.log(`=== addComponent called ===`);
+    console.log('Type:', type, 'Position:', x, y, 'Properties:', properties);
+    
     const component = {
       id: this.nextId++,
       type: type,
@@ -203,7 +212,13 @@ class PALineupCanvas {
     };
     
     this.components.push(component);
+    console.log('Component added to array. Total components:', this.components.length);
+    console.log('Component details:', component);
+    
+    // Render the component
+    console.log('Calling renderComponent...');
     this.renderComponent(component);
+    console.log('renderComponent completed');
     
     // Hide instruction text when first component is added
     if (this.instructionText && this.components.length > 0) {
@@ -215,7 +230,7 @@ class PALineupCanvas {
       Shiny.setInputValue('lineup_components', JSON.stringify(this.components), {priority: 'event'});
     }
     
-    console.log('Component added:', component);
+    console.log('Component added successfully:', component);
     
     return component;
   }
@@ -262,80 +277,102 @@ class PALineupCanvas {
   }
   
   renderComponent(component) {
+    console.log('=== renderComponent called ===');
+    console.log('Component:', component);
+    console.log('Components layer exists?', !!this.componentsLayer);
+    
     const group = this.componentsLayer.append('g')
       .attr('class', `component component-${component.type}`)
       .attr('data-id', component.id)
       .attr('transform', `translate(${component.x}, ${component.y})`);
     
+    console.log('Group created:', group.node());
+    
     // Render based on type
     switch (component.type) {
       case 'transistor':
+        console.log('Rendering transistor...');
         this.renderTransistor(group, component);
         break;
       case 'matching':
+        console.log('Rendering matching network...');
         this.renderMatching(group, component);
         break;
       case 'splitter':
+        console.log('Rendering splitter...');
         this.renderSplitter(group, component);
         break;
       case 'combiner':
+        console.log('Rendering combiner...');
         this.renderCombiner(group, component);
         break;
+      default:
+        console.warn('Unknown component type:', component.type);
     }
     
-    // Add drag behavior
-    group.call(d3.drag()
-      .on('start', (event) => this.onDragStart(event, component))
-      .on('drag', (event) => this.onDrag(event, component))
-      .on('end', (event) => this.onDragEnd(event, component))
-    );
+    console.log('Component type rendered');
+    
+    // Store component reference in DOM for drag behavior
+    group.datum(component);
+    
+    // Add drag behavior using the initialized drag handler
+    if (this.drag) {
+      group.call(this.drag);
+      console.log('Drag behavior added');
+    } else {
+      console.error('this.drag is undefined!');
+    }
     
     // Add click behavior
     group.on('click', (event) => {
       event.stopPropagation();
       this.selectComponent(component);
     });
+    
+    console.log('Click behavior added');
+    console.log('=== renderComponent complete ===');
   }
   
   renderTransistor(group, component) {
-    // Triangle symbol
+    // Triangle symbol (scaled up 1.5x for better visibility)
     group.append('polygon')
-      .attr('points', '0,-20 30,0 0,20')
+      .attr('points', '0,-30 45,0 0,30')
       .attr('fill', '#00aaff')
       .attr('stroke', '#fff')
-      .attr('stroke-width', 2);
+      .attr('stroke-width', 3);
     
-    // Input port (left)
+    // Input port (left) - adjusted for larger size
     const inputPort = group.append('circle')
       .attr('class', 'port port-input')
-      .attr('cx', -5)
+      .attr('cx', -8)
       .attr('cy', 0)
-      .attr('r', 4)
+      .attr('r', 5)
       .attr('fill', '#44ff44')
       .attr('stroke', '#fff')
-      .attr('stroke-width', 1)
+      .attr('stroke-width', 2)
       .style('cursor', 'pointer')
       .on('click', (event) => this.handlePortClick(event, component, 'input'));
     
-    // Output port (right)
+    // Output port (right) - adjusted for larger size
     const outputPort = group.append('circle')
       .attr('class', 'port port-output')
-      .attr('cx', 35)
+      .attr('cx', 53)
       .attr('cy', 0)
-      .attr('r', 4)
+      .attr('r', 5)
       .attr('fill', '#ff4444')
       .attr('stroke', '#fff')
-      .attr('stroke-width', 1)
+      .attr('stroke-width', 2)
       .style('cursor', 'pointer')
       .on('click', (event) => this.handlePortClick(event, component, 'output'));
     
     // Label
     group.append('text')
-      .attr('x', 15)
-      .attr('y', 35)
+      .attr('x', 22)
+      .attr('y', 45)
       .attr('text-anchor', 'middle')
       .attr('fill', '#fff')
-      .attr('font-size', '10px')
+      .attr('font-size', '14px')
+      .attr('font-weight', 'bold')
       .text(component.properties.label || 'PA');
     
     // Display options
@@ -441,10 +478,11 @@ class PALineupCanvas {
     // Label
     group.append('text')
       .attr('x', 0)
-      .attr('y', 20)
+      .attr('y', 25)
       .attr('text-anchor', 'middle')
       .attr('fill', '#fff')
-      .attr('font-size', '9px')
+      .attr('font-size', '12px')
+      .attr('font-weight', 'bold')
       .text(`${component.properties.loss || 0.5}dB`);
   }
   
@@ -654,19 +692,31 @@ class PALineupCanvas {
   }
   
   loadPreset(presetName) {
+    console.log('=== loadPreset called ===');
+    console.log('Preset name:', presetName);
+    console.log('Canvas initialized?', !!this.svg);
+    
     this.clear();
     
     switch(presetName) {
       case 'single_doherty':
+        console.log('Loading Single Driver Doherty...');
         this.createSingleDriverDoherty();
         break;
       case 'dual_doherty':
+        console.log('Loading Dual Driver Doherty...');
         this.createDualDriverDoherty();
         break;
       case 'triple_stage':
+        console.log('Loading Triple Stage...');
         this.createTripleStage();
         break;
+      default:
+        console.warn('Unknown preset:', presetName);
     }
+    
+    console.log('=== loadPreset complete ===');
+    console.log('Total components after preset:', this.components.length);
   }
   
   createSingleDriverDoherty() {
@@ -907,10 +957,25 @@ class PALineupCanvas {
     console.log('Found component:', comp);
     console.log('Old properties:', JSON.stringify(comp.properties));
     
-    // Update properties
-    Object.assign(comp.properties, properties);
+    // Ensure properties object exists
+    if (!comp.properties) {
+      console.warn('Component has no properties object! Creating one...');
+      comp.properties = {};
+    }
     
-    console.log('New properties:', JSON.stringify(comp.properties));
+    // Update properties safely
+    try {
+      Object.assign(comp.properties, properties);
+      console.log('New properties:', JSON.stringify(comp.properties));
+    } catch (e) {
+      console.error('Error in Object.assign:', e);
+      // Fallback: manual property copy
+      for (let key in properties) {
+        if (properties.hasOwnProperty(key)) {
+          comp.properties[key] = properties[key];
+        }
+      }
+    }
     
     // Re-render the component
     const compElement = this.componentsLayer.select(`[data-id="${id}"]`);
@@ -942,8 +1007,13 @@ class PALineupCanvas {
     
     console.log('Rendered component of type:', comp.type);
     
-    // Reapply drag behavior
-    g.call(this.drag);
+    // Store component reference and reapply drag behavior
+    g.datum(comp);
+    if (this.drag) {
+      g.call(this.drag);
+    } else {
+      console.error('this.drag is undefined in updateComponent!');
+    }
     
     // Update Shiny
     if (window.Shiny) {
@@ -1017,6 +1087,9 @@ class PALineupCanvas {
   }
   
   clear() {
+    console.log('=== clear() called ===');
+    console.log('Components before clear:', this.components.length);
+    
     this.components = [];
     this.connections = [];
     this.selectedComponent = null;
@@ -1028,7 +1101,7 @@ class PALineupCanvas {
       this.instructionText.style('display', 'block');
     }
     
-    console.log('Canvas cleared');
+    console.log('Canvas cleared. Components:', this.components.length);
   }
   
   setupEventHandlers() {
