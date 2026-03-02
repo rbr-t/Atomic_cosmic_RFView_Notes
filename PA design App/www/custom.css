@@ -240,6 +240,7 @@ body {
 .top-sidebar-content {
   padding: 15px 20px;
   padding-bottom: 10px;
+  padding-left: 10%; /* 10% left padding to avoid left sidebar */
 }
 
 .top-sidebar-title {
@@ -253,20 +254,17 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-}
   letter-spacing: 0.5px;
 }
 
 .top-sidebar-templates {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 equal columns */
   gap: 15px;
-  flex-wrap: wrap;
+  padding-right: 10px;
 }
 
 .top-sidebar-templates .preset-template {
-  flex: 1;
-  min-width: 180px;
-  max-width: 250px;
   padding: 12px 15px;
   background: #2a2a2a;
   border: 2px solid #444;
@@ -318,4 +316,29 @@ body {
 
 .canvas-top-sidebar::-webkit-scrollbar-thumb:hover {
   background: #e66d00;
+}
+
+/* ============================================================ */
+/* Fullscreen Mode Styles                                      */
+/* ============================================================ */
+
+#pa_lineup_canvas_container.fullscreen-mode {
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #0b0b0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#pa_lineup_canvas_container.fullscreen-mode svg {
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+/* Ensure sidebars remain visible in fullscreen */
+#pa_lineup_canvas_container.fullscreen-mode .canvas-sidebar,
+#pa_lineup_canvas_container.fullscreen-mode .canvas-top-sidebar,
+#pa_lineup_canvas_container.fullscreen-mode .component-palette {
+  position: fixed;
 }

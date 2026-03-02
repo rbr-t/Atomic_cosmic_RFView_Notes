@@ -49,6 +49,7 @@ function toggleCanvasTopSidebar() {
 
 function toggleCanvasFullscreen() {
   const container = document.getElementById('pa_lineup_canvas_container');
+  const button = document.getElementById('canvas_fullscreen_btn');
   
   if (!container) {
     console.error('Canvas container not found!');
@@ -60,27 +61,46 @@ function toggleCanvasFullscreen() {
     container.requestFullscreen().then(() => {
       console.log('Entered fullscreen');
       container.classList.add('fullscreen-mode');
-      const btn = document.getElementById('fullscreen_btn');
-      if (btn) {
-        btn.innerHTML = '<i class="fa fa-compress"></i> Exit Fullscreen';
+      if (button) {
+        button.innerHTML = '<i class="fa fa-compress"></i>';
+        button.title = 'Exit Fullscreen (ESC)';
       }
     }).catch((err) => {
       console.error('Error entering fullscreen:', err);
+      alert('Fullscreen mode is not supported or blocked by your browser.');
     });
   } else {
     // Exit fullscreen
     document.exitFullscreen().then(() => {
       console.log('Exited fullscreen');
       container.classList.remove('fullscreen-mode');
-      const btn = document.getElementById('fullscreen_btn');
-      if (btn) {
-        btn.innerHTML = '<i class="fa fa-expand"></i> Fullscreen';
+      if (button) {
+        button.innerHTML = '<i class="fa fa-expand"></i>';
+        button.title = 'Toggle Fullscreen';
       }
     }).catch((err) => {
       console.error('Error exiting fullscreen:', err);
     });
   }
 }
+
+// Listen for fullscreen change events (including ESC key)
+document.addEventListener('fullscreenchange', () => {
+  const container = document.getElementById('pa_lineup_canvas_container');
+  const button = document.getElementById('canvas_fullscreen_btn');
+  
+  if (!document.fullscreenElement) {
+    // Exited fullscreen (including via ESC key)
+    if (container) {
+      container.classList.remove('fullscreen-mode');
+    }
+    if (button) {
+      button.innerHTML = '<i class="fa fa-expand"></i>';
+      button.title = 'Toggle Fullscreen';
+    }
+    console.log('Fullscreen exited (possibly via ESC)');
+  }
+});
 
 // Make functions globally accessible
 window.toggleCanvasSidebar = toggleCanvasSidebar;
@@ -303,14 +323,15 @@ class PALineupCanvas {
       { type: 'transistor', icon: '▲', label: 'Transistor', color: '#00aaff' },
       { type: 'matching', icon: '═', label: 'Matching', color: '#00ff88' },
       { type: 'splitter', icon: '⊥', label: 'Splitter', color: '#ffaa00' },
-      { type: 'combiner', icon: '⊤', label: 'Combiner', color: '#ff00aa' }
+      { type: 'combiner', icon: '⊤', label: 'Combiner', color: '#ff00aa' },
+      { type: 'wire', icon: '╳', label: 'Wire Mode', color: '#ff7f11', isAction: true }
     ];
     
     console.log('Adding components to palette:', components.length);
     
     components.forEach(comp => {
       const item = palette.append('div')
-        .attr('class', 'palette-item')
+        .attr('class', comp.isAction ? 'palette-action' : 'palette-item')
         .attr('data-type', comp.type)
         .style('display', 'flex')
         .style('align-items', 'center')
@@ -325,7 +346,15 @@ class PALineupCanvas {
         .on('mouseleave', function() {
           d3.select(this).style('background', 'transparent');
         })
-        .on('click', () => this.addComponentFromPalette(comp.type));
+        .on('click', () => {
+          if (comp.isAction) {
+            if (comp.type === 'wire') {
+              this.toggleWireMode();
+            }
+          } else {
+            this.addComponentFromPalette(comp.type);
+          }
+        });
       
       item.append('div')
         .style('font-size', '24px')
@@ -1127,9 +1156,9 @@ class PALineupCanvas {
     const mainDriver = this.addComponent('transistor', 100, 250, {label: 'Main Driver'});
     // Aux driver  
     const auxDriver = this.addComponent('transistor', 100, 350, {label: 'Aux Driver'});
-    // Matching networks
-    const mainMatch = this.addComponent('matching', 200, 250);
-    const auxMatch = this.addComponent('matching', 200, 350);
+    // Matching networks - positioned at midpoint between driver and PA
+    const mainMatch = this.addComponent('matching', 225, 250);
+    const auxMatch = this.addComponent('matching', 225, 350);
     // Main PA
     const mainPA = this.addComponent('transistor', 350, 250, {label: 'Main PA', pout: 46});
     // Aux PA
@@ -1664,16 +1693,15 @@ class PALineupCanvas {
   toggleWireMode() {
     this.wireMode = !this.wireMode;
     
-    const button = document.getElementById('lineup_wire_mode');
-    if (button) {
+    // Update palette wire button visual state
+    const paletteWireBtn = d3.select('.palette-action[data-type="wire"]');
+    if (!paletteWireBtn.empty()) {
       if (this.wireMode) {
-        button.classList.add('active');
-        button.style.backgroundColor = '#00cc66';
-        button.textContent = 'Wire Mode: ON';
+        paletteWireBtn.style('background', 'rgba(255, 127, 17, 0.5)')
+                      .style('border', '2px solid #ff7f11');
       } else {
-        button.classList.remove('active');
-        button.style.backgroundColor = '';
-        button.textContent = 'Wire Mode';
+        paletteWireBtn.style('background', 'transparent')
+                      .style('border', 'none');
       }
     }
     
@@ -2302,36 +2330,40 @@ class PALineupCanvas {
       // Determine if component is above or below center line
       const isAboveCenterLine = comp.y < centerY;
       
-      // Get component bounding box to calculate outer edge distance
-      const compElement = this.componentsLayer.select(`[data-component-id="${comp.id}"]`);
-      let componentBoundary = comp.y; // Default to center position
+      // Calculate position at midpoint between center line and canvas edge
+      const canvasEdge = isAboveCenterLine ? 0 : this.height;
+      const infoY = isAboveCenterLine 
+        ? centerY / 2 - 50 // Midpoint above center (50 is half box height)
+        : centerY + (this.height - centerY) / 2 - 50; // Midpoint below center
       
-      if (compElement && !compElement.empty()) {
-        try {
-          const bbox = compElement.node().getBBox();
-          // Calculate outer edge based on position relative to center
-          if (isAboveCenterLine) {
-            componentBoundary = comp.y + bbox.y; // Top edge
-          } else {
-            componentBoundary = comp.y + bbox.y + bbox.height; // Bottom edge
-          }
-        } catch (e) {
-          console.warn('Could not get bbox for component', comp.id, e);
-        }
+      // Check if component has custom power box position
+      if (!comp.powerBoxOffset) {
+        comp.powerBoxOffset = { x: 0, y: 0 };
       }
       
-      // Calculate distance from center to component outer edge
-      const distanceFromCenter = Math.abs(componentBoundary - centerY);
-      
-      // Position box 20% beyond the component boundary
-      const boxOffset = distanceFromCenter * 0.2;
-      const infoY = isAboveCenterLine 
-        ? componentBoundary - boxOffset - 110 // Above: move up (110 is approx box height)
-        : componentBoundary + boxOffset; // Below: move down
-      
-      // Draw power information box
+      // Draw power information box with drag behavior
       const infoGroup = this.powerLayer.append('g')
-        .attr('transform', `translate(${x - columnWidth/2 + 10}, ${infoY})`);
+        .attr('class', 'power-info-group')
+        .attr('data-component-id', comp.id)
+        .attr('transform', `translate(${x - columnWidth/2 + 10 + comp.powerBoxOffset.x}, ${infoY + comp.powerBoxOffset.y})`)
+        .style('cursor', 'move');
+      
+      // Add drag behavior to power info box
+      const powerBoxDrag = d3.drag()
+        .on('start', (event) => {
+          event.sourceEvent.stopPropagation();
+          infoGroup.raise(); // Bring to front
+        })
+        .on('drag', (event) => {
+          comp.powerBoxOffset.x += event.dx;
+          comp.powerBoxOffset.y += event.dy;
+          infoGroup.attr('transform', `translate(${x - columnWidth/2 + 10 + comp.powerBoxOffset.x}, ${infoY + comp.powerBoxOffset.y})`);
+        })
+        .on('end', () => {
+          this.saveHistory();
+        });
+      
+      infoGroup.call(powerBoxDrag);
       
       // Background box (height depends on content)
       const boxHeight = powerInfo.power_bo_dbm ? 100 : 85;

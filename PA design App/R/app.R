@@ -377,7 +377,18 @@ ui <- dashboardPage(
                 # Left: Interactive Canvas
                 column(8,
                   box(
-                    title = tagList(icon("paint-brush"), "Interactive PA Lineup Canvas"),
+                    title = tagList(
+                      icon("paint-brush"), 
+                      "Interactive PA Lineup Canvas",
+                      tags$button(
+                        id = "canvas_fullscreen_btn",
+                        class = "btn btn-sm btn-default pull-right",
+                        style = "margin-top: -5px; margin-left: 10px;",
+                        onclick = "toggleCanvasFullscreen();",
+                        icon("expand"),
+                        title = "Toggle Fullscreen"
+                      )
+                    ),
                     width = 12,
                     status = "info",
                     solidHeader = TRUE,
@@ -471,13 +482,6 @@ ui <- dashboardPage(
                             class = "sidebar-section",
                             div(class = "sidebar-section-title", icon("cogs"), " Actions"),
                             tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.toggleWireMode();",
-                              id = "wire_mode_btn",
-                              class = "btn btn-info btn-block btn-sm",
-                              icon("project-diagram"),
-                              " Wire Mode"
-                            ),
-                            tags$button(
                               onclick = "if(window.paCanvas) paCanvas.selectAll();",
                               id = "select_all_btn",
                               class = "btn btn-default btn-block btn-sm",
@@ -510,13 +514,6 @@ ui <- dashboardPage(
                               class = "btn btn-danger btn-block btn-sm",
                               icon("trash"),
                               " Delete"
-                            ),
-                            tags$button(
-                              onclick = "toggleCanvasFullscreen();",
-                              id = "fullscreen_btn",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("expand"),
-                              " Fullscreen"
                             ),
                             tags$button(
                               onclick = "if(window.paCanvas) paCanvas.undo();",
