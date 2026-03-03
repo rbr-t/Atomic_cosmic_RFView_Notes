@@ -278,6 +278,108 @@ ui <- dashboardPage(
               ),
               
               hr(),
+              
+              # Technology Selection Guide with fT/fmax Reference
+              box(
+                title = tagList(icon("microchip"), "Technology Selection Guide (fT/fmax)"),
+                width = 12,
+                collapsible = TRUE,
+                collapsed = FALSE,
+                status = "info",
+                solidHeader = TRUE,
+                
+                h4("Transition Frequency (fT) and Maximum Oscillation Frequency (fmax)"),
+                p("For selecting the appropriate transistor technology based on operating frequency:"),
+                
+                HTML("
+                  <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #17a2b8; margin: 10px 0;'>
+                    <h5><i class='fa fa-info-circle'></i> Selection Rule of Thumb</h5>
+                    <p><strong>For operating frequency fop, select technology with: fT > 5 × fop</strong></p>
+                    <p style='color: #666; font-size: 13px;'>This ensures sufficient gain and prevents instability at the design frequency.</p>
+                  </div>
+                  
+                  <h5 style='margin-top: 20px;'>Technology Comparison</h5>
+                  <table class='table table-striped table-sm'>
+                    <thead>
+                      <tr>
+                        <th>Technology</th>
+                        <th>fT Range</th>
+                        <th>fmax Range</th>
+                        <th>Recommended Frequency</th>
+                        <th>Key Applications</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Si LDMOS</strong></td>
+                        <td>20-40 GHz</td>
+                        <td>30-60 GHz</td>
+                        <td>< 4 GHz</td>
+                        <td>Base stations, high power</td>
+                      </tr>
+                      <tr>
+                        <td><strong>GaAs pHEMT</strong></td>
+                        <td>30-60 GHz</td>
+                        <td>80-150 GHz</td>
+                        <td>2-12 GHz</td>
+                        <td>Microwave, mmWave</td>
+                      </tr>
+                      <tr>
+                        <td><strong>GaN HEMT</strong></td>
+                        <td>50-100 GHz</td>
+                        <td>150-300 GHz</td>
+                        <td>2-40 GHz</td>
+                        <td>5G, radar, satellite</td>
+                      </tr>
+                      <tr>
+                        <td><strong>SiGe HBT</strong></td>
+                        <td>200-300 GHz</td>
+                        <td>400-500 GHz</td>
+                        <td>20-100 GHz</td>
+                        <td>mmWave, sub-THz</td>
+                      </tr>
+                      <tr>
+                        <td><strong>InP HEMT</strong></td>
+                        <td>300-600 GHz</td>
+                        <td>600-1000 GHz</td>
+                        <td>60-300 GHz</td>
+                        <td>Sub-THz, 6G research</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  
+                  <h5 style='margin-top: 20px;'>Key Definitions</h5>
+                  <ul>
+                    <li><strong>fT (Transition Frequency):</strong> Frequency at which current gain drops to unity (0 dB). Indicates high-frequency amplification capability.</li>
+                    <li><strong>fmax (Maximum Oscillation Frequency):</strong> Frequency at which power gain drops to unity. Represents the practical upper limit for oscillator or amplifier design.</li>
+                    <li><strong>Gain-Bandwidth Product:</strong> At operating frequency f, available gain ≈ 20·log<sub>10</sub>(fT/f) dB</li>
+                  </ul>
+                  
+                  <div style='background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 10px 0;'>
+                    <h5><i class='fa fa-lightbulb'></i> Design Tip</h5>
+                    <p><strong>Example:</strong> For a 28 GHz 5G PA design:</p>
+                    <ul style='margin-bottom: 0;'>
+                      <li>Required fT: > 5 × 28 GHz = 140 GHz</li>
+                      <li><strong>Recommendation:</strong> GaN HEMT (fT ~50-100 GHz minimum) or SiGe HBT (fT 200-300 GHz)</li>
+                      <li><strong>Expected gain:</strong> ~8-10 dB at 28 GHz with GaN, ~12-15 dB with SiGe</li>
+                    </ul>
+                  </div>
+                  
+                  <p style='margin-top: 15px; font-size: 13px; color: #666;'>
+                    <i class='fa fa-book'></i> <strong>Reference:</strong> For detailed fT/fmax plots and technology comparison figures, 
+                    see sections 2.2.4, 2.2.5, and Figure 1.2c in 
+                    <a href='../PA_Design_Reference_Manual/Chapters/Chapter_01_Transistor_Fundamentals.html' target='_blank'>
+                      Chapter 1: Transistor Fundamentals
+                    </a>
+                  </p>
+                "),
+                
+                hr(),
+                
+                # Dynamic recommendation based on global frequency
+                uiOutput("technology_fT_recommendation")
+              ),
+              
               htmlOutput("freq_recommendation")
             ),
             
@@ -614,6 +716,38 @@ ui <- dashboardPage(
                 
                 # Right: Component Properties & Results
                 column(4,
+                  # Global Lineup Parameters
+                  box(
+                    title = tagList(icon("globe"), "Global Lineup Parameters"),
+                    width = 12,
+                    status = "primary",
+                    solidHeader = TRUE,
+                    collapsible = TRUE,
+                    fluidRow(
+                      column(6,
+                        numericInput("global_frequency", "Frequency (GHz)", 
+                          value = 2.6, min = 0.1, max = 100, step = 0.1)
+                      ),
+                      column(6,
+                        numericInput("global_backoff", "Back-off (dB)", 
+                          value = 6, min = 0, max = 20, step = 0.5)
+                      )
+                    ),
+                    fluidRow(
+                      column(6,
+                        numericInput("global_PAR", "PAR (dB)", 
+                          value = 8, min = 0, max = 15, step = 0.5)
+                      ),
+                      column(6,
+                        div(style = "margin-top: 25px;",
+                          strong("Pavg (dBm):"),
+                          textOutput("calculated_Pavg", inline = TRUE)
+                        )
+                      )
+                    ),
+                    helpText("These parameters apply to the entire lineup for power calculations.")
+                  ),
+                  
                   # Component Property Editor
                   box(
                     title = "Component Properties",
@@ -1352,6 +1486,90 @@ server <- function(input, output, session) {
     ))
   })
   
+  # Technology Selection based on fT and global frequency
+  output$technology_fT_recommendation <- renderUI({
+    # Use global frequency if available, otherwise use freq_target_freq
+    freq <- input$global_frequency
+    if(is.null(freq)) freq <- input$freq_target_freq
+    if(is.null(freq)) return(NULL)
+    
+    required_fT <- freq * 5
+    
+    # Determine recommended technology based on fT requirement
+    if(freq < 4) {
+      tech <- "Si LDMOS"
+      fT_range <- "20-40 GHz"
+      expected_gain <- "15-18 dB"
+      color <- "primary"
+    } else if(freq < 12) {
+      tech <- "GaAs pHEMT or GaN HEMT"
+      fT_range <- "30-100 GHz"
+      expected_gain <- "12-15 dB"
+      color <- "success"
+    } else if(freq < 40) {
+      tech <- "GaN HEMT"
+      fT_range <- "50-100 GHz"
+      expected_gain <- "10-12 dB"
+      color <- "success"
+    } else if(freq < 100) {
+      tech <- "SiGe HBT or GaN MMIC"
+      fT_range <- "200-300 GHz"
+      expected_gain <- "8-10 dB"
+      color <- "warning"
+    } else {
+      tech <- "InP HEMT or Advanced SiGe"
+      fT_range <- "300-600 GHz"
+      expected_gain <- "6-8 dB"
+      color <- "danger"
+    }
+    
+    div(
+      class = paste0("alert alert-", color),
+      style = "margin-top: 15px;",
+      HTML(sprintf("
+        <h5><i class='fa fa-calculator'></i> Technology Recommendation for %.1f GHz</h5>
+        <ul style='margin-bottom: 0;'>
+          <li><strong>Minimum required fT:</strong> %.1f GHz (5 × %.1f GHz)</li>
+          <li><strong>Recommended Technology:</strong> %s</li>
+          <li><strong>Typical fT Range:</strong> %s</li>
+          <li><strong>Expected Stage Gain:</strong> %s</li>
+        </ul>
+      ", freq, required_fT, freq, tech, fT_range, expected_gain))
+    )
+  })
+  
+  # ============================================================
+  # Global Lineup Parameters - Pavg Calculation
+  # ============================================================
+  
+  output$calculated_Pavg <- renderText({
+    # Get components to calculate total lineup Pout
+    components <- lineup_components()
+    
+    if(is.null(components) || length(components) == 0) {
+      return("N/A")
+    }
+    
+    # Find final output power (last transistor in chain)
+    final_pout <- 43  # default if no transistors found
+    
+    for(comp in components) {
+      if(!is.null(comp$type) && comp$type == "transistor") {
+        if(!is.null(comp$properties) && !is.null(comp$properties$pout)) {
+          final_pout <- comp$properties$pout
+        }
+      }
+    }
+    
+    # Calculate Pavg = Pout - Backoff
+    backoff <- input$global_backoff
+    if(is.null(backoff)) backoff <- 6
+    
+    pavg <- final_pout - backoff
+    
+    return(sprintf("%.1f dBm", pavg))
+  })
+  
   # ============================================================
   # Link Budget Calculator
   # ============================================================
@@ -1675,6 +1893,9 @@ server <- function(input, output, session) {
               create = TRUE,
               placeholder = 'Select or type custom technology'
             )),
+          selectInput(paste0("prop_", selected, "_biasClass"), "Biasing Class",
+            choices = c("A", "AB", "B", "C", "D", "E", "F"),
+            selected = getProp("biasClass", "AB")),
           hr(),
           h5("Performance Parameters"),
           numericInput(paste0("prop_", selected, "_pout"), "Pout (dBm)", 
@@ -2323,6 +2544,7 @@ server <- function(input, output, session) {
       if(comp_type == "transistor") {
         properties$label <- input[[paste0("prop_", selected, "_label")]]
         properties$technology <- input[[paste0("prop_", selected, "_technology")]]
+        properties$biasClass <- input[[paste0("prop_", selected, "_biasClass")]]
         properties$gain <- input[[paste0("prop_", selected, "_gain")]]
         properties$pout <- input[[paste0("prop_", selected, "_pout")]]
         properties$p1db <- input[[paste0("prop_", selected, "_p1db")]]

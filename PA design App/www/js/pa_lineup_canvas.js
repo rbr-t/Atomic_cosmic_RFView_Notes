@@ -182,13 +182,13 @@ class PALineupCanvas {
     // Arrow marker for connections
     defs.append('marker')
       .attr('id', 'arrowhead')
-      .attr('markerWidth', 10)
-      .attr('markerHeight', 10)
-      .attr('refX', 8)
-      .attr('refY', 3)
+      .attr('markerWidth', 8)
+      .attr('markerHeight', 8)
+      .attr('refX', 6)
+      .attr('refY', 2.5)
       .attr('orient', 'auto')
       .append('polygon')
-      .attr('points', '0 0, 10 3, 0 6')
+      .attr('points', '0 0, 8 2.5, 0 5')
       .attr('fill', '#ff7f11');
     
     // Create groups for layers
@@ -581,13 +581,13 @@ class PALineupCanvas {
       transistor: {
         label: 'PA',
         technology: 'GaN',
+        biasClass: 'AB',
         pout: 43,
         p1db: 43,
         gain: 15,
         pae: 50,
         vdd: 28,
-        rth: 2.5,
-        freq: 2.6
+        rth: 2.5
       },
       matching: {
         label: 'Match',
@@ -1482,6 +1482,7 @@ class PALineupCanvas {
     // Driver
     const driver = this.addComponent('transistor', 150 + offsetX, 300 + offsetY, {
       label: 'Driver',
+      biasClass: 'A',
       gain: 15,
       pae: 40,
       p1db: 35,
@@ -1503,6 +1504,7 @@ class PALineupCanvas {
     // Main PA
     const mainPA = this.addComponent('transistor', 500 + offsetX, 250 + offsetY, {
       label: 'Main PA',
+      biasClass: 'AB',
       gain: 12,
       pae: 55,
       p1db: 46,
@@ -1512,6 +1514,7 @@ class PALineupCanvas {
     // Auxiliary PA
     const auxPA = this.addComponent('transistor', 500 + offsetX, 350 + offsetY, {
       label: 'Aux PA',
+      biasClass: 'C',
       gain: 12,
       pae: 50,
       p1db: 43,
@@ -1544,16 +1547,16 @@ class PALineupCanvas {
     const offsetY = this.originY - 300;
     
     // Main driver
-    const mainDriver = this.addComponent('transistor', 100 + offsetX, 250 + offsetY, {label: 'Main Driver'});
+    const mainDriver = this.addComponent('transistor', 100 + offsetX, 250 + offsetY, {label: 'Main Driver', biasClass: 'A'});
     // Aux driver  
-    const auxDriver = this.addComponent('transistor', 100 + offsetX, 350 + offsetY, {label: 'Aux Driver'});
+    const auxDriver = this.addComponent('transistor', 100 + offsetX, 350 + offsetY, {label: 'Aux Driver', biasClass: 'A'});
     // Matching networks - positioned at midpoint between driver and PA
     const mainMatch = this.addComponent('matching', 225 + offsetX, 250 + offsetY);
     const auxMatch = this.addComponent('matching', 225 + offsetX, 350 + offsetY);
     // Main PA
-    const mainPA = this.addComponent('transistor', 350 + offsetX, 250 + offsetY, {label: 'Main PA', pout: 46});
+    const mainPA = this.addComponent('transistor', 350 + offsetX, 250 + offsetY, {label: 'Main PA', biasClass: 'AB', pout: 46});
     // Aux PA
-    const auxPA = this.addComponent('transistor', 350 + offsetX, 350 + offsetY, {label: 'Aux PA', pout: 43});
+    const auxPA = this.addComponent('transistor', 350 + offsetX, 350 + offsetY, {label: 'Aux PA', biasClass: 'C', pout: 43});
     // Combiner
     const combiner = this.addComponent('combiner', 500 + offsetX, 300 + offsetY, {
       label: 'Doherty',
@@ -1580,11 +1583,11 @@ class PALineupCanvas {
     const offsetY = this.originY - 300;
     
     // Simple 3-stage cascade
-    const predriver = this.addComponent('transistor', 150 + offsetX, 300 + offsetY, {label: 'Pre-driver', gain: 12});
+    const predriver = this.addComponent('transistor', 150 + offsetX, 300 + offsetY, {label: 'Pre-driver', biasClass: 'A', gain: 12});
     const match1 = this.addComponent('matching', 250 + offsetX, 300 + offsetY);
-    const driver = this.addComponent('transistor', 350 + offsetX, 300 + offsetY, {label: 'Driver', gain: 15});
+    const driver = this.addComponent('transistor', 350 + offsetX, 300 + offsetY, {label: 'Driver', biasClass: 'A', gain: 15});
     const match2 = this.addComponent('matching', 450 + offsetX, 300 + offsetY);
-    const finalPA = this.addComponent('transistor', 550 + offsetX, 300 + offsetY, {label: 'Final PA', gain: 12, pout: 46});
+    const finalPA = this.addComponent('transistor', 550 + offsetX, 300 + offsetY, {label: 'Final PA', biasClass: 'AB', gain: 12, pout: 46});
     
     // Create pre-connected wires
     this.createConnection(predriver.id, match1.id, 'output', 'input');
@@ -1605,6 +1608,7 @@ class PALineupCanvas {
     // Driver
     const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
       label: 'Driver',
+      biasClass: 'A',
       gain: 15,
       pout: 35
     });
@@ -1640,6 +1644,7 @@ class PALineupCanvas {
     const mainPA = this.addComponent('transistor', 540 + offsetX, 240 + offsetY, {
       label: 'Main PA',
       technology: 'GaN',
+      biasClass: 'AB',
       gain: 12,
       pout: 46,
       pae: 55
@@ -1649,6 +1654,7 @@ class PALineupCanvas {
     const auxPA = this.addComponent('transistor', 540 + offsetX, 360 + offsetY, {
       label: 'Aux PA',
       technology: 'GaN',
+      biasClass: 'C',
       gain: 12,
       pout: 43,
       pae: 50
@@ -1699,6 +1705,7 @@ class PALineupCanvas {
     // Driver
     const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
       label: 'Driver',
+      biasClass: 'A',
       gain: 15,
       pout: 35
     });
@@ -1734,6 +1741,7 @@ class PALineupCanvas {
     const mainPA = this.addComponent('transistor', 540 + offsetX, 240 + offsetY, {
       label: 'Main PA',
       technology: 'GaN',
+      biasClass: 'AB',
       gain: 12,
       pout: 46
     });
@@ -1742,6 +1750,7 @@ class PALineupCanvas {
     const auxPA = this.addComponent('transistor', 540 + offsetX, 360 + offsetY, {
       label: 'Aux PA',
       technology: 'GaN',
+      biasClass: 'C',
       gain: 12,
       pout: 43
     });
@@ -1790,6 +1799,7 @@ class PALineupCanvas {
     // Driver
     const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
       label: 'Driver',
+      biasClass: 'A',
       gain: 15,
       pout: 36
     });
@@ -1824,6 +1834,7 @@ class PALineupCanvas {
     const mainPA = this.addComponent('transistor', 540 + offsetX, 240 + offsetY, {
       label: 'Main PA',
       technology: 'GaN',
+      biasClass: 'AB',
       gain: 12,
       pout: 46,
       pae: 55
@@ -1833,6 +1844,7 @@ class PALineupCanvas {
     const auxPA = this.addComponent('transistor', 540 + offsetX, 360 + offsetY, {
       label: 'Aux PA',
       technology: 'GaN',
+      biasClass: 'C',
       gain: 12,
       pout: 46,
       pae: 55
@@ -1882,6 +1894,7 @@ class PALineupCanvas {
     // Driver
     const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
       label: 'Driver',
+      biasClass: 'A',
       gain: 15,
       pout: 36
     });
@@ -1917,6 +1930,7 @@ class PALineupCanvas {
     const mainPA = this.addComponent('transistor', 540 + offsetX, 240 + offsetY, {
       label: 'Main PA',
       technology: 'GaN',
+      biasClass: 'AB',
       gain: 12,
       pout: 49,
       pae: 55
@@ -1926,6 +1940,7 @@ class PALineupCanvas {
     const auxPA = this.addComponent('transistor', 540 + offsetX, 360 + offsetY, {
       label: 'Aux PA',
       technology: 'GaN',
+      biasClass: 'C',
       gain: 12,
       pout: 43,
       pae: 50
@@ -2214,7 +2229,7 @@ class PALineupCanvas {
       const path = this.connectionsLayer.append('path')
         .attr('d', `M ${x1},${y1} C ${x1 + controlOffset},${y1} ${x2 - controlOffset},${y2} ${x2},${y2}`)
         .attr('stroke', '#00ff88')
-        .attr('stroke-width', 3)
+        .attr('stroke-width', 1)
         .attr('fill', 'none')
         .attr('marker-end', 'url(#arrowhead)')
         .attr('data-connection-id', connection.id)
@@ -2227,12 +2242,12 @@ class PALineupCanvas {
         .on('mouseenter', function() {
           d3.select(this)
             .attr('stroke', '#ffff00')
-            .attr('stroke-width', 4);
+            .attr('stroke-width', 2);
         })
         .on('mouseleave', function() {
           d3.select(this)
             .attr('stroke', '#00ff88')
-            .attr('stroke-width', 3);
+            .attr('stroke-width', 1);
         });
     });
     
@@ -2302,7 +2317,7 @@ class PALineupCanvas {
     const line = this.connectionsLayer.append('path')
       .attr('d', `M ${x1},${y1} C ${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}`)
       .attr('stroke', '#00ff88')
-      .attr('stroke-width', 2)
+      .attr('stroke-width', 1)
       .attr('fill', 'none')
       .attr('marker-end', 'url(#arrowhead)')
       .attr('data-connection-id', connection.id);
@@ -2311,13 +2326,13 @@ class PALineupCanvas {
     if (this.svg.select('#arrowhead').empty()) {
       this.svg.append('defs').append('marker')
         .attr('id', 'arrowhead')
-        .attr('markerWidth', 10)
-        .attr('markerHeight', 10)
-        .attr('refX', 8)
-        .attr('refY', 3)
+        .attr('markerWidth', 8)
+        .attr('markerHeight', 8)
+        .attr('refX', 6)
+        .attr('refY', 2.5)
         .attr('orient', 'auto')
         .append('polygon')
-        .attr('points', '0 0, 10 3, 0 6')
+        .attr('points', '0 0, 8 2.5, 0 5')
         .attr('fill', '#00ff88');
     }
     
@@ -3936,6 +3951,40 @@ if (typeof $ !== 'undefined') {
     registerMessageHandlers();
   });
 }
+
+// ============================================================
+// Global Parameter Accessors
+// These functions retrieve global lineup parameters from Shiny inputs
+// Used for frequency, backoff, PAR, and Pavg in calculations
+// ============================================================
+
+function getGlobalFrequency() {
+  if (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.$inputValues) {
+    return Shiny.shinyapp.$inputValues.global_frequency || 2.6;
+  }
+  return 2.6; // fallback default
+}
+
+function getGlobalBackoff() {
+  if (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.$inputValues) {
+    return Shiny.shinyapp.$inputValues.global_backoff || 6;
+  }
+  return 6; // fallback default
+}
+
+function getGlobalPAR() {
+  if (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.$inputValues) {
+    return Shiny.shinyapp.$inputValues.global_PAR || 8;
+  }
+  return 8; // fallback default
+}
+
+// Expose to window for global access
+window.getGlobalFrequency = getGlobalFrequency;
+window.getGlobalBackoff = getGlobalBackoff;
+window.getGlobalPAR = getGlobalPAR;
+
+console.log('✓ Global parameter accessors loaded');
 
 // ============================================================
 // Canvas Sidebar Toggle Function
