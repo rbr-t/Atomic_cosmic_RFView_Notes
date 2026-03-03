@@ -179,22 +179,23 @@ class PALineupCanvas {
     // Create defs for reusable elements
     const defs = this.svg.append('defs');
     
-    // Arrow marker for connections
+    // Arrow marker for connections (9x9 for better visibility)
     defs.append('marker')
       .attr('id', 'arrowhead')
-      .attr('markerWidth', 8)
-      .attr('markerHeight', 8)
-      .attr('refX', 6)
-      .attr('refY', 2.5)
+      .attr('markerWidth', 9)
+      .attr('markerHeight', 9)
+      .attr('refX', 7)
+      .attr('refY', 3)
       .attr('orient', 'auto')
       .append('polygon')
-      .attr('points', '0 0, 8 2.5, 0 5')
+      .attr('points', '0 0, 9 3, 0 6')
       .attr('fill', '#ff7f11');
     
     // Create groups for layers
     this.gridLayer = this.svg.append('g').attr('class', 'grid-layer');
     this.centralLineLayer = this.svg.append('g').attr('class', 'central-line-layer');
     this.powerLayer = this.svg.append('g').attr('class', 'power-layer');
+    this.impedanceLayer = this.svg.append('g'). attr('class', 'impedance-layer');
     this.connectionsLayer = this.svg.append('g').attr('class', 'connections-layer');
     this.componentsLayer = this.svg.append('g').attr('class', 'components-layer');
     
@@ -203,6 +204,7 @@ class PALineupCanvas {
     this.zoomGroup.node().appendChild(this.gridLayer.node());
     this.zoomGroup.node().appendChild(this.centralLineLayer.node());
     this.zoomGroup.node().appendChild(this.powerLayer.node());
+    this.zoomGroup.node().appendChild(this.impedanceLayer.node());
     this.zoomGroup.node().appendChild(this.connectionsLayer.node());
     this.zoomGroup.node().appendChild(this.componentsLayer.node());
     
@@ -1476,12 +1478,13 @@ class PALineupCanvas {
     console.log('Creating Single Driver Doherty preset...');
     
     // Center template around origin
-    const offsetX = this.originX - 400;
+    const offsetX = this.originX - 450;
     const offsetY = this.originY - 300;
     
     // Driver
-    const driver = this.addComponent('transistor', 150 + offsetX, 300 + offsetY, {
+    const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
       label: 'Driver',
+      technology: 'GaN',
       biasClass: 'A',
       gain: 15,
       pae: 40,
@@ -1490,20 +1493,36 @@ class PALineupCanvas {
     });
     
     // Interstage matching
-    const match = this.addComponent('matching', 250 + offsetX, 300 + offsetY, {
+    const match = this.addComponent('matching', 220 + offsetX, 300 + offsetY, {
       label: 'Interstage',
+      matchType: 'Pi',
       loss: 0.5
     });
     
     // Splitter
-    const splitter = this.addComponent('splitter', 350 + offsetX, 300 + offsetY, {
+    const splitter = this.addComponent('splitter', 320 + offsetX, 300 + offsetY, {
       label: 'Splitter',
       type: 'Wilkinson'
     });
     
+    // Main path matching
+    const mainMatch = this.addComponent('matching', 420 + offsetX, 240 + offsetY, {
+      label: 'Main Match',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    // Aux path matching
+    const auxMatch = this.addComponent('matching', 420 + offsetX, 360 + offsetY, {
+      label: 'Aux Match',
+      matchType: 'TL-stub',
+      loss: 0.3
+    });
+    
     // Main PA
-    const mainPA = this.addComponent('transistor', 500 + offsetX, 250 + offsetY, {
+    const mainPA = this.addComponent('transistor', 540 + offsetX, 240 + offsetY, {
       label: 'Main PA',
+      technology: 'GaN',
       biasClass: 'AB',
       gain: 12,
       pae: 55,
@@ -1512,8 +1531,9 @@ class PALineupCanvas {
     });
     
     // Auxiliary PA
-    const auxPA = this.addComponent('transistor', 500 + offsetX, 350 + offsetY, {
+    const auxPA = this.addComponent('transistor', 540 + offsetX, 360 + offsetY, {
       label: 'Aux PA',
+      technology: 'GaN',
       biasClass: 'C',
       gain: 12,
       pae: 50,
@@ -1521,20 +1541,37 @@ class PALineupCanvas {
       pout: 43
     });
     
+    // Main output matching
+    const mainOutMatch = this.addComponent('matching', 660 + offsetX, 240 + offsetY, {
+      label: 'Main λ/4',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    // Aux output matching
+    const auxOutMatch = this.addComponent('matching', 660 + offsetX, 360 + offsetY, {
+      label: 'Aux Offset',
+      matchType: 'TL-stub',
+      loss: 0.2
+    });
+    
     // Doherty combiner
-    const combiner = this.addComponent('combiner', 650 + offsetX, 300 + offsetY, {
+    const combiner = this.addComponent('combiner', 780 + offsetX, 300 + offsetY, {
       label: 'Doherty',
-      type: 'Doherty',
-      load_modulation: true
+      type: 'Load-Modulation'
     });
     
     // Create pre-connected wires
     this.createConnection(driver.id, match.id, 'output', 'input');
     this.createConnection(match.id, splitter.id, 'output', 'input');
-    this.createConnection(splitter.id, mainPA.id, 'output1', 'input');
-    this.createConnection(splitter.id, auxPA.id, 'output2', 'input');
-    this.createConnection(mainPA.id, combiner.id, 'output', 'input1');
-    this.createConnection(auxPA.id, combiner.id, 'output', 'input2');
+    this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
+    this.createConnection(splitter.id, auxMatch.id, 'output2', 'input');
+    this.createConnection(mainMatch.id, mainPA.id, 'output', 'input');
+    this.createConnection(auxMatch.id, auxPA.id, 'output', 'input');
+    this.createConnection(mainPA.id, mainOutMatch.id, 'output', 'input');
+    this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
+    this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
+    this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
     
     console.log('Single Driver Doherty created with connections');
   }
@@ -1543,34 +1580,90 @@ class PALineupCanvas {
     console.log('Creating Dual Driver Doherty preset...');
     
     // Center template around origin
-    const offsetX = this.originX - 300;
+    const offsetX = this.originX - 450;
     const offsetY = this.originY - 300;
     
     // Main driver
-    const mainDriver = this.addComponent('transistor', 100 + offsetX, 250 + offsetY, {label: 'Main Driver', biasClass: 'A'});
+    const mainDriver = this.addComponent('transistor', 120 + offsetX, 240 + offsetY, {
+      label: 'Main Driver',
+      technology: 'GaN',
+      biasClass: 'A',
+      gain: 15,
+      pout: 35
+    });
+    
     // Aux driver  
-    const auxDriver = this.addComponent('transistor', 100 + offsetX, 350 + offsetY, {label: 'Aux Driver', biasClass: 'A'});
-    // Matching networks - positioned at midpoint between driver and PA
-    const mainMatch = this.addComponent('matching', 225 + offsetX, 250 + offsetY);
-    const auxMatch = this.addComponent('matching', 225 + offsetX, 350 + offsetY);
+    const auxDriver = this.addComponent('transistor', 120 + offsetX, 360 + offsetY, {
+      label: 'Aux Driver',
+      technology: 'GaN',
+      biasClass: 'A',
+      gain: 15,
+      pout: 35
+    });
+    
+    // Main interstage matching
+    const mainInterstage = this.addComponent('matching', 240 + offsetX, 240 + offsetY, {
+      label: 'Main Match',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    // Aux interstage matching
+    const auxInterstage = this.addComponent('matching', 240 + offsetX, 360 + offsetY, {
+      label: 'Aux Match',
+      matchType: 'TL-stub',
+      loss: 0.3
+    });
+    
     // Main PA
-    const mainPA = this.addComponent('transistor', 350 + offsetX, 250 + offsetY, {label: 'Main PA', biasClass: 'AB', pout: 46});
+    const mainPA = this.addComponent('transistor', 360 + offsetX, 240 + offsetY, {
+      label: 'Main PA',
+      technology: 'GaN',
+      biasClass: 'AB',
+      gain: 12,
+      pae: 55,
+      pout: 46
+    });
+    
     // Aux PA
-    const auxPA = this.addComponent('transistor', 350 + offsetX, 350 + offsetY, {label: 'Aux PA', biasClass: 'C', pout: 43});
+    const auxPA = this.addComponent('transistor', 360 + offsetX, 360 + offsetY, {
+      label: 'Aux PA',
+      technology: 'GaN',
+      biasClass: 'C',
+      gain: 12,
+      pae: 50,
+      pout: 43
+    });
+    
+    // Main output matching
+    const mainOutMatch = this.addComponent('matching', 480 + offsetX, 240 + offsetY, {
+      label: 'Main λ/4',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    // Aux output matching
+    const auxOutMatch = this.addComponent('matching', 480 + offsetX, 360 + offsetY, {
+      label: 'Aux Offset',
+      matchType: 'TL-stub',
+      loss: 0.2
+    });
+    
     // Combiner
-    const combiner = this.addComponent('combiner', 500 + offsetX, 300 + offsetY, {
+    const combiner = this.addComponent('combiner', 600 + offsetX, 300 + offsetY, {
       label: 'Doherty',
-      type: 'Doherty',
-      load_modulation: true
+      type: 'Load-Modulation'
     });
     
     // Create pre-connected wires
-    this.createConnection(mainDriver.id, mainMatch.id, 'output', 'input');
-    this.createConnection(auxDriver.id, auxMatch.id, 'output', 'input');
-    this.createConnection(mainMatch.id, mainPA.id, 'output', 'input');
-    this.createConnection(auxMatch.id, auxPA.id, 'output', 'input');
-    this.createConnection(mainPA.id, combiner.id, 'output', 'input1');
-    this.createConnection(auxPA.id, combiner.id, 'output', 'input2');
+    this.createConnection(mainDriver.id, mainInterstage.id, 'output', 'input');
+    this.createConnection(auxDriver.id, auxInterstage.id, 'output', 'input');
+    this.createConnection(mainInterstage.id, mainPA.id, 'output', 'input');
+    this.createConnection(auxInterstage.id, auxPA.id, 'output', 'input');
+    this.createConnection(mainPA.id, mainOutMatch.id, 'output', 'input');
+    this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
+    this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
+    this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
     
     console.log('Dual Driver Doherty created with connections');
   }
@@ -1579,21 +1672,66 @@ class PALineupCanvas {
     console.log('Creating Triple Stage preset...');
     
     // Center template around origin
-    const offsetX = this.originX - 350;
+    const offsetX = this.originX - 450;
     const offsetY = this.originY - 300;
     
-    // Simple 3-stage cascade
-    const predriver = this.addComponent('transistor', 150 + offsetX, 300 + offsetY, {label: 'Pre-driver', biasClass: 'A', gain: 12});
-    const match1 = this.addComponent('matching', 250 + offsetX, 300 + offsetY);
-    const driver = this.addComponent('transistor', 350 + offsetX, 300 + offsetY, {label: 'Driver', biasClass: 'A', gain: 15});
-    const match2 = this.addComponent('matching', 450 + offsetX, 300 + offsetY);
-    const finalPA = this.addComponent('transistor', 550 + offsetX, 300 + offsetY, {label: 'Final PA', biasClass: 'AB', gain: 12, pout: 46});
+    // Pre-driver stage (first amplifier)
+    const predriver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
+      label: 'Pre-driver',
+      technology: 'GaN',
+      biasClass: 'A',
+      gain: 12,
+      pae: 40,
+      pout: 30
+    });
+    
+    // First interstage matching
+    const match1 = this.addComponent('matching', 240 + offsetX, 300 + offsetY, {
+      label: 'Match 1',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    // Driver stage (second amplifier)
+    const driver = this.addComponent('transistor', 360 + offsetX, 300 + offsetY, {
+      label: 'Driver',
+      technology: 'GaN',
+      biasClass: 'A',
+      gain: 15,
+      pae: 45,
+      pout: 35
+    });
+    
+    // Second interstage matching
+    const match2 = this.addComponent('matching', 480 + offsetX, 300 + offsetY, {
+      label: 'Match 2',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    // Final PA stage (third amplifier)
+    const finalPA = this.addComponent('transistor', 600 + offsetX, 300 + offsetY, {
+      label: 'Final PA',
+      technology: 'GaN',
+      biasClass: 'AB',
+      gain: 12,
+      pae: 55,
+      pout: 46
+    });
+    
+    // Output matching
+    const outMatch = this.addComponent('matching', 720 + offsetX, 300 + offsetY, {
+      label: 'Output',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
     
     // Create pre-connected wires
     this.createConnection(predriver.id, match1.id, 'output', 'input');
     this.createConnection(match1.id, driver.id, 'output', 'input');
     this.createConnection(driver.id, match2.id, 'output', 'input');
     this.createConnection(match2.id, finalPA.id, 'output', 'input');
+    this.createConnection(finalPA.id, outMatch.id, 'output', 'input');
     
     console.log('Triple Stage created with connections');
   }
@@ -2134,7 +2272,7 @@ class PALineupCanvas {
       .attr('stroke-dasharray', '5,5')
       .attr('opacity', 0.7);
     
-    // Track mouse movement
+    // Track mouse movement with port snapping
     const self = this;
     this.svg.on('mousemove', function(event) {
       if (!self.wireStart || !self.tempWireLine) return;
@@ -2146,12 +2284,66 @@ class PALineupCanvas {
       const x1 = startComp.x + 35;  // Output port position
       const y1 = startComp.y;
       
+      // Find nearest input port within snap distance
+      let snapToPort = null;
+      const snapDistance = 30; // pixels
+      
+      self.components.forEach(comp => {
+        if (comp.id === self.wireStart.componentId) return; // Skip source component
+        
+        // Check distance to input port
+        const portX = comp.x - 8; // Input port position
+        const portY = comp.y;
+        const distance = Math.sqrt(Math.pow(mx - portX, 2) + Math.pow(my - portY, 2));
+        
+        if (distance < snapDistance) {
+          if (!snapToPort || distance < snapToPort.distance) {
+            snapToPort = { x: portX, y: portY, distance: distance, comp: comp };
+          }
+        }
+      });
+      
+      // Use snapped position if available, otherwise use mouse position
+      let x2 = mx;
+      let y2 = my;
+      
+      if (snapToPort) {
+        x2 = snapToPort.x;
+        y2 = snapToPort.y;
+        
+        // Highlight the port being snapped to
+        self.highlightSnapPort(snapToPort.comp, 'input');
+        self.hoveredPort = { comp: snapToPort.comp, portType: 'input' };
+      } else {
+        // Clear any previous port highlight
+        if (self.hoveredPort) {
+          self.clearPortHighlights();
+          self.hoveredPort = null;
+        }
+      }
+      
       self.tempWireLine
         .attr('x1', x1)
         .attr('y1', y1)
-        .attr('x2', mx)
-        .attr('y2', my);
+        .attr('x2', x2)
+        .attr('y2', y2);
     });
+  }
+  
+  highlightSnapPort(component, portType) {
+    // Clear previous highlights
+    this.componentsLayer.selectAll('.port-input, .port-output')
+      .attr('stroke', function() {
+        return d3.select(this).classed('port-input') ? '#00ff88' : '#ff7f11';
+      })
+      .attr('stroke-width', 2);
+    
+    // Highlight the target port
+    const compGroup = this.componentsLayer.select(`[data-id="${component.id}"]`);
+    const portClass = portType.startsWith('input') ? '.port-input' : '.port-output';
+    compGroup.selectAll(portClass)
+      .attr('stroke', '#ffff00')
+      .attr('stroke-width', 4);
   }
   
   removeLiveWireDrawing() {
@@ -2536,8 +2728,8 @@ class PALineupCanvas {
       }
     });
     
-    // Box select mouse handlers
-    this.svg.on('mousedown', (event) => {
+    // Box select mouse handlers (double-click to activate)
+    this.svg.on('dblclick', (event) => {
       if (this.boxSelectMode && event.button === 0) {
         event.preventDefault();
         const [x, y] = d3.pointer(event);
@@ -2558,7 +2750,8 @@ class PALineupCanvas {
       }
     });
     
-    this.svg.on('mousemove', (event) => {
+    // Store mousemove handler reference for box selection
+    this.boxSelectMouseMove = (event) => {
       if (this.boxSelectMode && this.selectionBox && this.selectionStart) {
         const [x, y] = d3.pointer(event);
         const width = x - this.selectionStart.x;
@@ -2571,7 +2764,9 @@ class PALineupCanvas {
           .attr('width', Math.abs(width))
           .attr('height', Math.abs(height));
       }
-    });
+    };
+    
+    this.svg.on('mousemove', this.boxSelectMouseMove);
     
     this.svg.on('mouseup', (event) => {
       if (this.boxSelectMode && this.selectionBox && this.selectionStart) {
@@ -3287,6 +3482,137 @@ class PALineupCanvas {
     }
   }
   
+  toggleImpedanceDisplay() {
+    this.showImpedanceDisplay = !this.showImpedanceDisplay;
+    
+    const btn = document.getElementById('impedance_display_toggle');
+    if (btn) {
+      btn.style.backgroundColor = this.showImpedanceDisplay ? '#28a745' : '';
+      btn.style.color = this.showImpedanceDisplay ? '#fff' : '';
+    }
+    
+    if (this.showImpedanceDisplay) {
+      this.drawImpedanceColumns();
+      console.log('Impedance display enabled');
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Impedance display enabled',
+          type: 'message',
+          duration: 2
+        });
+      }
+    } else {
+      // Clear impedance display layer
+      if (this.impedanceLayer) {
+        this.impedanceLayer.selectAll('*').remove();
+      }
+      console.log('Impedance display disabled');
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Impedance display disabled',
+          type: 'message',
+          duration: 2
+        });
+      }
+    }
+  }
+  
+  calculateOptimalImpedance(component, powerLevelDbm) {
+    // Get Vdd from component properties (default to 28V for GaN)
+    const vdd = component.properties.vdd || 28;
+    
+    // Convert power from dBm to Watts
+    const powerWatts = Math.pow(10, (powerLevelDbm - 30) / 10);
+    
+    // Calculate optimal load impedance: Z = Vdd^2 / (2 * P)
+    const impedance = (vdd * vdd) / (2 * powerWatts);
+    
+    return impedance;
+  }
+  
+  drawImpedanceColumns() {
+    if (!this.showImpedanceDisplay) return;
+    
+    // Clear existing impedance display
+    this.impedanceLayer.selectAll('*').remove();
+    
+    if (this.components.length === 0) return;
+    
+    // Get global backoff value (default 6 dB)
+    const backoffDb = window.getGlobalBackoff ? window.getGlobalBackoff() : 6;
+    
+    // Filter to only transistor components (PAs)
+    const transistors = this.components.filter(c => c.type === 'transistor');
+    
+    if (transistors.length === 0) return;
+    
+    transistors.forEach((comp, index) => {
+      const x = comp.x;
+      const y = comp.y;
+      
+      // Get P1dB (full power) from component properties
+      const p1dbValue = comp.properties.p1db || comp.properties.pout || 40;
+      const backoffPower = p1dbValue - backoffDb;
+      
+      // Calculate impedances
+      const zFullPower = this.calculateOptimalImpedance(comp, p1dbValue);
+      const zBackoff = this.calculateOptimalImpedance(comp, backoffPower);
+      
+      // Create info box below component
+      const infoGroup = this.impedanceLayer.append('g')
+        .attr('transform', `translate(${x - 65}, ${y + 55})`)
+        .attr('class', 'impedance-info');
+      
+      // Background box
+      infoGroup.append('rect')
+        .attr('width', 130)
+        .attr('height', 75)
+        .attr('fill', '#2c3e50')
+        .attr('stroke', '#ff7f11')
+        .attr('stroke-width', 2)
+        .attr('rx', 5);
+      
+      // Title
+      infoGroup.append('text')
+        .attr('x', 65)
+        .attr('y', 18)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#fff')
+        .attr('font-size', '12px')
+        .attr('font-weight', 'bold')
+        .text('Z_opt');
+      
+      // Full power impedance
+      infoGroup.append('text')
+        .attr('x', 65)
+        .attr('y', 38)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#00ff88')
+        .attr('font-size', '12px')
+        .text(`Full: ${zFullPower.toFixed(1)}Ω`);
+      
+      // Backoff impedance
+      infoGroup.append('text')
+        .attr('x', 65)
+        .attr('y', 55)
+        .attr('text-anchor', 'middle')
+        .attr(' fill', '#ffaa00')
+        .attr('font-size', '12px')
+        .text(`BO: ${zBackoff.toFixed(1)}Ω`);
+      
+      // Power levels for reference
+      infoGroup.append('text')
+        .attr('x', 65)
+        .attr('y', 70)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#aaa')
+        .attr('font-size', '10px')
+        .text(`(${p1dbValue.toFixed(1)} / ${backoffPower.toFixed(1)} dBm)`);
+    });
+  }
+  
   drawPowerColumns() {
     if (!this.showPowerDisplay) return;
     
@@ -3310,14 +3636,16 @@ class PALineupCanvas {
       const x = comp.x;
       const columnWidth = 150;
       
-      // Draw vertical divider line (semi-transparent)
-      this.powerLayer.append('rect')
-        .attr('x', x - columnWidth/2)
-        .attr('y', 0)
-        .attr('width', 2)
-        .attr('height', this.height)
-        .attr('fill', '#00aaff')
-        .attr('opacity', 0.3);
+      // Draw vertical divider line (transparent and dashed for better clarity)
+      this.powerLayer.append('line')
+        .attr('x1', x - columnWidth/2)
+        .attr('y1', 0)
+        .attr('x2', x - columnWidth/2)
+        .attr('y2', this.height)
+        .attr('stroke', '#00aaff')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '8,4')
+        .attr('opacity', 0.15);
       
       // Calculate input and output power for this component
       const powerInfo = this.calculateComponentPower(comp, currentPower, index === 0);
@@ -3654,12 +3982,174 @@ class PALineupCanvas {
   }
 }
 
+// ============================================================
+// Multi-Canvas System
+// Support for split-screen comparison of multiple architectures
+// ============================================================
+
+// Global state for multi-canvas
+window.paCanvases = [];
+window.activeCanvasIndex = 0;
+window.canvasLayout = "1x1";
+
+// Get layout dimensions
+function getLayoutDimensions(layout) {
+  const layouts = {
+    "1x1": { rows: 1, cols: 1, count: 1 },
+    "1x2": { rows: 1, cols: 2, count: 2 },
+    "2x1": { rows: 2, cols: 1, count: 2 },
+    "2x2": { rows: 2, cols: 2, count: 4 },
+    "2x3": { rows: 2, cols: 3, count: 6 },
+    "1x3": { rows: 1, cols: 3, count: 3 },
+    "3x3": { rows: 3, cols: 3, count: 9 }
+  };
+  return layouts[layout] || layouts["1x1"];
+}
+
+// Initialize multi-canvas system
+function initializeMultiCanvas(layout = "1x1") {
+  console.log(`🎨 Initializing multi-canvas system with layout: ${layout}`);
+  
+  const mainContainer = document.getElementById('pa_lineup_canvas_container');
+  if (!mainContainer) {
+    console.warn('PA Lineup canvas container not found');
+    return false;
+  }
+  
+  // Check if D3.js is loaded
+  if (typeof d3 === 'undefined') {
+    console.error('D3.js not loaded!');
+    return false;
+  }
+  
+  // Store layout
+  window.canvasLayout = layout;
+  const dimensions = getLayoutDimensions(layout);
+  
+  // Clear existing canvases
+  window.paCanvases.forEach(canvas => {
+    if (canvas && canvas.svg) {
+      try {
+        canvas.svg.remove();
+      } catch(e) {
+        console.warn('Error removing canvas:', e);
+      }
+    }
+  });
+  window.paCanvases = [];
+  
+  // Find or create the canvas grid container
+  let gridContainer = mainContainer.querySelector('#pa_canvas_grid');
+  if (!gridContainer) {
+    gridContainer = document.createElement('div');
+    gridContainer.id = 'pa_canvas_grid';
+    mainContainer.appendChild(gridContainer);
+  }
+  
+  // Apply grid layout
+  gridContainer.style.cssText = `
+    display: grid;
+    gap: 5px;
+    width: 100%;
+    height: 600px;
+    grid-template-rows: repeat(${dimensions.rows}, 1fr);
+    grid-template-columns: repeat(${dimensions.cols}, 1fr);
+  `;
+  gridContainer.innerHTML = ''; // Clear existing canvas divs
+  
+  // Create canvas divs
+  for (let i = 0; i < dimensions.count; i++) {
+    const canvasDiv = document.createElement('div');
+    canvasDiv.id = `pa_lineup_canvas_${i}`;
+    canvasDiv.className = 'canvas-cell';
+    canvasDiv.setAttribute('data-canvas-index', i);
+    canvasDiv.style.cssText = `
+      position: relative;
+      border: 2px solid transparent;
+      background: #ecf0f1;
+      border-radius: 4px;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    `;
+    
+    // Add canvas label
+    const label = document.createElement('div');
+    label.className = 'canvas-label';
+    label.textContent = `Canvas ${i + 1}`;
+    label.style.cssText = `
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      background: rgba(52, 73, 94, 0.8);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      z-index: 50;
+      pointer-events: none;
+    `;
+    canvasDiv.appendChild(label);
+    
+    gridContainer.appendChild(canvasDiv);
+    
+    // Initialize canvas instance
+    try {
+      const canvas = new PALineupCanvas(`pa_lineup_canvas_${i}`);
+      window.paCanvases.push(canvas);
+      console.log(`✅ Canvas ${i} initialized`);
+      
+      // Add hover listeners for active canvas switching
+      canvasDiv.addEventListener('mouseenter', function() {
+        setActiveCanvas(i);
+      });
+      
+    } catch (error) {
+      console.error(`❌ Error initializing canvas ${i}:`, error);
+    }
+  }
+  
+  // Set first canvas as active
+  if (window.paCanvases.length > 0) {
+    setActiveCanvas(0);
+  }
+  
+  console.log(`✅ Multi-canvas initialized: ${dimensions.count} canvases`);
+  return true;
+}
+
+// Set active canvas
+function setActiveCanvas(index) {
+  if (index < 0 || index >= window.paCanvases.length) return;
+  
+  window.activeCanvasIndex = index;
+  window.paCanvas = window.paCanvases[index];
+  
+  // Update visual indicator
+  document.querySelectorAll('.canvas-cell').forEach((cell, idx) => {
+    if (idx === index) {
+      cell.style.borderColor = '#3498db';
+      cell.style.boxShadow = '0 0 10px rgba(52, 152, 219, 0.5)';
+    } else {
+      cell.style.borderColor = 'transparent';
+      cell.style.boxShadow = 'none';
+    }
+  });
+  
+  console.log(`🎯 Active canvas: ${index}`);
+  
+  // Notify Shiny
+  if (window.Shiny && Shiny.setInputValue) {
+    Shiny.setInputValue('active_canvas', index);
+  }
+}
+
 // Initialize canvas with error handling and multiple triggers
 function initializePACanvas() {
   console.log('Attempting to initialize PA Lineup Canvas...');
   
   // Check if already initialized
-  if (window.paCanvas) {
+  if (window.paCanvas || (window.paCanvases && window.paCanvases.length > 0)) {
     console.log('⚠️ PA Lineup Canvas already initialized, skipping re-initialization');
     return true;
   }
@@ -3677,16 +4167,8 @@ function initializePACanvas() {
     return false;
   }
   
-  // Initialize canvas
-  try {
-    window.paCanvas = new PALineupCanvas('pa_lineup_canvas_container');
-    console.log('PA Lineup Canvas initialized successfully!');
-    console.log('Canvas object:', window.paCanvas);
-    return true;
-  } catch (error) {
-    console.error('Error initializing PA Lineup Canvas:', error);
-    return false;
-  }
+  // Initialize multi-canvas system (starts with 1x1 layout)
+  return initializeMultiCanvas('1x1');
 }
 
 // Try multiple initialization methods to ensure reliability
@@ -4026,3 +4508,21 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// ============================================================
+// Shiny Custom Message Handlers
+// ============================================================
+
+// Handler for canvas layout changes
+if (typeof Shiny !== 'undefined') {
+  Shiny.addCustomMessageHandler('updateCanvasLayout', function(message) {
+    console.log('📐 Received canvas layout update:', message.layout);
+    
+    if (initializeMultiCanvas(message.layout)) {
+      console.log('✅ Canvas layout updated successfully');
+    } else {
+      console.error('❌ Failed to update canvas layout');
+    }
+  });
+  
+  console.log('✅ Shiny message handlers registered');
+}

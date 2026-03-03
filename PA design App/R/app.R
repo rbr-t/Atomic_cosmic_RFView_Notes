@@ -657,20 +657,6 @@ ui <- dashboardPage(
                                 title = "Redo (Ctrl+Y)"
                               )
                             ),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.togglePowerDisplay();",
-                              id = "power_display_toggle",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("bolt"),
-                              " Power Display"
-                            ),
-                            tags$button(
-                              onclick = "if(window.paCanvas) paCanvas.togglePowerUnit();",
-                              id = "power_unit_toggle",
-                              class = "btn btn-default btn-block btn-sm",
-                              icon("ruler"),
-                              " Unit: dBm"
-                            ),
                             # Guide Lines Section
                             div(class = "sidebar-section-title", icon("grip-lines"), " Guide Lines"),
                             div(class = "icon-button-group",
@@ -709,6 +695,43 @@ ui <- dashboardPage(
                             actionButton("lineup_generate_report", "Report", icon = icon("file-pdf"), class = "btn-default btn-block btn-sm")
                           )
                         )
+                      ),
+                      
+                      # Floating lower sidebar for display options
+                      div(
+                        id = "canvas_lower_sidebar",
+                        class = "canvas-lower-sidebar",
+                        style = "position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); 
+                                background: rgba(44,62,80,0.95); padding: 12px 25px; border-radius: 8px;
+                                box-shadow: 0 -3px 15px rgba(0,0,0,0.4); z-index: 100; 
+                                display: flex; gap: 15px; align-items: center;",
+                        
+                        tags$button(
+                          onclick = "if(window.paCanvas) paCanvas.togglePowerDisplay();",
+                          id = "power_display_toggle",
+                          class = "btn btn-default btn-sm",
+                          style = "min-width: 140px;",
+                          icon("bolt"),
+                          " Power Display"
+                        ),
+                        
+                        tags$button(
+                          onclick = "if(window.paCanvas) paCanvas.togglePowerUnit();",
+                          id = "power_unit_toggle",
+                          class = "btn btn-default btn-sm",
+                          style = "min-width: 120px;",
+                          icon("ruler"),
+                          " Unit: dBm"
+                        ),
+                        
+                        tags$button(
+                          onclick = "if(window.paCanvas) paCanvas.toggleImpedanceDisplay();",
+                          id = "impedance_display_toggle",
+                          class = "btn btn-default btn-sm",
+                          style = "min-width: 160px;",
+                          icon("infinity"),
+                          " Impedance Display"
+                        )
                       )
                     )
                   )
@@ -746,6 +769,35 @@ ui <- dashboardPage(
                       )
                     ),
                     helpText("These parameters apply to the entire lineup for power calculations.")
+                  ),
+                  
+                  # Canvas Layout Selector
+                  box(
+                    title = tagList(icon("th"), "Canvas Layout"),
+                    width = 12,
+                    status = "info",
+                    solidHeader = TRUE,
+                    collapsible = TRUE,
+                    collapsed = TRUE,
+                    
+                    p("Compare multiple architectures side-by-side:"),
+                    
+                    selectInput("canvas_layout", "Layout Configuration",
+                      choices = c(
+                        "Single Canvas (1x1)" = "1x1",
+                        "Horizontal Split (1x2)" = "1x2",
+                        "Vertical Split (2x1)" = "2x1",
+                        "Quad Split (2x2)" = "2x2",
+                        "2x3 Grid" = "2x3",
+                        "Horizontal Triple (1x3)" = "1x3",
+                        "3x3 Grid" = "3x3"
+                      ),
+                      selected = "1x1"
+                    ),
+                    
+                    helpText(icon("info-circle"), " Active canvas follows cursor. Each canvas has independent components but shares global parameters."),
+                    
+                    div(id = "canvas_labels", style = "margin-top: 10px;")
                   ),
                   
                   # Component Property Editor
@@ -1777,6 +1829,18 @@ server <- function(input, output, session) {
     }
   })
   
+  # Observer for canvas layout changes
+  observeEvent(input$canvas_layout, {
+    if(!is.null(input$canvas_layout)) {
+      cat(sprintf("[Canvas Layout] Changed to: %s\n", input$canvas_layout))
+      
+      # Send layout update to JavaScript
+      session$sendCustomMessage("updateCanvasLayout", list(
+        layout = input$canvas_layout
+      ))
+    }
+  }, ignoreInit = TRUE)
+  
   # Dynamic Property Editor based on selected component
   output$lineup_property_editor <- renderUI({
     selected <- input$lineup_selected_component
@@ -2671,6 +2735,7 @@ server <- function(input, output, session) {
           Pin_dBm = sprintf("%.2f", stage$pin_dbm),
           Pout_dBm = sprintf("%.2f", stage$pout_dbm),
           Gain_dB = sprintf("%.2f", stage$gain_db),
+          Loss_dB = "—",
           PAE_pct = sprintf("%.1f", stage$pae_pct),
           PDC_W = sprintf("%.3f", stage$pdc_w),
           Pdiss_W = sprintf("%.3f", stage$pdiss_w),
@@ -2685,6 +2750,7 @@ server <- function(input, output, session) {
           Pin_dBm = sprintf("%.2f", stage$pin_dbm),
           Pout_dBm = sprintf("%.2f", stage$pout_dbm),
           Gain_dB = sprintf("%.2f", -stage$loss_db),
+          Loss_dB = sprintf("%.2f", stage$loss_db),
           PAE_pct = "—",
           PDC_W = "—",
           Pdiss_W = "—",
@@ -2693,12 +2759,15 @@ server <- function(input, output, session) {
           stringsAsFactors = FALSE
         )
       } else {
+        # Splitters and combiners typically have insertion loss
+        loss_val <- if(!is.null(stage$loss_db)) sprintf("%.2f", stage$loss_db) else "0.3"
         data.frame(
           Stage = stage$stage,
           Type = tools::toTitleCase(stage$type),
           Pin_dBm = sprintf("%.2f", stage$pin_dbm),
           Pout_dBm = sprintf("%.2f", stage$pout_dbm),
           Gain_dB = "—",
+          Loss_dB = loss_val,
           PAE_pct = "—",
           PDC_W = "—",
           Pdiss_W = "—",
@@ -2711,6 +2780,19 @@ server <- function(input, output, session) {
     
     data <- do.call(rbind, rows)
     
+    # Calculate total loss for summary
+    total_loss <- sum(sapply(results$stage_results, function(stage) {
+      if(stage$type == "matching" && !is.null(stage$loss_db)) {
+        stage$loss_db
+      } else if(stage$type %in% c("splitter", "combiner") && !is.null(stage$loss_db)) {
+        stage$loss_db
+      } else if(stage$type %in% c("splitter", "combiner")) {
+        0.3  # default insertion loss
+      } else {
+        0
+      }
+    }))
+    
     # Add summary row
     summary_row <- data.frame(
       Stage = "SYSTEM TOTAL",
@@ -2718,6 +2800,7 @@ server <- function(input, output, session) {
       Pin_dBm = sprintf("%.2f", results$input_power_dbm),
       Pout_dBm = sprintf("%.2f", results$final_pout_dbm),
       Gain_dB = sprintf("%.2f", results$total_gain),
+      Loss_dB = sprintf("%.2f", total_loss),
       PAE_pct = sprintf("%.1f", results$system_pae),
       PDC_W = sprintf("%.3f", results$total_pdc),
       Pdiss_W = sprintf("%.3f", results$total_pdiss),
