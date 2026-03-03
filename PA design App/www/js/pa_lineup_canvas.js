@@ -6634,6 +6634,38 @@ if (typeof Shiny !== 'undefined') {
     }
   });
   
+  // Handler for requesting all canvas data (for Calculate All Canvases)
+  Shiny.addCustomMessageHandler('requestAllCanvasData', function(message) {
+    console.log('📊 Received request for all canvas data');
+    
+    if (!window.paCanvases || window.paCanvases.length === 0) {
+      console.warn('No canvases available');
+      return;
+    }
+    
+    // Send data from each canvas to R
+    window.paCanvases.forEach((canvas, index) => {
+      console.log(`📤 Sending data for canvas ${index}`);
+      
+      // Temporarily set as active to ensure Shiny receives correct canvas index
+      const previousActive = window.activeCanvasIndex;
+      setActiveCanvas(index);
+      
+      // Send components and connections
+      if (canvas.components && canvas.components.length > 0) {
+        Shiny.setInputValue('lineup_components', JSON.stringify(canvas.components), {priority: 'event'});
+      }
+      if (canvas.connections && canvas.connections.length > 0) {
+        Shiny.setInputValue('lineup_connections', JSON.stringify(canvas.connections), {priority: 'event'});
+      }
+      
+      // Wait a bit before processing next canvas
+      // Note: This is synchronous in practice due to event loop
+    });
+    
+    console.log('✅ All canvas data sent to R');
+  });
+  
   console.log('✅ Shiny message handlers registered');
 }
 

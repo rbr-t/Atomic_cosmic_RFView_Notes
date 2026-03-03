@@ -888,8 +888,32 @@ ui <- dashboardPage(
                         numericInput("backoff_db", "Backoff (dB):", value = 6, min = 0, max = 20, step = 0.5, width = "100%")
                       )
                     ),
+                    # Multi-canvas comparison button (only show in multi-canvas mode)
+                    conditionalPanel(
+                      condition = "input.canvas_layout != '1x1'",
+                      actionButton("lineup_calculate_all", "Calculate All Canvases", 
+                                   class = "btn-info btn-block", 
+                                   icon = icon("layer-group"),
+                                   style = "margin-bottom: 10px;")
+                    ),
                     hr(),
-                    uiOutput("lineup_calc_results")
+                    tabsetPanel(
+                      id = "calc_results_tabs",
+                      tabPanel(
+                        title = "Current Canvas",
+                        value = "current_results",
+                        icon = icon("chart-line"),
+                        br(),
+                        uiOutput("lineup_calc_results")
+                      ),
+                      tabPanel(
+                        title = "Comparison",
+                        value = "comparison_results",
+                        icon = icon("table"),
+                        br(),
+                        uiOutput("lineup_comparison_results")
+                      )
+                    )
                   ),
                   
                   # Version Control
@@ -1876,6 +1900,29 @@ server <- function(input, output, session) {
   lineup_connections <- reactiveVal(list())
   lineup_calc_results <- reactiveVal(NULL)
   
+  # Per-canvas storage for multi-canvas comparison
+  canvas_data <- reactiveValues(
+    canvas_0 = list(components = list(), connections = list(), results = NULL),
+    canvas_1 = list(components = list(), connections = list(), results = NULL),
+    canvas_2 = list(components = list(), connections = list(), results = NULL),
+    canvas_3 = list(components = list(), connections = list(), results = NULL),
+    canvas_4 = list(components = list(), connections = list(), results = NULL),
+    canvas_5 = list(components = list(), connections = list(), results = NULL),
+    canvas_6 = list(components = list(), connections = list(), results = NULL),
+    canvas_7 = list(components = list(), connections = list(), results = NULL),
+    canvas_8 = list(components = list(), connections = list(), results = NULL)
+  )
+  
+  active_canvas_index <- reactiveVal(0)
+  
+  # Track active canvas changes
+  observeEvent(input$active_canvas, {
+    if(!is.null(input$active_canvas)) {
+      active_canvas_index(input$active_canvas)
+      cat(sprintf("[Active Canvas] Changed to: %d\n", input$active_canvas))
+    }
+  })
+  
   # Update component list when canvas changes
   observeEvent(input$lineup_components, {
     if(!is.null(input$lineup_components)) {
@@ -1904,8 +1951,43 @@ server <- function(input, output, session) {
         list()
       })
       
-      # Store the parsed components
+      # Store the parsed components (global - backwards compatibility)
       lineup_components(comps)
+      
+      # Also store per-canvas
+      canvas_idx <- active_canvas_index()
+      canvas_key <- paste0("canvas_", canvas_idx)
+      canvas_data[[canvas_key]]$components <- comps
+      cat(sprintf("[Components Update] Stored %d components for canvas %d\n", length(comps), canvas_idx))
+    }
+  })
+  
+  # Update connections when canvas changes
+  observeEvent(input$lineup_connections, {
+    if(!is.null(input$lineup_connections)) {
+      # Connections are sent as a JSON string from JavaScript
+      conns_json <- input$lineup_connections
+      
+      cat(sprintf("[Connections Update] Received data from JavaScript\n"))
+      
+      # Parse JSON string to R list
+      conns <- tryCatch({
+        parsed <- jsonlite::fromJSON(conns_json, simplifyVector = FALSE)
+        cat(sprintf("[Connections Update] Successfully parsed %d connections\n", length(parsed)))
+        parsed
+      }, error = function(e) {
+        cat(sprintf("[Connections Update] JSON parse error: %s\n", e$message))
+        list()
+      })
+      
+      # Store the parsed connections (global - backwards compatibility)
+      lineup_connections(conns)
+      
+      # Also store per-canvas
+      canvas_idx <- active_canvas_index()
+      canvas_key <- paste0("canvas_", canvas_idx)
+      canvas_data[[canvas_key]]$connections <- conns
+      cat(sprintf("[Connections Update] Stored %d connections for canvas %d\n", length(conns), canvas_idx))
     }
   })
   
@@ -2622,12 +2704,93 @@ server <- function(input, output, session) {
     backoff_value <- if(!is.null(input$backoff_db)) input$backoff_db else 6
     
     result <- lineup_calculate_engine(components, lineup_connections(), input_power, backoff_value)
+    
+    # Store results globally (backwards compatibility)
     lineup_calc_results(result)
+    
+    # Store results per-canvas
+    canvas_idx <- active_canvas_index()
+    canvas_key <- paste0("canvas_", canvas_idx)
+    canvas_data[[canvas_key]]$results <- result
+    cat(sprintf("[Calculate] Stored results for canvas %d\n", canvas_idx))
     
     showNotification(
       if(result$success) "Calculation complete" else "Calculation failed",
       type = if(result$success) "message" else "error"
     )
+  })
+  
+  # Calculate ALL canvases button observer
+  observeEvent(input$lineup_calculate_all, {
+    layout <- input$canvas_layout
+    if(is.null(layout)) layout <- "1x1"
+    
+    canvas_count <- switch(layout,
+      "2x2" = 4,
+      "2x3" = 6,
+      "3x3" = 9,
+      1
+    )
+    
+    cat(sprintf("[Calculate All] Layout: %s, Canvas Count: %d\n", layout, canvas_count))
+    
+    if(canvas_count == 1) {
+      showNotification("Multi-canvas mode required for comparison", type = "warning")
+      return()
+    }
+    
+    # First, request fresh data from all canvases in JavaScript
+    session$sendCustomMessage("requestAllCanvasData", list())
+    
+    # Give JavaScript time to send the data
+    Sys.sleep(0.5)
+    
+    # Get backoff value from input (with fallback)
+    backoff_value <- if(!is.null(input$backoff_db)) input$backoff_db else 6
+    input_power <- 0  # Default 0 dBm
+    
+    calculated_count <- 0
+    failed_count <- 0
+    empty_count <- 0
+    
+    for(i in 0:(canvas_count-1)) {
+      canvas_key <- paste0("canvas_", i)
+      components <- canvas_data[[canvas_key]]$components
+      connections <- canvas_data[[canvas_key]]$connections
+      
+      cat(sprintf("[Calculate All] Canvas %d: %d components, %d connections\n", 
+                  i, length(components), length(connections)))
+      
+      if(!is.null(components) && length(components) > 0) {
+        result <- lineup_calculate_engine(components, connections, input_power, backoff_value)
+        canvas_data[[canvas_key]]$results <- result
+        
+        if(result$success) {
+          calculated_count <- calculated_count + 1
+          cat(sprintf("[Calculate All] Canvas %d: Success - Pout=%.2f dBm, PAE=%.1f%%\n", 
+                      i, result$final_pout_dbm, result$system_pae))
+        } else {
+          failed_count <- failed_count + 1
+          cat(sprintf("[Calculate All] Canvas %d: Failed - %s\n", i, result$message))
+        }
+      } else {
+        empty_count <- empty_count + 1
+        cat(sprintf("[Calculate All] Canvas %d: Empty (skipped)\n", i))
+      }
+    }
+    
+    msg <- sprintf("Calculated %d canvas(es).", calculated_count)
+    if(empty_count > 0) msg <- paste0(msg, sprintf(" %d empty.", empty_count))
+    if(failed_count > 0) msg <- paste0(msg, sprintf(" %d failed.", failed_count))
+    
+    showNotification(
+      msg,
+      type = if(failed_count == 0 && calculated_count > 0) "message" else "warning",
+      duration = 5
+    )
+    
+    cat(sprintf("[Calculate All] Complete: %d success, %d empty, %d failed\n", 
+                calculated_count, empty_count, failed_count))
   })
   
   # ============================================================
@@ -3009,6 +3172,86 @@ server <- function(input, output, session) {
   }, ignoreNULL = TRUE, ignoreInit = FALSE)
   
   # Calculation results output
+  # Current canvas calculation results (fix: this was lineup_results before)
+  output$lineup_calc_results <- renderUI({
+    results <- lineup_calc_results()
+    
+    if(is.null(results)) {
+      return(tags$div(
+        style = "padding: 20px; text-align: center; color: #888;",
+        "Click Calculate to see results"
+      ))
+    }
+    
+    if(!results$success) {
+      return(tags$div(
+        class = "alert alert-warning",
+        tags$h4("Calculation Error"),
+        tags$p(results$message)
+      ))
+    }
+    
+    backoff_value <- if(!is.null(results$backoff_db)) results$backoff_db else 6
+    
+    tagList(
+      tags$h4("Full Power Performance", style = "color: #2196F3; margin-bottom: 10px;"),
+      tags$div(class = "calc-summary", style = "background-color: #f0f8ff; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "Output Power"),
+          tags$span(class = "metric-value", sprintf("%.2f dBm", results$final_pout_dbm)),
+          tags$span(class = "metric-unit", sprintf("(%.3f W)", results$final_pout_w))
+        ),
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "System PAE"),
+          tags$span(class = "metric-value success", sprintf("%.1f%%", results$system_pae))
+        ),
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "DC Power"),
+          tags$span(class = "metric-value", sprintf("%.3f W", results$total_pdc))
+        ),
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "Heat Dissipation"),
+          tags$span(class = "metric-value warning", sprintf("%.3f W", results$total_pdiss))
+        )
+      ),
+      tags$h4(sprintf("Backoff Performance (%.1f dB)", backoff_value), style = "color: #FF9800; margin-bottom: 10px;"),
+      tags$div(class = "calc-summary", style = "background-color: #fff8f0; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "Output Power"),
+          tags$span(class = "metric-value", sprintf("%.2f dBm", results$final_pout_bo_dbm)),
+          tags$span(class = "metric-unit", sprintf("(%.3f W)", results$final_pout_bo_w))
+        ),
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "System PAE"),
+          tags$span(class = "metric-value success", sprintf("%.1f%%", results$system_pae_bo))
+        ),
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "DC Power"),
+          tags$span(class = "metric-value", sprintf("%.3f W", results$total_pdc_bo))
+        ),
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "Heat Dissipation"),
+          tags$span(class = "metric-value warning", sprintf("%.3f W", results$total_pdiss_bo))
+        )
+      ),
+      tags$div(class = "calc-summary", style = "background-color: #f5f5f5; padding: 10px; border-radius: 5px;",
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "Total Gain"),
+          tags$span(class = "metric-value", sprintf("%.2f dB", results$total_gain))
+        )
+      ),
+      if(length(results$warnings) > 0) {
+        tags$div(class = "alert alert-warning",
+          tags$strong("⚠ Warnings:"),
+          tags$ul(
+            lapply(results$warnings, function(w) tags$li(w))
+          )
+        )
+      }
+    )
+  })
+  
+  # Legacy output name (keep for backwards compatibility)
   output$lineup_results <- renderUI({
     results <- lineup_calc_results()
     
@@ -3094,6 +3337,165 @@ server <- function(input, output, session) {
       return("No calculation results available. Click Calculate to generate rationale.")
     }
     results$rationale
+  })
+  
+  # Multi-canvas comparison output
+  output$lineup_comparison_results <- renderUI({
+    layout <- input$canvas_layout
+    if(is.null(layout)) layout <- "1x1"
+    
+    canvas_count <- switch(layout,
+      "2x2" = 4,
+      "2x3" = 6,
+      "3x3" = 9,
+      1
+    )
+    
+    cat(sprintf("[Comparison View] Layout: %s, Canvas Count: %d\n", layout, canvas_count))
+    
+    if(canvas_count == 1) {
+      return(tags$div(
+        style = "padding: 20px; text-align: center; color: #888;",
+        icon("info-circle", style = "font-size: 36px; margin-bottom: 10px;"),
+        tags$h4("Multi-Canvas Comparison Unavailable"),
+        tags$p("Switch to 2x2, 2x3, or 3x3 layout to compare multiple canvases")
+      ))
+    }
+    
+    # Collect results from all canvases
+    comparison_data <- list()
+    has_results <- FALSE
+    
+    for(i in 0:(canvas_count-1)) {
+      canvas_key <- paste0("canvas_", i)
+      canvas_name <- if(!is.null(rv$canvas_names) && length(rv$canvas_names) > i) {
+        rv$canvas_names[i+1]
+      } else {
+        paste("Canvas", i+1)
+      }
+      
+      result <- canvas_data[[canvas_key]]$results
+      if(!is.null(result) && result$success) {
+        has_results <- TRUE
+        comparison_data[[as.character(i)]] <- list(
+          name = canvas_name,
+          result = result
+        )
+      }
+    }
+    
+    if(!has_results) {
+      return(tags$div(
+        style = "padding: 20px; text-align: center; color: #888;",
+        icon("info-circle", style = "font-size: 36px; margin-bottom: 10px;"),
+        tags$p("No calculation results available"),
+        tags$p(style = "font-size: 14px;", "Click 'Calculate All Canvases' to generate comparison data")
+      ))
+    }
+    
+    # Create comparison table
+    tagList(
+      tags$h4("Canvas Comparison", style = "color: #2196F3; margin-bottom: 15px;"),
+      tags$div(
+        style = "overflow-x: auto;",
+        tags$table(
+          class = "table table-striped table-hover",
+          style = "margin-bottom: 20px;",
+          tags$thead(
+            tags$tr(
+              tags$th("Canvas", style = "background-color: #34495e; color: white; font-weight: bold;"),
+              tags$th("Output Power", style = "background-color: #34495e; color: white;"),
+              tags$th("PAE (%)", style = "background-color: #34495e; color: white;"),
+              tags$th("DC Power (W)", style = "background-color: #34495e; color: white;"),
+              tags$th("Total Gain (dB)", style = "background-color: #34495e; color: white;"),
+              tags$th("Components", style = "background-color: #34495e; color: white;")
+            )
+          ),
+          tags$tbody(
+            lapply(names(comparison_data), function(idx) {
+              data <- comparison_data[[idx]]
+              result <- data$result
+              
+              # Determine best performers for highlighting
+              pae_style <- ""
+              pout_style <- ""
+              
+              tags$tr(
+                tags$td(tags$strong(data$name)),
+                tags$td(
+                  sprintf("%.2f dBm (%.3f W)", result$final_pout_dbm, result$final_pout_w),
+                  style = pout_style
+                ),
+                tags$td(
+                  sprintf("%.1f%%", result$system_pae),
+                  style = pae_style
+                ),
+                tags$td(sprintf("%.3f", result$total_pdc)),
+                tags$td(sprintf("%.2f", result$total_gain)),
+                tags$td(sprintf("%d", length(canvas_data[[paste0("canvas_", idx)]]$components)))
+              )
+            })
+          )
+        )
+      ),
+      
+      # Backoff comparison
+      if(all(sapply(comparison_data, function(d) !is.null(d$result$final_pout_bo_dbm)))) {
+        backoff_value <- comparison_data[[1]]$result$backoff_db
+        if(is.null(backoff_value)) backoff_value <- 6
+        
+        tagList(
+          tags$h4(sprintf("Backoff Comparison (%.1f dB)", backoff_value), 
+                  style = "color: #FF9800; margin-bottom: 15px; margin-top: 25px;"),
+          tags$div(
+            style = "overflow-x: auto;",
+            tags$table(
+              class = "table table-striped table-hover",
+              tags$thead(
+                tags$tr(
+                  tags$th("Canvas", style = "background-color: #FF9800; color: white; font-weight: bold;"),
+                  tags$th("Output Power", style = "background-color: #FF9800; color: white;"),
+                  tags$th("PAE (%)", style = "background-color: #FF9800; color: white;"),
+                  tags$th("DC Power (W)", style = "background-color: #FF9800; color: white;"),
+                  tags$th("Heat Dissipation (W)", style = "background-color: #FF9800; color: white;")
+                )
+              ),
+              tags$tbody(
+                lapply(names(comparison_data), function(idx) {
+                  data <- comparison_data[[idx]]
+                  result <- data$result
+                  
+                  tags$tr(
+                    tags$td(tags$strong(data$name)),
+                    tags$td(sprintf("%.2f dBm (%.3f W)", result$final_pout_bo_dbm, result$final_pout_bo_w)),
+                    tags$td(sprintf("%.1f%%", result$system_pae_bo)),
+                    tags$td(sprintf("%.3f", result$total_pdc_bo)),
+                    tags$td(sprintf("%.3f", result$total_pdiss_bo))
+                  )
+                })
+              )
+            )
+          )
+        )
+      },
+      
+      # Summary statistics
+      tags$div(
+        class = "alert alert-info",
+        style = "margin-top: 20px;",
+        tags$strong(icon("chart-bar"), " Summary Statistics:"),
+        tags$ul(
+          style = "margin-top: 10px; margin-bottom: 0;",
+          tags$li(sprintf("Canvases with results: %d / %d", length(comparison_data), canvas_count)),
+          tags$li(sprintf("Avg Output Power: %.2f dBm", 
+                         mean(sapply(comparison_data, function(d) d$result$final_pout_dbm)))),
+          tags$li(sprintf("Avg PAE: %.1f%%", 
+                         mean(sapply(comparison_data, function(d) d$result$system_pae)))),
+          tags$li(sprintf("Total DC Power (all canvases): %.3f W", 
+                         sum(sapply(comparison_data, function(d) d$result$total_pdc))))
+        )
+      )
+    )
   })
   
   # PA Lineup Table
@@ -3388,14 +3790,14 @@ server <- function(input, output, session) {
           # Table output
           output_name_table <- paste0("pa_lineup_table_", canvas_index)
           output[[output_name_table]] <- renderDT({
-            results <- lineup_calc_results()
+            # Get results from per-canvas storage
+            canvas_key <- paste0("canvas_", canvas_index - 1)
+            results <- canvas_data[[canvas_key]]$results
             
             if(is.null(results) || !results$success || length(results$stage_results) == 0) {
-              return(datatable(data.frame(Message = sprintf("No calculation data for Canvas %d", canvas_index))))
+              return(datatable(data.frame(Message = sprintf("No calculation data for Canvas %d. Click 'Calculate All Canvases'.", canvas_index))))
             }
             
-            # For now, use the same results for all canvases
-            # TODO: Implement per-canvas calculations when paCanvases[] data is available
             backoff_value <- if(!is.null(results$backoff_db)) results$backoff_db else 6
             
             # Build table from stage results with backoff columns
@@ -3517,11 +3919,12 @@ server <- function(input, output, session) {
           # Rationale output
           output_name_rationale <- paste0("lineup_rationale_", canvas_index)
           output[[output_name_rationale]] <- renderText({
-            results <- lineup_calc_results()
+            # Get results from per-canvas storage
+            canvas_key <- paste0("canvas_", canvas_index - 1)
+            results <- canvas_data[[canvas_key]]$results
             if(is.null(results) || !results$success) {
-              return(sprintf("No calculation results for Canvas %d. Click Calculate to generate rationale.", canvas_index))
+              return(sprintf("No calculation results for Canvas %d. Click 'Calculate All Canvases'.", canvas_index))
             }
-            # For now, show same rationale for all canvases
             results$rationale
           })
         })
