@@ -1160,42 +1160,86 @@ class PALineupCanvas {
   }
   
   renderSplitter(group, component) {
-    // Inverted T shape
+    // Enhanced industry-standard Wilkinson splitter representation
+    
+    // Background box to show it's a packaged component
+    group.append('rect')
+      .attr('x', -25)
+      .attr('y', -20)
+      .attr('width', 50)
+      .attr('height', 40)
+      .attr('fill', '#1a1a1a')
+      .attr('stroke', '#ffaa00')
+      .attr('stroke-width', 2)
+      .attr('rx', 4);
+    
+    // Input line
     group.append('line')
-      .attr('x1', -20)
+      .attr('x1', -25)
       .attr('y1', 0)
-      .attr('x2', 0)
+      .attr('x2', -5)
       .attr('y2', 0)
       .attr('stroke', '#ffaa00')
       .attr('stroke-width', 3);
     
+    // Y-junction with quarter-wave transformers
     group.append('line')
-      .attr('x1', 0)
+      .attr('x1', -5)
       .attr('y1', 0)
-      .attr('x2', 20)
-      .attr('y2', -15)
+      .attr('x2', 5)
+      .attr('y2', -10)
       .attr('stroke', '#ffaa00')
       .attr('stroke-width', 3);
     
     group.append('line')
-      .attr('x1', 0)
+      .attr('x1', -5)
       .attr('y1', 0)
-      .attr('x2', 20)
-      .attr('y2', 15)
+      .attr('x2', 5)
+      .attr('y2', 10)
       .attr('stroke', '#ffaa00')
       .attr('stroke-width', 3);
     
-    // Circle at junction
+    // Output λ/4 transformers (shown as thick segments)
+    group.append('line')
+      .attr('x1', 5)
+      .attr('y1', -10)
+      .attr('x2', 25)
+      .attr('y2', -10)
+      .attr('stroke', '#ffaa00')
+      .attr('stroke-width', 4)
+      .style('opacity', 0.8);
+    
+    group.append('line')
+      .attr('x1', 5)
+      .attr('y1', 10)
+      .attr('x2', 25)
+      .attr('y2', 10)
+      .attr('stroke', '#ffaa00')
+      .attr('stroke-width', 4)
+      .style('opacity', 0.8);
+    
+    // Isolation resistor indicator (line between outputs)
+    group.append('line')
+      .attr('x1', 15)
+      .attr('y1', -10)
+      .attr('x2', 15)
+      .attr('y2', 10)
+      .attr('stroke', '#ff6666')
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', '2,2')
+      .style('opacity', 0.6);
+    
+    // Junction node
     group.append('circle')
-      .attr('cx', 0)
+      .attr('cx', -5)
       .attr('cy', 0)
-      .attr('r', 5)
+      .attr('r', 3)
       .attr('fill', '#ffaa00');
     
     // Input port
     const splitInputPort = group.append('circle')
       .attr('class', 'port port-input')
-      .attr('cx', -20)
+      .attr('cx', -28)
       .attr('cy', 0)
       .attr('r', 4)
       .attr('fill', '#00ff88')
@@ -1210,8 +1254,8 @@ class PALineupCanvas {
     const splitOutput1 = group.append('circle')
       .attr('class', 'port port-output')
       .attr('data-port-id', 'output1')
-      .attr('cx', 20)
-      .attr('cy', -15)
+      .attr('cx', 28)
+      .attr('cy', -10)
       .attr('r', 4)
       .attr('fill', '#ff7f11')
       .attr('stroke', '#ff7f11')
@@ -1224,8 +1268,8 @@ class PALineupCanvas {
     const splitOutput2 = group.append('circle')
       .attr('class', 'port port-output')
       .attr('data-port-id', 'output2')
-      .attr('cx', 20)
-      .attr('cy', 15)
+      .attr('cx', 28)
+      .attr('cy', 10)
       .attr('r', 4)
       .attr('fill', '#ff7f11')
       .attr('stroke', '#ff7f11')
@@ -1276,44 +1320,88 @@ class PALineupCanvas {
   }
   
   renderCombiner(group, component) {
-    // T shape (reversed splitter)
+    // Enhanced industry-standard Wilkinson combiner representation (mirror of splitter)
+    
+    // Background box to show it's a packaged component
+    group.append('rect')
+      .attr('x', -25)
+      .attr('y', -20)
+      .attr('width', 50)
+      .attr('height', 40)
+      .attr('fill', '#1a1a1a')
+      .attr('stroke', '#ff00aa')
+      .attr('stroke-width', 2)
+      .attr('rx', 4);
+    
+    // Input λ/4 transformers (shown as thick segments)
     group.append('line')
-      .attr('x1', -20)
-      .attr('y1', -15)
-      .attr('x2', 0)
+      .attr('x1', -25)
+      .attr('y1', -10)
+      .attr('x2', -5)
+      .attr('y2', -10)
+      .attr('stroke', '#ff00aa')
+      .attr('stroke-width', 4)
+      .style('opacity', 0.8);
+    
+    group.append('line')
+      .attr('x1', -25)
+      .attr('y1', 10)
+      .attr('x2', -5)
+      .attr('y2', 10)
+      .attr('stroke', '#ff00aa')
+      .attr('stroke-width', 4)
+      .style('opacity', 0.8);
+    
+    // Y-junction convergence
+    group.append('line')
+      .attr('x1', -5)
+      .attr('y1', -10)
+      .attr('x2', 5)
       .attr('y2', 0)
       .attr('stroke', '#ff00aa')
       .attr('stroke-width', 3);
     
     group.append('line')
-      .attr('x1', -20)
-      .attr('y1', 15)
-      .attr('x2', 0)
+      .attr('x1', -5)
+      .attr('y1', 10)
+      .attr('x2', 5)
       .attr('y2', 0)
       .attr('stroke', '#ff00aa')
       .attr('stroke-width', 3);
     
+    // Output line
     group.append('line')
-      .attr('x1', 0)
+      .attr('x1', 5)
       .attr('y1', 0)
-      .attr('x2', 20)
+      .attr('x2', 25)
       .attr('y2', 0)
       .attr('stroke', '#ff00aa')
       .attr('stroke-width', 3);
     
-    // Circle at junction
+    // Isolation resistor indicator (line between inputs)
+    group.append('line')
+      .attr('x1', -15)
+      .attr('y1', -10)
+      .attr('x2', -15)
+      .attr('y2', 10)
+      .attr('stroke', '#ff6666')
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', '2,2')
+      .style('opacity', 0.6);
+    
+    // Junction node
     group.append('circle')
-      .attr('cx', 0)
+      .attr('cx', 5)
       .attr('cy', 0)
-      .attr('r', 5)
+      .attr('r', 3)
       .attr('fill', '#ff00aa');
     
     // Input ports
     const combInput1 = group.append('circle')
       .attr('class', 'port port-input')
       .attr('data-port-id', 'input1')
-      .attr('cx', -20)
-      .attr('cy', -15)
+      .attr('cx', -28)
+      .attr('cy', -10)
       .attr('r', 4)
       .attr('fill', '#00ff88')
       .attr('stroke', '#00ff88')
@@ -1326,8 +1414,8 @@ class PALineupCanvas {
     const combInput2 = group.append('circle')
       .attr('class', 'port port-input')
       .attr('data-port-id', 'input2')
-      .attr('cx', -20)
-      .attr('cy', 15)
+      .attr('cx', -28)
+      .attr('cy', 10)
       .attr('r', 4)
       .attr('fill', '#00ff88')
       .attr('stroke', '#00ff88')
@@ -1340,7 +1428,7 @@ class PALineupCanvas {
     // Output port
     const combOutputPort = group.append('circle')
       .attr('class', 'port port-output')
-      .attr('cx', 20)
+      .attr('cx', 28)
       .attr('cy', 0)
       .attr('r', 4)
       .attr('fill', '#ff7f11')
@@ -1758,9 +1846,7 @@ class PALineupCanvas {
       impedance: 50
     });
     
-    // Clear loading flag
-    this._loadingTemplate = false;
-    // Create pre-connected wires
+    // Create pre-connected wires (while loading flag is still set)
     this.createConnection(source.id, driver.id, 'output', 'input');
     this.createConnection(driver.id, match.id, 'output', 'input');
     this.createConnection(match.id, splitter.id, 'output', 'input');
@@ -1774,15 +1860,28 @@ class PALineupCanvas {
     this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
     this.createConnection(combiner.id, load.id, 'output', 'input');
     
+    // Clear loading flag and save one history entry for entire template
+    this._loadingTemplate = false;
+    this.saveHistory();
+    
     console.log('Single Driver Doherty created with connections');
   }
   
   createDualDriverDoherty() {
     console.log('Creating Dual Driver Doherty preset...');
     
+    // Set flag to skip lock check during template loading
+    this._loadingTemplate = true;
+    
     // Center template around origin
     const offsetX = this.originX - 450;
     const offsetY = this.originY - 300;
+    
+    // Source termination
+    const source = this.addComponent('termination', 20 + offsetX, 300 + offsetY, {
+      label: 'Source',
+      impedance: 50
+    });
     
     // Main driver
     const mainDriver = this.addComponent('transistor', 120 + offsetX, 240 + offsetY, {
@@ -1856,7 +1955,15 @@ class PALineupCanvas {
       type: 'Load-Modulation'
     });
     
-    // Create pre-connected wires
+    // Load termination
+    const load = this.addComponent('termination', 700 + offsetX, 300 + offsetY, {
+      label: 'Load',
+      impedance: 50
+    });
+    
+    // Create pre-connected wires (while loading flag is still set)
+    this.createConnection(source.id, mainDriver.id, 'output', 'input');
+    this.createConnection(source.id, auxDriver.id, 'output', 'input');
     this.createConnection(mainDriver.id, mainInterstage.id, 'output', 'input');
     this.createConnection(auxDriver.id, auxInterstage.id, 'output', 'input');
     this.createConnection(mainInterstage.id, mainPA.id, 'output', 'input');
@@ -1867,15 +1974,28 @@ class PALineupCanvas {
     this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
     this.createConnection(combiner.id, load.id, 'output', 'input');
     
+    // Clear loading flag and save one history entry for entire template
+    this._loadingTemplate = false;
+    this.saveHistory();
+    
     console.log('Dual Driver Doherty created with connections');
   }
   
   createTripleStage() {
     console.log('Creating Triple Stage preset...');
     
+    // Set flag to skip lock check during template loading
+    this._loadingTemplate = true;
+    
     // Center template around origin
     const offsetX = this.originX - 450;
     const offsetY = this.originY - 300;
+    
+    // Source termination
+    const source = this.addComponent('termination', 20 + offsetX, 300 + offsetY, {
+      label: 'Source',
+      impedance: 50
+    });
     
     // Pre-driver stage (first amplifier)
     const predriver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
@@ -1928,12 +2048,24 @@ class PALineupCanvas {
       loss: 0.2
     });
     
-    // Create pre-connected wires
+    // Load termination
+    const load = this.addComponent('termination', 820 + offsetX, 300 + offsetY, {
+      label: 'Load',
+      impedance: 50
+    });
+    
+    // Create pre-connected wires (while loading flag is still set)
+    this.createConnection(source.id, predriver.id, 'output', 'input');
     this.createConnection(predriver.id, match1.id, 'output', 'input');
     this.createConnection(match1.id, driver.id, 'output', 'input');
     this.createConnection(driver.id, match2.id, 'output', 'input');
     this.createConnection(match2.id, finalPA.id, 'output', 'input');
     this.createConnection(finalPA.id, outMatch.id, 'output', 'input');
+    this.createConnection(outMatch.id, load.id, 'output', 'input');
+    
+    // Clear loading flag and save one history entry for entire template
+    this._loadingTemplate = false;
+    this.saveHistory();
     
     console.log('Triple Stage created with connections');
   }
@@ -1941,9 +2073,18 @@ class PALineupCanvas {
   createConventionalDoherty() {
     console.log('Creating Conventional Doherty preset...');
     
+    // Set flag to skip lock check during template loading
+    this._loadingTemplate = true;
+    
     // Center template around origin
     const offsetX = this.originX - 450;
     const offsetY = this.originY - 300;
+    
+    // Source termination
+    const source = this.addComponent('termination', 20 + offsetX, 300 + offsetY, {
+      label: 'Source',
+      impedance: 50
+    });
     
     // Driver
     const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
@@ -2020,7 +2161,13 @@ class PALineupCanvas {
       type: 'Load-Modulation'
     });
     
-    // Create pre-connected wires
+    // Load termination
+    const load = this.addComponent('termination', 880 + offsetX, 300 + offsetY, {
+      label: 'Load',
+      impedance: 50
+    });
+    
+    // Create pre-connected wires (while loading flag is still set)
     this.createConnection(source.id, driver.id, 'output', 'input');
     this.createConnection(driver.id, match.id, 'output', 'input');
     this.createConnection(match.id, splitter.id, 'output', 'input');
@@ -2034,15 +2181,28 @@ class PALineupCanvas {
     this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
     this.createConnection(combiner.id, load.id, 'output', 'input');
     
+    // Clear loading flag and save one history entry for entire template
+    this._loadingTemplate = false;
+    this.saveHistory();
+    
     console.log('Conventional Doherty created with connections');
   }
   
   createInvertedDoherty() {
     console.log('Creating Inverted Doherty preset...');
     
+    // Set flag to skip lock check during template loading
+    this._loadingTemplate = true;
+    
     // Center template around origin
     const offsetX = this.originX - 450;
     const offsetY = this.originY - 300;
+    
+    // Source termination
+    const source = this.addComponent('termination', 20 + offsetX, 300 + offsetY, {
+      label: 'Source',
+      impedance: 50
+    });
     
     // Driver
     const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
@@ -2462,6 +2622,11 @@ class PALineupCanvas {
     
     this.connections.push(connection);
     this.renderConnections();
+    
+    // Save to history (skip if loading template)
+    if (!this._loadingTemplate) {
+      this.saveHistory();
+    }
     
     // Update Shiny
     if (window.Shiny) {
@@ -3644,11 +3809,11 @@ class PALineupCanvas {
     
     console.log('Power unit changed to:', this.powerUnit);
     
-    // Update button text
+    // Update button text while preserving icon
     const btn = document.getElementById('power_unit_toggle');
     if (btn) {
       const labels = { 'dBm': 'dBm', 'W': 'Watts', 'both': 'Both' };
-      btn.textContent = ` Unit: ${labels[this.powerUnit]}`;
+      btn.innerHTML = `<i class="fa fa-ruler"></i> Unit: ${labels[this.powerUnit]}`;
     }
     
     // Re-render components to update Pout display
@@ -4022,22 +4187,41 @@ class PALineupCanvas {
     // Get global backoff value (default 6 dB)
     const backoffDb = window.getGlobalBackoff ? window.getGlobalBackoff() : 6;
     
-    // Filter to only transistor components (PAs)
-    const transistors = this.components.filter(c => c.type === 'transistor');
+    // Include all components that have impedance information
+    const componentsWithImpedance = this.components.filter(c => 
+      c.type === 'transistor' ||  c.type === 'matching' || 
+      c.type === 'splitter' || c.type === 'combiner' || c.type === 'termination'
+    );
     
-    if (transistors.length === 0) return;
+    if (componentsWithImpedance.length === 0) return;
     
-    transistors.forEach((comp, index) => {
+    componentsWithImpedance.forEach((comp, index) => {
       const x = comp.x;
       const y = comp.y;
       
-      // Get P1dB (full power) from component properties
-      const p1dbValue = comp.properties.p1db || comp.properties.pout || 40;
-      const backoffPower = p1dbValue - backoffDb;
+      let zFullPower, zBackoff, p1dbValue, backoffPower;
       
-      // Calculate impedances
-      const zFullPower = this.calculateOptimalImpedance(comp, p1dbValue);
-      const zBackoff = this.calculateOptimalImpedance(comp, backoffPower);
+      // Calculate impedances based on component type
+      if (comp.type === 'transistor') {
+        // Active device - impedance varies with power
+        p1dbValue = comp.properties.p1db || comp.properties.pout || 40;
+        backoffPower = p1dbValue - backoffDb;
+        zFullPower = this.calculateOptimalImpedance(comp, p1dbValue);
+        zBackoff = this.calculateOptimalImpedance(comp, backoffPower);
+      } else {
+        // Passive device - fixed impedance values
+        // Show z_in and z_out (or just impedance for terminati ons)
+        if (comp.type === 'termination') {
+          zFullPower = comp.properties.impedance || 50;
+          zBackoff = zFullPower; // Same at all power levels
+        } else {
+          // For matching, splitters, combiners: show input/output impedance
+          zFullPower = comp.properties.z_in || comp.properties.impedance || 50;
+          zBackoff = comp.properties.z_out || zFullPower; // Output impedance at backoff
+        }
+        p1dbValue = null; // Passives don't have power rating to show
+        backoffPower = null;
+      }
       
       // Create info box below component (now draggable)
       const infoGroup = this.impedanceLayer.append('g')
@@ -4074,7 +4258,9 @@ class PALineupCanvas {
         .attr('stroke-width', 2)
         .attr('rx', 5);
       
-      // Title
+      // Title (adjust for component type)
+      const titleText = comp.type === 'transistor' ? 'Z_opt' : 
+                       comp.type === 'termination' ? 'Z_load' : 'Z_match';
       infoGroup.append('text')
         .attr('x', 65)
         .attr('y', 18)
@@ -4082,34 +4268,50 @@ class PALineupCanvas {
         .attr('fill', '#fff')
         .attr('font-size', '12px')
         .attr('font-weight', 'bold')
-        .text('Z_opt');
+        .text(titleText);
       
-      // Full power impedance
+      // First impedance line (Full power for transistor, Z_in for passive)
+      const firstLabel = comp.type === 'transistor' ? 'Full' : 
+                        comp.type === 'termination' ? 'Z' : 'Z_in';
       infoGroup.append('text')
         .attr('x', 65)
         .attr('y', 38)
         .attr('text-anchor', 'middle')
         .attr('fill', '#00ff88')
         .attr('font-size', '12px')
-        .text(`Full: ${zFullPower.toFixed(1)}Ω`);
+        .text(`${firstLabel}: ${zFullPower.toFixed(1)}Ω`);
       
-      // Backoff impedance
+      // Second impedance line (Backoff for transistor, Z_out for passive)
+      const secondLabel = comp.type === 'transistor' ? 'BO' : 
+                         comp.type === 'termination' ? '--' : 'Z_out';
+      const secondValue = comp.type === 'termination' ? '--' : `${zBackoff.toFixed(1)}Ω`;
       infoGroup.append('text')
         .attr('x', 65)
         .attr('y', 55)
         .attr('text-anchor', 'middle')
-        .attr(' fill', '#ffaa00')
+        .attr('fill', '#ffaa00')
         .attr('font-size', '12px')
-        .text(`BO: ${zBackoff.toFixed(1)}Ω`);
+        .text(`${secondLabel}: ${secondValue}`);
       
-      // Power levels for reference
-      infoGroup.append('text')
-        .attr('x', 65)
-        .attr('y', 70)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#aaa')
-        .attr('font-size', '10px')
-        .text(`(${p1dbValue.toFixed(1)} / ${backoffPower.toFixed(1)} dBm)`);
+      // Power levels for reference (only for transistors)
+      if (comp.type === 'transistor' && p1dbValue && backoffPower) {
+        infoGroup.append('text')
+          .attr('x', 65)
+          .attr('y', 70)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#aaa')
+          .attr('font-size', '10px')
+          .text(`(${p1dbValue.toFixed(1)} / ${backoffPower.toFixed(1)} dBm)`);
+      } else {
+        // For passives, show component type
+        infoGroup.append('text')
+          .attr('x', 65)
+          .attr('y', 70)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#aaa')
+          .attr('font-size', '10px')
+          .text(`(${comp.properties.label || comp.type})`);
+      }
     });
   }
   
@@ -4256,17 +4458,25 @@ class PALineupCanvas {
         yOffset += 15;
       }
       
-      // Forward arrow (signal flow direction)
+      // Forward arrow (signal flow direction) - now grouped with info box
       if (index < sortedComponents.length - 1) {
         const nextX = sortedComponents[index + 1].x;
-        const arrowX = x + (nextX - x) / 2;
-        const arrowY = isAboveCenterLine ? paddingTop + 40 : paddingBottom - 60;
+        const arrowMidX = x + (nextX - x) / 2;
+        const arrowY_abs = isAboveCenterLine ? paddingTop + 40 : paddingBottom - 60;
         
-        this.powerLayer.append('path')
-          .attr('d', `M ${arrowX - 20},${arrowY} L ${arrowX + 10},${arrowY} L ${arrowX + 5},${arrowY - 5} M ${arrowX + 10},${arrowY} L ${arrowX + 5},${arrowY + 5}`)
+        // Calculate relative position from info box anchor
+        const boxAnchorX = x - columnWidth/2 + 10 + comp.powerBoxOffset.x;
+        const boxAnchorY = infoY + comp.powerBoxOffset.y;
+        const arrowX_rel = arrowMidX - boxAnchorX;
+        const arrowY_rel = arrowY_abs - boxAnchorY;
+        
+        // Append arrow to info group so it moves with the box
+        infoGroup.append('path')
+          .attr('d', `M ${arrowX_rel - 20},${arrowY_rel} L ${arrowX_rel + 10},${arrowY_rel} L ${arrowX_rel + 5},${arrowY_rel - 5} M ${arrowX_rel + 10},${arrowY_rel} L ${arrowX_rel + 5},${arrowY_rel + 5}`)
           .attr('stroke', '#00aaff')
           .attr('stroke-width', 2)
-          .attr('fill', 'none');
+          .attr('fill', 'none')
+          .attr('class', 'signal-flow-arrow');
       }
       
       // Update current power for next stage
