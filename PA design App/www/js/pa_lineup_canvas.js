@@ -374,6 +374,12 @@ class PALineupCanvas {
   createPalette() {
     console.log('Creating component palette...');
     
+    // In multi-canvas mode, don't create individual palettes
+    if (window.paCanvases && window.paCanvases.length > 1) {
+      console.log('Multi-canvas mode detected, skipping individual palette creation');
+      return;
+    }
+    
     const palette = d3.select(`#${this.containerId}`)
       .insert('div', ':first-child')
       .attr('class', 'component-palette')
@@ -594,6 +600,7 @@ class PALineupCanvas {
       matching: {
         label: 'Match',
         type: 'L-section',
+        matchType: overrides.matchType || 'generic',
         loss: 0.5,
         z_in: 50,
         z_out: 50,
@@ -602,7 +609,7 @@ class PALineupCanvas {
       },
       splitter: {
         label: 'Splitter',
-        type: 'Wilkinson',
+        type: overrides.type || 'Wilkinson',
         loss: 0.3,
         isolation: 20,
         split_ratio: 0,
@@ -610,12 +617,19 @@ class PALineupCanvas {
       },
       combiner: {
         label: 'Combiner',
-        type: 'Wilkinson',
+        type: overrides.type || 'Wilkinson',
         loss: 0.3,
         isolation: 20,
         load_modulation: false,
         modulation_factor: 2.0,
         display: ['label', 'loss']
+      },
+      termination: {
+        label: 'Load',
+        impedance: 50,
+        power_rating: 10,
+        vswr: 1.0,
+        display: ['label', 'impedance']
       }
     };
     
@@ -659,6 +673,9 @@ class PALineupCanvas {
         break;
       case 'combiner':
         this.renderCombiner(group, component);
+        break;
+      case 'termination':
+        this.renderTermination(group, component);
         break;
       default:
         console.warn('Unknown component type:', component.type);
@@ -1318,6 +1335,69 @@ class PALineupCanvas {
         .attr('fill', '#ffccdd')
         .attr('font-size', '7px')
         .text(component.properties.type || 'Wilkinson');
+    }
+  }
+  
+  renderTermination(group, component) {
+    // Ground/termination symbol - triangle with line
+    const termColor = '#888888';
+    
+    // Triangle pointing down
+    group.append('polygon')
+      .attr('points', '0,-15 -12,0 12,0')
+      .attr('fill', termColor)
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 2);
+    
+    // Three horizontal lines (resembling ground symbol)
+    for (let i = 0; i < 3; i++) {
+      const width = 24 - i * 6;
+      const y = i * 4 + 2;
+      group.append('line')
+        .attr('x1', -width/2)
+        .attr('y1', y)
+        .attr('x2', width/2)
+        .attr('y2', y)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2);
+    }
+    
+    // Input port (left)
+    const inputPort = group.append('circle')
+      .attr('class', 'port port-input')
+      .attr('cx', 0)
+      .attr('cy', -20)
+      .attr('r', 4)
+      .attr('fill', '#00ff88')
+      .attr('stroke', '#00ff88')
+      .attr('stroke-width', 1)
+      .style('cursor', 'pointer')
+      .on('click', (event) => this.handlePortClick(event, component, 'input'))
+      .on('mouseenter', () => this.onPortHover(inputPort.node(), true))
+      .on('mouseleave', () => this.onPortHover(inputPort.node(), false));
+    
+    // Labels
+    const display = component.properties.display || ['label', 'impedance'];
+    
+    if (display.includes('label')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', -30)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#fff')
+        .attr('font-size', '11px')
+        .attr('font-weight', 'bold')
+        .text(component.properties.label || 'Load');
+    }
+    
+    if (display.includes('impedance')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', 20)
+        .attr('text-anchor', 'middle')
+        .attr('fill', termColor)
+        .attr('font-size', '10px')
+        .text(`${component.properties.impedance || 50}Ω`);
     }
   }
   
@@ -2732,6 +2812,11 @@ class PALineupCanvas {
     this.svg.on('dblclick', (event) => {
       if (this.boxSelectMode && event.button === 0) {
         event.preventDefault();
+        
+        // Disable zoom/pan during box select
+        this.svg.on('.zoom', null);
+        this.boxSelectActive = true;
+        
         const [x, y] = d3.pointer(event);
         this.selectionStart = { x, y };
         
@@ -3992,6 +4077,109 @@ window.paCanvases = [];
 window.activeCanvasIndex = 0;
 window.canvasLayout = "1x1";
 
+// Create shared palette for multi-canvas mode
+function createSharedPalette() {
+  console.log('Creating shared component palette for multi-canvas...');
+  
+  // Remove existing palette if any
+  d3.select('#shared_component_palette').remove();
+  
+  // Find the main container
+  const mainContainer = document.getElementById('pa_lineup_canvas_container');
+  if (!mainContainer) {
+    console.warn('Main container not found for shared palette');
+    return;
+  }
+  
+  const palette = d3.select(mainContainer)
+    .insert('div', ':first-child')
+    .attr('id', 'shared_component_palette')
+    .attr('class', 'component-palette')
+    .style('position', 'absolute')
+    .style('top', '10px')
+    .style('left', '10px')
+    .style('width', '60px')
+    .style('background', 'rgba(44, 62, 80, 0.95)')
+    .style('border-radius', '8px')
+    .style('padding', '15px 8px')
+    .style('box-shadow', '0 4px 20px rgba(0, 0, 0, 0.5)')
+    .style('z-index', '200')
+    .style('display', 'flex')
+    .style('flex-direction', 'column')
+    .style('gap', '8px')
+    .style('transition', 'all 0.3s ease');
+  
+  // Add hover behavior to expand palette
+  palette
+    .on('mouseenter', function() {
+      d3.select(this).style('width', '180px');
+      d3.selectAll('#shared_component_palette .palette-label').style('display', 'block');
+    })
+    .on('mouseleave', function() {
+      d3.select(this).style('width', '60px');
+      d3.selectAll('#shared_component_palette .palette-label').style('display', 'none');
+    });
+  
+  const components = [
+    { type: 'transistor', icon: '▲', label: 'Transistor', color: '#00bfff' },
+    { type: 'matching', icon: '═', label: 'Matching', color: '#00ff88' },
+    { type: 'splitter', icon: '⊥', label: 'Splitter', color: '#ffaa00' },
+    { type: 'combiner', icon: '⊤', label: 'Combiner', color: '#ff00aa' },
+    { type: 'termination', icon: '⏚', label: 'Termination', color: '#888888' },
+    { type: 'wire', icon: '━', label: 'Wire Mode', color: '#ff7f11', isAction: true }
+  ];
+  
+  components.forEach(comp => {
+    const item = palette.append('div')
+      .attr('class', comp.isAction ? 'palette-action' : 'palette-item')
+      .attr('data-type', comp.type)
+      .style('display', 'flex')
+      .style('align-items', 'center')
+      .style('gap', '10px')
+      .style('cursor', 'pointer')
+      .style('padding', '10px')
+      .style('border-radius', '5px')
+      .style('transition', 'background 0.2s')
+      .on('mouseenter', function() {
+        d3.select(this).style('background', 'rgba(255, 127, 17, 0.2)');
+      })
+      .on('mouseleave', function() {
+        d3.select(this).style('background', 'transparent');
+      })
+      .on('click', () => {
+        // Reference the active canvas from window
+        const activeCanvas = window.paCanvas;
+        if (!activeCanvas) {
+          console.error('No active canvas found!');
+          alert('Please hover over a canvas first');
+          return;
+        }
+        
+        if (comp.isAction) {
+          if (comp.type === 'wire') {
+            activeCanvas.toggleWireMode();
+          }
+        } else {
+          activeCanvas.addComponentFromPalette(comp.type);
+        }
+      });
+    
+    item.append('div')
+      .style('font-size', '24px')
+      .style('color', comp.color)
+      .text(comp.icon);
+    
+    item.append('div')
+      .attr('class', 'palette-label')
+      .style('color', '#fff')
+      .style('font-size', '12px')
+      .style('display', 'none')
+      .text(comp.label);
+  });
+  
+  console.log('✅ Shared palette created successfully');
+}
+
 // Get layout dimensions
 function getLayoutDimensions(layout) {
   const layouts = {
@@ -4001,7 +4189,8 @@ function getLayoutDimensions(layout) {
     "2x2": { rows: 2, cols: 2, count: 4 },
     "2x3": { rows: 2, cols: 3, count: 6 },
     "1x3": { rows: 1, cols: 3, count: 3 },
-    "3x3": { rows: 3, cols: 3, count: 9 }
+    "3x3": { rows: 3, cols: 3, count: 9 },
+    "2+1": { rows: 2, cols: 2, count: 3, special: "2plus1" }
   };
   return layouts[layout] || layouts["1x1"];
 }
@@ -4047,14 +4236,26 @@ function initializeMultiCanvas(layout = "1x1") {
   }
   
   // Apply grid layout
-  gridContainer.style.cssText = `
-    display: grid;
-    gap: 5px;
-    width: 100%;
-    height: 600px;
-    grid-template-rows: repeat(${dimensions.rows}, 1fr);
-    grid-template-columns: repeat(${dimensions.cols}, 1fr);
-  `;
+  if (dimensions.special === "2plus1") {
+    // Special 2+1 layout: 1 large canvas on top, 2 small below
+    gridContainer.style.cssText = `
+      display: grid;
+      gap: 5px;
+      width: 100%;
+      height: 600px;
+      grid-template-rows: 2fr 1fr;
+      grid-template-columns: 1fr 1fr;
+    `;
+  } else {
+    gridContainer.style.cssText = `
+      display: grid;
+      gap: 5px;
+      width: 100%;
+      height: 600px;
+      grid-template-rows: repeat(${dimensions.rows}, 1fr);
+      grid-template-columns: repeat(${dimensions.cols}, 1fr);
+    `;
+  }
   gridContainer.innerHTML = ''; // Clear existing canvas divs
   
   // Create canvas divs
@@ -4063,7 +4264,13 @@ function initializeMultiCanvas(layout = "1x1") {
     canvasDiv.id = `pa_lineup_canvas_${i}`;
     canvasDiv.className = 'canvas-cell';
     canvasDiv.setAttribute('data-canvas-index', i);
-    canvasDiv.style.cssText = `
+    
+    // Special styling for 2+1 layout (first canvas spans 2 columns)
+    if (dimensions.special === "2plus1" && i === 0) {
+      canvasDiv.style.gridColumn = 'span 2';
+    }
+    
+    canvasDiv.style.cssText += `
       position: relative;
       border: 2px solid transparent;
       background: #ecf0f1;
@@ -4101,7 +4308,26 @@ function initializeMultiCanvas(layout = "1x1") {
       
       // Add hover listeners for active canvas switching
       canvasDiv.addEventListener('mouseenter', function() {
-        setActiveCanvas(i);
+        if (!window.stickyActiveCanvas) {
+          setActiveCanvas(i);
+        }
+      });
+      
+      // Add click listener for sticky active canvas selection (priority over hover)
+      canvasDiv.addEventListener('click', function(e) {
+        // Only if clicking canvas background, not components
+        if (e.target.tagName === 'svg' || e.target.classList.contains('canvas-cell')) {
+          window.stickyActiveCanvas = true;
+          setActiveCanvas(i);
+          console.log(`🔒 Canvas ${i} locked as active`);
+          
+          // Clear sticky after 5 seconds of no interaction
+          clearTimeout(window.stickyTimeout);
+          window.stickyTimeout = setTimeout(() => {
+            window.stickyActiveCanvas = false;
+            console.log('🔓 Sticky active canvas cleared');
+          }, 5000);
+        }
       });
       
     } catch (error) {
@@ -4113,6 +4339,9 @@ function initializeMultiCanvas(layout = "1x1") {
   if (window.paCanvases.length > 0) {
     setActiveCanvas(0);
   }
+  
+  // Create shared palette for multi-canvas mode
+  createSharedPalette();
   
   console.log(`✅ Multi-canvas initialized: ${dimensions.count} canvases`);
   return true;

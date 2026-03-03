@@ -382,3 +382,36 @@ body {
   pointer-events: none;
   z-index: 1000;
 }
+/* ============================================================ */
+/* Lower Sidebar - Hide/Hover Functionality                    */
+/* ============================================================ */
+
+.canvas-lower-sidebar {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(calc(100% - 10px));
+  background: rgba(44, 62, 80, 0.95);
+  padding: 12px 25px;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.canvas-lower-sidebar:hover {
+  transform: translateX(-50%) translateY(0);
+}
+
+.canvas-lower-sidebar .btn {
+  transition: all 0.2s ease;
+}
+
+.canvas-lower-sidebar .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
