@@ -166,6 +166,7 @@ class PALineupCanvas {
     // Central divider lines
     this.showHorizontalLine = true;
     this.showVerticalLine = true;
+    this.showGrid = true;  // Show full matrix grid (100px spacing)
     
     // Canvas origin (center point where crosshairs meet)
     this.originX = this.width / 2;  // 600
@@ -302,48 +303,69 @@ class PALineupCanvas {
     const centerY = this.originY;
     const centerX = this.originX;
     
-    // Draw horizontal line if enabled
-    if (this.showHorizontalLine) {
-      this.centralLineLayer.append('line')
-        .attr('x1', 0)
-        .attr('y1', centerY)
-        .attr('x2', this.width)
-        .attr('y2', centerY)
-        .attr('stroke', '#00aaff')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', '10,5')
-        .attr('opacity', 0.3);
+    // Grid spacing (in pixels) - matches typical component spacing
+    const gridSpacing = 100;  // 100px grid for alignment
+    
+    // Draw horizontal grid lines (create rows)
+    if (this.showGrid || this.showHorizontalLine) {
+      const numHorizontalLines = Math.ceil(this.height / gridSpacing);
       
-      // Add label
-      this.centralLineLayer.append('text')
-        .attr('x', this.width - 120)
-        .attr('y', centerY - 10)
-        .attr('fill', '#00aaff')
-        .attr('font-size', '12px')
-        .attr('opacity', 0.5)
-        .text('Main/Aux Divider');
+      for (let i = 0; i <= numHorizontalLines; i++) {
+        const y = i * gridSpacing;
+        const isMainDivider = Math.abs(y - centerY) < gridSpacing / 2;
+        
+        this.centralLineLayer.append('line')
+          .attr('x1', 0)
+          .attr('y1', y)
+          .attr('x2', this.width)
+          .attr('y2', y)
+          .attr('stroke', isMainDivider ? '#00aaff' : '#444')
+          .attr('stroke-width', isMainDivider ? 2 : 1)
+          .attr('stroke-dasharray', isMainDivider ? '10,5' : '5,5')
+          .attr('opacity', isMainDivider ? 0.3 : 0.15);
+      }
+      
+      // Add main divider label
+      if (this.showHorizontalLine) {
+        this.centralLineLayer.append('text')
+          .attr('x', this.width - 120)
+          .attr('y', centerY - 10)
+          .attr('fill', '#00aaff')
+          .attr('font-size', '12px')
+          .attr('opacity', 0.5)
+          .text('Main/Aux Divider');
+      }
     }
     
-    // Draw vertical line if enabled
-    if (this.showVerticalLine) {
-      this.centralLineLayer.append('line')
-        .attr('x1', centerX)
-        .attr('y1', 0)
-        .attr('x2', centerX)
-        .attr('y2', this.height)
-        .attr('stroke', '#00aaff')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', '10,5')
-        .attr('opacity', 0.3);
+    // Draw vertical grid lines (create columns)
+    if (this.showGrid || this.showVerticalLine) {
+      const numVerticalLines = Math.ceil(this.width / gridSpacing);
       
-      // Add label
-      this.centralLineLayer.append('text')
-        .attr('x', centerX + 10)
-        .attr('y', 30)
-        .attr('fill', '#00aaff')
-        .attr('font-size', '12px')
-        .attr('opacity', 0.5)
-        .text('Origin');
+      for (let i = 0; i <= numVerticalLines; i++) {
+        const x = i * gridSpacing;
+        const isOrigin = Math.abs(x - centerX) < gridSpacing / 2;
+        
+        this.centralLineLayer.append('line')
+          .attr('x1', x)
+          .attr('y1', 0)
+          .attr('x2', x)
+          .attr('y2', this.height)
+          .attr('stroke', isOrigin ? '#00aaff' : '#444')
+          .attr('stroke-width', isOrigin ? 2 : 1)
+          .attr('stroke-dasharray', isOrigin ? '10,5' : '5,5')
+          .attr('opacity', isOrigin ? 0.3 : 0.15);
+      }
+      
+      // Add origin label
+      if (this.showVerticalLine) {
+        this.centralLineLayer.append('text')
+          .attr('x', centerX + 10)
+          .attr('y', 30)
+          .attr('fill', '#00aaff')
+          .attr('font-size', '12px')
+          .attr('opacity', 0.5)
+          .text('Origin');
+      }
     }
    
     // Add origin marker (circle at crosshair intersection)
@@ -819,6 +841,29 @@ class PALineupCanvas {
     const display = component.properties.display || ['pout'];
     let yOffset = 50;  // Start below the component
     
+    if (display.includes('label')) {
+      group.append('text')
+        .attr('x', 15)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ffffff')
+        .attr('font-size', '8px')
+        .attr('font-weight', 'bold')
+        .text(component.properties.label || 'PA');
+      yOffset += 10;
+    }
+    
+    if (display.includes('biasClass')) {
+      group.append('text')
+        .attr('x', 15)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#aaddff')
+        .attr('font-size', '8px')
+        .text(`Class ${component.properties.biasClass || 'AB'}`);
+      yOffset += 10;
+    }
+    
     if (display.includes('gain')) {
       group.append('text')
         .attr('x', 15)
@@ -851,6 +896,41 @@ class PALineupCanvas {
         .attr('fill', '#ff88ff')
         .attr('font-size', '8px')
         .text(`Pout: ${poutText}`);
+      yOffset += 10;
+    }
+    
+    if (display.includes('p1db')) {
+      const p1dbValue = component.properties.p1db || component.properties.pout || 40;
+      const p1dbText = this.formatPower(p1dbValue, this.powerUnit);
+      group.append('text')
+        .attr('x', 15)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ffaa00')
+        .attr('font-size', '8px')
+        .text(`P1dB: ${p1dbText}`);
+      yOffset += 10;
+    }
+    
+    if (display.includes('vdd')) {
+      group.append('text')
+        .attr('x', 15)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ff6666')
+        .attr('font-size', '8px')
+        .text(`VDD: ${component.properties.vdd || 28}V`);
+      yOffset += 10;
+    }
+    
+    if (display.includes('freq')) {
+      group.append('text')
+        .attr('x', 15)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#cc88ff')
+        .attr('font-size', '8px')
+        .text(`f: ${component.properties.freq || 2.6} GHz`);
       yOffset += 10;
     }
   }
@@ -1157,6 +1237,39 @@ class PALineupCanvas {
         .text(matchType);
       yOffset += 10;
     }
+    
+    if (display.includes('z_in')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#88ddff')
+        .attr('font-size', '8px')
+        .text(`Zin: ${component.properties.z_in || 50}Ω`);
+      yOffset += 10;
+    }
+    
+    if (display.includes('z_out')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ff88dd')
+        .attr('font-size', '8px')
+        .text(`Zout: ${component.properties.z_out || 50}Ω`);
+      yOffset += 10;
+    }
+    
+    if (display.includes('bandwidth')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ffdd88')
+        .attr('font-size', '8px')
+        .text(`BW: ${component.properties.bandwidth || 10}%`);
+      yOffset += 10;
+    }
   }
   
   renderSplitter(group, component) {
@@ -1316,6 +1429,29 @@ class PALineupCanvas {
         .attr('fill', '#ffddaa')
         .attr('font-size', '7px')
         .text(component.properties.type || 'Wilkinson');
+      yOffset += 10;
+    }
+    
+    if (display.includes('isolation')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ff6666')
+        .attr('font-size', '8px')
+        .text(`Iso: ${component.properties.isolation || 20}dB`);
+      yOffset += 10;
+    }
+    
+    if (display.includes('split_ratio')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#88aaff')
+        .attr('font-size', '8px')
+        .text(`Ratio: ${component.properties.split_ratio || 0}dB`);
+      yOffset += 10;
     }
   }
   
@@ -1476,6 +1612,29 @@ class PALineupCanvas {
         .attr('fill', '#ffccdd')
         .attr('font-size', '7px')
         .text(component.properties.type || 'Wilkinson');
+      yOffset += 10;
+    }
+    
+    if (display.includes('isolation')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ff6666')
+        .attr('font-size', '8px')
+        .text(`Iso: ${component.properties.isolation || 20}dB`);
+      yOffset += 10;
+    }
+    
+    if (display.includes('load_modulation')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOffset)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#aaff88')
+        .attr('font-size', '8px')
+        .text(`LoadMod: ${component.properties.load_modulation || '6dB'}`);
+      yOffset += 10;
     }
   }
   
@@ -2296,9 +2455,18 @@ class PALineupCanvas {
   createSymmetricDoherty() {
     console.log('Creating Symmetric Doherty preset...');
     
+    // Set flag to skip lock check during template loading
+    this._loadingTemplate = true;
+    
     // Center template around origin
     const offsetX = this.originX - 450;
     const offsetY = this.originY - 300;
+    
+    // Source termination
+    const source = this.addComponent('termination', 20 + offsetX, 300 + offsetY, {
+      label: 'Source',
+      impedance: 50
+    });
     
     // Driver
     const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
@@ -2373,6 +2541,12 @@ class PALineupCanvas {
       type: 'Symmetric-Doherty'
     });
     
+    // Load termination
+    const load = this.addComponent('termination', 880 + offsetX, 300 + offsetY, {
+      label: 'Load',
+      impedance: 50
+    });
+    
     // Create pre-connected wires
     this.createConnection(source.id, driver.id, 'output', 'input');
     this.createConnection(driver.id, match.id, 'output', 'input');
@@ -2387,15 +2561,28 @@ class PALineupCanvas {
     this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
     this.createConnection(combiner.id, load.id, 'output', 'input');
     
+    // Clear loading flag and save one history entry for entire template
+    this._loadingTemplate = false;
+    this.saveHistory();
+    
     console.log('Symmetric Doherty created with connections');
   }
   
   createAsymmetricDoherty() {
     console.log('Creating Asymmetric Doherty preset...');
     
+    // Set flag to skip lock check during template loading
+    this._loadingTemplate = true;
+    
     // Center template around origin
     const offsetX = this.originX - 450;
     const offsetY = this.originY - 300;
+    
+    // Source termination
+    const source = this.addComponent('termination', 20 + offsetX, 300 + offsetY, {
+      label: 'Source',
+      impedance: 50
+    });
     
     // Driver
     const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
@@ -2471,6 +2658,12 @@ class PALineupCanvas {
       type: 'Asymmetric-Doherty'
     });
     
+    // Load termination
+    const load = this.addComponent('termination', 880 + offsetX, 300 + offsetY, {
+      label: 'Load',
+      impedance: 50
+    });
+    
     // Create pre-connected wires
     this.createConnection(source.id, driver.id, 'output', 'input');
     this.createConnection(driver.id, match.id, 'output', 'input');
@@ -2484,6 +2677,10 @@ class PALineupCanvas {
     this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
     this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
     this.createConnection(combiner.id, load.id, 'output', 'input');
+    
+    // Clear loading flag and save one history entry for entire template
+    this._loadingTemplate = false;
+    this.saveHistory();
     
     console.log('Asymmetric Doherty created with connections');
   }
@@ -3812,12 +4009,26 @@ class PALineupCanvas {
     // Update button text while preserving icon
     const btn = document.getElementById('power_unit_toggle');
     if (btn) {
+      const icon = btn.querySelector('i');
       const labels = { 'dBm': 'dBm', 'W': 'Watts', 'both': 'Both' };
-      btn.innerHTML = `<i class="fa fa-ruler"></i> Unit: ${labels[this.powerUnit]}`;
+      
+      if (icon) {
+        btn.innerHTML = '';  // Clear
+        btn.appendChild(icon);  // Re-add icon first
+        btn.appendChild(document.createTextNode(` Unit: ${labels[this.powerUnit]}`));
+      } else {
+        btn.innerHTML = `<i class="fa fa-ruler"></i> Unit: ${labels[this.powerUnit]}`;
+      }
     }
     
-    // Re-render components to update Pout display
-    this.render();
+    // Re-render all components to update Pout display
+    this.componentsLayer.selectAll('*').remove();
+    this.components.forEach(comp => {
+      this.renderComponent(comp);
+    });
+    
+    // Re-render connections
+    this.renderConnections();
     
     // Redraw power display if active
     if (this.showPowerDisplay) {
@@ -5264,6 +5475,118 @@ function registerMessageHandlers() {
       }
     });
     
+    // Handler 4: Update User Templates
+    ShinyObj.addCustomMessageHandler('updateUserTemplates', function(templates) {
+      console.log('=== RECEIVED updateUserTemplates MESSAGE FROM R ===');
+      console.log('Templates:', templates);
+      
+      // Find the templates container
+      const container = document.querySelector('.top-sidebar-templates');
+      if (!container) {
+        console.error('Templates container not found!');
+        return;
+      }
+      
+      // Remove existing user templates
+      const existingUserTemplates = container.querySelectorAll('[data-preset^="user_"]');
+      existingUserTemplates.forEach(t => t.remove());
+      
+      // Add user templates
+      templates.forEach(function(template) {
+        const div = document.createElement('div');
+        div.className = 'preset-template';
+        div.setAttribute('data-preset', template.id);
+        div.setAttribute('data-template-type', 'user');
+        
+        const h5 = document.createElement('h5');
+        h5.textContent = template.name;
+        
+        const p = document.createElement('p');
+        p.textContent = `Custom template (${template.components_count} components)`;
+        p.style.color = '#88ccff';
+        
+        div.appendChild(h5);
+        div.appendChild(p);
+        container.appendChild(div);
+        
+        // Add click handler
+        div.addEventListener('click', function() {
+          const preset = this.getAttribute('data-preset');
+          console.log('User template clicked:', preset);
+          
+          // Request template data from server
+          if (typeof Shiny !== 'undefined') {
+            Shiny.setInputValue('load_user_template', preset, {priority: 'event'});
+          }
+          
+          // Visual feedback
+          const all_templates = container.querySelectorAll('.preset-template');
+          all_templates.forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+        });
+        
+        div.style.cursor = 'pointer';
+      });
+      
+      console.log('✓ User templates added to UI');
+    });
+    
+    // Handler 5: Load User Template Data
+    ShinyObj.addCustomMessageHandler('loadUserTemplateData', function(template_data) {
+      console.log('=== RECEIVED loadUserTemplateData MESSAGE FROM R ===');
+      console.log('Template:', template_data.name);
+      
+      if (!window.paCanvas) {
+        console.error('Canvas not initialized!');
+        alert('Canvas not ready. Please try again.');
+        return;
+      }
+      
+      // Clear canvas
+      window.paCanvas.clear();
+      
+      // Set loading flag
+      window.paCanvas._loadingTemplate = true;
+      
+      // Add components
+      const componentMap = new Map();
+      template_data.components.forEach(comp => {
+        const newComp = window.paCanvas.addComponent(
+          comp.type,
+          comp.x,
+          comp.y,
+          comp.properties
+        );
+        componentMap.set(comp.id, newComp.id);
+      });
+      
+      // Add wires
+      template_data.wires.forEach(wire => {
+        const newFromId = componentMap.get(wire.fromId);
+        const newToId = componentMap.get(wire.toId);
+        if (newFromId && newToId) {
+          window.paCanvas.createConnection(
+            newFromId,
+            newToId,
+            wire.fromPort,
+            wire.toPort
+          );
+        }
+      });
+      
+      // Clear loading flag
+      window.paCanvas._loadingTemplate = false;
+      
+      console.log('✓ User template loaded successfully');
+    });
+    
+   // Handler 6: Reload User Templates
+    ShinyObj.addCustomMessageHandler('reloadUserTemplates', function(data) {
+      console.log('=== RECEIVED reloadUserTemplates MESSAGE FROM R ===');
+      // Trigger re-render by requesting updated list
+      // The observer in R will automatically send updateUserTemplates
+    });
+    
     console.log('✓ Shiny message handlers registered successfully');
     return true;
   } else {
@@ -5658,3 +5981,69 @@ window.showComparisonTable = showComparisonTable;
 window.hideComparisonTable = hideComparisonTable;
 
 console.log('✓ Canvas comparison functions loaded');
+// ========================================
+// Save as Template Function
+// ========================================
+
+function saveCurrentAsTemplate() {
+  console.log('=== saveCurrentAsTemplate called ===');
+  
+  if (!window.paCanvas) {
+    alert('Canvas not initialized!');
+    return;
+  }
+  
+  // Get template name from input
+  const templateName = $('#template_name').val();
+  if (!templateName || templateName.trim() === '') {
+    alert('Please enter a template name');
+    return;
+  }
+  
+  // Check if canvas has components
+  if (window.paCanvas.components.length === 0) {
+    alert('Canvas is empty! Add some components before saving as a template.');
+    return;
+  }
+  
+  // Serialize canvas state
+  const templateData = {
+    name: templateName.trim(),
+    components: window.paCanvas.components.map(comp => ({
+      id: comp.id,
+      type: comp.type,
+      x: comp.x,
+      y: comp.y,
+      properties: comp.properties
+    })),
+    wires: window.paCanvas.wires.map(wire => ({
+      fromId: wire.fromId,
+      toId: wire.toId,
+      fromPort: wire.fromPort,
+      toPort: wire.toPort
+    }))
+  };
+  
+  console.log('Template data:', templateData);
+  
+  // Send to Shiny
+  if (typeof Shiny !== 'undefined') {
+    Shiny.setInputValue('save_template_data', templateData, {priority: 'event'});
+    console.log('Template data sent to Shiny');
+    
+    // Clear the input field
+    $('#template_name').val('');
+    
+    // Show success message
+    setTimeout(() => {
+      alert(`Template "${templateName}" saved successfully!`);
+    }, 100);
+  } else {
+    console.error('Shiny not available!');
+    alert('Error: Cannot save template (Shiny not connected)');
+  }
+}
+
+window.saveCurrentAsTemplate = saveCurrentAsTemplate;
+
+console.log('✓ Save template functions loaded');

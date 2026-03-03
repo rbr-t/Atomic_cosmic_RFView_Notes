@@ -693,6 +693,24 @@ ui <- dashboardPage(
                             actionButton("lineup_load_config", "Load", icon = icon("folder-open"), class = "btn-default btn-block btn-sm"),
                             actionButton("lineup_export_diagram", "Export", icon = icon("image"), class = "btn-default btn-block btn-sm"),
                             actionButton("lineup_generate_report", "Report", icon = icon("file-pdf"), class = "btn-default btn-block btn-sm")
+                          ),
+                          
+                          # Template Actions Section (only shown in single canvas mode)
+                          conditionalPanel(
+                            condition = "input.canvas_layout == '1x1'",
+                            div(
+                              class = "sidebar-section",
+                              div(class = "sidebar-section-title", icon("bookmark"), " Save as Template"),
+                              textInput("template_name", 
+                                label = NULL, 
+                                placeholder = "Template name...",
+                                width = "100%"),
+                              actionButton("save_as_template", 
+                                "Save Template", 
+                                icon = icon("bookmark"), 
+                                class = "btn-info btn-block btn-sm",
+                                onclick = "saveCurrentAsTemplate();")
+                            )
                           )
                         )
                       ),
@@ -1148,6 +1166,51 @@ server <- function(input, output, session) {
     current_project = NULL,
     projects = data.frame()
   )
+  
+  # Helper function: Get user templates
+  getUserTemplates <- function() {
+    templates_dir <- file.path("R", "user_templates")
+    
+    if(!dir.exists(templates_dir)) {
+      return(list())
+    }
+    
+    template_files <- list.files(templates_dir, pattern = "\\.json$", full.names = TRUE)
+    
+    templates <- lapply(template_files, function(filepath) {
+      tryCatch({
+        template_data <- jsonlite::read_json(filepath, simplifyVector = TRUE)
+        list(
+          id = paste0("user_", tools::file_path_sans_ext(basename(filepath))),
+          name = template_data$name,
+          components_count = length(template_data$components),
+          filepath = filepath
+        )
+      }, error = function(e) {
+        cat(sprintf("[Template Error] Failed to read %s: %s\n", filepath, e$message))
+        NULL
+      })
+    })
+    
+    # Remove NULL entries (failed reads)
+    templates[!sapply(templates, is.null)]
+  }
+  
+  # Reactive expression for user templates
+  userTemplates <- reactive({
+    getUserTemplates()
+  })
+  
+  # Send user templates to JavaScript on startup
+  observe({
+    templates <- userTemplates()
+    if(length(templates) > 0) {
+      template_info <- lapply(templates, function(t) {
+        list(id = t$id, name = t$name, components_count = t$components_count)
+      })
+      session$sendCustomMessage("updateUserTemplates", template_info)
+    }
+  })
   
   # Load projects on startup
   observe({
@@ -2001,11 +2064,23 @@ server <- function(input, output, session) {
             value = as.numeric(getProp("freq", 2.6)), step = 0.1),
           hr(),
           h5("Display on Canvas"),
-          checkboxGroupInput(paste0("prop_", selected, "_display"),
-            label = NULL,
-            choices = c("Technology" = "technology", "Gain" = "gain", "PAE" = "pae", "Pout" = "pout"),
-            selected = c("technology", "pout"),
-            inline = FALSE
+          div(style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;",
+            checkboxGroupInput(paste0("prop_", selected, "_display"),
+              label = NULL,
+              choices = c(
+                "Label" = "label",
+                "Technology" = "technology",
+                "Bias Class" = "biasClass",
+                "Gain (dB)" = "gain",
+                "PAE (%)" = "pae",
+                "Pout (dBm)" = "pout",
+                "P1dB (dBm)" = "p1db",
+                "VDD (V)" = "vdd",
+                "Freq (GHz)" = "freq"
+              ),
+              selected = c("technology", "pout"),
+              inline = FALSE
+            )
           ),
           hr(),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
@@ -2030,11 +2105,20 @@ server <- function(input, output, session) {
             value = as.numeric(getProp("bandwidth", 10)), step = 1),
           hr(),
           h5("Display on Canvas"),
-          checkboxGroupInput(paste0("prop_", selected, "_display"),
-            label = NULL,
-            choices = c("Label" = "label", "Loss" = "loss", "Type" = "type"),
-            selected = c("label", "loss"),
-            inline = FALSE
+          div(style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;",
+            checkboxGroupInput(paste0("prop_", selected, "_display"),
+              label = NULL,
+              choices = c(
+                "Label" = "label",
+                "Type" = "type",
+                "Loss (dB)" = "loss",
+                "Z_in (\u03A9)" = "z_in",
+                "Z_out (\u03A9)" = "z_out",
+                "Bandwidth (%)" = "bandwidth"
+              ),
+              selected = c("label", "loss"),
+              inline = FALSE
+            )
           ),
           hr(),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
@@ -2057,11 +2141,19 @@ server <- function(input, output, session) {
             value = as.numeric(getProp("split_ratio", 0)), step = 0.5),
           hr(),
           h5("Display on Canvas"),
-          checkboxGroupInput(paste0("prop_", selected, "_display"),
-            label = NULL,
-            choices = c("Label" = "label", "Loss" = "loss", "Type" = "type"),
-            selected = c("label", "loss"),
-            inline = FALSE
+          div(style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;",
+            checkboxGroupInput(paste0("prop_", selected, "_display"),
+              label = NULL,
+              choices = c(
+                "Label" = "label",
+                "Type" = "type",
+                "Loss (dB)" = "loss",
+                "Isolation (dB)" = "isolation",
+                "Split Ratio (dB)" = "split_ratio"
+              ),
+              selected = c("label", "loss"),
+              inline = FALSE
+            )
           ),
           hr(),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
@@ -2090,11 +2182,19 @@ server <- function(input, output, session) {
           ),
           hr(),
           h5("Display on Canvas"),
-          checkboxGroupInput(paste0("prop_", selected, "_display"),
-            label = NULL,
-            choices = c("Label" = "label", "Loss" = "loss", "Type" = "type"),
-            selected = c("label", "loss"),
-            inline = FALSE
+          div(style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;",
+            checkboxGroupInput(paste0("prop_", selected, "_display"),
+              label = NULL,
+              choices = c(
+                "Label" = "label",
+                "Type" = "type",
+                "Loss (dB)" = "loss",
+                "Isolation (dB)" = "isolation",
+                "Load Mod" = "load_modulation"
+              ),
+              selected = c("label", "loss"),
+              inline = FALSE
+            )
           ),
           hr(),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
@@ -2493,6 +2593,107 @@ server <- function(input, output, session) {
   # Export Diagram (SVG)
   observeEvent(input$lineup_export_diagram, {
     components <- lineup_components()
+  
+  # Save as User Template
+  observeEvent(input$save_template_data, {
+    req(input$save_template_data)
+    
+    template_data <- input$save_template_data
+    template_name <- template_data$name
+    
+    if(is.null(template_name) || template_name == "") {
+      showNotification("Template name is required", type = "error")
+      return()
+    }
+    
+    # Create user_templates directory if it doesn't exist
+    templates_dir <- file.path("R", "user_templates")
+    if(!dir.exists(templates_dir)) {
+      dir.create(templates_dir, recursive = TRUE)
+      cat(sprintf("[Template] Created directory: %s\n", templates_dir))
+    }
+    
+    # Sanitize filename (remove special characters)
+    safe_name <- gsub("[^a-zA-Z0-9_-]", "_", template_name)
+    filename <- sprintf("%s.json", safe_name)
+    filepath <- file.path(templates_dir, filename)
+    
+    # Add metadata
+    template_data$metadata <- list(
+      created = as.character(Sys.time()),
+      version = "1.0",
+      type = "user_template"
+    )
+    
+    tryCatch({
+      jsonlite::write_json(template_data, filepath, auto_unbox = TRUE, pretty = TRUE)
+      showNotification(
+        sprintf("Template '%s' saved successfully!", template_name),
+        type = "message",
+        duration = 3
+      )
+      cat(sprintf("[Template] Saved: %s (%d components, %d wires)\n", 
+                  template_name, 
+                  length(template_data$components), 
+                  length(template_data$wires)))
+      
+      # Reload and send updated user templates list
+      updated_templates <- getUserTemplates()
+      if(length(updated_templates) > 0) {
+        template_info <- lapply(updated_templates, function(t) {
+          list(id = t$id, name = t$name, components_count = t$components_count)
+        })
+        session$sendCustomMessage("updateUserTemplates", template_info)
+      }
+      
+    }, error = function(e) {
+      showNotification(
+        sprintf("Failed to save template: %s", e$message),
+        type = "error"
+      )
+      cat(sprintf("[Template Error] %s\n", e$message))
+    })
+  })
+  
+  # Load User Template
+  observeEvent(input$load_user_template, {
+    req(input$load_user_template)
+    
+    template_id <- input$load_user_template
+    
+    # Remove "user_" prefix to get filename
+    filename <- sub("^user_", "", template_id)
+    filepath <- file.path("R", "user_templates", paste0(filename, ".json"))
+    
+    if(!file.exists(filepath)) {
+      showNotification(
+        "Template file not found",
+        type = "error"
+      )
+      cat(sprintf("[Template Error] File not found: %s\n", filepath))
+      return()
+    }
+    
+    tryCatch({
+      template_data <- jsonlite::read_json(filepath, simplifyVector = TRUE)
+      
+      # Send to JavaScript to load
+      session$sendCustomMessage("loadUserTemplateData", template_data)
+      
+      cat(sprintf("[Template] Loaded: %s (%d components, %d wires)\n",
+                  template_data$name,
+                  length(template_data$components),
+                  length(template_data$wires)))
+      
+    }, error = function(e) {
+      showNotification(
+        sprintf("Failed to load template: %s", e$message),
+        type = "error"
+      )
+      cat(sprintf("[Template Error] %s\n", e$message))
+    })
+  })
+  
     
     if(is.null(components) || length(components) == 0) {
       showNotification("No lineup to export", type = "warning")
