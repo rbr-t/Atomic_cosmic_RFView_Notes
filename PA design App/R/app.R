@@ -855,7 +855,14 @@ ui <- dashboardPage(
                     width = 12,
                     status = "success",
                     solidHeader = TRUE,
-                    actionButton("lineup_calculate", "Calculate Lineup", class = "btn-success btn-block", icon = icon("calculator")),
+                    div(style = "display: flex; gap: 10px; align-items: center; margin-bottom: 10px;",
+                      div(style = "flex: 1;",
+                        actionButton("lineup_calculate", "Calculate Lineup", class = "btn-success btn-block", icon = icon("calculator"))
+                      ),
+                      div(style = "flex: 0 0 180px;",
+                        numericInput("backoff_db", "Backoff (dB):", value = 6, min = 0, max = 20, step = 0.5, width = "100%")
+                      )
+                    ),
                     hr(),
                     uiOutput("lineup_calc_results")
                   ),
@@ -885,51 +892,13 @@ ui <- dashboardPage(
                   # Table View
                   tabPanel(
                     title = tagList(icon("table"), "Table View"),
-                    DTOutput("pa_lineup_table")
+                    uiOutput("pa_lineup_tables_dynamic")
                   ),
                   
                   # Equations View
                   tabPanel(
                     title = tagList(icon("calculator"), "Equations & Rationale"),
-                    wellPanel(
-                      h4("PA Lineup Equations"),
-                      HTML("
-                        <h5>Power Cascade:</h5>
-                        <p><b>P<sub>out,i</sub> (dBm)</b> = P<sub>in,i</sub> + G<sub>i</sub></p>
-                        <p><b>P<sub>in,i+1</sub></b> = P<sub>out,i</sub></p>
-                        
-                        <h5>Total Gain:</h5>
-                        <p><b>G<sub>total</sub> (dB)</b> = Σ G<sub>i</sub></p>
-                        
-                        <h5>Power Dissipation (per stage):</h5>
-                        <p><b>P<sub>diss,i</sub> (W)</b> = P<sub>out,i</sub>(W) · (1/PAE<sub>i</sub> - 1)</p>
-                        
-                        <h5>DC Power (per stage):</h5>
-                        <p><b>P<sub>DC,i</sub> (W)</b> = P<sub>out,i</sub>(W) / PAE<sub>i</sub></p>
-                        
-                        <h5>Total System PAE:</h5>
-                        <p><b>PAE<sub>total</sub></b> = P<sub>out,final</sub> / Σ P<sub>DC,i</sub></p>
-                        
-                        <h5>Compression Check:</h5>
-                        <p>For each stage: <b>P<sub>out,i</sub> ≤ P1dB<sub>i</sub></b></p>
-                        <p>If P<sub>out,i</sub> > P1dB<sub>i</sub>: <span style='color:red;'>⚠ Compression Warning</span></p>
-                        
-                        <h5>For Doherty Architecture:</h5>
-                        <p><b>Load Modulation:</b> Main PA operates at higher impedance at backoff</p>
-                        <p><b>Auxiliary Turn-on:</b> Typically at 6dB backoff from P1dB</p>
-                        <p><b>Combining Efficiency:</b> Accounts for impedance transformation losses</p>
-                        
-                        <h5>Thermal Calculations:</h5>
-                        <p><b>Junction Temp:</b> T<sub>j</sub> = T<sub>a</sub> + P<sub>diss</sub> · R<sub>θja</sub></p>
-                      ")
-                    ),
-                    hr(),
-                    h4("Calculation Rationale:"),
-                    verbatimTextOutput("lineup_rationale"),
-                    hr(),
-                    textAreaInput("lineup_custom_notes", "Design Notes:", 
-                      placeholder = "Add your notes, justifications, or remarks here...",
-                      rows = 4)
+                    uiOutput("pa_lineup_equations_dynamic")
                   )
                 )
               )
@@ -1193,7 +1162,7 @@ server <- function(input, output, session) {
     })
     
     # Remove NULL entries (failed reads)
-    templates[!sapply(templates, is.null)]
+    Filter(Negate(is.null), templates)
   }
   
   # Reactive expression for user templates
@@ -2220,7 +2189,7 @@ server <- function(input, output, session) {
   })
   
   # PA Lineup Calculation Engine with Rationale
-  lineup_calculate_engine <- function(components, connections, input_power_dbm = 0) {
+  lineup_calculate_engine <- function(components, connections, input_power_dbm = 0, backoff_db = 6) {
     if(is.null(components) || length(components) == 0) {
       return(list(
         success = FALSE,
@@ -2246,8 +2215,9 @@ server <- function(input, output, session) {
     rationale <- c(rationale, "═══════════════════════════════════════")
     rationale <- c(rationale, "  PA LINEUP CALCULATION RATIONALE")
     rationale <- c(rationale, "═══════════════════════════════════════\n")
-    rationale <- c(rationale, sprintf("Input Power: %.2f dBm (%.4f W)\n", 
+    rationale <- c(rationale, sprintf("Input Power: %.2f dBm (%.4f W)", 
       input_power_dbm, 10^(input_power_dbm/10)/1000))
+    rationale <- c(rationale, sprintf("Backoff Analysis: %.1f dB below full power\n", backoff_db))
     
     # Sort components by x position (left to right flow)
     tryCatch({
@@ -2260,12 +2230,15 @@ server <- function(input, output, session) {
     
     # Initialize cascade variables
     current_pin <- input_power_dbm
+    current_pin_bo <- input_power_dbm - backoff_db  # Backoff input power
     total_gain <- 0
     total_pdc <- 0
+    total_pdc_bo <- 0  # Backoff DC power
     stage_results <- list()
     warnings <- c()
     
-    rationale <- c(rationale, "─── Stage-by-Stage Analysis ───\n")
+    rationale <- c(rationale, "─── Stage-by-Stage Analysis ───")
+    rationale <- c(rationale, "(Full Power | Backoff)\n")
     
     for(i in seq_along(components)) {
       comp <- components[[i]]
@@ -2293,16 +2266,16 @@ server <- function(input, output, session) {
       rationale <- c(rationale, sprintf("    Input Power: %.2f dBm", current_pin))
       
       if(comp_type == "transistor") {
-        # Transistor stage calculations
+        # Transistor stage calculations - Full Power
         gain <- as.numeric(safeProp(props, "gain", 15))
         pout_dbm <- current_pin + gain
         pout_w <- 10^(pout_dbm/10) / 1000
         p1db <- as.numeric(safeProp(props, "p1db", 43))
-        pae <- as.numeric(safeProp(props, "pae", 50)) / 100
+        pae_full <- as.numeric(safeProp(props, "pae", 50)) / 100
         vdd <- as.numeric(safeProp(props, "vdd", 28))
         rth <- as.numeric(safeProp(props, "rth", 2.5))
         
-        # Check compression
+        # Check compression at full power
         compressed <- pout_dbm > p1db
         if(compressed) {
           compression_amount <- pout_dbm - p1db
@@ -2314,8 +2287,8 @@ server <- function(input, output, session) {
           pout_w <- 10^(pout_dbm/10) / 1000
         }
         
-        # DC power calculation: PDC = Pout / PAE
-        pdc_w <- pout_w / pae
+        # Full power DC calculations
+        pdc_w <- pout_w / pae_full
         pdiss_w <- pdc_w - pout_w
         idc_a <- pdc_w / vdd
         
@@ -2323,14 +2296,39 @@ server <- function(input, output, session) {
         ta_c <- 25
         tj_c <- ta_c + pdiss_w * rth
         
-        rationale <- c(rationale, sprintf("    Gain: %.2f dB → Output: %.2f dBm (%.4f W)", 
+        # === BACKOFF CALCULATIONS ===
+        pout_bo_dbm <- current_pin_bo + gain
+        pout_bo_w <- 10^(pout_bo_dbm/10) / 1000
+        
+        # Clamp backoff output to P1dB (should not compress at backoff)
+        compressed_bo <- pout_bo_dbm > p1db
+        if(compressed_bo) {
+          pout_bo_dbm <- p1db
+          pout_bo_w <- 10^(pout_bo_dbm/10) / 1000
+        }
+        
+        # Estimate PAE at backoff using simplified model
+        # PAE typically degrades at backoff. Simple linear model:
+        # PAE_bo ≈ PAE_full * (Pout_bo/Pout_full)^0.8
+        pout_ratio <- pout_bo_w / max(pout_w, 1e-9)  # Avoid division by zero
+        pae_bo <- pae_full * (pout_ratio ^ 0.8)  # Power-law degradation model
+        pae_bo <- max(pae_bo, 0.1)  # Minimum 10% efficiency
+        
+        # Backoff DC power calculations
+        pdc_bo_w <- pout_bo_w / pae_bo
+        pdiss_bo_w <- pdc_bo_w - pout_bo_w
+        tj_bo_c <- ta_c + pdiss_bo_w * rth
+        
+        rationale <- c(rationale, sprintf("    Full Power: Gain %.2f dB → Pout %.2f dBm (%.4f W)", 
           gain, pout_dbm, pout_w))
-        rationale <- c(rationale, sprintf("    PAE: %.1f%% → PDC = Pout/PAE = %.4f W / %.3f = %.3f W",
-          props$pae, pout_w, pae, pdc_w))
-        rationale <- c(rationale, sprintf("    Dissipation: PDiss = PDC - Pout = %.3f W", pdiss_w))
-        rationale <- c(rationale, sprintf("    DC Current: IDC = PDC/VDD = %.3f A (VDD = %.1f V)", idc_a, vdd))
-        rationale <- c(rationale, sprintf("    Junction Temp: Tj = Ta + PDiss*Rth = %d°C + %.3fW * %.2f°C/W = %.1f°C",
-          ta_c, pdiss_w, rth, tj_c))
+        rationale <- c(rationale, sprintf("    Full Power: PAE %.1f%% → PDC = %.3f W, PDiss = %.3f W",
+          pae_full * 100, pdc_w, pdiss_w))
+        rationale <- c(rationale, sprintf("    Backoff (%.1f dB): Pout %.2f dBm (%.4f W)", 
+          backoff_db, pout_bo_dbm, pout_bo_w))
+        rationale <- c(rationale, sprintf("    Backoff: PAE %.1f%% → PDC = %.3f W, PDiss = %.3f W",
+          pae_bo * 100, pdc_bo_w, pdiss_bo_w))
+        rationale <- c(rationale, sprintf("    Junction Temp: Full %.1f°C | Backoff %.1f°C",
+          tj_c, tj_bo_c))
         
         if(tj_c > 150) {
           warnings <- c(warnings, sprintf("%s: High junction temp %.0f°C", stage_name, tj_c))
@@ -2349,19 +2347,31 @@ server <- function(input, output, session) {
           idc_a = idc_a,
           tj_c = tj_c,
           compressed = compressed,
-          technology = safeProp(props, "technology", "GaN")
+          technology = safeProp(props, "technology", "GaN"),
+          # Backoff metrics
+          pin_bo_dbm = current_pin_bo,
+          pout_bo_dbm = pout_bo_dbm,
+          pae_bo_pct = pae_bo * 100,
+          pdc_bo_w = pdc_bo_w,
+          pdiss_bo_w = pdiss_bo_w,
+          tj_bo_c = tj_bo_c,
+          compressed_bo = compressed_bo
         )
         
         current_pin <- pout_dbm
+        current_pin_bo <- pout_bo_dbm
         total_gain <- total_gain + gain
         total_pdc <- total_pdc + pdc_w
+        total_pdc_bo <- total_pdc_bo + pdc_bo_w
         
       } else if(comp_type == "matching") {
         # Matching network: just loss, no DC power
         loss_db <- as.numeric(safeProp(props, "loss", 0.5))
         pout_dbm <- current_pin - loss_db
+        pout_bo_dbm <- current_pin_bo - loss_db  # Backoff output
         
-        rationale <- c(rationale, sprintf("    Loss: %.2f dB → Output: %.2f dBm", loss_db, pout_dbm))
+        rationale <- c(rationale, sprintf("    Loss: %.2f dB → Full: %.2f dBm | Backoff: %.2f dBm", 
+          loss_db, pout_dbm, pout_bo_dbm))
         rationale <- c(rationale, sprintf("    Impedance transformation: %.1f Ω → %.1f Ω", 
           as.numeric(safeProp(props, "z_in", 50)), as.numeric(safeProp(props, "z_out", 50))))
         
@@ -2370,10 +2380,13 @@ server <- function(input, output, session) {
           type = "matching",
           pin_dbm = current_pin,
           pout_dbm = pout_dbm,
-          loss_db = loss_db
+          loss_db = loss_db,
+          pin_bo_dbm = current_pin_bo,
+          pout_bo_dbm = pout_bo_dbm
         )
         
         current_pin <- pout_dbm
+        current_pin_bo <- pout_bo_dbm
         total_gain <- total_gain - loss_db
         
       } else if(comp_type == "splitter") {
@@ -2381,10 +2394,12 @@ server <- function(input, output, session) {
         loss_db <- as.numeric(safeProp(props, "loss", 0.3))
         split_ratio_db <- as.numeric(safeProp(props, "split_ratio", 0))
         pout_dbm <- current_pin - loss_db
+        pout_bo_dbm <- current_pin_bo - loss_db  # Backoff output
         
         rationale <- c(rationale, sprintf("    Insertion Loss: %.2f dB, Split Ratio: %.2f dB", 
           loss_db, split_ratio_db))
-        rationale <- c(rationale, sprintf("    Output per path: %.2f dBm (assumes 2-way split)", pout_dbm))
+        rationale <- c(rationale, sprintf("    Output per path: Full %.2f dBm | Backoff %.2f dBm", 
+          pout_dbm, pout_bo_dbm))
         
         stage_results[[length(stage_results) + 1]] <- list(
           stage = stage_name,
@@ -2392,10 +2407,13 @@ server <- function(input, output, session) {
           pin_dbm = current_pin,
           pout_dbm = pout_dbm,
           loss_db = loss_db,
-          split_ratio = split_ratio_db
+          split_ratio = split_ratio_db,
+          pin_bo_dbm = current_pin_bo,
+          pout_bo_dbm = pout_bo_dbm
         )
         
         current_pin <- pout_dbm
+        current_pin_bo <- pout_bo_dbm
         total_gain <- total_gain - loss_db
         
       } else if(comp_type == "combiner") {
@@ -2413,9 +2431,11 @@ server <- function(input, output, session) {
         }
         
         pout_dbm <- current_pin + 3 - loss_db  # 3dB from combining 2 paths
+        pout_bo_dbm <- current_pin_bo + 3 - loss_db  # Backoff combining
         
         rationale <- c(rationale, sprintf("    Combining gain: +3 dB (2-way), Loss: %.2f dB", loss_db))
-        rationale <- c(rationale, sprintf("    Output: %.2f dBm", pout_dbm))
+        rationale <- c(rationale, sprintf("    Output: Full %.2f dBm | Backoff %.2f dBm", 
+          pout_dbm, pout_bo_dbm))
         
         stage_results[[length(stage_results) + 1]] <- list(
           stage = stage_name,
@@ -2423,28 +2443,41 @@ server <- function(input, output, session) {
           pin_dbm = current_pin,
           pout_dbm = pout_dbm,
           loss_db = loss_db,
-          combining_gain = 3
+          combining_gain = 3,
+          pin_bo_dbm = current_pin_bo,
+          pout_bo_dbm = pout_bo_dbm
         )
         
         current_pin <- pout_dbm
+        current_pin_bo <- pout_bo_dbm
         total_gain <- total_gain + 3 - loss_db
       }
       
       rationale <- c(rationale, "")
     }
     
-    # System totals
+    # System totals - Full Power
     final_pout_dbm <- current_pin
     final_pout_w <- 10^(final_pout_dbm/10) / 1000
     system_pae <- if(total_pdc > 0) (final_pout_w / total_pdc) * 100 else 0
     
+    # System totals - Backoff
+    final_pout_bo_dbm <- current_pin_bo
+    final_pout_bo_w <- 10^(final_pout_bo_dbm/10) / 1000
+    system_pae_bo <- if(total_pdc_bo > 0) (final_pout_bo_w / total_pdc_bo) * 100 else 0
+    
     rationale <- c(rationale, "─── System Summary ───")
     rationale <- c(rationale, sprintf("Total Gain: %.2f dB", total_gain))
-    rationale <- c(rationale, sprintf("Final Output Power: %.2f dBm (%.3f W)", final_pout_dbm, final_pout_w))
-    rationale <- c(rationale, sprintf("Total DC Power: %.3f W", total_pdc))
-    rationale <- c(rationale, sprintf("System PAE: (Pout / PDC) * 100 = (%.4f / %.3f) * 100 = %.1f%%",
-      final_pout_w, total_pdc, system_pae))
-    rationale <- c(rationale, sprintf("Total Heat Dissipation: %.3f W", total_pdc - final_pout_w))
+    rationale <- c(rationale, "\n[FULL POWER]")
+    rationale <- c(rationale, sprintf("  Output Power: %.2f dBm (%.3f W)", final_pout_dbm, final_pout_w))
+    rationale <- c(rationale, sprintf("  Total DC Power: %.3f W", total_pdc))
+    rationale <- c(rationale, sprintf("  System PAE: %.1f%%", system_pae))
+    rationale <- c(rationale, sprintf("  Heat Dissipation: %.3f W", total_pdc - final_pout_w))
+    rationale <- c(rationale, sprintf("\n[BACKOFF (%.1f dB)]", backoff_db))
+    rationale <- c(rationale, sprintf("  Output Power: %.2f dBm (%.3f W)", final_pout_bo_dbm, final_pout_bo_w))
+    rationale <- c(rationale, sprintf("  Total DC Power: %.3f W", total_pdc_bo))
+    rationale <- c(rationale, sprintf("  System PAE: %.1f%%", system_pae_bo))
+    rationale <- c(rationale, sprintf("  Heat Dissipation: %.3f W", total_pdc_bo - final_pout_bo_w))
     
     if(length(warnings) > 0) {
       rationale <- c(rationale, "\n─── Warnings ───")
@@ -2459,6 +2492,7 @@ server <- function(input, output, session) {
     
     list(
       success = TRUE,
+      backoff_db = backoff_db,
       input_power_dbm = input_power_dbm,
       final_pout_dbm = final_pout_dbm,
       final_pout_w = final_pout_w,
@@ -2466,6 +2500,12 @@ server <- function(input, output, session) {
       total_pdc = total_pdc,
       system_pae = system_pae,
       total_pdiss = total_pdc - final_pout_w,
+      # Backoff system metrics
+      final_pout_bo_dbm = final_pout_bo_dbm,
+      final_pout_bo_w = final_pout_bo_w,
+      total_pdc_bo = total_pdc_bo,
+      system_pae_bo = system_pae_bo,
+      total_pdiss_bo = total_pdc_bo - final_pout_bo_w,
       stage_results = stage_results,
       warnings = warnings,
       rationale = paste(rationale, collapse = "\n")
@@ -2490,7 +2530,10 @@ server <- function(input, output, session) {
     # Get input power from first component or use default
     input_power <- 0  # Default 0 dBm
     
-    result <- lineup_calculate_engine(components, lineup_connections(), input_power)
+    # Get backoff value from input (with fallback)
+    backoff_value <- if(!is.null(input$backoff_db)) input$backoff_db else 6
+    
+    result <- lineup_calculate_engine(components, lineup_connections(), input_power, backoff_value)
     lineup_calc_results(result)
     
     showNotification(
@@ -2896,16 +2939,15 @@ server <- function(input, output, session) {
       ))
     }
     
+    backoff_value <- if(!is.null(results$backoff_db)) results$backoff_db else 6
+    
     tagList(
-      tags$div(class = "calc-summary",
+      tags$h4("Full Power Performance", style = "color: #2196F3; margin-bottom: 10px;"),
+      tags$div(class = "calc-summary", style = "background-color: #f0f8ff; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
         tags$div(class = "calc-metric",
           tags$span(class = "metric-label", "Output Power"),
           tags$span(class = "metric-value", sprintf("%.2f dBm", results$final_pout_dbm)),
           tags$span(class = "metric-unit", sprintf("(%.3f W)", results$final_pout_w))
-        ),
-        tags$div(class = "calc-metric",
-          tags$span(class = "metric-label", "Total Gain"),
-          tags$span(class = "metric-value", sprintf("%.2f dB", results$total_gain))
         ),
         tags$div(class = "calc-metric",
           tags$span(class = "metric-label", "System PAE"),
@@ -2918,6 +2960,32 @@ server <- function(input, output, session) {
         tags$div(class = "calc-metric",
           tags$span(class = "metric-label", "Heat Dissipation"),
           tags$span(class = "metric-value warning", sprintf("%.3f W", results$total_pdiss))
+        )
+      ),
+      tags$h4(sprintf("Backoff Performance (%.1f dB)", backoff_value), style = "color: #FF9800; margin-bottom: 10px;"),
+      tags$div(class = "calc-summary", style = "background-color: #fff8f0; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "Output Power"),
+          tags$span(class = "metric-value", sprintf("%.2f dBm", results$final_pout_bo_dbm)),
+          tags$span(class = "metric-unit", sprintf("(%.3f W)", results$final_pout_bo_w))
+        ),
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "System PAE"),
+          tags$span(class = "metric-value success", sprintf("%.1f%%", results$system_pae_bo))
+        ),
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "DC Power"),
+          tags$span(class = "metric-value", sprintf("%.3f W", results$total_pdc_bo))
+        ),
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "Heat Dissipation"),
+          tags$span(class = "metric-value warning", sprintf("%.3f W", results$total_pdiss_bo))
+        )
+      ),
+      tags$div(class = "calc-summary", style = "background-color: #f5f5f5; padding: 10px; border-radius: 5px;",
+        tags$div(class = "calc-metric",
+          tags$span(class = "metric-label", "Total Gain"),
+          tags$span(class = "metric-value", sprintf("%.2f dB", results$total_gain))
         )
       ),
       if(length(results$warnings) > 0) {
@@ -2948,20 +3016,26 @@ server <- function(input, output, session) {
       return(datatable(data.frame(Message = "No calculation data available")))
     }
     
-    # Build table from stage results
+    backoff_value <- if(!is.null(results$backoff_db)) results$backoff_db else 6
+    
+    # Build table from stage results with backoff columns
     rows <- lapply(results$stage_results, function(stage) {
       if(stage$type == "transistor") {
         data.frame(
           Stage = stage$stage,
           Type = "Transistor",
-          Pin_dBm = sprintf("%.2f", stage$pin_dbm),
-          Pout_dBm = sprintf("%.2f", stage$pout_dbm),
+          # Full power columns
+          Pin_Full = sprintf("%.2f", stage$pin_dbm),
+          Pout_Full = sprintf("%.2f", stage$pout_dbm),
+          PAE_Full = sprintf("%.1f", stage$pae_pct),
+          PDC_Full = sprintf("%.3f", stage$pdc_w),
+          # Backoff columns
+          Pin_BO = sprintf("%.2f", stage$pin_bo_dbm),
+          Pout_BO = sprintf("%.2f", stage$pout_bo_dbm),
+          PAE_BO = sprintf("%.1f", stage$pae_bo_pct),
+          PDC_BO = sprintf("%.3f", stage$pdc_bo_w),
+          # Common columns
           Gain_dB = sprintf("%.2f", stage$gain_db),
-          Loss_dB = "—",
-          PAE_pct = sprintf("%.1f", stage$pae_pct),
-          PDC_W = sprintf("%.3f", stage$pdc_w),
-          Pdiss_W = sprintf("%.3f", stage$pdiss_w),
-          Tj_C = sprintf("%.1f", stage$tj_c),
           Status = if(stage$compressed) "⚠ Compressed" else "✓ Linear",
           stringsAsFactors = FALSE
         )
@@ -2969,31 +3043,41 @@ server <- function(input, output, session) {
         data.frame(
           Stage = stage$stage,
           Type = "Matching",
-          Pin_dBm = sprintf("%.2f", stage$pin_dbm),
-          Pout_dBm = sprintf("%.2f", stage$pout_dbm),
+          # Full power columns
+          Pin_Full = sprintf("%.2f", stage$pin_dbm),
+          Pout_Full = sprintf("%.2f", stage$pout_dbm),
+          PAE_Full = "—",
+          PDC_Full = "—",
+          # Backoff columns
+          Pin_BO = sprintf("%.2f", stage$pout_bo_dbm - stage$loss_db),
+          Pout_BO = sprintf("%.2f", stage$pout_bo_dbm),
+          PAE_BO = "—",
+          PDC_BO = "—",
+          # Common columns
           Gain_dB = sprintf("%.2f", -stage$loss_db),
-          Loss_dB = sprintf("%.2f", stage$loss_db),
-          PAE_pct = "—",
-          PDC_W = "—",
-          Pdiss_W = "—",
-          Tj_C = "—",
           Status = "Passive",
           stringsAsFactors = FALSE
         )
       } else {
-        # Splitters and combiners typically have insertion loss
-        loss_val <- if(!is.null(stage$loss_db)) sprintf("%.2f", stage$loss_db) else "0.3"
+        # Splitters and combiners
+        loss_val <- if(!is.null(stage$loss_db)) stage$loss_db else 0.3
+        gain_val <- if(stage$type == "combiner") 3 - loss_val else -loss_val
+        
         data.frame(
           Stage = stage$stage,
           Type = tools::toTitleCase(stage$type),
-          Pin_dBm = sprintf("%.2f", stage$pin_dbm),
-          Pout_dBm = sprintf("%.2f", stage$pout_dbm),
-          Gain_dB = "—",
-          Loss_dB = loss_val,
-          PAE_pct = "—",
-          PDC_W = "—",
-          Pdiss_W = "—",
-          Tj_C = "—",
+          # Full power columns
+          Pin_Full = sprintf("%.2f", stage$pin_dbm),
+          Pout_Full = sprintf("%.2f", stage$pout_dbm),
+          PAE_Full = "—",
+          PDC_Full = "—",
+          # Backoff columns
+          Pin_BO = if(!is.null(stage$pin_bo_dbm)) sprintf("%.2f", stage$pin_bo_dbm) else "—",
+          Pout_BO = if(!is.null(stage$pout_bo_dbm)) sprintf("%.2f", stage$pout_bo_dbm) else "—",
+          PAE_BO = "—",
+          PDC_BO = "—",
+          # Common columns
+          Gain_dB = sprintf("%.2f", gain_val),
           Status = "Passive",
           stringsAsFactors = FALSE
         )
@@ -3002,45 +3086,198 @@ server <- function(input, output, session) {
     
     data <- do.call(rbind, rows)
     
-    # Calculate total loss for summary
+    # Calculate totals for summary row
     total_loss <- sum(sapply(results$stage_results, function(stage) {
       if(stage$type == "matching" && !is.null(stage$loss_db)) {
         stage$loss_db
       } else if(stage$type %in% c("splitter", "combiner") && !is.null(stage$loss_db)) {
         stage$loss_db
       } else if(stage$type %in% c("splitter", "combiner")) {
-        0.3  # default insertion loss
+        0.3
       } else {
         0
       }
     }))
     
-    # Add summary row
+    # Summary row with backoff data
     summary_row <- data.frame(
       Stage = "SYSTEM TOTAL",
       Type = "—",
-      Pin_dBm = sprintf("%.2f", results$input_power_dbm),
-      Pout_dBm = sprintf("%.2f", results$final_pout_dbm),
+      # Full power totals
+      Pin_Full = sprintf("%.2f", results$input_power_dbm),
+      Pout_Full = sprintf("%.2f", results$final_pout_dbm),
+      PAE_Full = sprintf("%.1f", results$system_pae),
+      PDC_Full = sprintf("%.3f", results$total_pdc),
+      # Backoff totals
+      Pin_BO = sprintf("%.2f", results$input_power_dbm - backoff_value),
+      Pout_BO = sprintf("%.2f", results$final_pout_bo_dbm),
+      PAE_BO = sprintf("%.1f", results$system_pae_bo),
+      PDC_BO = sprintf("%.3f", results$total_pdc_bo),
+      # Common
       Gain_dB = sprintf("%.2f", results$total_gain),
-      Loss_dB = sprintf("%.2f", total_loss),
-      PAE_pct = sprintf("%.1f", results$system_pae),
-      PDC_W = sprintf("%.3f", results$total_pdc),
-      Pdiss_W = sprintf("%.3f", results$total_pdiss),
-      Tj_C = "—",
       Status = if(length(results$warnings) > 0) "⚠ Check" else "✓ OK",
       stringsAsFactors = FALSE
     )
     
     data <- rbind(data, summary_row)
     
-    datatable(data, options = list(pageLength = 20, dom = 't'), rownames = FALSE) %>%
+    # Create column names with grouped headers
+    colnames(data) <- c(
+      "Stage", "Type",
+      "Pin (dBm)", "Pout (dBm)", "PAE (%)", "PDC (W)",
+      "Pin (dBm) ", "Pout (dBm) ", "PAE (%) ", "PDC (W) ",
+      "Gain (dB)", "Status"
+    )
+    
+    datatable(data, 
+      options = list(
+        pageLength = 20, 
+        dom = 't',
+        columnDefs = list(
+          list(className = 'dt-center', targets = 2:11)
+        )
+      ), 
+      rownames = FALSE,
+      container = htmltools::withTags(table(
+        class = 'display',
+        thead(
+          tr(
+            th(rowspan = 2, 'Stage'),
+            th(rowspan = 2, 'Type'),
+            th(colspan = 4, style = 'text-align:center; background-color:#e8f4f8; border-bottom: 2px solid #2196F3;', 'Full Power'),
+            th(colspan = 4, style = 'text-align:center; background-color:#fff3e0; border-bottom: 2px solid #FF9800;', sprintf('Backoff (%.1f dB)', backoff_value)),
+            th(rowspan = 2, 'Gain (dB)'),
+            th(rowspan = 2, 'Status')
+          ),
+          tr(
+            lapply(c('Pin (dBm)', 'Pout (dBm)', 'PAE (%)', 'PDC (W)'), th),
+            lapply(c('Pin (dBm)', 'Pout (dBm)', 'PAE (%)', 'PDC (W)'), th)
+          )
+        )
+      ))
+    ) %>%
       formatStyle('Status',
         backgroundColor = styleEqual(
           c('✓ Linear', '⚠ Compressed', '✓ OK', '⚠ Check', 'Passive'),
           c('rgba(0,255,0,0.2)', 'rgba(255,165,0,0.3)', 'rgba(0,255,0,0.2)', 
             'rgba(255,165,0,0.3)', 'rgba(200,200,200,0.2)')
         )
+      ) %>%
+      formatStyle(3:6, backgroundColor = '#f0f8ff') %>%  # Light blue for full power
+      formatStyle(7:10, backgroundColor = '#fff8f0')     # Light orange for backoff
+  })
+  
+  # Dynamic Tables UI - renders tabs for multi-canvas layouts
+  output$pa_lineup_tables_dynamic <- renderUI({
+    layout <- input$canvas_layout
+    
+    if(is.null(layout) || layout == "1x1") {
+      # Single canvas mode - show single table
+      return(DTOutput("pa_lineup_table"))
+    }
+    
+    # Multi-canvas mode - create tabs
+    canvas_count <- switch(layout,
+      "2x2" = 4,
+      "2x3" = 6,
+      "3x3" = 9,
+      1
+    )
+    
+    tab_panels <- lapply(1:canvas_count, function(i) {
+      tabPanel(
+        title = sprintf("Canvas %d", i),
+        DTOutput(paste0("pa_lineup_table_", i))
       )
+    })
+    
+    do.call(tabsetPanel, c(list(id = "table_tabs"), tab_panels))
+  })
+  
+  # Dynamic Equations UI - renders tabs for multi-canvas layouts  
+  output$pa_lineup_equations_dynamic <- renderUI({
+    layout <- input$canvas_layout
+    
+    if(is.null(layout) || layout == "1x1") {
+      # Single canvas mode - show single equations view
+      return(tagList(
+        wellPanel(
+          h4("PA Lineup Equations"),
+          HTML("
+            <h5>Power Cascade:</h5>
+            <p><b>P<sub>out,i</sub> (dBm)</b> = P<sub>in,i</sub> + G<sub>i</sub></p>
+            <p><b>P<sub>in,i+1</sub></b> = P<sub>out,i</sub></p>
+            
+            <h5>Total Gain:</h5>
+            <p><b>G<sub>total</sub> (dB)</b> = Σ G<sub>i</sub></p>
+            
+            <h5>Power Dissipation (per stage):</h5>
+            <p><b>P<sub>diss,i</sub> (W)</b> = P<sub>out,i</sub>(W) · (1/PAE<sub>i</sub> - 1)</p>
+            
+            <h5>DC Power (per stage):</h5>
+            <p><b>P<sub>DC,i</sub> (W)</b> = P<sub>out,i</sub>(W) / PAE<sub>i</sub></p>
+            
+            <h5>Total System PAE:</h5>
+            <p><b>PAE<sub>total</sub></b> = P<sub>out,final</sub> / Σ P<sub>DC,i</sub></p>
+            
+            <h5>Compression Check:</h5>
+            <p>For each stage: <b>P<sub>out,i</sub> ≤ P1dB<sub>i</sub></b></p>
+            <p>If P<sub>out,i</sub> > P1dB<sub>i</sub>: <span style='color:red;'>⚠ Compression Warning</span></p>
+            
+            <h5>For Doherty Architecture:</h5>
+            <p><b>Load Modulation:</b> Main PA operates at higher impedance at backoff</p>
+            <p><b>Auxiliary Turn-on:</b> Typically at 6dB backoff from P1dB</p>
+            <p><b>Combining Efficiency:</b> Accounts for impedance transformation losses</p>
+            
+            <h5>Thermal Calculations:</h5>
+            <p><b>Junction Temp:</b> T<sub>j</sub> = T<sub>a</sub> + P<sub>diss</sub> · R<sub>θja</sub></p>
+          ")
+        ),
+        hr(),
+        h4("Calculation Rationale:"),
+        verbatimTextOutput("lineup_rationale"),
+        hr(),
+        textAreaInput("lineup_custom_notes", "Design Notes:", 
+          placeholder = "Add your notes, justifications, or remarks here...",
+          rows = 4)
+      ))
+    }
+    
+    # Multi-canvas mode - create tabs
+    canvas_count <- switch(layout,
+      "2x2" = 4,
+      "2x3" = 6,
+      "3x3" = 9,
+      1
+    )
+    
+    tab_panels <- lapply(1:canvas_count, function(i) {
+      tabPanel(
+        title = sprintf("Canvas %d", i),
+        wellPanel(
+          h4(sprintf("Canvas %d - PA Lineup Equations", i)),
+          HTML("
+            <h5>Power Cascade:</h5>
+            <p><b>P<sub>out,i</sub> (dBm)</b> = P<sub>in,i</sub> + G<sub>i</sub></p>
+            <p><b>P<sub>in,i+1</sub></b> = P<sub>out,i</sub></p>
+            
+            <h5>Total Gain:</h5>
+            <p><b>G<sub>total</sub> (dB)</b> = Σ G<sub>i</sub></p>
+            
+            <h5>DC Power (per stage):</h5>
+            <p><b>P<sub>DC,i</sub> (W)</b> = P<sub>out,i</sub>(W) / PAE<sub>i</sub></p>
+            
+            <h5>Total System PAE:</h5>
+            <p><b>PAE<sub>total</sub></b> = P<sub>out,final</sub> / Σ P<sub>DC,i</sub></p>
+          ")
+        ),
+        hr(),
+        h4("Calculation Rationale:"),
+        verbatimTextOutput(paste0("lineup_rationale_", i))
+      )
+    })
+    
+    do.call(tabsetPanel, c(list(id = "equations_tabs"), tab_panels))
   })
   
   # ============================================================
