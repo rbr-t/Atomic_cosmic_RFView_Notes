@@ -769,6 +769,14 @@ class PALineupCanvas {
     group.on('click', (event) => {
       event.stopPropagation();
       
+      // CRITICAL: Set this canvas as active when any component is clicked
+      if (window.paCanvases && window.paCanvases.length > 1) {
+        const canvasIndex = window.paCanvases.findIndex(c => c === this);
+        if (canvasIndex >= 0) {
+          setActiveCanvas(canvasIndex);
+        }
+      }
+      
       // Ctrl+click (or Cmd+click on Mac) for multi-select
       if (event.ctrlKey || event.metaKey) {
         this.toggleComponentSelection(component);
@@ -1286,14 +1294,15 @@ class PALineupCanvas {
   }
   
   renderSplitter(group, component) {
-    // Enhanced industry-standard Wilkinson splitter representation
+    // Enhanced industry-standard splitter representation with 2-way or 3-way support
+    const portCount = component.properties.portCount || 2;
     
     // Background box to show it's a packaged component
     group.append('rect')
       .attr('x', -25)
-      .attr('y', -20)
+      .attr('y', portCount === 3 ? -30 : -20)
       .attr('width', 50)
-      .attr('height', 40)
+      .attr('height', portCount === 3 ? 60 : 40)
       .attr('fill', '#1a1a1a')
       .attr('stroke', '#ffaa00')
       .attr('stroke-width', 2)
@@ -1308,59 +1317,138 @@ class PALineupCanvas {
       .attr('stroke', '#ffaa00')
       .attr('stroke-width', 3);
     
-    // Y-junction with quarter-wave transformers
-    group.append('line')
-      .attr('x1', -5)
-      .attr('y1', 0)
-      .attr('x2', 5)
-      .attr('y2', -10)
-      .attr('stroke', '#ffaa00')
-      .attr('stroke-width', 3);
-    
-    group.append('line')
-      .attr('x1', -5)
-      .attr('y1', 0)
-      .attr('x2', 5)
-      .attr('y2', 10)
-      .attr('stroke', '#ffaa00')
-      .attr('stroke-width', 3);
-    
-    // Output λ/4 transformers (shown as thick segments)
-    group.append('line')
-      .attr('x1', 5)
-      .attr('y1', -10)
-      .attr('x2', 25)
-      .attr('y2', -10)
-      .attr('stroke', '#ffaa00')
-      .attr('stroke-width', 4)
-      .style('opacity', 0.8);
-    
-    group.append('line')
-      .attr('x1', 5)
-      .attr('y1', 10)
-      .attr('x2', 25)
-      .attr('y2', 10)
-      .attr('stroke', '#ffaa00')
-      .attr('stroke-width', 4)
-      .style('opacity', 0.8);
-    
-    // Isolation resistor indicator (line between outputs)
-    group.append('line')
-      .attr('x1', 15)
-      .attr('y1', -10)
-      .attr('x2', 15)
-      .attr('y2', 10)
-      .attr('stroke', '#ff6666')
-      .attr('stroke-width', 2)
-      .attr('stroke-dasharray', '2,2')
-      .style('opacity', 0.6);
-    
     // Junction node
     group.append('circle')
       .attr('cx', -5)
       .attr('cy', 0)
       .attr('r', 3)
       .attr('fill', '#ffaa00');
+    
+    if (portCount === 3) {
+      // 3-way splitter configuration
+      // Y-junction with three branches
+      group.append('line')
+        .attr('x1', -5)
+        .attr('y1', 0)
+        .attr('x2', 5)
+        .attr('y2', -20)
+        .attr('stroke', '#ffaa00')
+        .attr('stroke-width', 3);
+      
+      group.append('line')
+        .attr('x1', -5)
+        .attr('y1', 0)
+        .attr('x2', 5)
+        .attr('y2', 0)
+        .attr('stroke', '#ffaa00')
+        .attr('stroke-width', 3);
+      
+      group.append('line')
+        .attr('x1', -5)
+        .attr('y1', 0)
+        .attr('x2', 5)
+        .attr('y2', 20)
+        .attr('stroke', '#ffaa00')
+        .attr('stroke-width', 3);
+      
+      // Output λ/4 transformers (shown as thick segments)
+      group.append('line')
+        .attr('x1', 5)
+        .attr('y1', -20)
+        .attr('x2', 25)
+        .attr('y2', -20)
+        .attr('stroke', '#ffaa00')
+        .attr('stroke-width', 4)
+        .style('opacity', 0.8);
+      
+      group.append('line')
+        .attr('x1', 5)
+        .attr('y1', 0)
+        .attr('x2', 25)
+        .attr('y2', 0)
+        .attr('stroke', '#ffaa00')
+        .attr('stroke-width', 4)
+        .style('opacity', 0.8);
+      
+      group.append('line')
+        .attr('x1', 5)
+        .attr('y1', 20)
+        .attr('x2', 25)
+        .attr('y2', 20)
+        .attr('stroke', '#ffaa00')
+        .attr('stroke-width', 4)
+        .style('opacity', 0.8);
+      
+      // Isolation resistor indicators (between outputs)
+      group.append('line')
+        .attr('x1', 15)
+        .attr('y1', -20)
+        .attr('x2', 15)
+        .attr('y2', 0)
+        .attr('stroke', '#ff6666')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '2,2')
+        .style('opacity', 0.6);
+      
+      group.append('line')
+        .attr('x1', 15)
+        .attr('y1', 0)
+        .attr('x2', 15)
+        .attr('y2', 20)
+        .attr('stroke', '#ff6666')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '2,2')
+        .style('opacity', 0.6);
+      
+    } else {
+      // 2-way splitter configuration (original)
+      // Y-junction with quarter-wave transformers
+      group.append('line')
+        .attr('x1', -5)
+        .attr('y1', 0)
+        .attr('x2', 5)
+        .attr('y2', -10)
+        .attr('stroke', '#ffaa00')
+        .attr('stroke-width', 3);
+      
+      group.append('line')
+        .attr('x1', -5)
+        .attr('y1', 0)
+        .attr('x2', 5)
+        .attr('y2', 10)
+        .attr('stroke', '#ffaa00')
+        .attr('stroke-width', 3);
+      
+      // Output λ/4 transformers (shown as thick segments)
+      group.append('line')
+        .attr('x1', 5)
+        .attr('y1', -10)
+        .attr('x2', 25)
+        .attr('y2', -10)
+        .attr('stroke', '#ffaa00')
+        .attr('stroke-width', 4)
+        .style('opacity', 0.8);
+      
+      group.append('line')
+        .attr('x1', 5)
+        .attr('y1', 10)
+        .attr('x2', 25)
+        .attr('y2', 10)
+        .attr('stroke', '#ffaa00')
+        .attr('stroke-width', 4)
+        .style('opacity', 0.8);
+      
+      // Isolation resistor indicator (line between outputs)
+      group.append('line')
+        .attr('x1', 15)
+        .attr('y1', -10)
+        .attr('x2', 15)
+        .attr('y2', 10)
+        .attr('stroke', '#ff6666')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '2,2')
+        .style('opacity', 0.6);
+    }
     
     // Input port
     const splitInputPort = group.append('circle')
@@ -1376,34 +1464,79 @@ class PALineupCanvas {
       .on('mouseenter', () => this.onPortHover(splitInputPort.node(), true))
       .on('mouseleave', () => this.onPortHover(splitInputPort.node(), false));
     
-    // Output ports
-    const splitOutput1 = group.append('circle')
-      .attr('class', 'port port-output')
-      .attr('data-port-id', 'output1')
-      .attr('cx', 28)
-      .attr('cy', -10)
-      .attr('r', 4)
-      .attr('fill', '#ff7f11')
-      .attr('stroke', '#ff7f11')
-      .attr('stroke-width', 1)
-      .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'output1'))
-      .on('mouseenter', () => this.onPortHover(splitOutput1.node(), true))
-      .on('mouseleave', () => this.onPortHover(splitOutput1.node(), false));
-    
-    const splitOutput2 = group.append('circle')
-      .attr('class', 'port port-output')
-      .attr('data-port-id', 'output2')
-      .attr('cx', 28)
-      .attr('cy', 10)
-      .attr('r', 4)
-      .attr('fill', '#ff7f11')
-      .attr('stroke', '#ff7f11')
-      .attr('stroke-width', 1)
-      .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'output2'))
-      .on('mouseenter', () => this.onPortHover(splitOutput2.node(), true))
-      .on('mouseleave', () => this.onPortHover(splitOutput2.node(), false));
+    // Output ports - create based on port count
+    if (portCount === 3) {
+      const splitOutput1 = group.append('circle')
+        .attr('class', 'port port-output')
+        .attr('data-port-id', 'output1')
+        .attr('cx', 28)
+        .attr('cy', -20)
+        .attr('r', 4)
+        .attr('fill', '#ff7f11')
+        .attr('stroke', '#ff7f11')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('click', (event) => this.handlePortClick(event, component, 'output1'))
+        .on('mouseenter', () => this.onPortHover(splitOutput1.node(), true))
+        .on('mouseleave', () => this.onPortHover(splitOutput1.node(), false));
+      
+      const splitOutput2 = group.append('circle')
+        .attr('class', 'port port-output')
+        .attr('data-port-id', 'output2')
+        .attr('cx', 28)
+        .attr('cy', 0)
+        .attr('r', 4)
+        .attr('fill', '#ff7f11')
+        .attr('stroke', '#ff7f11')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('click', (event) => this.handlePortClick(event, component, 'output2'))
+        .on('mouseenter', () => this.onPortHover(splitOutput2.node(), true))
+        .on('mouseleave', () => this.onPortHover(splitOutput2.node(), false));
+      
+      const splitOutput3 = group.append('circle')
+        .attr('class', 'port port-output')
+        .attr('data-port-id', 'output3')
+        .attr('cx', 28)
+        .attr('cy', 20)
+        .attr('r', 4)
+        .attr('fill', '#ff7f11')
+        .attr('stroke', '#ff7f11')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('click', (event) => this.handlePortClick(event, component, 'output3'))
+        .on('mouseenter', () => this.onPortHover(splitOutput3.node(), true))
+        .on('mouseleave', () => this.onPortHover(splitOutput3.node(), false));
+      
+    } else {
+      const splitOutput1 = group.append('circle')
+        .attr('class', 'port port-output')
+        .attr('data-port-id', 'output1')
+        .attr('cx', 28)
+        .attr('cy', -10)
+        .attr('r', 4)
+        .attr('fill', '#ff7f11')
+        .attr('stroke', '#ff7f11')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('click', (event) => this.handlePortClick(event, component, 'output1'))
+        .on('mouseenter', () => this.onPortHover(splitOutput1.node(), true))
+        .on('mouseleave', () => this.onPortHover(splitOutput1.node(), false));
+      
+      const splitOutput2 = group.append('circle')
+        .attr('class', 'port port-output')
+        .attr('data-port-id', 'output2')
+        .attr('cx', 28)
+        .attr('cy', 10)
+        .attr('r', 4)
+        .attr('fill', '#ff7f11')
+        .attr('stroke', '#ff7f11')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('click', (event) => this.handlePortClick(event, component, 'output2'))
+        .on('mouseenter', () => this.onPortHover(splitOutput2.node(), true))
+        .on('mouseleave', () => this.onPortHover(splitOutput2.node(), false));
+    }
     
     // Labels - configurable display
     const display = component.properties.display || ['label', 'loss'];
@@ -1469,54 +1602,145 @@ class PALineupCanvas {
   }
   
   renderCombiner(group, component) {
-    // Enhanced industry-standard Wilkinson combiner representation (mirror of splitter)
+    // Enhanced industry-standard combiner representation (mirror of splitter) with 2-way or 3-way support
+    const portCount = component.properties.portCount || 2;
     
     // Background box to show it's a packaged component
     group.append('rect')
       .attr('x', -25)
-      .attr('y', -20)
+      .attr('y', portCount === 3 ? -30 : -20)
       .attr('width', 50)
-      .attr('height', 40)
+      .attr('height', portCount === 3 ? 60 : 40)
       .attr('fill', '#1a1a1a')
       .attr('stroke', '#ff00aa')
       .attr('stroke-width', 2)
       .attr('rx', 4);
     
-    // Input λ/4 transformers (shown as thick segments)
-    group.append('line')
-      .attr('x1', -25)
-      .attr('y1', -10)
-      .attr('x2', -5)
-      .attr('y2', -10)
-      .attr('stroke', '#ff00aa')
-      .attr('stroke-width', 4)
-      .style('opacity', 0.8);
-    
-    group.append('line')
-      .attr('x1', -25)
-      .attr('y1', 10)
-      .attr('x2', -5)
-      .attr('y2', 10)
-      .attr('stroke', '#ff00aa')
-      .attr('stroke-width', 4)
-      .style('opacity', 0.8);
-    
-    // Y-junction convergence
-    group.append('line')
-      .attr('x1', -5)
-      .attr('y1', -10)
-      .attr('x2', 5)
-      .attr('y2', 0)
-      .attr('stroke', '#ff00aa')
-      .attr('stroke-width', 3);
-    
-    group.append('line')
-      .attr('x1', -5)
-      .attr('y1', 10)
-      .attr('x2', 5)
-      .attr('y2', 0)
-      .attr('stroke', '#ff00aa')
-      .attr('stroke-width', 3);
+    if (portCount === 3) {
+      // 3-way combiner configuration
+      // Input λ/4 transformers (shown as thick segments)
+      group.append('line')
+        .attr('x1', -25)
+        .attr('y1', -20)
+        .attr('x2', -5)
+        .attr('y2', -20)
+        .attr('stroke', '#ff00aa')
+        .attr('stroke-width', 4)
+        .style('opacity', 0.8);
+      
+      group.append('line')
+        .attr('x1', -25)
+        .attr('y1', 0)
+        .attr('x2', -5)
+        .attr('y2', 0)
+        .attr('stroke', '#ff00aa')
+        .attr('stroke-width', 4)
+        .style('opacity', 0.8);
+      
+      group.append('line')
+        .attr('x1', -25)
+        .attr('y1', 20)
+        .attr('x2', -5)
+        .attr('y2', 20)
+        .attr('stroke', '#ff00aa')
+        .attr('stroke-width', 4)
+        .style('opacity', 0.8);
+      
+      // Y-junction convergence (three branches to center)
+      group.append('line')
+        .attr('x1', -5)
+        .attr('y1', -20)
+        .attr('x2', 5)
+        .attr('y2', 0)
+        .attr('stroke', '#ff00aa')
+        .attr('stroke-width', 3);
+      
+      group.append('line')
+        .attr('x1', -5)
+        .attr('y1', 0)
+        .attr('x2', 5)
+        .attr('y2', 0)
+        .attr('stroke', '#ff00aa')
+        .attr('stroke-width', 3);
+      
+      group.append('line')
+        .attr('x1', -5)
+        .attr('y1', 20)
+        .attr('x2', 5)
+        .attr('y2', 0)
+        .attr('stroke', '#ff00aa')
+        .attr('stroke-width', 3);
+      
+      // Isolation resistor indicators (between inputs)
+      group.append('line')
+        .attr('x1', -15)
+        .attr('y1', -20)
+        .attr('x2', -15)
+        .attr('y2', 0)
+        .attr('stroke', '#ff6666')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '2,2')
+        .style('opacity', 0.6);
+      
+      group.append('line')
+        .attr('x1', -15)
+        .attr('y1', 0)
+        .attr('x2', -15)
+        .attr('y2', 20)
+        .attr('stroke', '#ff6666')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '2,2')
+        .style('opacity', 0.6);
+      
+    } else {
+      // 2-way combiner configuration (original)
+      // Input λ/4 transformers (shown as thick segments)
+      group.append('line')
+        .attr('x1', -25)
+        .attr('y1', -10)
+        .attr('x2', -5)
+        .attr('y2', -10)
+        .attr('stroke', '#ff00aa')
+        .attr('stroke-width', 4)
+        .style('opacity', 0.8);
+      
+      group.append('line')
+        .attr('x1', -25)
+        .attr('y1', 10)
+        .attr('x2', -5)
+        .attr('y2', 10)
+        .attr('stroke', '#ff00aa')
+        .attr('stroke-width', 4)
+        .style('opacity', 0.8);
+      
+      // Y-junction convergence
+      group.append('line')
+        .attr('x1', -5)
+        .attr('y1', -10)
+        .attr('x2', 5)
+        .attr('y2', 0)
+        .attr('stroke', '#ff00aa')
+        .attr('stroke-width', 3);
+      
+      group.append('line')
+        .attr('x1', -5)
+        .attr('y1', 10)
+        .attr('x2', 5)
+        .attr('y2', 0)
+        .attr('stroke', '#ff00aa')
+        .attr('stroke-width', 3);
+      
+      // Isolation resistor indicator (line between inputs)
+      group.append('line')
+        .attr('x1', -15)
+        .attr('y1', -10)
+        .attr('x2', -15)
+        .attr('y2', 10)
+        .attr('stroke', '#ff6666')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '2,2')
+        .style('opacity', 0.6);
+    }
     
     // Output line
     group.append('line')
@@ -1527,17 +1751,6 @@ class PALineupCanvas {
       .attr('stroke', '#ff00aa')
       .attr('stroke-width', 3);
     
-    // Isolation resistor indicator (line between inputs)
-    group.append('line')
-      .attr('x1', -15)
-      .attr('y1', -10)
-      .attr('x2', -15)
-      .attr('y2', 10)
-      .attr('stroke', '#ff6666')
-      .attr('stroke-width', 2)
-      .attr('stroke-dasharray', '2,2')
-      .style('opacity', 0.6);
-    
     // Junction node
     group.append('circle')
       .attr('cx', 5)
@@ -1545,34 +1758,79 @@ class PALineupCanvas {
       .attr('r', 3)
       .attr('fill', '#ff00aa');
     
-    // Input ports
-    const combInput1 = group.append('circle')
-      .attr('class', 'port port-input')
-      .attr('data-port-id', 'input1')
-      .attr('cx', -28)
-      .attr('cy', -10)
-      .attr('r', 4)
-      .attr('fill', '#00ff88')
-      .attr('stroke', '#00ff88')
-      .attr('stroke-width', 1)
-      .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'input1'))
-      .on('mouseenter', () => this.onPortHover(combInput1.node(), true))
-      .on('mouseleave', () => this.onPortHover(combInput1.node(), false));
-    
-    const combInput2 = group.append('circle')
-      .attr('class', 'port port-input')
-      .attr('data-port-id', 'input2')
-      .attr('cx', -28)
-      .attr('cy', 10)
-      .attr('r', 4)
-      .attr('fill', '#00ff88')
-      .attr('stroke', '#00ff88')
-      .attr('stroke-width', 1)
-      .style('cursor', 'pointer')
-      .on('click', (event) => this.handlePortClick(event, component, 'input2'))
-      .on('mouseenter', () => this.onPortHover(combInput2.node(), true))
-      .on('mouseleave', () => this.onPortHover(combInput2.node(), false));
+    // Input ports - create based on port count
+    if (portCount === 3) {
+      const combInput1 = group.append('circle')
+        .attr('class', 'port port-input')
+        .attr('data-port-id', 'input1')
+        .attr('cx', -28)
+        .attr('cy', -20)
+        .attr('r', 4)
+        .attr('fill', '#00ff88')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('click', (event) => this.handlePortClick(event, component, 'input1'))
+        .on('mouseenter', () => this.onPortHover(combInput1.node(), true))
+        .on('mouseleave', () => this.onPortHover(combInput1.node(), false));
+      
+      const combInput2 = group.append('circle')
+        .attr('class', 'port port-input')
+        .attr('data-port-id', 'input2')
+        .attr('cx', -28)
+        .attr('cy', 0)
+        .attr('r', 4)
+        .attr('fill', '#00ff88')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('click', (event) => this.handlePortClick(event, component, 'input2'))
+        .on('mouseenter', () => this.onPortHover(combInput2.node(), true))
+        .on('mouseleave', () => this.onPortHover(combInput2.node(), false));
+      
+      const combInput3 = group.append('circle')
+        .attr('class', 'port port-input')
+        .attr('data-port-id', 'input3')
+        .attr('cx', -28)
+        .attr('cy', 20)
+        .attr('r', 4)
+        .attr('fill', '#00ff88')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('click', (event) => this.handlePortClick(event, component, 'input3'))
+        .on('mouseenter', () => this.onPortHover(combInput3.node(), true))
+        .on('mouseleave', () => this.onPortHover(combInput3.node(), false));
+      
+    } else {
+      const combInput1 = group.append('circle')
+        .attr('class', 'port port-input')
+        .attr('data-port-id', 'input1')
+        .attr('cx', -28)
+        .attr('cy', -10)
+        .attr('r', 4)
+        .attr('fill', '#00ff88')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('click', (event) => this.handlePortClick(event, component, 'input1'))
+        .on('mouseenter', () => this.onPortHover(combInput1.node(), true))
+        .on('mouseleave', () => this.onPortHover(combInput1.node(), false));
+      
+      const combInput2 = group.append('circle')
+        .attr('class', 'port port-input')
+        .attr('data-port-id', 'input2')
+        .attr('cx', -28)
+        .attr('cy', 10)
+        .attr('r', 4)
+        .attr('fill', '#00ff88')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('click', (event) => this.handlePortClick(event, component, 'input2'))
+        .on('mouseenter', () => this.onPortHover(combInput2.node(), true))
+        .on('mouseleave', () => this.onPortHover(combInput2.node(), false));
+    }
     
     // Output port
     const combOutputPort = group.append('circle')
@@ -2884,7 +3142,8 @@ class PALineupCanvas {
     // 3-way splitter (equal power)
     const splitter = this.addComponent('splitter', 350 + offsetX, 350 + offsetY, {
       label: '3-Way Equal',
-      type: 'Corporate'
+      type: 'Corporate',
+      portCount: 3
     });
     
     // Main PA (Branch 1 - Center, always on)
@@ -2960,7 +3219,8 @@ class PALineupCanvas {
     // 3-way combiner
     const combiner = this.addComponent('combiner', 860 + offsetX, 350 + offsetY, {
       label: '3-Way Doherty',
-      type: '3-Way'
+      type: '3-Way',
+      portCount: 3
     });
     
     // Load termination
@@ -3029,7 +3289,8 @@ class PALineupCanvas {
     // 3-way splitter (asymmetric power: 2:1:1 ratio)
     const splitter = this.addComponent('splitter', 350 + offsetX, 350 + offsetY, {
       label: '3-Way 2:1:1',
-      type: 'Asymmetric'
+      type: 'Asymmetric',
+      portCount: 3
     });
     
     // Main PA (Branch 1 - Higher power, 50%)
@@ -3105,7 +3366,8 @@ class PALineupCanvas {
     // 3-way asymmetric combiner
     const combiner = this.addComponent('combiner', 860 + offsetX, 350 + offsetY, {
       label: '3-Way Asym 2:1:1',
-      type: '3-Way-Asymmetric'
+      type: '3-Way-Asymmetric',
+      portCount: 3
     });
     
     // Load termination
@@ -4204,8 +4466,13 @@ class PALineupCanvas {
     if (this.selectedComponents.length > 0) {
       const clipboardData = JSON.parse(JSON.stringify(this.selectedComponents));
       this.clipboard = clipboardData;
-      window.paCanvasClipboard = clipboardData; // Global clipboard for cross-canvas paste
-      console.log('Copied components:', this.selectedComponents.length, '(cross-canvas enabled)');
+      
+      // Only enable global clipboard in single-canvas mode
+      if (!window.paCanvases || window.paCanvases.length <= 1) {
+        window.paCanvasClipboard = clipboardData;
+      }
+      
+      console.log('Copied components:', this.selectedComponents.length);
       
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
@@ -4233,8 +4500,13 @@ class PALineupCanvas {
     if (comp) {
       const clipboardData = [JSON.parse(JSON.stringify(comp))];
       this.clipboard = clipboardData;
-      window.paCanvasClipboard = clipboardData; // Global clipboard for cross-canvas paste
-      console.log('Copied component:', comp.properties.label, '(cross-canvas enabled)');
+      
+      // Only enable global clipboard in single-canvas mode
+      if (!window.paCanvases || window.paCanvases.length <= 1) {
+        window.paCanvasClipboard = clipboardData;
+      }
+      
+      console.log('Copied component:', comp.properties.label);
       
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
@@ -4251,8 +4523,13 @@ class PALineupCanvas {
     if (this.selectedComponents.length > 0) {
       const clipboardData = JSON.parse(JSON.stringify(this.selectedComponents));
       this.clipboard = clipboardData;
-      window.paCanvasClipboard = clipboardData; // Global clipboard for cross-canvas paste
-      console.log('Cut components:', this.selectedComponents.length, '(cross-canvas enabled)');
+      
+      // Only enable global clipboard in single-canvas mode
+      if (!window.paCanvases || window.paCanvases.length <= 1) {
+        window.paCanvasClipboard = clipboardData;
+      }
+      
+      console.log('Cut components:', this.selectedComponents.length);
       
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
@@ -4283,8 +4560,13 @@ class PALineupCanvas {
     if (comp) {
       const clipboardData = [JSON.parse(JSON.stringify(comp))];
       this.clipboard = clipboardData;
-      window.paCanvasClipboard = clipboardData; // Global clipboard for cross-canvas paste
-      console.log('Cut component:', comp.properties.label, '(cross-canvas enabled)');
+      
+      // Only enable global clipboard in single-canvas mode
+      if (!window.paCanvases || window.paCanvases.length <= 1) {
+        window.paCanvasClipboard = clipboardData;
+      }
+      
+      console.log('Cut component:', comp.properties.label);
       
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
@@ -4300,8 +4582,11 @@ class PALineupCanvas {
   }
   
   paste() {
-    // Use global clipboard first (for cross-canvas paste), fallback to instance clipboard
-    const clipboardSource = window.paCanvasClipboard || this.clipboard;
+    // In multi-canvas mode, only use local clipboard (no cross-canvas paste)
+    // In single-canvas mode, try global clipboard first
+    const clipboardSource = (window.paCanvases && window.paCanvases.length > 1) 
+      ? this.clipboard 
+      : (window.paCanvasClipboard || this.clipboard);
     
     if (!clipboardSource || clipboardSource.length === 0) {
       if (window.Shiny && window.Shiny.notifications) {
@@ -4313,10 +4598,6 @@ class PALineupCanvas {
       }
       return;
     }
-    
-    // Determine if this is a cross-canvas paste
-    const isCrossCanvas = window.paCanvases && window.paCanvases.length > 1;
-    const sourceInfo = isCrossCanvas ? ' (from another canvas)' : '';
     
     // Paste multiple components
     if (Array.isArray(clipboardSource)) {
@@ -5753,15 +6034,19 @@ function initializeMultiCanvas(layout = "1x1") {
     label.style.cssText = `
       position: absolute;
       top: 5px;
-      left: 5px;
-      background: rgba(52, 73, 94, 0.8);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(52, 73, 94, 0.9);
       color: white;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 11px;
+      padding: 5px 15px;
+      border-radius: 6px;
+      font-size: 12px;
       font-weight: bold;
       z-index: 50;
       pointer-events: none;
+      text-align: center;
+      white-space: nowrap;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     `;
     canvasDiv.appendChild(label);
     
