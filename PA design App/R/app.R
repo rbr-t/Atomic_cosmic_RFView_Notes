@@ -727,6 +727,24 @@ ui <- dashboardPage(
                           style = "min-width: 160px;",
                           icon("infinity"),
                           " Impedance Display"
+                        ),
+                        
+                        tags$button(
+                          onclick = "if(window.paCanvas) paCanvas.toggleCalculationRationale();",
+                          id = "calculation_rationale_toggle",
+                          class = "btn btn-default btn-sm",
+                          style = "min-width: 180px;",
+                          icon("calculator"),
+                          " Calculation Details"
+                        ),
+                        
+                        tags$button(
+                          onclick = "if(window.paCanvases && window.paCanvases.length > 1) window.toggleCanvasComparison(); else alert('Comparison requires multiple canvases');",
+                          id = "canvas_comparison_toggle",
+                          class = "btn btn-default btn-sm",
+                          style = "min-width: 180px;",
+                          icon("table"),
+                          " Canvas Comparison"
                         )
                       )
                     )
@@ -785,9 +803,15 @@ ui <- dashboardPage(
                         "Vertical Split (2x1)" = "2x1",
                         "Quad Split (2x2)" = "2x2",
                         "2x3 Grid" = "2x3",
+                        "3x2 Grid" = "3x2",
                         "Horizontal Triple (1x3)" = "1x3",
+                        "Horizontal Quad (1x4)" = "1x4",
+                        "Vertical Quad (4x1)" = "4x1",
                         "3x3 Grid" = "3x3",
-                        "2+1 Layout (1 large + 2 small)" = "2+1"
+                        "4x2 Grid" = "4x2",
+                        "2x4 Grid" = "2x4",
+                        "2+1 Layout (1 large + 2 small)" = "2+1",
+                        "1+2 Layout (2 small + 1 large)" = "1+2"
                       ),
                       selected = "1x1"
                     ),

@@ -144,6 +144,11 @@ class PALineupCanvas {
     // Clipboard for cut/copy/paste
     this.clipboard = null;
     
+    // Initialize global clipboard for cross-canvas copy/paste
+    if (typeof window.paCanvasClipboard === 'undefined') {
+      window.paCanvasClipboard = null;
+    }
+    
     // Power display columns
     this.showPowerDisplay = false;
     this.powerColumns = [];
@@ -153,6 +158,10 @@ class PALineupCanvas {
     this.showImpedanceDisplay = false;
     this.impedanceColumns = [];
     this.impedanceUnit = 'rectangular'; // 'rectangular' (50+j10), 'polar' (51∠11°), or 'vswr'
+    this.impedanceMode = 'full'; // 'full' or 'backoff' - NEW: show full power or backoff impedance
+    
+    // Calculation rationale display
+    this.showCalculationRationale = false;
     
     // Central divider lines
     this.showHorizontalLine = true;
@@ -198,7 +207,8 @@ class PALineupCanvas {
     this.gridLayer = this.svg.append('g').attr('class', 'grid-layer');
     this.centralLineLayer = this.svg.append('g').attr('class', 'central-line-layer');
     this.powerLayer = this.svg.append('g').attr('class', 'power-layer');
-    this.impedanceLayer = this.svg.append('g'). attr('class', 'impedance-layer');
+    this.impedanceLayer = this.svg.append('g').attr('class', 'impedance-layer');
+    this.calculationRationaleLayer = this.svg.append('g').attr('class', 'calculation-rationale-layer');
     this.connectionsLayer = this.svg.append('g').attr('class', 'connections-layer');
     this.componentsLayer = this.svg.append('g').attr('class', 'components-layer');
     
@@ -208,6 +218,7 @@ class PALineupCanvas {
     this.zoomGroup.node().appendChild(this.centralLineLayer.node());
     this.zoomGroup.node().appendChild(this.powerLayer.node());
     this.zoomGroup.node().appendChild(this.impedanceLayer.node());
+    this.zoomGroup.node().appendChild(this.calculationRationaleLayer.node());
     this.zoomGroup.node().appendChild(this.connectionsLayer.node());
     this.zoomGroup.node().appendChild(this.componentsLayer.node());
     
@@ -3363,8 +3374,10 @@ class PALineupCanvas {
   copy() {
     // Check if multiple components selected
     if (this.selectedComponents.length > 0) {
-      this.clipboard = JSON.parse(JSON.stringify(this.selectedComponents));
-      console.log('Copied components:', this.selectedComponents.length);
+      const clipboardData = JSON.parse(JSON.stringify(this.selectedComponents));
+      this.clipboard = clipboardData;
+      window.paCanvasClipboard = clipboardData; // Global clipboard for cross-canvas paste
+      console.log('Copied components:', this.selectedComponents.length, '(cross-canvas enabled)');
       
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
@@ -3390,8 +3403,10 @@ class PALineupCanvas {
     
     const comp = this.components.find(c => c.id === this.selectedComponent);
     if (comp) {
-      this.clipboard = [JSON.parse(JSON.stringify(comp))];
-      console.log('Copied component:', comp.properties.label);
+      const clipboardData = [JSON.parse(JSON.stringify(comp))];
+      this.clipboard = clipboardData;
+      window.paCanvasClipboard = clipboardData; // Global clipboard for cross-canvas paste
+      console.log('Copied component:', comp.properties.label, '(cross-canvas enabled)');
       
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
@@ -3406,8 +3421,10 @@ class PALineupCanvas {
   cut() {
     // Check if multiple components selected
     if (this.selectedComponents.length > 0) {
-      this.clipboard = JSON.parse(JSON.stringify(this.selectedComponents));
-      console.log('Cut components:', this.selectedComponents.length);
+      const clipboardData = JSON.parse(JSON.stringify(this.selectedComponents));
+      this.clipboard = clipboardData;
+      window.paCanvasClipboard = clipboardData; // Global clipboard for cross-canvas paste
+      console.log('Cut components:', this.selectedComponents.length, '(cross-canvas enabled)');
       
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
@@ -3436,8 +3453,10 @@ class PALineupCanvas {
     
     const comp = this.components.find(c => c.id === this.selectedComponent);
     if (comp) {
-      this.clipboard = [JSON.parse(JSON.stringify(comp))];
-      console.log('Cut component:', comp.properties.label);
+      const clipboardData = [JSON.parse(JSON.stringify(comp))];
+      this.clipboard = clipboardData;
+      window.paCanvasClipboard = clipboardData; // Global clipboard for cross-canvas paste
+      console.log('Cut component:', comp.properties.label, '(cross-canvas enabled)');
       
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
@@ -3453,7 +3472,10 @@ class PALineupCanvas {
   }
   
   paste() {
-    if (!this.clipboard || this.clipboard.length === 0) {
+    // Use global clipboard first (for cross-canvas paste), fallback to instance clipboard
+    const clipboardSource = window.paCanvasClipboard || this.clipboard;
+    
+    if (!clipboardSource || clipboardSource.length === 0) {
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
           message: 'Clipboard is empty',
@@ -3464,12 +3486,16 @@ class PALineupCanvas {
       return;
     }
     
+    // Determine if this is a cross-canvas paste
+    const isCrossCanvas = window.paCanvases && window.paCanvases.length > 1;
+    const sourceInfo = isCrossCanvas ? ' (from another canvas)' : '';
+    
     // Paste multiple components
-    if (Array.isArray(this.clipboard)) {
+    if (Array.isArray(clipboardSource)) {
       const offsetX = 50;
       const offsetY = 50;
       
-      this.clipboard.forEach(comp => {
+      clipboardSource.forEach(comp => {
         const newX = comp.x + offsetX;
         const newY = comp.y + offsetY;
         
@@ -3481,11 +3507,11 @@ class PALineupCanvas {
         );
       });
       
-      console.log('Pasted components:', this.clipboard.length);
+      console.log('Pasted components:', clipboardSource.length, sourceInfo);
       
       if (window.Shiny && window.Shiny.notifications) {
         Shiny.notifications.show({
-          message: `Pasted ${this.clipboard.length} component(s)`,
+          message: `Pasted ${clipboardSource.length} component(s)${sourceInfo}`,
           type: 'message',
           duration: 2
         });
@@ -3825,6 +3851,166 @@ class PALineupCanvas {
     return impedance;
   }
   
+  toggleCalculationRationale() {
+    this.showCalculationRationale = !this.showCalculationRationale;
+    
+    const btn = document.getElementById('calculation_rationale_toggle');
+    if (btn) {
+      btn.style.backgroundColor = this.showCalculationRationale ? '#28a745' : '';
+      btn.style.color = this.showCalculationRationale ? '#fff' : '';
+    }
+    
+    if (this.showCalculationRationale) {
+      this.drawCalculationRationale();
+      console.log('Calculation rationale enabled');
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Calculation details displayed',
+          type: 'message',
+          duration: 2
+        });
+      }
+    } else {
+      // Clear calculation rationale layer
+      if (this.calculationRationaleLayer) {
+        this.calculationRationaleLayer.selectAll('*').remove();
+      }
+      console.log('Calculation rationale disabled');
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Calculation details hidden',
+          type: 'message',
+          duration: 2
+        });
+      }
+    }
+  }
+  
+  drawCalculationRationale() {
+    if (!this.showCalculationRationale) return;
+    
+    // Clear existing display
+    this.calculationRationaleLayer.selectAll('*').remove();
+    
+    // Position panel in upper-right corner of canvas
+    const panelX = this.width - 320;
+    const panelY = 20;
+    const panelWidth = 300;
+    const panelHeight = 380;
+    
+    // Create draggable panel group
+    const panel = this.calculationRationaleLayer.append('g')
+      .attr('transform', `translate(${panelX}, ${panelY})`)
+      .attr('class', 'calculation-rationale-panel')
+      .style('cursor', 'move');
+    
+    // Add drag behavior
+    const drag = d3.drag()
+      .on('start', function(event) {
+        d3.select(this).raise().style('opacity', 0.95);
+      })
+      .on('drag', function(event) {
+        const currentTransform = d3.select(this).attr('transform');
+        const match = currentTransform.match(/translate\(([^,]+),([^)]+)\)/);
+        if (match) {
+          const newX = parseFloat(match[1]) + event.dx;
+          const newY = parseFloat(match[2]) + event.dy;
+          d3.select(this).attr('transform', `translate(${newX}, ${newY})`);
+        }
+      })
+      .on('end', function(event) {
+        d3.select(this).style('opacity', 1);
+      });
+    
+    panel.call(drag);
+    
+    // Background panel
+    panel.append('rect')
+      .attr('width', panelWidth)
+      .attr('height', panelHeight)
+      .attr('fill', '#ffffff')
+      .attr('stroke', '#3498db')
+      .attr('stroke-width', 2)
+      .attr('rx', 8)
+      .attr('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+    
+    // Title
+    panel.append('text')
+      .attr('x', panelWidth / 2)
+      .attr('y', 25)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '16px')
+      .attr('font-weight', 'bold')
+      .attr('fill', '#2c3e50')
+      .text('PA Design Calculations');
+    
+    // Formulas section
+    const formulas = [
+      { label: 'Power Conversion:', formula: 'P(W) = 10^((P(dBm) - 30) / 10)' },
+      { label: '', formula: 'P(dBm) = 10·log₁₀(P(W)) + 30' },
+      { label: '', formula: '' },
+      { label: 'Optimal Impedance:', formula: 'Z_opt = V_dd² / (2 · P_out)' },
+      { label: '', formula: '' },
+      { label: 'Backoff Power:', formula: 'P_backoff = P_1dB - BO(dB)' },
+      { label: '', formula: 'BO(dB) = 10·log₁₀(P_1dB / P_backoff)' },
+      { label: '', formula: '' },
+      { label: 'Power Added Efficiency:', formula: 'PAE = (P_out - P_in) / P_DC × 100%' },
+      { label: '', formula: 'P_DC = V_dd · I_dd' },
+      { label: '', formula: '' },
+      { label: 'Gain:', formula: 'G(dB) = 10·log₁₀(P_out / P_in)' },
+      { label: '', formula: 'P_out = P_in · 10^(G/10)' }
+    ];
+    
+    let yPos = 50;
+    formulas.forEach((item, index) => {
+      if (item.label) {
+        // Label (bold)
+        panel.append('text')
+          .attr('x', 15)
+          .attr('y', yPos)
+          .attr('font-size', '11px')
+          .attr('font-weight', 'bold')
+          .attr('fill', '#2980b9')
+          .text(item.label);
+        yPos += 18;
+      }
+      
+      if (item.formula) {
+        // Formula (monospace)
+        panel.append('text')
+          .attr('x', 25)
+          .attr('y', yPos)
+          .attr('font-size', '11px')
+          .attr('font-family', 'Consolas, Monaco, monospace')
+          .attr('fill', '#34495e')
+          .text(item.formula);
+        yPos += 18;
+      } else {
+        yPos += 8; // Small spacing for empty lines
+      }
+    });
+    
+    // Close button
+    const closeBtn = panel.append('g')
+      .attr('transform', `translate(${panelWidth - 25}, 10)`)
+      .style('cursor', 'pointer')
+      .on('click', () => this.toggleCalculationRationale());
+    
+    closeBtn.append('circle')
+      .attr('r', 10)
+      .attr('fill', '#e74c3c');
+    
+    closeBtn.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dominant-baseline', 'central')
+      .attr('font-size', '14px')
+      .attr('font-weight', 'bold')
+      .attr('fill', '#fff')
+      .text('×');
+  }
+  
   drawImpedanceColumns() {
     if (!this.showImpedanceDisplay) return;
     
@@ -3853,10 +4039,31 @@ class PALineupCanvas {
       const zFullPower = this.calculateOptimalImpedance(comp, p1dbValue);
       const zBackoff = this.calculateOptimalImpedance(comp, backoffPower);
       
-      // Create info box below component
+      // Create info box below component (now draggable)
       const infoGroup = this.impedanceLayer.append('g')
         .attr('transform', `translate(${x - 65}, ${y + 55})`)
-        .attr('class', 'impedance-info');
+        .attr('class', 'impedance-info')
+        .style('cursor', 'move');
+      
+      // Add drag behavior to impedance display
+      const impedanceDrag = d3.drag()
+        .on('start', function(event) {
+          d3.select(this).raise().style('opacity', 0.7);
+        })
+        .on('drag', function(event) {
+          const currentTransform = d3.select(this).attr('transform');
+          const match = currentTransform.match(/translate\\(([^,]+),([^)]+)\\)/);
+          if (match) {
+            const newX = parseFloat(match[1]) + event.dx;
+            const newY = parseFloat(match[2]) + event.dy;
+            d3.select(this).attr('transform', `translate(${newX}, ${newY})`);
+          }
+        })
+        .on('end', function(event) {
+          d3.select(this).style('opacity', 1);
+        });
+      
+      infoGroup.call(impedanceDrag);
       
       // Background box
       infoGroup.append('rect')
@@ -4396,9 +4603,15 @@ function getLayoutDimensions(layout) {
     "2x1": { rows: 2, cols: 1, count: 2 },
     "2x2": { rows: 2, cols: 2, count: 4 },
     "2x3": { rows: 2, cols: 3, count: 6 },
+    "3x2": { rows: 3, cols: 2, count: 6 },  // NEW
     "1x3": { rows: 1, cols: 3, count: 3 },
+    "1x4": { rows: 1, cols: 4, count: 4 },  // NEW
+    "4x1": { rows: 4, cols: 1, count: 4 },  // NEW
     "3x3": { rows: 3, cols: 3, count: 9 },
-    "2+1": { rows: 2, cols: 2, count: 3, special: "2plus1" }
+    "4x2": { rows: 4, cols: 2, count: 8 },  // NEW
+    "2x4": { rows: 2, cols: 4, count: 8 },  // NEW
+    "2+1": { rows: 2, cols: 2, count: 3, special: "2plus1" },
+    "1+2": { rows: 2, cols: 2, count: 3, special: "1plus2" }  // NEW: 2 small on top, 1 large below
   };
   return layouts[layout] || layouts["1x1"];
 }
@@ -4475,6 +4688,11 @@ function initializeMultiCanvas(layout = "1x1") {
     
     // Special styling for 2+1 layout (first canvas spans 2 columns)
     if (dimensions.special === "2plus1" && i === 0) {
+      canvasDiv.style.gridColumn = 'span 2';
+    }
+    
+    // Special styling for 1+2 layout (last canvas spans 2 columns)
+    if (dimensions.special === "1plus2" && i === dimensions.count - 1) {
       canvasDiv.style.gridColumn = 'span 2';
     }
     
@@ -4963,3 +5181,270 @@ if (typeof Shiny !== 'undefined') {
   
   console.log('✅ Shiny message handlers registered');
 }
+
+// ============================================================
+// Canvas Comparison Table
+// ============================================================
+
+let comparisonTableVisible = false;
+
+function toggleCanvasComparison() {
+  comparisonTableVisible = !comparisonTableVisible;
+  
+  if (comparisonTableVisible) {
+    showComparisonTable();
+  } else {
+    hideComparisonTable();
+  }
+}
+
+function showComparisonTable() {
+  // Remove existing table if any
+  d3.select('#canvas_comparison_table').remove();
+  
+  if (!window.paCanvases || window.paCanvases.length <= 1) {
+    console.warn('Comparison requires multiple canvases');
+    return;
+  }
+  
+  // Collect metrics from all canvases
+  const comparisonData = window.paCanvases.map((canvas, index) => {
+    if (!canvas || !canvas.components) {
+      return {
+        index: index,
+        label: `Canvas ${index + 1}`,
+        components: 0,
+        stages: 0,
+        totalGain: 0,
+        finalPout: 0,
+        totalLoss: 0,
+        transistorCount: 0,
+        technologies: []
+      };
+    }
+    
+    const components = canvas.components;
+    const transistors = components.filter(c => c.type === 'transistor');
+    const lossy = components.filter(c => ['matching', 'splitter', 'combiner'].includes(c.type));
+    
+    // Calculate total gain
+    let totalGain = 0;
+    transistors.forEach(t => {
+      totalGain += t.properties.gain || 0;
+    });
+    
+    // Calculate total loss
+    let totalLoss = 0;
+    lossy.forEach(l => {
+      totalLoss += l.properties.loss || 0;
+    });
+    
+    // Get final output power (from last transistor)
+    let finalPout = 0;
+    if (transistors.length > 0) {
+      const sorted = [...components].sort((a, b) => a.x - b.x);
+      const lastTransistor = sorted.reverse().find(c => c.type === 'transistor');
+      if (lastTransistor) {
+        finalPout = lastTransistor.properties.pout || 0;
+      }
+    }
+    
+    // Get unique technologies
+    const technologies = [...new Set(transistors.map(t => t.properties.technology || 'Unknown'))];
+    
+    // Calculate average PAE
+    let avgPAE = 0;
+    if (transistors.length > 0) {
+      const totalPAE = transistors.reduce((sum, t) => sum + (t.properties.pae || 0), 0);
+      avgPAE = totalPAE / transistors.length;
+    }
+    
+    return {
+      index: index,
+      label: `Canvas ${index + 1}`,
+      components: components.length,
+      stages: transistors.length,
+      totalGain: totalGain.toFixed(1),
+      finalPout: finalPout.toFixed(1),
+      totalLoss: totalLoss.toFixed(2),
+      transistorCount: transistors.length,
+      technologies: technologies.join(', '),
+      avgPAE: avgPAE.toFixed(1)
+    };
+  });
+  
+  // Create comparison table overlay
+  const container = document.getElementById('pa_lineup_canvas_container');
+  if (!container) return;
+  
+  const table = d3.select(container)
+    .append('div')
+    .attr('id', 'canvas_comparison_table')
+    .style('position', 'absolute')
+    .style('top', '50%')
+    .style('left', '50%')
+    .style('transform', 'translate(-50%, -50%)')
+    .style('background', 'rgba(26, 26, 26, 0.98)')
+    .style('border', '2px solid #ff7f11')
+    .style('border-radius', '10px')
+    .style('padding', '20px')
+    .style('max-width', '90%')
+    .style('max-height', '80%')
+    .style('overflow', 'auto')
+    .style('z-index', '2000')
+    .style('box-shadow', '0 10px 40px rgba(0, 0, 0, 0.8)');
+  
+  // Header
+  table.append('div')
+    .style('display', 'flex')
+    .style('justify-content', 'space-between')
+    .style('align-items', 'center')
+    .style('margin-bottom', '20px')
+    .html(`
+      <h3 style="color: #ff7f11; margin: 0;">
+        <i class="fa fa-columns"></i> Canvas Comparison
+      </h3>
+      <button onclick="hideComparisonTable()" style="
+        background: #ff7f11;
+        border: none;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;">
+        <i class="fa fa-times"></i> Close
+      </button>
+    `);
+  
+  // Create HTML table
+  let tableHTML = `
+    <table style="
+      width: 100%;
+      border-collapse: collapse;
+      color: #fff;
+      font-size: 14px;">
+      <thead>
+        <tr style="background: rgba(255, 127, 17, 0.2); border-bottom: 2px solid #ff7f11;">
+          <th style="padding: 12px; text-align: left; border-right: 1px solid #444;">Metric</th>
+  `;
+  
+  comparisonData.forEach(data => {
+    tableHTML += `<th style="padding: 12px; text-align: center; border-right: 1px solid #444;">${data.label}</th>`;
+  });
+  
+  tableHTML += `
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background: rgba(255, 255, 255, 0.05);">
+          <td style="padding: 10px; font-weight: bold; border-right: 1px solid #444;">Total Components</td>
+  `;
+  
+  comparisonData.forEach(data => {
+    tableHTML += `<td style="padding: 10px; text-align: center; border-right: 1px solid #444;">${data.components}</td>`;
+  });
+  
+  tableHTML += `
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold; border-right: 1px solid #444;">PA Stages</td>
+  `;
+  
+  comparisonData.forEach(data => {
+    tableHTML += `<td style="padding: 10px; text-align: center; border-right: 1px solid #444;">${data.stages}</td>`;
+  });
+  
+  tableHTML += `
+        </tr>
+        <tr style="background: rgba(255, 255, 255, 0.05);">
+          <td style="padding: 10px; font-weight: bold; border-right: 1px solid #444;">Total Gain (dB)</td>
+  `;
+  
+  comparisonData.forEach(data => {
+    const isMax = parseFloat(data.totalGain) === Math.max(...comparisonData.map(d => parseFloat(d.totalGain)));
+    const style = isMax ? 'color: #00ff88; font-weight: bold;' : '';
+    tableHTML += `<td style="padding: 10px; text-align: center; border-right: 1px solid #444; ${style}">${data.totalGain}</td>`;
+  });
+  
+  tableHTML += `
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold; border-right: 1px solid #444;">Final Pout (dBm)</td>
+  `;
+  
+  comparisonData.forEach(data => {
+    const isMax = parseFloat(data.finalPout) === Math.max(...comparisonData.map(d => parseFloat(d.finalPout)));
+    const style = isMax ? 'color: #00ff88; font-weight: bold;' : '';
+    tableHTML += `<td style="padding: 10px; text-align: center; border-right: 1px solid #444; ${style}">${data.finalPout}</td>`;
+  });
+  
+  tableHTML += `
+        </tr>
+        <tr style="background: rgba(255, 255, 255, 0.05);">
+          <td style="padding: 10px; font-weight: bold; border-right: 1px solid #444;">Total Loss (dB)</td>
+  `;
+  
+  comparisonData.forEach(data => {
+    const isMin = parseFloat(data.totalLoss) === Math.min(...comparisonData.map(d => parseFloat(d.totalLoss)));
+    const style = isMin ? 'color: #00ff88; font-weight: bold;' : '';
+    tableHTML += `<td style="padding: 10px; text-align: center; border-right: 1px solid #444; ${style}">${data.totalLoss}</td>`;
+  });
+  
+  tableHTML += `
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold; border-right: 1px solid #444;">Avg PAE (%)</td>
+  `;
+  
+  comparisonData.forEach(data => {
+    const isMax = parseFloat(data.avgPAE) === Math.max(...comparisonData.map(d => parseFloat(d.avgPAE)));
+    const style = isMax ? 'color: #00ff88; font-weight: bold;' : '';
+    tableHTML += `<td style="padding: 10px; text-align: center; border-right: 1px solid #444; ${style}">${data.avgPAE}</td>`;
+  });
+  
+  tableHTML += `
+        </tr>
+        <tr style="background: rgba(255, 255, 255, 0.05);">
+          <td style="padding: 10px; font-weight: bold; border-right: 1px solid #444;">Technologies</td>
+  `;
+  
+  comparisonData.forEach(data => {
+    tableHTML += `<td style="padding: 10px; text-align: center; border-right: 1px solid #444; font-size: 12px;">${data.technologies || 'None'}</td>`;
+  });
+  
+  tableHTML += `
+        </tr>
+      </tbody>
+    </table>
+  `;
+  
+  table.append('div').html(tableHTML);
+  
+  // Add note
+  table.append('div')
+    .style('margin-top', '15px')
+    .style('padding', '10px')
+    .style('background', 'rgba(255, 127, 17, 0.1)')
+    .style('border-radius', '5px')
+    .style('font-size', '12px')
+    .style('color', '#aaa')
+    .html(`
+      <i class="fa fa-info-circle"></i> 
+      <strong>Note:</strong> Best values are highlighted in green. 
+      This comparison shows metrics from all active canvases in the current layout.
+    `);
+  
+  console.log('📊 Comparison table displayed');
+}
+
+function hideComparisonTable() {
+  d3.select('#canvas_comparison_table').remove();
+  comparisonTableVisible = false;
+  console.log('📊 Comparison table hidden');
+}
+
+window.toggleCanvasComparison = toggleCanvasComparison;
+window.showComparisonTable = showComparisonTable;
+window.hideComparisonTable = hideComparisonTable;
+
+console.log('✓ Canvas comparison functions loaded');
