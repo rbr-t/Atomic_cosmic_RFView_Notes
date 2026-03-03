@@ -133,6 +133,9 @@ class PALineupCanvas {
     this.selectionBox = null;
     this.selectionStart = null;
     
+    // Lock canvas editing
+    this.locked = false;
+    
     // Undo/Redo functionality
     this.history = [];
     this.historyIndex = -1;
@@ -375,6 +378,13 @@ class PALineupCanvas {
     console.log('Creating component palette...');
     
     // In multi-canvas mode, don't create individual palettes
+    // Check if canvas layout is set (indicates multi-canvas initialization)
+    if (window.canvasLayout && window.canvasLayout !== "1x1") {
+      console.log(`Multi-canvas mode (${window.canvasLayout}) detected, skipping individual palette creation`);
+      return;
+    }
+    
+    // Also check array length as fallback
     if (window.paCanvases && window.paCanvases.length > 1) {
       console.log('Multi-canvas mode detected, skipping individual palette creation');
       return;
@@ -458,6 +468,19 @@ class PALineupCanvas {
   }
   
   addComponentFromPalette(type) {
+    // Check if canvas is locked
+    if (this.locked) {
+      console.warn('Canvas is locked! Cannot add components.');
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Canvas is locked. Press Ctrl+L to unlock.',
+          type: 'warning',
+          duration: 2
+        });
+      }
+      return;
+    }
+    
     const x = this.width / 2;
     const y = this.height / 2;
     
@@ -544,6 +567,19 @@ class PALineupCanvas {
   addComponent(type, x, y, properties = {}) {
     console.log(`=== addComponent called ===`);
     console.log('Type:', type, 'Position:', x, y, 'Properties:', properties);
+    
+    // Check if canvas is locked (skip check for template loading)
+    if (this.locked && !this._loadingTemplate) {
+      console.warn('Canvas is locked! Cannot add components.');
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Canvas is locked. Press Ctrl+L to unlock.',
+          type: 'warning',
+          duration: 2
+        });
+      }
+      return;
+    }
     
     const component = {
       id: this.nextId++,
@@ -689,10 +725,16 @@ class PALineupCanvas {
       group.call(this.drag);
     }
     
-    // Add click behavior
+    // Add click behavior (with Ctrl+click for multi-select)
     group.on('click', (event) => {
       event.stopPropagation();
-      this.selectComponent(component);
+      
+      // Ctrl+click (or Cmd+click on Mac) for multi-select
+      if (event.ctrlKey || event.metaKey) {
+        this.toggleComponentSelection(component);
+      } else {
+        this.selectComponent(component);
+      }
     });
     
     // Add hover behavior for power display
@@ -1402,6 +1444,19 @@ class PALineupCanvas {
   }
   
   onDragStart(event, component) {
+    // Check if canvas is locked
+    if (this.locked) {
+      event.sourceEvent.stopPropagation();
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Canvas is locked. Press Ctrl+L to unlock.',
+          type: 'warning',
+          duration: 2
+        });
+      }
+      return;
+    }
+    
     this.draggedComponent = component;
     d3.select(`.component[data-id="${component.id}"]`)
       .style('opacity', 0.7);
@@ -1440,8 +1495,9 @@ class PALineupCanvas {
   }
   
   selectComponent(component) {
-    // Deselect previous
-    d3.selectAll('.component').classed('selected', false);
+    // Clear multi-selection and deselect all
+    this.selectedComponents = [];
+    d3.selectAll('.component').classed('selected', false).classed('multi-selected', false);
     
     // Select new - store the ID, not the full component object
     this.selectedComponent = component.id;
@@ -1454,6 +1510,40 @@ class PALineupCanvas {
     }
     
     console.log('Component selected, ID sent:', component.id);
+  }
+  
+  toggleComponentSelection(component) {
+    // Check if already in multi-selection
+    const index = this.selectedComponents.findIndex(c => c.id === component.id);
+    
+    if (index >= 0) {
+      // Remove from selection
+      this.selectedComponents.splice(index, 1);
+      d3.select(`.component[data-id="${component.id}"]`)
+        .classed('multi-selected', false);
+      console.log(`Removed component ${component.id} from multi-selection`);
+    } else {
+      // Add to selection
+      this.selectedComponents.push(component);
+      d3.select(`.component[data-id="${component.id}"]`)
+        .classed('multi-selected', true);
+      console.log(`Added component ${component.id} to multi-selection`);
+    }
+    
+    // Clear single selection when multi-selecting
+    this.selectedComponent = null;
+    d3.selectAll('.component').classed('selected', false);
+    
+    console.log(`Multi-selected components: ${this.selectedComponents.length}`);
+    
+    // Show notification
+    if (window.Shiny && window.Shiny.notifications) {
+      Shiny.notifications.show({
+        message: `${this.selectedComponents.length} component(s) selected`,
+        type: 'message',
+        duration: 1
+      });
+    }
   }
   
   updateConnections() {
@@ -1557,9 +1647,18 @@ class PALineupCanvas {
   createSingleDriverDoherty() {
     console.log('Creating Single Driver Doherty preset...');
     
+    // Set flag to skip lock check during template loading
+    this._loadingTemplate = true;
+    
     // Center template around origin
     const offsetX = this.originX - 450;
     const offsetY = this.originY - 300;
+    
+    // Source termination
+    const source = this.addComponent('termination', 20 + offsetX, 300 + offsetY, {
+      label: 'Source',
+      impedance: 50
+    });
     
     // Driver
     const driver = this.addComponent('transistor', 120 + offsetX, 300 + offsetY, {
@@ -1641,7 +1740,17 @@ class PALineupCanvas {
       type: 'Load-Modulation'
     });
     
+    
+    // Load termination
+    const load = this.addComponent('termination', 880 + offsetX, 300 + offsetY, {
+      label: 'Load',
+      impedance: 50
+    });
+    
+    // Clear loading flag
+    this._loadingTemplate = false;
     // Create pre-connected wires
+    this.createConnection(source.id, driver.id, 'output', 'input');
     this.createConnection(driver.id, match.id, 'output', 'input');
     this.createConnection(match.id, splitter.id, 'output', 'input');
     this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
@@ -1652,6 +1761,7 @@ class PALineupCanvas {
     this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
     this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
     this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
+    this.createConnection(combiner.id, load.id, 'output', 'input');
     
     console.log('Single Driver Doherty created with connections');
   }
@@ -1744,6 +1854,7 @@ class PALineupCanvas {
     this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
     this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
     this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
+    this.createConnection(combiner.id, load.id, 'output', 'input');
     
     console.log('Dual Driver Doherty created with connections');
   }
@@ -1899,6 +2010,7 @@ class PALineupCanvas {
     });
     
     // Create pre-connected wires
+    this.createConnection(source.id, driver.id, 'output', 'input');
     this.createConnection(driver.id, match.id, 'output', 'input');
     this.createConnection(match.id, splitter.id, 'output', 'input');
     this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
@@ -1909,6 +2021,7 @@ class PALineupCanvas {
     this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
     this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
     this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
+    this.createConnection(combiner.id, load.id, 'output', 'input');
     
     console.log('Conventional Doherty created with connections');
   }
@@ -1993,6 +2106,7 @@ class PALineupCanvas {
     });
     
     // Create pre-connected wires
+    this.createConnection(source.id, driver.id, 'output', 'input');
     this.createConnection(driver.id, match.id, 'output', 'input');
     this.createConnection(match.id, splitter.id, 'output', 'input');
     this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
@@ -2003,6 +2117,7 @@ class PALineupCanvas {
     this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
     this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
     this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
+    this.createConnection(combiner.id, load.id, 'output', 'input');
     
     console.log('Inverted Doherty created with connections');
   }
@@ -2088,6 +2203,7 @@ class PALineupCanvas {
     });
     
     // Create pre-connected wires
+    this.createConnection(source.id, driver.id, 'output', 'input');
     this.createConnection(driver.id, match.id, 'output', 'input');
     this.createConnection(match.id, splitter.id, 'output', 'input');
     this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
@@ -2098,6 +2214,7 @@ class PALineupCanvas {
     this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
     this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
     this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
+    this.createConnection(combiner.id, load.id, 'output', 'input');
     
     console.log('Symmetric Doherty created with connections');
   }
@@ -2184,6 +2301,7 @@ class PALineupCanvas {
     });
     
     // Create pre-connected wires
+    this.createConnection(source.id, driver.id, 'output', 'input');
     this.createConnection(driver.id, match.id, 'output', 'input');
     this.createConnection(match.id, splitter.id, 'output', 'input');
     this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
@@ -2194,6 +2312,7 @@ class PALineupCanvas {
     this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
     this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
     this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
+    this.createConnection(combiner.id, load.id, 'output', 'input');
     
     console.log('Asymmetric Doherty created with connections');
   }
@@ -2813,8 +2932,7 @@ class PALineupCanvas {
       if (this.boxSelectMode && event.button === 0) {
         event.preventDefault();
         
-        // Disable zoom/pan during box select
-        this.svg.on('.zoom', null);
+        // Mark selection as active (zoom is already disabled by toggleBoxSelect)
         this.boxSelectActive = true;
         
         const [x, y] = d3.pointer(event);
@@ -2879,8 +2997,12 @@ class PALineupCanvas {
         this.selectionBox.remove();
         this.selectionBox = null;
         this.selectionStart = null;
+        this.boxSelectActive = false;
+        
+        // Note: Zoom remains disabled until box select mode is turned off via toggleBoxSelect()
+        console.log('Box selection complete. Zoom will re-enable when box select mode is turned off.');
       }
-    });
+    });  
     
     // Keyboard event handlers
     document.addEventListener('keydown', (event) => {
@@ -2895,9 +3017,27 @@ class PALineupCanvas {
         this.toggleBoxSelect();
       }
       
+      // Lock/Unlock Canvas: Ctrl+L
+      if (event.ctrlKey && event.key === 'l') {
+        event.preventDefault();
+        this.toggleLock();
+      }
+      
       // Delete key - delete selected component(s) or connection
       if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault();
+        
+        // Check if canvas is locked
+        if (this.locked) {
+          if (window.Shiny && window.Shiny.notifications) {
+            Shiny.notifications.show({
+              message: 'Canvas is locked. Press Ctrl+L to unlock.',
+              type: 'warning',
+              duration: 2
+            });
+          }
+          return;
+        }
         
         if (this.selectedComponents.length > 0) {
           this.deleteSelectedMultiple();
@@ -2939,6 +3079,19 @@ class PALineupCanvas {
       // Cut: Ctrl+X
       if (event.ctrlKey && event.key === 'x') {
         event.preventDefault();
+        
+        // Check if canvas is locked
+        if (this.locked) {
+          if (window.Shiny && window.Shiny.notifications) {
+            Shiny.notifications.show({
+              message: 'Canvas is locked. Press Ctrl+L to unlock.',
+              type: 'warning',
+              duration: 2
+            });
+          }
+          return;
+        }
+        
         this.cut();
       }
       
@@ -2951,6 +3104,19 @@ class PALineupCanvas {
       // Paste: Ctrl+V
       if (event.ctrlKey && event.key === 'v') {
         event.preventDefault();
+        
+        // Check if canvas is locked
+        if (this.locked) {
+          if (window.Shiny && window.Shiny.notifications) {
+            Shiny.notifications.show({
+              message: 'Canvas is locked. Press Ctrl+L to unlock.',
+              type: 'warning',
+              duration: 2
+            });
+          }
+          return;
+        }
+        
         this.paste();
       }
       
@@ -3112,16 +3278,58 @@ class PALineupCanvas {
       }
     }
     
-    // Change cursor style
+    // Disable/enable zoom when toggling box select mode
     if (this.boxSelectMode) {
+      // Disable zoom and pan
+      this.svg.on('.zoom', null);
       this.svg.style('cursor', 'crosshair');
+      console.log('🔒 Zoom disabled for box select mode');
     } else {
+      // Re-enable zoom and pan
+      if (this.zoom) {
+        this.svg.call(this.zoom);
+      }
       this.svg.style('cursor', 'default');
+      console.log('🔓 Zoom re-enabled');
     }
     
     console.log('Box select mode:', this.boxSelectMode ? 'ON' : 'OFF');
   }
   
+
+  
+  toggleLock() {
+    this.locked = !this.locked;
+    
+    // Visual feedback on canvas
+    const container = document.getElementById(this.containerId);
+    if (container) {
+      if (this.locked) {
+        container.style.border = '3px solid #ff0000';
+        container.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.5)';
+      } else {
+        container.style.border = '';
+        container.style.boxShadow = '';
+      }
+    }
+    
+    // Update cursor
+    if (this.locked) {
+      this.svg.style('cursor', 'not-allowed');
+    } else {
+      this.svg.style('cursor', 'default');
+    }
+    
+    console.log('Canvas locked:', this.locked ? 'YES' : 'NO');
+    
+    if (window.Shiny && window.Shiny.notifications) {
+      Shiny.notifications.show({
+        message: this.locked ? '🔒 Canvas Locked (Ctrl+L to unlock)' : '🔓 Canvas Unlocked',
+        type: this.locked ? 'warning' : 'message',
+        duration: 2
+      });
+    }
+  }
   selectAll() {
     // Deselect all (equivalent to pressing Esc)
     this.selectedComponent = null;

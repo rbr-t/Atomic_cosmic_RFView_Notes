@@ -701,11 +701,9 @@ ui <- dashboardPage(
                       div(
                         id = "canvas_lower_sidebar",
                         class = "canvas-lower-sidebar",
-                        style = "position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%) translateY(calc(100% - 10px));
-                                background: rgba(44,62,80,0.95); padding: 12px 25px; border-radius: 8px 8px 0 0;
-                                box-shadow: 0 -3px 15px rgba(0,0,0,0.4); z-index: 100; 
-                                display: flex; gap: 15px; align-items: center;
-                                transition: transform 0.3s ease; cursor: pointer;",
+                        
+                        tags$button(
+                          onclick = "if(window.paCanvas) paCanvas.togglePowerDisplay();",
                           id = "power_display_toggle",
                           class = "btn btn-default btn-sm",
                           style = "min-width: 140px;",

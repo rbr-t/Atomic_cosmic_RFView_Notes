@@ -42,6 +42,11 @@
   filter: drop-shadow(0 0 8px #ff7f11);
 }
 
+.component.multi-selected {
+  filter: drop-shadow(0 0 10px #00aaff);
+  opacity: 0.95;
+}
+
 .component:hover {
   filter: drop-shadow(0 0 5px rgba(255, 127, 17, 0.8));
 }
