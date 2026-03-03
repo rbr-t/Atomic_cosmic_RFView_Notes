@@ -1910,34 +1910,64 @@ class PALineupCanvas {
   }
   
   renderTermination(group, component) {
-    // Ground/termination symbol - triangle with line
+    // ADS-style termination: vertical line + resistor box + ground symbol
     const termColor = '#888888';
+    const impedance = component.properties.impedance || 50;
     
-    // Triangle pointing down
-    group.append('polygon')
-      .attr('points', '0,-15 -12,0 12,0')
-      .attr('fill', termColor)
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2);
+    // Vertical line from connection point to resistor
+    group.append('line')
+      .attr('x1', 0).attr('y1', -25)
+      .attr('x2', 0).attr('y2', -10)
+      .attr('stroke', termColor)
+      .attr('stroke-width', 3);
     
-    // Three horizontal lines (resembling ground symbol)
+    // Resistor box (rectangle with zigzag)
+    const resistorWidth = 20;
+    const resistorHeight = 10;
+    
+    group.append('rect')
+      .attr('x', -resistorWidth/2)
+      .attr('y', -10)
+      .attr('width', resistorWidth)
+      .attr('height', resistorHeight)
+      .attr('fill', 'none')
+      .attr('stroke', termColor)
+      .attr('stroke-width', 2)
+      .attr('rx', 2);
+    
+    // Zigzag inside resistor
+    group.append('path')
+      .attr('d', `M${-resistorWidth/2+3},-5 L${-resistorWidth/2+7},-7 L${-resistorWidth/2+10},-3 L${-resistorWidth/2+13},-7 L${-resistorWidth/2+17},-5`)
+      .attr('stroke', termColor)
+      .attr('stroke-width', 1.5)
+      .attr('fill', 'none');
+    
+    // Vertical line from resistor to ground
+    group.append('line')
+      .attr('x1', 0).attr('y1', 0)
+      .attr('x2', 0).attr('y2', 10)
+      .attr('stroke', termColor)
+      .attr('stroke-width', 3);
+    
+    // Ground symbol (three horizontal lines)
     for (let i = 0; i < 3; i++) {
       const width = 24 - i * 6;
-      const y = i * 4 + 2;
+      const y = 10 + i * 4;
       group.append('line')
         .attr('x1', -width/2)
         .attr('y1', y)
         .attr('x2', width/2)
         .attr('y2', y)
-        .attr('stroke', '#fff')
+        .attr('stroke', termColor)
         .attr('stroke-width', 2);
     }
     
-    // Input port (left)
+    // Connection port (positive end - top, where components connect)
     const inputPort = group.append('circle')
       .attr('class', 'port port-input')
+      .attr('data-port-id', 'input')
       .attr('cx', 0)
-      .attr('cy', -20)
+      .attr('cy', -25)
       .attr('r', 4)
       .attr('fill', '#00ff88')
       .attr('stroke', '#00ff88')
@@ -1953,23 +1983,23 @@ class PALineupCanvas {
     if (display.includes('label')) {
       group.append('text')
         .attr('x', 0)
-        .attr('y', -30)
+        .attr('y', -35)
         .attr('text-anchor', 'middle')
         .attr('fill', '#fff')
         .attr('font-size', '11px')
         .attr('font-weight', 'bold')
-        .text(component.properties.label || 'Load');
+        .text(component.properties.label || 'Term');
     }
     
-    if (display.includes('impedance')) {
-      group.append('text')
-        .attr('x', 0)
-        .attr('y', 20)
-        .attr('text-anchor', 'middle')
-        .attr('fill', termColor)
-        .attr('font-size', '10px')
-        .text(`${component.properties.impedance || 50}Ω`);
-    }
+    // Impedance value (always show, centered on resistor)
+    group.append('text')
+      .attr('x', 0)
+      .attr('y', -3)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#fff')
+      .attr('font-size', '9px')
+      .attr('font-weight', 'bold')
+      .text(`${impedance}Ω`);
   }
   
   onDragStart(event, component) {
@@ -5857,12 +5887,12 @@ function createSharedPalette() {
     });
   
   const components = [
-    { type: 'transistor', icon: '▲', label: 'Transistor', color: '#00bfff' },
-    { type: 'matching', icon: '═', label: 'Matching', color: '#00ff88' },
-    { type: 'splitter', icon: '⊥', label: 'Splitter', color: '#ffaa00' },
-    { type: 'combiner', icon: '⊤', label: 'Combiner', color: '#ff00aa' },
-    { type: 'termination', icon: '⏚', label: 'Termination', color: '#888888' },
-    { type: 'wire', icon: '━', label: 'Wire Mode', color: '#ff7f11', isAction: true }
+    { type: 'transistor', icon: '▲', label: 'Transistor', color: '#00bfff', useIcon: true },
+    { type: 'matching', icon: 'M', label: 'Matching', color: '#00ff88', useIcon: false },
+    { type: 'splitter', icon: 'Y', label: 'Splitter', color: '#ffaa00', useIcon: false },
+    { type: 'combiner', icon: 'Ψ', label: 'Combiner', color: '#ff00aa', useIcon: false },
+    { type: 'termination', icon: '⏚', label: 'Termination', color: '#888888', useIcon: true },
+    { type: 'wire', icon: '━', label: 'Wire Mode', color: '#ff7f11', isAction: true, useIcon: true }
   ];
   
   components.forEach(comp => {
@@ -5900,10 +5930,82 @@ function createSharedPalette() {
         }
       });
     
-    item.append('div')
-      .style('font-size', '24px')
-      .style('color', comp.color)
-      .text(comp.icon);
+    // Create SVG icon for matching, splitter, combiner
+    if (!comp.useIcon && (comp.type === 'matching' || comp.type === 'splitter' || comp.type === 'combiner')) {
+      const iconSvg = item.append('svg')
+        .attr('width', 30)
+        .attr('height', 30)
+        .style('overflow', 'visible');
+      
+      const g = iconSvg.append('g')
+        .attr('transform', 'translate(15, 15)');
+      
+      if (comp.type === 'matching') {
+        // Matching: Small transformer/inductor symbol
+        g.append('path')
+          .attr('d', 'M-10,0 L-5,0')
+          .attr('stroke', comp.color)
+          .attr('stroke-width', 2)
+          .attr('fill', 'none');
+        
+        // Coil/transformer
+        g.append('path')
+          .attr('d', 'M-5,0 Q-3,-5 0,-5 Q3,-5 5,0 Q3,5 0,5 Q-3,5 -5,0')
+          .attr('stroke', comp.color)
+          .attr('stroke-width', 2)
+          .attr('fill', 'none');
+        
+        g.append('path')
+          .attr('d', 'M5,0 L10,0')
+          .attr('stroke', comp.color)
+          .attr('stroke-width', 2)
+          .attr('fill', 'none');
+      } else if (comp.type === 'splitter') {
+        // Splitter: Y-junction (input on left, outputs on right)
+        g.append('line')
+          .attr('x1', -10).attr('y1', 0)
+          .attr('x2', 0).attr('y2', 0)
+          .attr('stroke', comp.color)
+          .attr('stroke-width', 2);
+        
+        g.append('line')
+          .attr('x1', 0).attr('y1', 0)
+          .attr('x2', 10).attr('y2', -8)
+          .attr('stroke', comp.color)
+          .attr('stroke-width', 2);
+        
+        g.append('line')
+          .attr('x1', 0).attr('y1', 0)
+          .attr('x2', 10).attr('y2', 8)
+          .attr('stroke', comp.color)
+          .attr('stroke-width', 2);
+      } else if (comp.type === 'combiner') {
+        // Combiner: Inverted Y-junction (inputs on left, output on right)
+        g.append('line')
+          .attr('x1', -10).attr('y1', -8)
+          .attr('x2', 0).attr('y2', 0)
+          .attr('stroke', comp.color)
+          .attr('stroke-width', 2);
+        
+        g.append('line')
+          .attr('x1', -10).attr('y1', 8)
+          .attr('x2', 0).attr('y2', 0)
+          .attr('stroke', comp.color)
+          .attr('stroke-width', 2);
+        
+        g.append('line')
+          .attr('x1', 0).attr('y1', 0)
+          .attr('x2', 10).attr('y2', 0)
+          .attr('stroke', comp.color)
+          .attr('stroke-width', 2);
+      }
+    } else {
+      // Use text icon for transistor, termination, wire
+      item.append('div')
+        .style('font-size', '24px')
+        .style('color', comp.color)
+        .text(comp.icon);
+    }
     
     item.append('div')
       .attr('class', 'palette-label')
@@ -6999,5 +7101,22 @@ function saveCurrentAsTemplate() {
 }
 
 window.saveCurrentAsTemplate = saveCurrentAsTemplate;
+
+// Edit/Rename Template
+function editTemplate(filename, currentName) {
+  const newName = prompt(`Rename template "${currentName}" to:`, currentName);
+  
+  if (newName && newName.trim() !== '' && newName !== currentName) {
+    // Send to R Shiny
+    if (window.Shiny && Shiny.setInputValue) {
+      Shiny.setInputValue('edit_template_filename', filename);
+      Shiny.setInputValue('edit_template_newname', newName.trim());
+      Shiny.setInputValue('edit_template_submit', Math.random(), {priority: 'event'});
+      console.log(`📝 Editing template: ${filename} -> ${newName}`);
+    }
+  }
+}
+
+window.editTemplate = editTemplate;
 
 console.log('✓ Save template functions loaded');

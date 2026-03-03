@@ -735,6 +735,12 @@ ui <- dashboardPage(
                                 icon = icon("bookmark"), 
                                 class = "btn-info btn-block btn-sm",
                                 onclick = "saveCurrentAsTemplate();")
+                            ),
+                            div(
+                              class = "sidebar-section",
+                              style = "margin-top: 10px;",
+                              div(class = "sidebar-section-title", icon("list"), " Manage Templates"),
+                              uiOutput("user_templates_manager")
                             )
                           )
                         )
@@ -1214,6 +1220,31 @@ server <- function(input, output, session) {
     
     # Remove NULL entries (failed reads)
     Filter(Negate(is.null), templates)
+  }
+  
+  # Helper function: Get canvas count from layout string
+  getCanvasCount <- function(layout) {
+    if(is.null(layout) || layout == "1x1") {
+      return(1)
+    }
+    
+    # Handle special layouts
+    if(layout %in% c("2+1", "1+2")) {
+      return(3)
+    }
+    
+    # Parse NxM format (e.g., "2x2", "1x3", "4x1", etc.)
+    parts <- strsplit(layout, "x")[[1]]
+    if(length(parts) == 2) {
+      rows <- as.numeric(parts[1])
+      cols <- as.numeric(parts[2])
+      if(!is.na(rows) && !is.na(cols)) {
+        return(rows * cols)
+      }
+    }
+    
+    # Fallback to 1 if parsing fails
+    return(1)
   }
   
   # Reactive expression for user templates
@@ -2006,12 +2037,7 @@ server <- function(input, output, session) {
   # Observer for editing canvas names
   observeEvent(input$edit_canvas_names, {
     layout <- input$canvas_layout
-    canvas_count <- switch(layout,
-      "2x2" = 4,
-      "2x3" = 6,
-      "3x3" = 9,
-      1
-    )
+    canvas_count <- getCanvasCount(layout)
     
     showModal(modalDialog(
       title = "Edit Canvas Names",
@@ -2037,12 +2063,7 @@ server <- function(input, output, session) {
   # Observer for saving canvas names
   observeEvent(input$save_canvas_names, {
     layout <- input$canvas_layout
-    canvas_count <- switch(layout,
-      "2x2" = 4,
-      "2x3" = 6,
-      "3x3" = 9,
-      1
-    )
+    canvas_count <- getCanvasCount(layout)
     
     # Update canvas names from inputs
     for(i in 1:canvas_count) {
@@ -2336,6 +2357,42 @@ server <- function(input, output, session) {
             )
           ),
           hr(),
+          actionButton(paste0("apply_props_", selected), "Apply Changes", 
+            class = "btn-primary btn-block",
+            onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
+        )
+      } else if(comp_type == "termination") {
+        tagList(
+          h4(paste0("Termination: ", getProp("label", "Term"))),
+          textInput(paste0("prop_", selected, "_label"), "Label", 
+            value = getProp("label", "Term")),
+          numericInput(paste0("prop_", selected, "_impedance"), "Impedance (Ω)", 
+            value = as.numeric(getProp("impedance", 50)), 
+            min = 1, max = 1000, step = 1),
+          selectInput(paste0("prop_", selected, "_type"), "Type", 
+            choices = c("Matched Load" = "matched", 
+                       "Open Circuit" = "open", 
+                       "Short Circuit" = "short",
+                       "Custom" = "custom"),
+            selected = getProp("type", "matched")),
+          hr(),
+          h5("Display on Canvas"),
+          div(style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;",
+            checkboxGroupInput(paste0("prop_", selected, "_display"),
+              label = NULL,
+              choices = c(
+                "Label" = "label",
+                "Impedance (Ω)" = "impedance"
+              ),
+              selected = c("label", "impedance"),
+              inline = FALSE
+            )
+          ),
+          hr(),
+          p(class = "text-muted", style = "font-size: 11px;",
+            icon("info-circle"), " Termination loads absorb power. ",
+            "Connect signal (positive end) via wire-snap to circuit."
+          ),
           actionButton(paste0("apply_props_", selected), "Apply Changes", 
             class = "btn-primary btn-block",
             onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
@@ -2725,12 +2782,7 @@ server <- function(input, output, session) {
     layout <- input$canvas_layout
     if(is.null(layout)) layout <- "1x1"
     
-    canvas_count <- switch(layout,
-      "2x2" = 4,
-      "2x3" = 6,
-      "3x3" = 9,
-      1
-    )
+    canvas_count <- getCanvasCount(layout)
     
     cat(sprintf("[Calculate All] Layout: %s, Canvas Count: %d\n", layout, canvas_count))
     
@@ -2988,6 +3040,162 @@ server <- function(input, output, session) {
     })
   })
   
+  # Render user templates manager UI
+  output$user_templates_manager <- renderUI({
+    templates <- getUserTemplates()
+    
+    if(length(templates) == 0) {
+      return(tags$p(
+        style = "text-align: center; color: #999; font-size: 11px; padding: 10px;",
+        "No saved templates"
+      ))
+    }
+    
+    lapply(templates, function(tmpl) {
+      template_id <- tmpl$id
+      template_name <- tmpl$name
+      filename <- sub("^user_", "", template_id)
+      
+      tags$div(
+        style = "margin-bottom: 8px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px;",
+        tags$div(
+          style = "display: flex; justify-content: space-between; align-items: center;",
+          tags$div(
+            style = "flex: 1;",
+            tags$strong(style = "color: #fff; font-size: 11px;", template_name),
+            tags$br(),
+            tags$small(style = "color: #999;", sprintf("%d components", tmpl$components_count))
+          ),
+          tags$div(
+            style = "display: flex; gap: 4px;",
+            actionButton(
+              paste0("edit_template_", filename),
+              icon("edit"),
+              class = "btn btn-warning btn-xs",
+              style = "padding: 2px 6px;",
+              title = "Edit template name",
+              onclick = sprintf("editTemplate('%s', '%s');", filename, template_name)
+            ),
+            actionButton(
+              paste0("delete_template_", filename),
+              icon("trash"),
+              class = "btn btn-danger btn-xs",
+              style = "padding: 2px 6px;",
+              title = "Delete template"
+            )
+          )
+        )
+      )
+    })
+  })
+  
+  # Delete template observer
+  observe({
+    templates <- getUserTemplates()
+    
+    lapply(templates, function(tmpl) {
+      filename <- sub("^user_", "", tmpl$id)
+      btn_id <- paste0("delete_template_", filename)
+      
+      observeEvent(input[[btn_id]], {
+        filepath <- file.path("R", "user_templates", paste0(filename, ".json"))
+        
+        if(file.exists(filepath)) {
+          tryCatch({
+            file.remove(filepath)
+            showNotification(
+              sprintf("Template '%s' deleted", tmpl$name),
+              type = "message",
+              duration = 3
+            )
+            cat(sprintf("[Template] Deleted: %s\n", tmpl$name))
+            
+            # Reload templates
+            updated_templates <- getUserTemplates()
+            if(length(updated_templates) > 0) {
+              template_info <- lapply(updated_templates, function(t) {
+                list(id = t$id, name = t$name, components_count = t$components_count)
+              })
+              session$sendCustomMessage("updateUserTemplates", template_info)
+            } else {
+              session$sendCustomMessage("updateUserTemplates", list())
+            }
+            
+          }, error = function(e) {
+            showNotification(
+              sprintf("Failed to delete template: %s", e$message),
+              type = "error"
+            )
+          })
+        }
+      }, ignoreNULL = TRUE, ignoreInit = TRUE)
+    })
+  })
+  
+  # Edit template (rename) observer
+  observeEvent(input$edit_template_submit, {
+    req(input$edit_template_filename, input$edit_template_newname)
+    
+    filename <- input$edit_template_filename
+    new_name <- trimws(input$edit_template_newname)
+    
+    if(new_name == "") {
+      showNotification("Template name cannot be empty", type = "error")
+      return()
+    }
+    
+    filepath <- file.path("R", "user_templates", paste0(filename, ".json"))
+    
+    if(!file.exists(filepath)) {
+      showNotification("Template file not found", type = "error")
+      return()
+    }
+    
+    tryCatch({
+      # Read existing template
+      template_data <- jsonlite::read_json(filepath, simplifyVector = FALSE)
+      
+      # Update name
+      old_name <- template_data$name
+      template_data$name <- new_name
+      
+      # If user wants to rename file too, create new file and delete old
+      safe_new_name <- gsub("[^a-zA-Z0-9_-]", "_", new_name)
+      new_filepath <- file.path("R", "user_templates", paste0(safe_new_name, ".json"))
+      
+      # Write to new file
+      jsonlite::write_json(template_data, new_filepath, auto_unbox = TRUE, pretty = TRUE)
+      
+      # Delete old file if different
+      if(filepath != new_filepath && file.exists(filepath)) {
+        file.remove(filepath)
+      }
+      
+      showNotification(
+        sprintf("Template renamed from '%s' to '%s'", old_name, new_name),
+        type = "message",
+        duration = 3
+      )
+      cat(sprintf("[Template] Renamed: %s -> %s\n", old_name, new_name))
+      
+      # Reload templates
+      updated_templates <- getUserTemplates()
+      if(length(updated_templates) > 0) {
+        template_info <- lapply(updated_templates, function(t) {
+          list(id = t$id, name = t$name, components_count = t$components_count)
+        })
+        session$sendCustomMessage("updateUserTemplates", template_info)
+      }
+      
+    }, error = function(e) {
+      showNotification(
+        sprintf("Failed to edit template: %s", e$message),
+        type = "error"
+      )
+      cat(sprintf("[Template Error] %s\n", e$message))
+    })
+  })
+  
     
     if(is.null(components) || length(components) == 0) {
       showNotification("No lineup to export", type = "warning")
@@ -3155,6 +3363,11 @@ server <- function(input, output, session) {
         properties$loss <- input[[paste0("prop_", selected, "_loss")]]
         properties$load_modulation <- input[[paste0("prop_", selected, "_load_modulation")]]
         properties$modulation_factor <- input[[paste0("prop_", selected, "_modulation_factor")]]
+        properties$display <- input[[paste0("prop_", selected, "_display")]]
+      } else if(comp_type == "termination") {
+        properties$label <- input[[paste0("prop_", selected, "_label")]]
+        properties$impedance <- input[[paste0("prop_", selected, "_impedance")]]
+        properties$type <- input[[paste0("prop_", selected, "_type")]]
         properties$display <- input[[paste0("prop_", selected, "_display")]]
       }
       
@@ -3344,12 +3557,7 @@ server <- function(input, output, session) {
     layout <- input$canvas_layout
     if(is.null(layout)) layout <- "1x1"
     
-    canvas_count <- switch(layout,
-      "2x2" = 4,
-      "2x3" = 6,
-      "3x3" = 9,
-      1
-    )
+    canvas_count <- getCanvasCount(layout)
     
     cat(sprintf("[Comparison View] Layout: %s, Canvas Count: %d\n", layout, canvas_count))
     
@@ -3358,7 +3566,7 @@ server <- function(input, output, session) {
         style = "padding: 20px; text-align: center; color: #888;",
         icon("info-circle", style = "font-size: 36px; margin-bottom: 10px;"),
         tags$h4("Multi-Canvas Comparison Unavailable"),
-        tags$p("Switch to 2x2, 2x3, or 3x3 layout to compare multiple canvases")
+        tags$p("Switch to any multi-canvas layout (2x1, 1x2, 2x2, 2x3, etc.) to compare multiple canvases")
       ))
     }
     
@@ -3667,12 +3875,7 @@ server <- function(input, output, session) {
     }
     
     # Multi-canvas mode - create tabs
-    canvas_count <- switch(layout,
-      "2x2" = 4,
-      "2x3" = 6,
-      "3x3" = 9,
-      1
-    )
+    canvas_count <- getCanvasCount(layout)
     
     tab_panels <- lapply(1:canvas_count, function(i) {
       tabPanel(
@@ -3734,12 +3937,7 @@ server <- function(input, output, session) {
     }
     
     # Multi-canvas mode - create tabs
-    canvas_count <- switch(layout,
-      "2x2" = 4,
-      "2x3" = 6,
-      "3x3" = 9,
-      1
-    )
+    canvas_count <- getCanvasCount(layout)
     
     tab_panels <- lapply(1:canvas_count, function(i) {
       tabPanel(
@@ -3775,12 +3973,7 @@ server <- function(input, output, session) {
     layout <- input$canvas_layout
     
     if(!is.null(layout) && layout != "1x1") {
-      canvas_count <- switch(layout,
-        "2x2" = 4,
-        "2x3" = 6,
-        "3x3" = 9,
-        1
-      )
+      canvas_count <- getCanvasCount(layout)
       
       # Create render functions for each canvas
       lapply(1:canvas_count, function(i) {
