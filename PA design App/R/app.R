@@ -547,6 +547,18 @@ ui <- dashboardPage(
                               h5("Asymmetric Doherty"),
                               p("2:1 power ratio for extended efficiency")
                             ),
+                            div(class = "preset-template", `data-preset` = "envelope_tracking_doherty",
+                              h5("Envelope Tracking Doherty"),
+                              p("Main/Aux with VDD modulation")
+                            ),
+                            div(class = "preset-template", `data-preset` = "3way_symmetric_doherty",
+                              h5("3-Way Symmetric Doherty"),
+                              p("1 main + 2 equal peaking PAs")
+                            ),
+                            div(class = "preset-template", `data-preset` = "3way_asymmetric_doherty",
+                              h5("3-Way Asymmetric Doherty"),
+                              p("1 main (50%) + 2 peaking (25% each)")
+                            ),
                             div(class = "preset-template", `data-preset` = "blank",
                               h5("Blank Canvas"),
                               p("Start from scratch")
@@ -693,6 +705,19 @@ ui <- dashboardPage(
                             actionButton("lineup_load_config", "Load", icon = icon("folder-open"), class = "btn-default btn-block btn-sm"),
                             actionButton("lineup_export_diagram", "Export", icon = icon("image"), class = "btn-default btn-block btn-sm"),
                             actionButton("lineup_generate_report", "Report", icon = icon("file-pdf"), class = "btn-default btn-block btn-sm")
+                          ),
+                          
+                          # Canvas Naming (only shown in multi-canvas mode)
+                          conditionalPanel(
+                            condition = "input.canvas_layout != '1x1'",
+                            div(
+                              class = "sidebar-section",
+                              div(class = "sidebar-section-title", icon("tag"), " Canvas Names"),
+                              actionButton("edit_canvas_names", 
+                                "Edit Names", 
+                                icon = icon("edit"), 
+                                class = "btn-default btn-block btn-sm")
+                            )
                           ),
                           
                           # Template Actions Section (only shown in single canvas mode)
@@ -1133,7 +1158,9 @@ server <- function(input, output, session) {
   # Reactive values
   rv <- reactiveValues(
     current_project = NULL,
-    projects = data.frame()
+    projects = data.frame(),
+    canvas_names = c("Canvas 1", "Canvas 2", "Canvas 3", "Canvas 4", 
+                     "Canvas 5", "Canvas 6", "Canvas 7", "Canvas 8", "Canvas 9")
   )
   
   # Helper function: Get user templates
@@ -1893,6 +1920,67 @@ server <- function(input, output, session) {
       ))
     }
   }, ignoreInit = TRUE)
+  
+  # Observer for editing canvas names
+  observeEvent(input$edit_canvas_names, {
+    layout <- input$canvas_layout
+    canvas_count <- switch(layout,
+      "2x2" = 4,
+      "2x3" = 6,
+      "3x3" = 9,
+      1
+    )
+    
+    showModal(modalDialog(
+      title = "Edit Canvas Names",
+      size = "m",
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("save_canvas_names", "Save", class = "btn-primary")
+      ),
+      div(
+        style = "max-height: 500px; overflow-y: auto;",
+        lapply(1:canvas_count, function(i) {
+          textInput(
+            paste0("canvas_name_", i),
+            label = sprintf("Canvas %d Name:", i),
+            value = rv$canvas_names[i],
+            placeholder = sprintf("Canvas %d", i)
+          )
+        })
+      )
+    ))
+  })
+  
+  # Observer for saving canvas names
+  observeEvent(input$save_canvas_names, {
+    layout <- input$canvas_layout
+    canvas_count <- switch(layout,
+      "2x2" = 4,
+      "2x3" = 6,
+      "3x3" = 9,
+      1
+    )
+    
+    # Update canvas names from inputs
+    for(i in 1:canvas_count) {
+      input_id <- paste0("canvas_name_", i)
+      if(!is.null(input[[input_id]]) && nchar(trimws(input[[input_id]])) > 0) {
+        rv$canvas_names[i] <- trimws(input[[input_id]])
+      } else {
+        rv$canvas_names[i] <- sprintf("Canvas %d", i)
+      }
+    }
+    
+    # Send updated names to JavaScript
+    session$sendCustomMessage("updateCanvasNames", list(
+      names = rv$canvas_names[1:canvas_count]
+    ))
+    
+    cat(sprintf("[Canvas Names] Updated: %s\n", paste(rv$canvas_names[1:canvas_count], collapse = ", ")))
+    
+    removeModal()
+  })
   
   # Dynamic Property Editor based on selected component
   output$lineup_property_editor <- renderUI({
@@ -3186,7 +3274,7 @@ server <- function(input, output, session) {
     
     tab_panels <- lapply(1:canvas_count, function(i) {
       tabPanel(
-        title = sprintf("Canvas %d", i),
+        title = rv$canvas_names[i],
         DTOutput(paste0("pa_lineup_table_", i))
       )
     })
@@ -3253,9 +3341,9 @@ server <- function(input, output, session) {
     
     tab_panels <- lapply(1:canvas_count, function(i) {
       tabPanel(
-        title = sprintf("Canvas %d", i),
+        title = rv$canvas_names[i],
         wellPanel(
-          h4(sprintf("Canvas %d - PA Lineup Equations", i)),
+          h4(sprintf("%s - PA Lineup Equations", rv$canvas_names[i])),
           HTML("
             <h5>Power Cascade:</h5>
             <p><b>P<sub>out,i</sub> (dBm)</b> = P<sub>in,i</sub> + G<sub>i</sub></p>
@@ -3278,6 +3366,167 @@ server <- function(input, output, session) {
     })
     
     do.call(tabsetPanel, c(list(id = "equations_tabs"), tab_panels))
+  })
+  
+  # Dynamic render outputs for multi-canvas tables and rationale
+  observe({
+    layout <- input$canvas_layout
+    
+    if(!is.null(layout) && layout != "1x1") {
+      canvas_count <- switch(layout,
+        "2x2" = 4,
+        "2x3" = 6,
+        "3x3" = 9,
+        1
+      )
+      
+      # Create render functions for each canvas
+      lapply(1:canvas_count, function(i) {
+        local({
+          canvas_index <- i
+          
+          # Table output
+          output_name_table <- paste0("pa_lineup_table_", canvas_index)
+          output[[output_name_table]] <- renderDT({
+            results <- lineup_calc_results()
+            
+            if(is.null(results) || !results$success || length(results$stage_results) == 0) {
+              return(datatable(data.frame(Message = sprintf("No calculation data for Canvas %d", canvas_index))))
+            }
+            
+            # For now, use the same results for all canvases
+            # TODO: Implement per-canvas calculations when paCanvases[] data is available
+            backoff_value <- if(!is.null(results$backoff_db)) results$backoff_db else 6
+            
+            # Build table from stage results with backoff columns
+            rows <- lapply(results$stage_results, function(stage) {
+              if(stage$type == "transistor") {
+                data.frame(
+                  Stage = stage$stage,
+                  Type = "Transistor",
+                  Pin_Full = sprintf("%.2f", stage$pin_dbm),
+                  Pout_Full = sprintf("%.2f", stage$pout_dbm),
+                  PAE_Full = sprintf("%.1f", stage$pae_pct),
+                  PDC_Full = sprintf("%.3f", stage$pdc_w),
+                  Pin_BO = sprintf("%.2f", stage$pin_bo_dbm),
+                  Pout_BO = sprintf("%.2f", stage$pout_bo_dbm),
+                  PAE_BO = sprintf("%.1f", stage$pae_bo_pct),
+                  PDC_BO = sprintf("%.3f", stage$pdc_bo_w),
+                  Gain_dB = sprintf("%.2f", stage$gain_db),
+                  Status = if(stage$compressed) "⚠ Compressed" else "✓ Linear",
+                  stringsAsFactors = FALSE
+                )
+              } else if(stage$type == "matching") {
+                data.frame(
+                  Stage = stage$stage,
+                  Type = "Matching",
+                  Pin_Full = sprintf("%.2f", stage$pin_dbm),
+                  Pout_Full = sprintf("%.2f", stage$pout_dbm),
+                  PAE_Full = "—",
+                  PDC_Full = "—",
+                  Pin_BO = sprintf("%.2f", stage$pout_bo_dbm - stage$loss_db),
+                  Pout_BO = sprintf("%.2f", stage$pout_bo_dbm),
+                  PAE_BO = "—",
+                  PDC_BO = "—",
+                  Gain_dB = sprintf("%.2f", -stage$loss_db),
+                  Status = "Passive",
+                  stringsAsFactors = FALSE
+                )
+              } else {
+                loss_val <- if(!is.null(stage$loss_db)) stage$loss_db else 0.3
+                gain_val <- if(stage$type == "combiner") 3 - loss_val else -loss_val
+                
+                data.frame(
+                  Stage = stage$stage,
+                  Type = tools::toTitleCase(stage$type),
+                  Pin_Full = sprintf("%.2f", stage$pin_dbm),
+                  Pout_Full = sprintf("%.2f", stage$pout_dbm),
+                  PAE_Full = "—",
+                  PDC_Full = "—",
+                  Pin_BO = if(!is.null(stage$pin_bo_dbm)) sprintf("%.2f", stage$pin_bo_dbm) else "—",
+                  Pout_BO = if(!is.null(stage$pout_bo_dbm)) sprintf("%.2f", stage$pout_bo_dbm) else "—",
+                  PAE_BO = "—",
+                  PDC_BO = "—",
+                  Gain_dB = sprintf("%.2f", gain_val),
+                  Status = "Passive",
+                  stringsAsFactors = FALSE
+                )
+              }
+            })
+            
+            data <- do.call(rbind, rows)
+            
+            # Summary row
+            summary_row <- data.frame(
+              Stage = "SYSTEM TOTAL",
+              Type = "—",
+              Pin_Full = sprintf("%.2f", results$input_power_dbm),
+              Pout_Full = sprintf("%.2f", results$final_pout_dbm),
+              PAE_Full = sprintf("%.1f", results$system_pae),
+              PDC_Full = sprintf("%.3f", results$total_pdc),
+              Pin_BO = sprintf("%.2f", results$input_power_dbm - backoff_value),
+              Pout_BO = sprintf("%.2f", results$final_pout_bo_dbm),
+              PAE_BO = sprintf("%.1f", results$system_pae_bo),
+              PDC_BO = sprintf("%.3f", results$total_pdc_bo),
+              Gain_dB = sprintf("%.2f", results$total_gain),
+              Status = if(length(results$warnings) > 0) "⚠ Check" else "✓ OK",
+              stringsAsFactors = FALSE
+            )
+            
+            data <- rbind(data, summary_row)
+            
+            colnames(data) <- c(
+              "Stage", "Type",
+              "Pin (dBm)", "Pout (dBm)", "PAE (%)", "PDC (W)",
+              "Pin (dBm) ", "Pout (dBm) ", "PAE (%) ", "PDC (W) ",
+              "Gain (dB)", "Status"
+            )
+            
+            datatable(data, 
+              options = list(pageLength = 20, dom = 't', columnDefs = list(list(className = 'dt-center', targets = 2:11))), 
+              rownames = FALSE,
+              container = htmltools::withTags(table(
+                class = 'display',
+                thead(
+                  tr(
+                    th(rowspan = 2, 'Stage'),
+                    th(rowspan = 2, 'Type'),
+                    th(colspan = 4, style = 'text-align:center; background-color:#e8f4f8; border-bottom: 2px solid #2196F3;', 'Full Power'),
+                    th(colspan = 4, style = 'text-align:center; background-color:#fff3e0; border-bottom: 2px solid #FF9800;', sprintf('Backoff (%.1f dB)', backoff_value)),
+                    th(rowspan = 2, 'Gain (dB)'),
+                    th(rowspan = 2, 'Status')
+                  ),
+                  tr(
+                    lapply(c('Pin (dBm)', 'Pout (dBm)', 'PAE (%)', 'PDC (W)'), th),
+                    lapply(c('Pin (dBm)', 'Pout (dBm)', 'PAE (%)', 'PDC (W)'), th)
+                  )
+                )
+              ))
+            ) %>%
+              formatStyle('Status',
+                backgroundColor = styleEqual(
+                  c('✓ Linear', '⚠ Compressed', '✓ OK', '⚠ Check', 'Passive'),
+                  c('rgba(0,255,0,0.2)', 'rgba(255,165,0,0.3)', 'rgba(0,255,0,0.2)', 
+                    'rgba(255,165,0,0.3)', 'rgba(200,200,200,0.2)')
+                )
+              ) %>%
+              formatStyle(3:6, backgroundColor = '#f0f8ff') %>%
+              formatStyle(7:10, backgroundColor = '#fff8f0')
+          })
+          
+          # Rationale output
+          output_name_rationale <- paste0("lineup_rationale_", canvas_index)
+          output[[output_name_rationale]] <- renderText({
+            results <- lineup_calc_results()
+            if(is.null(results) || !results$success) {
+              return(sprintf("No calculation results for Canvas %d. Click Calculate to generate rationale.", canvas_index))
+            }
+            # For now, show same rationale for all canvases
+            results$rationale
+          })
+        })
+      })
+    }
   })
   
   # ============================================================

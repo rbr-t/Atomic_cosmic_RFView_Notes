@@ -60,6 +60,22 @@
   filter: drop-shadow(0 0 10px rgba(255, 255, 0, 0.7));
 }
 
+/* Text drag mode highlighting */
+.text-drag-highlight {
+  filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.9));
+  animation: pulse-text 1s infinite;
+  cursor: move;
+}
+
+@keyframes pulse-text {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.9));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 1));
+  }
+}
+
 @keyframes pulse-error {
   0%, 100% {
     filter: drop-shadow(0 0 12px rgba(255, 0, 0, 0.9));

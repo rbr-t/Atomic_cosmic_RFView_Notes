@@ -149,6 +149,12 @@ class PALineupCanvas {
       window.paCanvasClipboard = null;
     }
     
+    // Text repositioning mode (activated by F5 key)
+    this.textDragMode = false;
+    this.textDragComponent = null;
+    this.textDragStart = null;
+    this.textOriginalOffset = null;
+    
     // Power display columns
     this.showPowerDisplay = false;
     this.powerColumns = [];
@@ -622,6 +628,7 @@ class PALineupCanvas {
       rotation: 0,
       flipH: false,
       flipV: false,
+      textOffset: { x: 0, y: 0 },  // For text repositioning feature
       properties: this.getDefaultProperties(type, properties)
     };
     
@@ -816,8 +823,14 @@ class PALineupCanvas {
       .on('mouseenter', () => this.onPortHover(outputPort.node(), true))
       .on('mouseleave', () => this.onPortHover(outputPort.node(), false));
     
+    // Create a text group for offset positioning
+    const textOffset = component.textOffset || { x: 0, y: 0 };
+    const textGroup = group.append('g')
+      .attr('class', 'component-text-group')
+      .attr('transform', `translate(${textOffset.x}, ${textOffset.y})`);
+    
     // Label - positioned ABOVE component to avoid overlap
-    group.append('text')
+    textGroup.append('text')
       .attr('x', 22)
       .attr('y', -35)
       .attr('text-anchor', 'middle')
@@ -828,7 +841,7 @@ class PALineupCanvas {
     
     // Display technology text in center of triangle
     const technology = component.properties.technology || 'GaN';
-    group.append('text')
+    textGroup.append('text')
       .attr('x', 22)
       .attr('y', 5)
       .attr('text-anchor', 'middle')
@@ -842,7 +855,7 @@ class PALineupCanvas {
     let yOffset = 50;  // Start below the component
     
     if (display.includes('label')) {
-      group.append('text')
+      textGroup.append('text')
         .attr('x', 15)
         .attr('y', yOffset)
         .attr('text-anchor', 'middle')
@@ -854,7 +867,7 @@ class PALineupCanvas {
     }
     
     if (display.includes('biasClass')) {
-      group.append('text')
+      textGroup.append('text')
         .attr('x', 15)
         .attr('y', yOffset)
         .attr('text-anchor', 'middle')
@@ -865,7 +878,7 @@ class PALineupCanvas {
     }
     
     if (display.includes('gain')) {
-      group.append('text')
+      textGroup.append('text')
         .attr('x', 15)
         .attr('y', yOffset)
         .attr('text-anchor', 'middle')
@@ -876,7 +889,7 @@ class PALineupCanvas {
     }
     
     if (display.includes('pae')) {
-      group.append('text')
+      textGroup.append('text')
         .attr('x', 15)
         .attr('y', yOffset)
         .attr('text-anchor', 'middle')
@@ -889,7 +902,7 @@ class PALineupCanvas {
     if (display.includes('pout')) {
       const poutValue = component.properties.pout || 40;
       const poutText = this.formatPower(poutValue, this.powerUnit);
-      group.append('text')
+      textGroup.append('text')
         .attr('x', 15)
         .attr('y', yOffset)
         .attr('text-anchor', 'middle')
@@ -902,7 +915,7 @@ class PALineupCanvas {
     if (display.includes('p1db')) {
       const p1dbValue = component.properties.p1db || component.properties.pout || 40;
       const p1dbText = this.formatPower(p1dbValue, this.powerUnit);
-      group.append('text')
+      textGroup.append('text')
         .attr('x', 15)
         .attr('y', yOffset)
         .attr('text-anchor', 'middle')
@@ -913,7 +926,7 @@ class PALineupCanvas {
     }
     
     if (display.includes('vdd')) {
-      group.append('text')
+      textGroup.append('text')
         .attr('x', 15)
         .attr('y', yOffset)
         .attr('text-anchor', 'middle')
@@ -924,7 +937,7 @@ class PALineupCanvas {
     }
     
     if (display.includes('freq')) {
-      group.append('text')
+      textGroup.append('text')
         .attr('x', 15)
         .attr('y', yOffset)
         .attr('text-anchor', 'middle')
@@ -1890,6 +1903,18 @@ class PALineupCanvas {
         console.log('Loading Asymmetric Doherty...');
         this.createAsymmetricDoherty();
         break;
+      case 'envelope_tracking_doherty':
+        console.log('Loading Envelope Tracking Doherty...');
+        this.createEnvelopeTrackingDoherty();
+        break;
+      case '3way_symmetric_doherty':
+        console.log('Loading 3-Way Symmetric Doherty...');
+        this.create3WaySymmetricDoherty();
+        break;
+      case '3way_asymmetric_doherty':
+        console.log('Loading 3-Way Asymmetric Doherty...');
+        this.create3WayAsymmetricDoherty();
+        break;
       case 'triple_stage':
         console.log('Loading Triple Stage...');
         this.createTripleStage();
@@ -2683,6 +2708,435 @@ class PALineupCanvas {
     this.saveHistory();
     
     console.log('Asymmetric Doherty created with connections');
+  }
+  
+  createEnvelopeTrackingDoherty() {
+    console.log('Creating Envelope Tracking Doherty preset...');
+    
+    // Set flag to skip lock check during template loading
+    this._loadingTemplate = true;
+    
+    // Center template around origin
+    const offsetX = this.originX - 450;
+    const offsetY = this.originY - 320;
+    
+    // RF Signal Source
+    const source = this.addComponent('termination', 20 + offsetX, 320 + offsetY, {
+      label: 'RF Source',
+      impedance: 50
+    });
+    
+    // Driver
+    const driver = this.addComponent('transistor', 120 + offsetX, 320 + offsetY, {
+      label: 'Driver',
+      technology: 'GaN',
+      biasClass: 'A',
+      gain: 15,
+      pout: 35
+    });
+    
+    // Interstage matching
+    const match = this.addComponent('matching', 220 + offsetX, 320 + offsetY, {
+      label: 'Interstage',
+      matchType: 'Pi',
+      loss: 0.5
+    });
+    
+    // Splitter
+    const splitter = this.addComponent('splitter', 320 + offsetX, 320 + offsetY, {
+      label: 'Splitter',
+      type: 'Wilkinson'
+    });
+    
+    // Main Branch matching
+    const mainMatch = this.addComponent('matching', 420 + offsetX, 260 + offsetY, {
+      label: 'Main Match',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    // Main PA
+    const mainPA = this.addComponent('transistor', 540 + offsetX, 260 + offsetY, {
+      label: 'Main PA',
+      technology: 'GaN',
+      biasClass: 'AB',
+      gain: 12,
+      pae: 55,
+      p1db: 46,
+      pout: 46
+    });
+    
+    // Main PA DC Supply (Envelope Tracking)
+    const mainDC = this.addComponent('dc_supply', 540 + offsetX, 180 + offsetY, {
+      label: 'VDD Main (ET)',
+      vdd: 28,
+      maxCurrent: 5
+    });
+    
+    // Aux Branch matching
+    const auxMatch = this.addComponent('matching', 420 + offsetX, 380 + offsetY, {
+      label: 'Aux Match',
+      matchType: 'TL-stub',
+      loss: 0.3
+    });
+    
+    // Auxiliary PA
+    const auxPA = this.addComponent('transistor', 540 + offsetX, 380 + offsetY, {
+      label: 'Aux PA',
+      technology: 'GaN',
+      biasClass: 'C',
+      gain: 12,
+      pae: 50,
+      p1db: 43,
+      pout: 43
+    });
+    
+    // Aux PA DC Supply (Envelope Tracking)
+    const auxDC = this.addComponent('dc_supply', 540 + offsetX, 460 + offsetY, {
+      label: 'VDD Aux (ET)',
+      vdd: 28,
+      maxCurrent: 3
+    });
+    
+    // Main output matching (λ/4 impedance transformer)
+    const mainOutMatch = this.addComponent('matching', 660 + offsetX, 260 + offsetY, {
+      label: 'Main λ/4',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    // Aux output offset line
+    const auxOutMatch = this.addComponent('matching', 660 + offsetX, 380 + offsetY, {
+      label: 'Aux Offset',
+      matchType: 'TL-stub',
+      loss: 0.2
+    });
+    
+    // Doherty combiner
+    const combiner = this.addComponent('combiner', 780 + offsetX, 320 + offsetY, {
+      label: 'Doherty',
+      type: 'Load-Modulation'
+    });
+    
+    // Load termination
+    const load = this.addComponent('termination', 880 + offsetX, 320 + offsetY, {
+      label: 'Load',
+      impedance: 50
+    });
+    
+    // Create RF path connections
+    this.createConnection(source.id, driver.id, 'output', 'input');
+    this.createConnection(driver.id, match.id, 'output', 'input');
+    this.createConnection(match.id, splitter.id, 'output', 'input');
+    this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
+    this.createConnection(splitter.id, auxMatch.id, 'output2', 'input');
+    this.createConnection(mainMatch.id, mainPA.id, 'output', 'input');
+    this.createConnection(auxMatch.id, auxPA.id, 'output', 'input');
+    this.createConnection(mainPA.id, mainOutMatch.id, 'output', 'input');
+    this.createConnection(auxPA.id, auxOutMatch.id, 'output', 'input');
+    this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
+    this.createConnection(auxOutMatch.id, combiner.id, 'output', 'input2');
+    this.createConnection(combiner.id, load.id, 'output', 'input');
+    
+    // Create DC supply connections
+    this.createConnection(mainDC.id, mainPA.id, 'output', 'dc');
+    this.createConnection(auxDC.id, auxPA.id, 'output', 'dc');
+    
+    // Clear loading flag and save one history entry for entire template
+    this._loadingTemplate = false;
+    this.saveHistory();
+    
+    console.log('Envelope Tracking Doherty created with connections');
+  }
+  
+  create3WaySymmetricDoherty() {
+    console.log('Creating 3-Way Symmetric Doherty preset...');
+    
+    // Set flag to skip lock check during template loading
+    this._loadingTemplate = true;
+    
+    // Center template around origin
+    const offsetX = this.originX - 500;
+    const offsetY = this.originY - 350;
+    
+    // Source termination
+    const source = this.addComponent('termination', 20 + offsetX, 350 + offsetY, {
+      label: 'Source',
+      impedance: 50
+    });
+    
+    // Driver
+    const driver = this.addComponent('transistor', 120 + offsetX, 350 + offsetY, {
+      label: 'Driver',
+      technology: 'GaN',
+      biasClass: 'A',
+      gain: 16,
+      pout: 38
+    });
+    
+    // Interstage matching
+    const match = this.addComponent('matching', 230 + offsetX, 350 + offsetY, {
+      label: 'Interstage',
+      matchType: 'Pi',
+      loss: 0.4
+    });
+    
+    // 3-way splitter (equal power)
+    const splitter = this.addComponent('splitter', 350 + offsetX, 350 + offsetY, {
+      label: '3-Way Equal',
+      type: 'Corporate'
+    });
+    
+    // Main PA (Branch 1 - Center, always on)
+    const mainMatch = this.addComponent('matching', 480 + offsetX, 230 + offsetY, {
+      label: 'Main Match',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    const mainPA = this.addComponent('transistor', 600 + offsetX, 230 + offsetY, {
+      label: 'Main PA',
+      technology: 'GaN',
+      biasClass: 'AB',
+      gain: 12,
+      pae: 55,
+      p1db: 45,
+      pout: 45
+    });
+    
+    // Peaking PA #1 (Branch 2 - Upper)
+    const peak1Match = this.addComponent('matching', 480 + offsetX, 350 + offsetY, {
+      label: 'Peak1 Match',
+      matchType: 'TL-stub',
+      loss: 0.3
+    });
+    
+    const peak1PA = this.addComponent('transistor', 600 + offsetX, 350 + offsetY, {
+      label: 'Peak PA 1',
+      technology: 'GaN',
+      biasClass: 'C',
+      gain: 12,
+      pae: 50,
+      p1db: 45,
+      pout: 45
+    });
+    
+    // Peaking PA #2 (Branch 3 - Lower)
+    const peak2Match = this.addComponent('matching', 480 + offsetX, 470 + offsetY, {
+      label: 'Peak2 Match',
+      matchType: 'TL-stub',
+      loss: 0.3
+    });
+    
+    const peak2PA = this.addComponent('transistor', 600 + offsetX, 470 + offsetY, {
+      label: 'Peak PA 2',
+      technology: 'GaN',
+      biasClass: 'C',
+      gain: 12,
+      pae: 50,
+      p1db: 45,
+      pout: 45
+    });
+    
+    // Output matching networks
+    const mainOutMatch = this.addComponent('matching', 720 + offsetX, 230 + offsetY, {
+      label: 'λ/4 Main',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    const peak1OutMatch = this.addComponent('matching', 720 + offsetX, 350 + offsetY, {
+      label: 'λ/4 Peak1',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    const peak2OutMatch = this.addComponent('matching', 720 + offsetX, 470 + offsetY, {
+      label: 'λ/4 Peak2',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    // 3-way combiner
+    const combiner = this.addComponent('combiner', 860 + offsetX, 350 + offsetY, {
+      label: '3-Way Doherty',
+      type: '3-Way'
+    });
+    
+    // Load termination
+    const load = this.addComponent('termination', 980 + offsetX, 350 + offsetY, {
+      label: 'Load',
+      impedance: 50
+    });
+    
+    // Create connections
+    this.createConnection(source.id, driver.id, 'output', 'input');
+    this.createConnection(driver.id, match.id, 'output', 'input');
+    this.createConnection(match.id, splitter.id, 'output', 'input');
+    this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
+    this.createConnection(splitter.id, peak1Match.id, 'output2', 'input');
+    this.createConnection(splitter.id, peak2Match.id, 'output3', 'input');
+    this.createConnection(mainMatch.id, mainPA.id, 'output', 'input');
+    this.createConnection(peak1Match.id, peak1PA.id, 'output', 'input');
+    this.createConnection(peak2Match.id, peak2PA.id, 'output', 'input');
+    this.createConnection(mainPA.id, mainOutMatch.id, 'output', 'input');
+    this.createConnection(peak1PA.id, peak1OutMatch.id, 'output', 'input');
+    this.createConnection(peak2PA.id, peak2OutMatch.id, 'output', 'input');
+    this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
+    this.createConnection(peak1OutMatch.id, combiner.id, 'output', 'input2');
+    this.createConnection(peak2OutMatch.id, combiner.id, 'output', 'input3');
+    this.createConnection(combiner.id, load.id, 'output', 'input');
+    
+    // Clear loading flag and save one history entry for entire template
+    this._loadingTemplate = false;
+    this.saveHistory();
+    
+    console.log('3-Way Symmetric Doherty created with connections');
+  }
+  
+  create3WayAsymmetricDoherty() {
+    console.log('Creating 3-Way Asymmetric Doherty preset...');
+    
+    // Set flag to skip lock check during template loading
+    this._loadingTemplate = true;
+    
+    // Center template around origin
+    const offsetX = this.originX - 500;
+    const offsetY = this.originY - 350;
+    
+    // Source termination
+    const source = this.addComponent('termination', 20 + offsetX, 350 + offsetY, {
+      label: 'Source',
+      impedance: 50
+    });
+    
+    // Driver
+    const driver = this.addComponent('transistor', 120 + offsetX, 350 + offsetY, {
+      label: 'Driver',
+      technology: 'GaN',
+      biasClass: 'A',
+      gain: 17,
+      pout: 39
+    });
+    
+    // Interstage matching
+    const match = this.addComponent('matching', 230 + offsetX, 350 + offsetY, {
+      label: 'Interstage',
+      matchType: 'Pi',
+      loss: 0.4
+    });
+    
+    // 3-way splitter (asymmetric power: 2:1:1 ratio)
+    const splitter = this.addComponent('splitter', 350 + offsetX, 350 + offsetY, {
+      label: '3-Way 2:1:1',
+      type: 'Asymmetric'
+    });
+    
+    // Main PA (Branch 1 - Higher power, 50%)
+    const mainMatch = this.addComponent('matching', 480 + offsetX, 230 + offsetY, {
+      label: 'Main Match',
+      matchType: 'Pi',
+      loss: 0.3
+    });
+    
+    const mainPA = this.addComponent('transistor', 600 + offsetX, 230 + offsetY, {
+      label: 'Main PA (50%)',
+      technology: 'GaN',
+      biasClass: 'AB',
+      gain: 12,
+      pae: 55,
+      p1db: 48,
+      pout: 48
+    });
+    
+    // Peaking PA #1 (Branch 2 - Lower power, 25%)
+    const peak1Match = this.addComponent('matching', 480 + offsetX, 350 + offsetY, {
+      label: 'Peak1 Match',
+      matchType: 'TL-stub',
+      loss: 0.3
+    });
+    
+    const peak1PA = this.addComponent('transistor', 600 + offsetX, 350 + offsetY, {
+      label: 'Peak PA 1 (25%)',
+      technology: 'GaN',
+      biasClass: 'C',
+      gain: 12,
+      pae: 50,
+      p1db: 42,
+      pout: 42
+    });
+    
+    // Peaking PA #2 (Branch 3 - Lower power, 25%)
+    const peak2Match = this.addComponent('matching', 480 + offsetX, 470 + offsetY, {
+      label: 'Peak2 Match',
+      matchType: 'TL-stub',
+      loss: 0.3
+    });
+    
+    const peak2PA = this.addComponent('transistor', 600 + offsetX, 470 + offsetY, {
+      label: 'Peak PA 2 (25%)',
+      technology: 'GaN',
+      biasClass: 'C',
+      gain: 12,
+      pae: 50,
+      p1db: 42,
+      pout: 42
+    });
+    
+    // Output matching networks (asymmetric impedance transformation)
+    const mainOutMatch = this.addComponent('matching', 720 + offsetX, 230 + offsetY, {
+      label: 'λ/4 (25Ω)',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    const peak1OutMatch = this.addComponent('matching', 720 + offsetX, 350 + offsetY, {
+      label: 'λ/4 (50Ω)',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    const peak2OutMatch = this.addComponent('matching', 720 + offsetX, 470 + offsetY, {
+      label: 'λ/4 (50Ω)',
+      matchType: 'Transformer',
+      loss: 0.2
+    });
+    
+    // 3-way asymmetric combiner
+    const combiner = this.addComponent('combiner', 860 + offsetX, 350 + offsetY, {
+      label: '3-Way Asym 2:1:1',
+      type: '3-Way-Asymmetric'
+    });
+    
+    // Load termination
+    const load = this.addComponent('termination', 980 + offsetX, 350 + offsetY, {
+      label: 'Load',
+      impedance: 50
+    });
+    
+    // Create connections
+    this.createConnection(source.id, driver.id, 'output', 'input');
+    this.createConnection(driver.id, match.id, 'output', 'input');
+    this.createConnection(match.id, splitter.id, 'output', 'input');
+    this.createConnection(splitter.id, mainMatch.id, 'output1', 'input');
+    this.createConnection(splitter.id, peak1Match.id, 'output2', 'input');
+    this.createConnection(splitter.id, peak2Match.id, 'output3', 'input');
+    this.createConnection(mainMatch.id, mainPA.id, 'output', 'input');
+    this.createConnection(peak1Match.id, peak1PA.id, 'output', 'input');
+    this.createConnection(peak2Match.id, peak2PA.id, 'output', 'input');
+    this.createConnection(mainPA.id, mainOutMatch.id, 'output', 'input');
+    this.createConnection(peak1PA.id, peak1OutMatch.id, 'output', 'input');
+    this.createConnection(peak2PA.id, peak2OutMatch.id, 'output', 'input');
+    this.createConnection(mainOutMatch.id, combiner.id, 'output', 'input1');
+    this.createConnection(peak1OutMatch.id, combiner.id, 'output', 'input2');
+    this.createConnection(peak2OutMatch.id, combiner.id, 'output', 'input3');
+    this.createConnection(combiner.id, load.id, 'output', 'input');
+    
+    // Clear loading flag and save one history entry for entire template
+    this._loadingTemplate = false;
+    this.saveHistory();
+    
+    console.log('3-Way Asymmetric Doherty created with connections');
   }
   
   // Zoom control methods
@@ -3510,6 +3964,18 @@ class PALineupCanvas {
         event.preventDefault();
         this.flipSelected('vertical');
       }
+      
+      // Text repositioning mode: F5 key
+      if (event.key === 'F5') {
+        event.preventDefault();
+        this.toggleTextDragMode();
+      }
+      
+      // Cancel text drag mode: Escape
+      if (event.key === 'Escape' && this.textDragMode) {
+        event.preventDefault();
+        this.exitTextDragMode();
+      }
     });
   }
   
@@ -3992,6 +4458,158 @@ class PALineupCanvas {
     }
     
     this.saveHistory();
+  }
+  
+  // ============================================================
+  // TEXT REPOSITIONING MODE (F5)
+  // ============================================================
+  
+  toggleTextDragMode() {
+    if (!this.selectedComponent) {
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Select a component first, then press F5 to reposition its text',
+          type: 'warning',
+          duration: 3
+        });
+      }
+      return;
+    }
+    
+    this.textDragMode = !this.textDragMode;
+    
+    if (this.textDragMode) {
+      this.textDragComponent = this.selectedComponent;
+      
+      // Change cursor to crosshair
+      this.svg.style('cursor', 'crosshair');
+      
+      // Highlight the component's text elements
+      const comp = this.components.find(c => c.id === this.textDragComponent);
+      if (comp) {
+        const group = this.componentsLayer.select(`[data-id="${comp.id}"]`);
+        group.selectAll('text').classed('text-drag-highlight', true);
+        
+        // Initialize textOffset if not present
+        if (!comp.textOffset) {
+          comp.textOffset = { x: 0, y: 0 };
+        }
+      }
+      
+      // Set up text drag mouse handlers
+      this.setupTextDragHandlers();
+      
+      if (window.Shiny && window.Shiny.notifications) {
+        Shiny.notifications.show({
+          message: 'Text reposition mode ON. Click and drag to move text. Press ESC or F5 to exit.',
+          type: 'message',
+          duration: 4
+        });
+      }
+      
+      console.log('Text drag mode enabled for component:', this.textDragComponent);
+    } else {
+      this.exitTextDragMode();
+    }
+  }
+  
+  setupTextDragHandlers() {
+    // Mouse down - start text drag
+    this.textDragMouseDown = (event) => {
+      if (this.textDragMode && this.textDragComponent) {
+        const [x, y] = d3.pointer(event);
+        this.textDragStart = { x, y };
+        
+        const comp = this.components.find(c => c.id === this.textDragComponent);
+        if (comp) {
+          this.textOriginalOffset = { ...comp.textOffset };
+        }
+        
+        console.log('Text drag started at:', this.textDragStart);
+      }
+    };
+    
+    // Mouse move - update text offset
+    this.textDragMouseMove = (event) => {
+      if (this.textDragMode && this.textDragStart && this.textDragComponent) {
+        const [x, y] = d3.pointer(event);
+        const dx = x - this.textDragStart.x;
+        const dy = y - this.textDragStart.y;
+        
+        const comp = this.components.find(c => c.id === this.textDragComponent);
+        if (comp) {
+          comp.textOffset = {
+            x: this.textOriginalOffset.x + dx,
+            y: this.textOriginalOffset.y + dy
+          };
+          
+          // Re-render the component to show new text position
+          this.componentsLayer.select(`[data-id="${comp.id}"]`).remove();
+          this.renderComponent(comp);
+          
+          // Re-highlight text
+          const group = this.componentsLayer.select(`[data-id="${comp.id}"]`);
+          group.selectAll('text').classed('text-drag-highlight', true);
+        }
+      }
+    };
+    
+    // Mouse up - finish text drag
+    this.textDragMouseUp = (event) => {
+      if (this.textDragMode && this.textDragStart) {
+        console.log('Text drag ended');
+        this.textDragStart = null;
+        this.textOriginalOffset = null;
+        
+        // Save to history
+        this.saveHistory();
+        
+        if (window.Shiny) {
+          Shiny.setInputValue('lineup_components', JSON.stringify(this.components), { priority: 'event'});
+        }
+      }
+    };
+    
+    this.svg.on('mousedown.textdrag', this.textDragMouseDown);
+    this.svg.on('mousemove.textdrag', this.textDragMouseMove);
+    this.svg.on('mouseup.textdrag', this.textDragMouseUp);
+  }
+  
+  exitTextDragMode() {
+    if (!this.textDragMode) return;
+    
+    this.textDragMode = false;
+    this.textDragStart = null;
+    this.textOriginalOffset = null;
+    
+    // Reset cursor
+    this.svg.style('cursor', 'default');
+    
+    // Remove text drag mouse handlers
+    this.svg.on('mousedown.textdrag', null);
+    this.svg.on('mousemove.textdrag', null);
+    this.svg.on('mouseup.textdrag', null);
+    
+    // Remove highlight from text elements
+    if (this.textDragComponent) {
+      const comp = this.components.find(c => c.id === this.textDragComponent);
+      if (comp) {
+        const group = this.componentsLayer.select(`[data-id="${comp.id}"]`);
+        group.selectAll('text').classed('text-drag-highlight', false);
+      }
+    }
+    
+    this.textDragComponent = null;
+    
+    if (window.Shiny && window.Shiny.notifications) {
+      Shiny.notifications.show({
+        message: 'Text reposition mode OFF',
+        type: 'message',
+        duration: 1
+      });
+    }
+    
+    console.log('Text drag mode disabled');
   }
   
   // ============================================================
@@ -4910,6 +5528,7 @@ class PALineupCanvas {
 
 // Global state for multi-canvas
 window.paCanvases = [];
+window.canvasLabels = [];
 window.activeCanvasIndex = 0;
 window.canvasLayout = "1x1";
 
@@ -5068,6 +5687,7 @@ function initializeMultiCanvas(layout = "1x1") {
     }
   });
   window.paCanvases = [];
+  window.canvasLabels = [];
   
   // Find or create the canvas grid container
   let gridContainer = mainContainer.querySelector('#pa_canvas_grid');
@@ -5144,6 +5764,9 @@ function initializeMultiCanvas(layout = "1x1") {
       pointer-events: none;
     `;
     canvasDiv.appendChild(label);
+    
+    // Store label reference for later updates
+    window.canvasLabels[i] = label;
     
     gridContainer.appendChild(canvasDiv);
     
@@ -5709,6 +6332,20 @@ if (typeof Shiny !== 'undefined') {
       console.log('✅ Canvas layout updated successfully');
     } else {
       console.error('❌ Failed to update canvas layout');
+    }
+  });
+  
+  // Handler for updating canvas names
+  Shiny.addCustomMessageHandler('updateCanvasNames', function(message) {
+    console.log('🏷️ Received canvas names update:', message.names);
+    
+    if (message.names && Array.isArray(message.names)) {
+      message.names.forEach((name, index) => {
+        if (window.canvasLabels && window.canvasLabels[index]) {
+          window.canvasLabels[index].textContent = name;
+          console.log(`✅ Updated canvas ${index} label to: ${name}`);
+        }
+      });
     }
   });
   
