@@ -1060,6 +1060,11 @@ class PALineupCanvas {
         // Sanity check: P1dB must be less than P3dB
         const validP1db = Math.min(p1dbValue, p3dbValue - 0.5);
         
+        // Debug logging if P1dB validation fails
+        if (p1dbValue > p3dbValue) {
+          console.warn(`[Display] ${component.label}: P1dB (${p1dbValue.toFixed(2)}) > P3dB (${p3dbValue.toFixed(2)}) - correcting to ${validP1db.toFixed(2)}`);
+        }
+        
         const p1dbText = this.formatPower(validP1db, this.powerUnit);
       textGroup.append('text')
         .attr('x', 15)
@@ -6608,12 +6613,31 @@ function applySpecsToComponents(specs) {
   const techSelection = selectTechnology(specs.frequency_ghz, specs.p3db, specs.supply_voltage);
   console.log('[Apply Specs] Technology selected:', techSelection.technology);
   
+  // Calculate passive losses
+  const matchingLoss = estimatePassiveLoss('matching', specs.frequency_ghz, 0.25).loss;
+  const splitterLoss = estimatePassiveLoss('splitter', specs.frequency_ghz).loss;
+  const combinerLoss = estimatePassiveLoss('doherty_combiner', specs.frequency_ghz).loss;
+  
+  console.log('[Apply Specs] Estimated losses:', { matchingLoss, splitterLoss, combinerLoss });
+  
   // Distribute gain across stages
   const gainDist = distributeGain(specs.gain, 'doherty');  // Assume Doherty for now
   console.log('[Apply Specs] Gain distribution:', gainDist);
   
-  // Calculate power cascade
-  const powerCascade = calculatePowerCascade(specs.p3db, gainDist.stages);
+  // CRITICAL FIX: For Doherty architecture, calculatePowerCascade needs the PER-PA power
+  // requirement, not the system output power. For balanced Doherty:
+  // P_system = 10*log10(P_main_watts + P_aux_watts) = P_PA + 3.01 dB (for equal PAs)
+  // Therefore: P_PA_target = P_system - 3.01 dB + combiner_loss
+  const topology = 'doherty';  // TODO: Get from template metadata
+  const powerCombiningFactor = 3.01;  // dB for 2-way power combining
+  const pa_target_power = topology === 'doherty' 
+    ? specs.p3db - powerCombiningFactor + combinerLoss 
+    : specs.p3db;  // For conventional, use system target directly
+  
+  console.log(`[Apply Specs] Power cascade input: ${pa_target_power.toFixed(2)} dBm (system target: ${specs.p3db} dBm, topology: ${topology})`);
+  
+  // Calculate power cascade with correct per-PA target
+  const powerCascade = calculatePowerCascade(pa_target_power, gainDist.stages);
   console.log('[Apply Specs] Power cascade:', powerCascade);
   
   // Find transistor components
@@ -6650,14 +6674,7 @@ function applySpecsToComponents(specs) {
     }
   });
   
-  // Calculate passive losses
-  const matchingLoss = estimatePassiveLoss('matching', specs.frequency_ghz, 0.25).loss;
-  const splitterLoss = estimatePassiveLoss('splitter', specs.frequency_ghz).loss;
-  const combinerLoss = estimatePassiveLoss('doherty_combiner', specs.frequency_ghz).loss;
-  
-  console.log('[Apply Specs] Estimated losses:', { matchingLoss, splitterLoss, combinerLoss });
-  
-  // Update passive component losses
+  // Update passive component losses using the already-calculated values
   components.filter(c => c.type === 'matching').forEach(m => {
     m.properties.loss = matchingLoss;
   });
@@ -6702,21 +6719,30 @@ function applySpecsToComponents(specs) {
       mainPA.properties.technology = techSelection.technology;
       mainPA.properties.gain = paStage.gain;
       
-      // P3dB (3dB compression point) is the target output power
-      mainPA.properties.p3db = specs.p3db;
-      mainPA.properties.pout = specs.p3db;  // Pout at P3dB
+      // CRITICAL FIX: For Doherty architecture, each PA must produce power such that
+      // when combined in linear domain (watts), they reach the target output.
+      // For balanced Doherty: P_combined_dBm = 10*log10(P_main_watts + P_aux_watts)
+      // If Main and Aux are equal: P_combined = 10*log10(2 * P_PA_watts) = P_PA + 3.01 dB
+      // Therefore: P_PA_required = P_target - 3.01 dB + combiner_loss
+      
+      const powerCombiningFactor = 3.01;  // dB, accounts for 2 PAs combining (10*log10(2))
+      const pa_p3db_target = specs.p3db - powerCombiningFactor + combinerLoss;
+      
+      mainPA.properties.p3db = pa_p3db_target;  // Each PA contributes ~52.3 dBm
+      mainPA.properties.pout = pa_p3db_target;  // Pout at P3dB
       
       // P1dB (1dB compression) must be below P3dB
       // For solid state PAs, typically 2-3dB below P3dB
-      mainPA.properties.p1db = specs.p3db - 2.5;
+      mainPA.properties.p1db = pa_p3db_target - 2.0;
       
-      // Calculate input power needed
-      mainPA.properties.pin = paStage.pin;
+      // Calculate input power needed (from PA output - gain)
+      mainPA.properties.pin = pa_p3db_target - paStage.gain;
       
       mainPA.properties.biasClass = 'AB';  // Main PA in Doherty
       mainPA.properties.pae = estimatePAE('AB', 'doherty', specs.frequency_ghz);
       mainPA.properties.vdd = specs.supply_voltage;
-      console.log('[Apply Specs] Updated Main PA:', mainPA.properties);
+      console.log(`[Apply Specs] Updated Main PA (Doherty): P3dB=${pa_p3db_target.toFixed(2)} dBm (target ${specs.p3db} dBm after combining)`);
+      console.log('[Apply Specs] Main PA properties:', mainPA.properties);
     }
     
     // Update Aux PA (should match Main PA power for balanced Doherty)
@@ -6726,21 +6752,25 @@ function applySpecsToComponents(specs) {
       auxPA.properties.technology = techSelection.technology;
       auxPA.properties.gain = paStage.gain;
       
-      // For balanced Doherty, Aux should match Main PA capability
-      // Both PAs combine to achieve the target output
-      auxPA.properties.p3db = specs.p3db;
-      auxPA.properties.pout = specs.p3db;
+      // For balanced Doherty, Aux must match Main PA
+      // Each PA produces equal power, which combines to reach system target
+      const powerCombiningFactor = 3.01;  // dB
+      const pa_p3db_target = specs.p3db - powerCombiningFactor + combinerLoss;
+      
+      auxPA.properties.p3db = pa_p3db_target;  // Same as Main PA
+      auxPA.properties.pout = pa_p3db_target;
       
       // P1dB below P3dB
-      auxPA.properties.p1db = specs.p3db - 2.5;
+      auxPA.properties.p1db = pa_p3db_target - 2.0;
       
       // Calculate input power needed  
-      auxPA.properties.pin = paStage.pin;
+      auxPA.properties.pin = pa_p3db_target - paStage.gain;
       
       auxPA.properties.biasClass = 'C';  // Aux PA in Doherty
       auxPA.properties.pae = estimatePAE('C', 'doherty', specs.frequency_ghz);
       auxPA.properties.vdd = specs.supply_voltage;
-      console.log('[Apply Specs] Updated Aux PA:', auxPA.properties);
+      console.log(`[Apply Specs] Updated Aux PA (Doherty): P3dB=${pa_p3db_target.toFixed(2)} dBm (target ${specs.p3db} dBm after combining)`);
+      console.log('[Apply Specs] Aux PA properties:', auxPA.properties);
     }
   }
   
