@@ -3224,12 +3224,54 @@ server <- function(input, output, session) {
       if(comp_type == "transistor") {
         # Transistor stage calculations - Full Power
         gain <- as.numeric(safeProp(props, "gain", 15))
-        pout_dbm <- current_pin + gain
-        pout_w <- 10^(pout_dbm/10) / 1000
         p1db <- as.numeric(safeProp(props, "p1db", 43))
+        p3db <- as.numeric(safeProp(props, "p3db", p1db + 2))  # P3dB = P1dB + 2dB (typical)
         pae_full <- as.numeric(safeProp(props, "pae", 50)) / 100
         vdd <- as.numeric(safeProp(props, "vdd", 28))
         rth <- as.numeric(safeProp(props, "rth", 2.5))
+        
+        # ═══ CHECK IF JAVASCRIPT ALREADY CALCULATED DUAL OPERATING POINTS ═══
+        has_dual_op <- !is.null(safeProp(props, "pout_p3db", NULL)) && 
+                       !is.null(safeProp(props, "pout_pavg", NULL))
+        
+        if(has_dual_op) {
+          # ✓ Use JavaScript-calculated values (from applySpecsToComponents)
+          pout_dbm <- as.numeric(safeProp(props, "pout_p3db", current_pin + gain))
+          current_pin <- as.numeric(safeProp(props, "pin_p3db", current_pin))
+          pae_full <- as.numeric(safeProp(props, "pae_p3db", pae_full * 100)) / 100
+          
+          # Backoff values
+          pout_bo_dbm <- as.numeric(safeProp(props, "pout_pavg", p3db - backoff_db))
+          current_pin_bo <- as.numeric(safeProp(props, "pin_pavg", current_pin_bo))
+          pae_bo <- as.numeric(safeProp(props, "pae_pavg", pae_full * 100)) / 100
+          
+          rationale <- c(rationale, sprintf("    [Using JavaScript-calculated dual operating points]"))
+          rationale <- c(rationale, sprintf("    P3dB: %.2f dBm, Pavg: %.2f dBm", pout_dbm, pout_bo_dbm))
+        } else {
+          # Calculate using P3dB-based approach (FIXED: was using input cascade)
+          pout_dbm <- current_pin + gain
+          
+          # ═══ CRITICAL FIX: Backoff from P3dB, not from input cascade ═══
+          # CORRECT: P_backoff = P3dB - BO(dB)
+          # WRONG:   P_backoff = P1dB - BO(dB) or P_backoff = Pin_backoff + Gain
+          pout_bo_dbm <- p3db - backoff_db
+          
+          # Calculate required input for backoff power
+          current_pin_bo <- pout_bo_dbm - gain
+          
+          rationale <- c(rationale, sprintf("    [Calculating from P3dB=%.2f dBm]", p3db))
+          rationale <- c(rationale, sprintf("    P_backoff = P3dB - BO = %.2f - %.1f = %.2f dBm", 
+            p3db, backoff_db, pout_bo_dbm))
+          
+          # Estimate PAE at backoff (power-law degradation model)
+          pout_ratio <- 10^((pout_bo_dbm - pout_dbm)/10)
+          pae_bo <- pae_full * (pout_ratio ^ 0.8)
+          pae_bo <- max(pae_bo, 0.1)  # Minimum 10% efficiency
+        }
+        
+        # Power calculations
+        pout_w <- 10^(pout_dbm/10) / 1000
+        pout_bo_w <- 10^(pout_bo_dbm/10) / 1000
         
         # Check compression at full power
         compressed <- pout_dbm > p1db
@@ -3243,6 +3285,17 @@ server <- function(input, output, session) {
           pout_w <- 10^(pout_dbm/10) / 1000
         }
         
+        # Check compression at backoff (should not compress!)
+        compressed_bo <- pout_bo_dbm > p1db
+        if(compressed_bo) {
+          warnings <- c(warnings, sprintf("%s: Compressed at backoff (%.1f dB over P1dB)", 
+            stage_name, pout_bo_dbm - p1db))
+          rationale <- c(rationale, sprintf("    ⚠ WARNING: Backoff output %.2f dBm exceeds P1dB %.2f dBm!", 
+            pout_bo_dbm, p1db))
+          pout_bo_dbm <- p1db
+          pout_bo_w <- 10^(pout_bo_dbm/10) / 1000
+        }
+        
         # Full power DC calculations
         pdc_w <- pout_w / pae_full
         pdiss_w <- pdc_w - pout_w
@@ -3252,23 +3305,7 @@ server <- function(input, output, session) {
         ta_c <- 25
         tj_c <- ta_c + pdiss_w * rth
         
-        # === BACKOFF CALCULATIONS ===
-        pout_bo_dbm <- current_pin_bo + gain
-        pout_bo_w <- 10^(pout_bo_dbm/10) / 1000
-        
-        # Clamp backoff output to P1dB (should not compress at backoff)
-        compressed_bo <- pout_bo_dbm > p1db
-        if(compressed_bo) {
-          pout_bo_dbm <- p1db
-          pout_bo_w <- 10^(pout_bo_dbm/10) / 1000
-        }
-        
-        # Estimate PAE at backoff using simplified model
-        # PAE typically degrades at backoff. Simple linear model:
-        # PAE_bo ≈ PAE_full * (Pout_bo/Pout_full)^0.8
-        pout_ratio <- pout_bo_w / max(pout_w, 1e-9)  # Avoid division by zero
-        pae_bo <- pae_full * (pout_ratio ^ 0.8)  # Power-law degradation model
-        pae_bo <- max(pae_bo, 0.1)  # Minimum 10% efficiency
+        # === BACKOFF DC CALCULATIONS ===
         
         # Backoff DC power calculations
         pdc_bo_w <- pout_bo_w / pae_bo
@@ -3486,8 +3523,19 @@ server <- function(input, output, session) {
     # Get input power from first component or use default
     input_power <- 0  # Default 0 dBm
     
-    # Get backoff value from input (with fallback)
-    backoff_value <- if(!is.null(input$backoff_db)) input$backoff_db else 6
+    # ═══ CRITICAL FIX: Use PAR from specs if available, else backoff_db ═══
+    # Priority: 1) spec_par (correct), 2) backoff_db (legacy)
+    if(!is.null(input$spec_par) && !is.null(input$spec_p3db)) {
+      # Use PAR from specifications (P3dB-based approach)
+      backoff_value <- input$spec_par
+      showNotification(sprintf("Calculating with PAR = %.1f dB from specifications", backoff_value), 
+        type = "message", duration = 3)
+    } else {
+      # Fall back to generic backoff_db input
+      backoff_value <- if(!is.null(input$backoff_db)) input$backoff_db else 6
+      showNotification(sprintf("Calculating with generic backoff = %.1f dB", backoff_value), 
+        type = "warning", duration = 3)
+    }
     
     result <- lineup_calculate_engine(components, lineup_connections(), input_power, backoff_value)
     
