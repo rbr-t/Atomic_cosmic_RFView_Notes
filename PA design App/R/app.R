@@ -3222,51 +3222,65 @@ server <- function(input, output, session) {
       rationale <- c(rationale, sprintf("    Input Power: %.2f dBm", current_pin))
       
       if(comp_type == "transistor") {
-        # Transistor stage calculations - Full Power
+        # Transistor stage calculations
         gain <- as.numeric(safeProp(props, "gain", 15))
         p1db <- as.numeric(safeProp(props, "p1db", 43))
-        p3db <- as.numeric(safeProp(props, "p3db", p1db + 2))  # P3dB = P1dB + 2dB (typical)
-        pae_full <- as.numeric(safeProp(props, "pae", 50)) / 100
         vdd <- as.numeric(safeProp(props, "vdd", 28))
         rth <- as.numeric(safeProp(props, "rth", 2.5))
         
         # ═══ CHECK IF JAVASCRIPT ALREADY CALCULATED DUAL OPERATING POINTS ═══
-        has_dual_op <- !is.null(safeProp(props, "pout_p3db", NULL)) && 
-                       !is.null(safeProp(props, "pout_pavg", NULL))
+        # JavaScript sends: pout_p3db, pin_p3db, pae_p3db, pout_pavg, pin_pavg, pae_pavg
+        js_pout_p3db <- safeProp(props, "pout_p3db", NULL)
+        js_pout_pavg <- safeProp(props, "pout_pavg", NULL)
+        js_pin_p3db <- safeProp(props, "pin_p3db", NULL)
+        js_pin_pavg <- safeProp(props, "pin_pavg", NULL)
+        js_pae_p3db <- safeProp(props, "pae_p3db", NULL)
+        js_pae_pavg <- safeProp(props, "pae_pavg", NULL)
+        
+        has_dual_op <- !is.null(js_pout_p3db) && !is.null(js_pout_pavg) && 
+                       !is.null(js_pin_p3db) && !is.null(js_pin_pavg)
+        
+        # Debug logging
+        cat(sprintf("[%s] Checking dual_op: pout_p3db=%s, pout_pavg=%s, has_dual_op=%s\n", 
+          stage_name, 
+          if(!is.null(js_pout_p3db)) as.character(js_pout_p3db) else "NULL",
+          if(!is.null(js_pout_pavg)) as.character(js_pout_pavg) else "NULL",
+          has_dual_op))
         
         if(has_dual_op) {
           # ✓ Use JavaScript-calculated values (from applySpecsToComponents)
-          pout_dbm <- as.numeric(safeProp(props, "pout_p3db", current_pin + gain))
-          current_pin <- as.numeric(safeProp(props, "pin_p3db", current_pin))
-          pae_full <- as.numeric(safeProp(props, "pae_p3db", pae_full * 100)) / 100
+          pout_dbm <- as.numeric(js_pout_p3db)
+          pout_bo_dbm <- as.numeric(js_pout_pavg)
           
-          # Backoff values
-          pout_bo_dbm <- as.numeric(safeProp(props, "pout_pavg", p3db - backoff_db))
-          current_pin_bo <- as.numeric(safeProp(props, "pin_pavg", current_pin_bo))
-          pae_bo <- as.numeric(safeProp(props, "pae_pavg", pae_full * 100)) / 100
+          # Use JavaScript-calculated PAE if available, else default
+          pae_full <- if(!is.null(js_pae_p3db)) as.numeric(js_pae_p3db) / 100 else as.numeric(safeProp(props, "pae", 50)) / 100
+          pae_bo <- if(!is.null(js_pae_pavg)) as.numeric(js_pae_pavg) / 100 else pae_full * 0.7
           
-          rationale <- c(rationale, sprintf("    [Using JavaScript-calculated dual operating points]"))
-          rationale <- c(rationale, sprintf("    P3dB: %.2f dBm, Pavg: %.2f dBm", pout_dbm, pout_bo_dbm))
+          rationale <- c(rationale, sprintf("    ✓ Using JavaScript dual operating points"))
+          rationale <- c(rationale, sprintf("    Full (P3dB): Pin=%.2f, Pout=%.2f dBm, PAE=%.1f%%", 
+            as.numeric(js_pin_p3db), pout_dbm, pae_full * 100))
+          rationale <- c(rationale, sprintf("    Backoff (Pavg): Pin=%.2f, Pout=%.2f dBm, PAE=%.1f%%", 
+            as.numeric(js_pin_pavg), pout_bo_dbm, pae_bo * 100))
         } else {
-          # Calculate using P3dB-based approach (FIXED: was using input cascade)
+          # ═══ FALLBACK: Calculate using power cascade (NOT component p3db!) ═══
+          # Both Full and Backoff use CASCADE positions, not component capabilities
           pout_dbm <- current_pin + gain
+          pout_bo_dbm <- current_pin_bo + gain  # ← FIX: Use cascade, not component p3db!
           
-          # ═══ CRITICAL FIX: Backoff from P3dB, not from input cascade ═══
-          # CORRECT: P_backoff = P3dB - BO(dB)
-          # WRONG:   P_backoff = P1dB - BO(dB) or P_backoff = Pin_backoff + Gain
-          pout_bo_dbm <- p3db - backoff_db
-          
-          # Calculate required input for backoff power
-          current_pin_bo <- pout_bo_dbm - gain
-          
-          rationale <- c(rationale, sprintf("    [Calculating from P3dB=%.2f dBm]", p3db))
-          rationale <- c(rationale, sprintf("    P_backoff = P3dB - BO = %.2f - %.1f = %.2f dBm", 
-            p3db, backoff_db, pout_bo_dbm))
+          # Get default PAE
+          pae_full <- as.numeric(safeProp(props, "pae", 50)) / 100
           
           # Estimate PAE at backoff (power-law degradation model)
-          pout_ratio <- 10^((pout_bo_dbm - pout_dbm)/10)
+          # PAE degrades as power reduces: PAE_bo = PAE_full * (Pout_bo/Pout_full)^0.8
+          pout_ratio <- 10^((pout_bo_dbm - pout_dbm)/10)  # Power ratio (linear)
           pae_bo <- pae_full * (pout_ratio ^ 0.8)
-          pae_bo <- max(pae_bo, 0.1)  # Minimum 10% efficiency
+          pae_bo <- max(pae_bo, 0.05)  # Minimum 5% efficiency
+          
+          rationale <- c(rationale, sprintf("    [Calculating from power cascade]"))
+          rationale <- c(rationale, sprintf("    Full: Pin=%.2f + Gain=%.1f → Pout=%.2f dBm", 
+            current_pin, gain, pout_dbm))
+          rationale <- c(rationale, sprintf("    Backoff: Pin=%.2f + Gain=%.1f → Pout=%.2f dBm", 
+            current_pin_bo, gain, pout_bo_dbm))
         }
         
         # Power calculations

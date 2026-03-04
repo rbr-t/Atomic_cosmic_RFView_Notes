@@ -7176,10 +7176,12 @@ function applySpecsToComponents(specs) {
     console.log('[Apply Specs] Canvas redrawn');
   }
   
-  // Send updated components back to Shiny
+  // ═══ CRITICAL FIX: Send updated components back to Shiny (with explicit JSON.stringify) ═══
   if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
-    Shiny.setInputValue('lineup_components', components, {priority: 'event'});
-    console.log('[Apply Specs] Sent updated components to Shiny');
+    // Must stringify to match other component update handlers
+    Shiny.setInputValue('lineup_components', JSON.stringify(components), {priority: 'event'});
+    console.log('[Apply Specs] Sent updated components to Shiny (stringified)');
+    console.log('[Apply Specs] Sample component properties:', components[0]?.properties);
   }
   
   alert(`✓ Specifications applied!\n\nTechnology: ${techSelection.technology}\nFrequency: ${specs.frequency_ghz} GHz\nP3dB: ${specs.p3db} dBm\nGain: ${specs.gain} dB\n\nComponents updated. Click "Calculate Lineup" to see results.`);
