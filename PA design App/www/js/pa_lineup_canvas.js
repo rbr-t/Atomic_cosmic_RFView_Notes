@@ -7200,11 +7200,11 @@ function saveCurrentAsTemplate() {
       y: comp.y,
       properties: comp.properties
     })),
-    wires: window.paCanvas.wires.map(wire => ({
-      fromId: wire.fromId,
-      toId: wire.toId,
-      fromPort: wire.fromPort,
-      toPort: wire.toPort
+    connections: (window.paCanvas.connections || []).map(conn => ({
+      fromId: conn.fromId,
+      toId: conn.toId,
+      fromPort: conn.fromPort,
+      toPort: conn.toPort
     }))
   };
   
@@ -7253,20 +7253,37 @@ console.log('✓ Save template functions loaded');
 // ============================================================
 
 function initStickyCanvas() {
+  console.log('=== initStickyCanvas called ===');
+  
   const stickyBox = document.getElementById('sticky_canvas_box');
-  const tableViewSection = document.querySelector('[data-value="table_view"]') || 
-                           document.querySelector('.tab-pane') ||
-                           document.querySelector('.tabBox');
   
   if (!stickyBox) {
-    console.warn('Sticky canvas box not found');
+    console.warn('⚠ Sticky canvas box NOT found - element with id="sticky_canvas_box" does not exist');
     return;
+  }
+  
+  console.log('✓ Found sticky canvas box element');
+  console.log('Current computed position:', window.getComputedStyle(stickyBox).position);
+  
+  // Ensure parent containers support sticky positioning
+  let parent = stickyBox.parentElement;
+  let depth = 0;
+  while (parent && depth < 5) {
+    const styles = window.getComputedStyle(parent);
+    if (styles.overflow === 'hidden' || styles.overflow === 'auto') {
+      console.warn('⚠ Parent container has overflow:', styles.overflow, '- this may prevent sticky behavior');
+    }
+    parent = parent.parentElement;
+    depth++;
   }
   
   // Monitor scroll to add/remove stuck class for visual effect
   const observer = new IntersectionObserver(
     ([entry]) => {
-      if (entry.intersectionRatio < 1) {
+      const isStuck = entry.intersectionRatio < 1;
+      console.log('Intersection changed - Stuck:', isStuck, 'Ratio:', entry.intersectionRatio);
+      
+      if (isStuck) {
         stickyBox.classList.add('stuck');
       } else {
         stickyBox.classList.remove('stuck');
@@ -7277,7 +7294,7 @@ function initStickyCanvas() {
   
   observer.observe(stickyBox);
   
-  console.log('✓ Sticky canvas initialized');
+  console.log('✓ Sticky canvas initialized with IntersectionObserver');
 }
 
 // Initialize when DOM is ready

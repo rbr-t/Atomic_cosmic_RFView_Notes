@@ -1,19 +1,40 @@
 /* PA Design App Custom Styles */
 
 /* ============================================================ */
-/* Sticky Canvas Box - Stays visible until Table View          */
+/* Sticky Canvas Box - Stays visible during scroll              */
 /* ============================================================ */
 
+/* Ensure parent containers don't break sticky positioning */
+.content-wrapper, 
+.tab-content,
+#pa_lineup_tab {
+  overflow: visible !important;
+}
+
 #sticky_canvas_box {
-  position: sticky;
-  top: 0;
-  z-index: 900;
+  position: -webkit-sticky !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 900 !important;
   background: #1b1b1b;
   transition: all 0.3s ease;
+  margin-bottom: 20px;
+  /* Ensure element is block-level for sticky to work */
+  display: block;
+  width: 100%;
 }
 
 #sticky_canvas_box.stuck {
   box-shadow: 0 4px 20px rgba(255, 127, 17, 0.3);
+  border-bottom: 2px solid rgba(255, 127, 17, 0.5);
+}
+
+/* Alternative: If sticky doesn't work, provide visual feedback */
+@supports not (position: sticky) {
+  #sticky_canvas_box {
+    position: relative;
+    background: #2a2a2a;
+  }
 }
 
 /* ============================================================ */
