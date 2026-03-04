@@ -1,5 +1,23 @@
 /* PA Design App Custom Styles */
 
+/* ============================================================ */
+/* Sticky Canvas Box - Stays visible until Table View          */
+/* ============================================================ */
+
+#sticky_canvas_box {
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  background: #1b1b1b;
+  transition: all 0.3s ease;
+}
+
+#sticky_canvas_box.stuck {
+  box-shadow: 0 4px 20px rgba(255, 127, 17, 0.3);
+}
+
+/* ============================================================ */
+
 .skin-black .main-header .logo { 
   background-color: #1b1b1b; 
 }

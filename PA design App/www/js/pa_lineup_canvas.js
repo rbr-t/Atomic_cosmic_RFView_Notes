@@ -7248,3 +7248,50 @@ function editTemplate(filename, currentName) {
 window.editTemplate = editTemplate;
 
 console.log('✓ Save template functions loaded');
+// ============================================================
+// Sticky Canvas Functionality
+// ============================================================
+
+function initStickyCanvas() {
+  const stickyBox = document.getElementById('sticky_canvas_box');
+  const tableViewSection = document.querySelector('[data-value="table_view"]') || 
+                           document.querySelector('.tab-pane') ||
+                           document.querySelector('.tabBox');
+  
+  if (!stickyBox) {
+    console.warn('Sticky canvas box not found');
+    return;
+  }
+  
+  // Monitor scroll to add/remove stuck class for visual effect
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.intersectionRatio < 1) {
+        stickyBox.classList.add('stuck');
+      } else {
+        stickyBox.classList.remove('stuck');
+      }
+    },
+    { threshold: [1] }
+  );
+  
+  observer.observe(stickyBox);
+  
+  console.log('✓ Sticky canvas initialized');
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initStickyCanvas);
+} else {
+  initStickyCanvas();
+}
+
+// Also reinitialize after Shiny renders
+if (window.Shiny) {
+  Shiny.addCustomMessageHandler('reinit_sticky', function() {
+    setTimeout(initStickyCanvas, 100);
+  });
+}
+
+console.log('✓ Sticky canvas script loaded');

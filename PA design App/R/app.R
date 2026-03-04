@@ -496,6 +496,7 @@ ui <- dashboardPage(
                     width = 12,
                     status = "info",
                     solidHeader = TRUE,
+                    id = "sticky_canvas_box",
                     div(
                       id = "pa_lineup_canvas_container", 
                       style = "position: relative;",
@@ -3074,14 +3075,15 @@ server <- function(input, output, session) {
               class = "btn btn-warning btn-xs",
               style = "padding: 2px 6px;",
               title = "Edit template name",
-              onclick = sprintf("editTemplate('%s', '%s');", filename, template_name)
+              onclick = sprintf("console.log('Edit clicked: %s'); if(typeof editTemplate === 'function') { editTemplate('%s', '%s'); } else { alert('editTemplate function not found!'); }", filename, filename, template_name)
             ),
             actionButton(
               paste0("delete_template_", filename),
               icon("trash"),
               class = "btn btn-danger btn-xs",
               style = "padding: 2px 6px;",
-              title = "Delete template"
+              title = "Delete template",
+              onclick = sprintf("console.log('Delete clicked: %s');", filename)
             )
           )
         )
