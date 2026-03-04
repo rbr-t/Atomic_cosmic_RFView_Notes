@@ -6789,20 +6789,27 @@ window.estimatePassiveLoss = function(component_type, freq_ghz, length_lambda = 
 /**
  * Distribute gain across stages based on total gain requirement
  */
-window.distributeGain = function(total_gain_db, topology = 'balanced') {
-  console.log(`[Gain Distribution] Total: ${total_gain_db} dB, Topology: ${topology}`);
+window.distributeGain = function(total_gain_db, topology = 'balanced', targetStages = null) {
+  console.log(`[Gain Distribution] Total: ${total_gain_db} dB, Topology: ${topology}, Target Stages: ${targetStages}`);
   
   let stages = [];
   let num_stages = 1;
   
-  if (total_gain_db < 15) {
-    num_stages = 1;
-  } else if (total_gain_db < 30) {
-    num_stages = 2;
-  } else if (total_gain_db < 45) {
-    num_stages = 3;
+  // If targetStages specified, use it directly
+  if (targetStages !== null && targetStages > 0) {
+    num_stages = targetStages;
+    console.log(`[Gain Distribution] Using target stage count: ${num_stages}`);
   } else {
-    num_stages = 4;
+    // Auto-determine based on gain  
+    if (total_gain_db < 15) {
+      num_stages = 1;
+    } else if (total_gain_db < 30) {
+      num_stages = 2;
+    } else if (total_gain_db < 45) {
+      num_stages = 3;
+    } else {
+      num_stages = 4;
+    }
   }
   
   const max_stage_gain = 18;
@@ -6942,8 +6949,8 @@ function applySpecsToComponents(specs) {
   console.log('[Apply Specs] Estimated losses:', { matchingLoss, splitterLoss, combinerLoss });
   
   // Distribute gain across stages
-  const gainDist = distributeGain(specs.gain, 'doherty');  // Assume Doherty for now
-  console.log('[Apply Specs] Gain distribution:', gainDist);
+  let gainDist = distributeGain(specs.gain, 'doherty');  // Assume Doherty for now
+  console.log('[Apply Specs] Initial gain distribution:', gainDist);
   
   // CRITICAL FIX: For Doherty architecture, calculatePowerCascade needs the PER-PA power
   // requirement, not the system output power. For balanced Doherty:
@@ -6964,7 +6971,7 @@ function applySpecsToComponents(specs) {
   console.log(`[Apply Specs] Operating Points: Pavg=${pavg_dbm.toFixed(2)} dBm (BO), P3dB=${specs.p3db.toFixed(2)} dBm (Peak), PAR=${par_db.toFixed(1)} dB`);
   
   // Calculate power cascade at P3dB (peak power) with correct per-PA target
-  const powerCascade_p3db = calculatePowerCascade(pa_target_power, gainDist.stages);
+  let powerCascade_p3db = calculatePowerCascade(pa_target_power, gainDist.stages);
   console.log('[Apply Specs] Power cascade at P3dB (Peak):', powerCascade_p3db);
   
   // Calculate power cascade at Pavg (backoff power)
@@ -6973,7 +6980,7 @@ function applySpecsToComponents(specs) {
   const pavg_pa_target = topology === 'doherty'
     ? pavg_dbm - powerCombiningFactor + combinerLoss  // Per-PA power at backoff
     : pavg_dbm;
-  const powerCascade_pavg = calculatePowerCascade(pavg_pa_target, gainDist.stages);
+  let powerCascade_pavg = calculatePowerCascade(pavg_pa_target, gainDist.stages);
   console.log('[Apply Specs] Power cascade at Pavg (Backoff):', powerCascade_pavg);
   
   // Find transistor components
@@ -7003,6 +7010,33 @@ function applySpecsToComponents(specs) {
     auxPA: auxPA?.properties.label
   });
   
+  // ═══ CRITICAL FIX: Adapt gain distribution to actual component count ═══
+  // For Doherty: Main PA + Aux PA count as ONE power stage
+  // Actual stages = (preDriver ? 1 : 0) + (driver ? 1 : 0) + (mainPA || auxPA ? 1 : 0)
+  let actualStages = 0;
+  if (preDriver) actualStages++;
+  if (driver) actualStages++;
+  if (mainPA || auxPA) actualStages++;  // PA pair counts as one stage
+  
+  console.log(`[Apply Specs] Actual component stages: ${actualStages} (Pre=${!!preDriver}, Driver=${!!driver}, PA=${!!(mainPA||auxPA)})`);
+  
+  // If gain distribution created more stages than components exist, collapse it
+  if (gainDist.num_stages > actualStages) {
+    console.warn(`[Apply Specs] Gain distribution created ${gainDist.num_stages} stages but only ${actualStages} exist. Redistributing...`);
+    gainDist = distributeGain(specs.gain, topology, actualStages);  // Force correct stage count
+    console.log('[Apply Specs] Redistributed gain:', gainDist);
+    
+    // CRITICAL: Recalculate power cascades with corrected gain distribution
+    const powerCascade_p3db_new = calculatePowerCascade(pa_target_power, gainDist.stages);
+    const powerCascade_pavg_new = calculatePowerCascade(pavg_pa_target, gainDist.stages);
+    console.log('[Apply Specs] Recalculated P3dB cascade:', powerCascade_p3db_new);
+    console.log('[Apply Specs] Recalculated Pavg cascade:', powerCascade_pavg_new);
+    
+    // Update the cascade variables
+    powerCascade_p3db = powerCascade_p3db_new;
+    powerCascade_pavg = powerCascade_pavg_new;
+  }
+  
   // Update frequency for all components
   components.forEach(comp => {
     if (comp.properties) {
@@ -7024,58 +7058,70 @@ function applySpecsToComponents(specs) {
   });
   
   // Update transistors based on cascade and topology
+  console.log(`[Apply Specs] Applying to ${gainDist.num_stages}-stage configuration`);
+  
   if (gainDist.num_stages === 2) {
     // Driver + PA configuration
+    console.log('[Apply Specs] Using 2-stage path (Driver + PA)');
+    
     if (driver) {
       const driverStage_p3db = powerCascade_p3db.find(s => s.stage === 'Driver');
       const driverStage_pavg = powerCascade_pavg.find(s => s.stage === 'Driver');
       
-      driver.properties.frequency = specs.frequency_ghz;
-      driver.properties.technology = techSelection.technology;
-      driver.properties.gain = driverStage_p3db.gain;
+      if (!driverStage_p3db || !driverStage_pavg) {
+        console.error(`[Apply Specs] Could not find Driver stage in power cascade!`);
+        console.error(`  Available stages (P3dB):`, powerCascade_p3db.map(s => s.stage));
+        console.error(`  Available stages (Pavg):`, powerCascade_pavg.map(s => s.stage));
+      } else {
+        console.log(`[Apply Specs] Found Driver stage - P3dB: ${driverStage_p3db.pout.toFixed(2)} dBm, Pavg: ${driverStage_pavg.pout.toFixed(2)} dBm`);
       
-      // ===== OPERATING POINT: P3dB (Peak Power) =====
-      driver.properties.pout_p3db = driverStage_p3db.pout;
-      driver.properties.pin_p3db = driverStage_p3db.pin;
-      driver.properties.p3db = driverStage_p3db.pout;  // P3dB equals Pout at peak
-      driver.properties.p1db = driverStage_p3db.pout - 2;  // P1dB for compression check
+        driver.properties.frequency = specs.frequency_ghz;
+        driver.properties.technology = techSelection.technology;
+        driver.properties.gain = driverStage_p3db.gain;
       
-      // ===== OPERATING POINT: Pavg (Backoff Power) =====
-      driver.properties.pout_pavg = driverStage_pavg.pout;
-      driver.properties.pin_pavg = driverStage_pavg.pin;
-      driver.properties.pavg = driverStage_pavg.pout;
-      
-      // Efficiency at both operating points
-      driver.properties.biasClass = 'A';  // Driver typically Class A
-      driver.properties.pae_p3db = estimatePAE('A', 'conventional', specs.frequency_ghz);
-      driver.properties.pae_pavg = estimatePAE('A', 'conventional', specs.frequency_ghz);  // Class A has constant efficiency
-      driver.properties.pae = driver.properties.pae_p3db;  // Default display
-      driver.properties.vdd = specs.supply_voltage;
-      
-      // CRITICAL: Check driver compression at BOTH operating points
-      const driver_compressed_p3db = driver.properties.pout_p3db >= driver.properties.p1db;
-      const driver_compressed_pavg = driver.properties.pout_pavg >= driver.properties.p1db;
-      
-      if (driver_compressed_p3db) {
-        console.warn(`⚠️ DRIVER COMPRESSED AT P3dB: Pout=${driver.properties.pout_p3db.toFixed(2)} dBm >= P1dB=${driver.properties.p1db.toFixed(2)} dBm`);
-        console.warn(`   → Driver needs higher P1dB capability or lower output power requirement`);
+        // ===== OPERATING POINT: P3dB (Peak Power) =====
+        driver.properties.pout_p3db = driverStage_p3db.pout;
+        driver.properties.pin_p3db = driverStage_p3db.pin;
+        driver.properties.p3db = driverStage_p3db.pout;  // P3dB equals Pout at peak
+        driver.properties.p1db = driverStage_p3db.pout - 2;  // P1dB for compression check
+        
+        // ===== OPERATING POINT: Pavg (Backoff Power) =====
+        driver.properties.pout_pavg = driverStage_pavg.pout;
+        driver.properties.pin_pavg = driverStage_pavg.pin;
+        driver.properties.pavg = driverStage_pavg.pout;
+        
+        // Efficiency at both operating points
+        driver.properties.biasClass = 'A';  // Driver typically Class A
+        driver.properties.pae_p3db = estimatePAE('A', 'conventional', specs.frequency_ghz);
+        driver.properties.pae_pavg = estimatePAE('A', 'conventional', specs.frequency_ghz);  // Class A has constant efficiency
+        driver.properties.pae = driver.properties.pae_p3db;  // Default display
+        driver.properties.vdd = specs.supply_voltage;
+        
+        // CRITICAL: Check driver compression at BOTH operating points
+        const driver_compressed_p3db = driver.properties.pout_p3db >= driver.properties.p1db;
+        const driver_compressed_pavg = driver.properties.pout_pavg >= driver.properties.p1db;
+        
+        if (driver_compressed_p3db) {
+          console.warn(`⚠️ DRIVER COMPRESSED AT P3dB: Pout=${driver.properties.pout_p3db.toFixed(2)} dBm >= P1dB=${driver.properties.p1db.toFixed(2)} dBm`);
+          console.warn(`   → Driver needs higher P1dB capability or lower output power requirement`);
+        }
+        if (driver_compressed_pavg) {
+          console.warn(`⚠️ DRIVER COMPRESSED AT Pavg: Pout=${driver.properties.pout_pavg.toFixed(2)} dBm >= P1dB=${driver.properties.p1db.toFixed(2)} dBm`);
+          console.warn(`   → Driver must operate in linear region at backoff!`);
+        }
+        
+        // Store compression status
+        driver.properties.compressed_p3db = driver_compressed_p3db;
+        driver.properties.compressed_pavg = driver_compressed_pavg;
+        
+        // Legacy fields for backward compatibility
+        driver.properties.pout = driverStage_p3db.pout;
+        driver.properties.pin = driverStage_p3db.pin;
+        
+        console.log('[Apply Specs] Updated Driver:');
+        console.log(`  At P3dB: Pin=${driver.properties.pin_p3db.toFixed(2)} dBm, Pout=${driver.properties.pout_p3db.toFixed(2)} dBm, PAE=${driver.properties.pae_p3db}%, Compressed=${driver_compressed_p3db}`);
+        console.log(`  At Pavg: Pin=${driver.properties.pin_pavg.toFixed(2)} dBm, Pout=${driver.properties.pout_pavg.toFixed(2)} dBm, PAE=${driver.properties.pae_pavg}%, Compressed=${driver_compressed_pavg}`);
       }
-      if (driver_compressed_pavg) {
-        console.warn(`⚠️ DRIVER COMPRESSED AT Pavg: Pout=${driver.properties.pout_pavg.toFixed(2)} dBm >= P1dB=${driver.properties.p1db.toFixed(2)} dBm`);
-        console.warn(`   → Driver must operate in linear region at backoff!`);
-      }
-      
-      // Store compression status
-      driver.properties.compressed_p3db = driver_compressed_p3db;
-      driver.properties.compressed_pavg = driver_compressed_pavg;
-      
-      // Legacy fields for backward compatibility
-      driver.properties.pout = driverStage_p3db.pout;
-      driver.properties.pin = driverStage_p3db.pin;
-      
-      console.log('[Apply Specs] Updated Driver:');
-      console.log(`  At P3dB: Pin=${driver.properties.pin_p3db.toFixed(2)} dBm, Pout=${driver.properties.pout_p3db.toFixed(2)} dBm, PAE=${driver.properties.pae_p3db}%, Compressed=${driver_compressed_p3db}`);
-      console.log(`  At Pavg: Pin=${driver.properties.pin_pavg.toFixed(2)} dBm, Pout=${driver.properties.pout_pavg.toFixed(2)} dBm, PAE=${driver.properties.pae_pavg}%, Compressed=${driver_compressed_pavg}`);
     }
     
     // Update Main PA
@@ -7167,6 +7213,167 @@ function applySpecsToComponents(specs) {
       console.log(`[Apply Specs] Updated Aux PA (Doherty):`);
       console.log(`  At P3dB: Pin=${auxPA.properties.pin_p3db.toFixed(2)} dBm, Pout=${auxPA.properties.pout_p3db.toFixed(2)} dBm, PAE=${auxPA.properties.pae_p3db}% (Active)`);
       console.log(`  At Pavg: Pin=${auxPA.properties.pin_pavg.toFixed(2)} dBm, Pout=${auxPA.properties.pout_pavg.toFixed(2)} dBm, PAE=${auxPA.properties.pae_pavg}% (Mostly OFF - Doherty principle)`);
+    }
+  } else if (gainDist.num_stages === 3) {
+    // Three-stage configuration: Pre-Driver + Driver + PA (Main + Aux)
+    console.log('[Apply Specs] Configuring 3-stage lineup: Pre-Driver + Driver + PA');
+    
+    // Update Pre-Driver
+    if (preDriver) {
+      const preDriverStage_p3db = powerCascade_p3db.find(s => s.stage === 'Pre-Driver');
+      const preDriverStage_pavg = powerCascade_pavg.find(s => s.stage === 'Pre-Driver');
+      
+      preDriver.properties.frequency = specs.frequency_ghz;
+      preDriver.properties.technology = techSelection.technology;
+      preDriver.properties.gain = preDriverStage_p3db.gain;
+      
+      // Operating points
+      preDriver.properties.pout_p3db = preDriverStage_p3db.pout;
+      preDriver.properties.pin_p3db = preDriverStage_p3db.pin;
+      preDriver.properties.p3db = preDriverStage_p3db.pout;
+      preDriver.properties.p1db = preDriverStage_p3db.pout - 2;
+      
+      preDriver.properties.pout_pavg = preDriverStage_pavg.pout;
+      preDriver.properties.pin_pavg = preDriverStage_pavg.pin;
+      preDriver.properties.pavg = preDriverStage_pavg.pout;
+      
+      preDriver.properties.biasClass = 'A';
+      preDriver.properties.pae_p3db = estimatePAE('A', 'conventional', specs.frequency_ghz);
+      preDriver.properties.pae_pavg = estimatePAE('A', 'conventional', specs.frequency_ghz);
+      preDriver.properties.pae = preDriver.properties.pae_p3db;
+      preDriver.properties.vdd = specs.supply_voltage;
+      
+      preDriver.properties.compressed_p3db = preDriver.properties.pout_p3db >= preDriver.properties.p1db;
+      preDriver.properties.compressed_pavg = preDriver.properties.pout_pavg >= preDriver.properties.p1db;
+      
+      preDriver.properties.pout = preDriverStage_p3db.pout;
+      preDriver.properties.pin = preDriverStage_p3db.pin;
+      
+      console.log('[Apply Specs] Updated Pre-Driver:');
+      console.log(`  At P3dB: Pin=${preDriver.properties.pin_p3db.toFixed(2)} dBm, Pout=${preDriver.properties.pout_p3db.toFixed(2)} dBm, PAE=${preDriver.properties.pae_p3db}%`);
+      console.log(`  At Pavg: Pin=${preDriver.properties.pin_pavg.toFixed(2)} dBm, Pout=${preDriver.properties.pout_pavg.toFixed(2)} dBm, PAE=${preDriver.properties.pae_pavg}%`);
+    }
+    
+    // Update Driver
+    if (driver) {
+      const driverStage_p3db = powerCascade_p3db.find(s => s.stage === 'Driver');
+      const driverStage_pavg = powerCascade_pavg.find(s => s.stage === 'Driver');
+      
+      driver.properties.frequency = specs.frequency_ghz;
+      driver.properties.technology = techSelection.technology;
+      driver.properties.gain = driverStage_p3db.gain;
+      
+      // Operating points
+      driver.properties.pout_p3db = driverStage_p3db.pout;
+      driver.properties.pin_p3db = driverStage_p3db.pin;
+      driver.properties.p3db = driverStage_p3db.pout;
+      driver.properties.p1db = driverStage_p3db.pout - 2;
+      
+      driver.properties.pout_pavg = driverStage_pavg.pout;
+      driver.properties.pin_pavg = driverStage_pavg.pin;
+      driver.properties.pavg = driverStage_pavg.pout;
+      
+      driver.properties.biasClass = 'A';
+      driver.properties.pae_p3db = estimatePAE('A', 'conventional', specs.frequency_ghz);
+      driver.properties.pae_pavg = estimatePAE('A', 'conventional', specs.frequency_ghz);
+      driver.properties.pae = driver.properties.pae_p3db;
+      driver.properties.vdd = specs.supply_voltage;
+      
+      const driver_compressed_p3db = driver.properties.pout_p3db >= driver.properties.p1db;
+      const driver_compressed_pavg = driver.properties.pout_pavg >= driver.properties.p1db;
+      
+      if (driver_compressed_p3db) {
+        console.warn(`⚠️ DRIVER COMPRESSED AT P3dB: Pout=${driver.properties.pout_p3db.toFixed(2)} dBm >= P1dB=${driver.properties.p1db.toFixed(2)} dBm`);
+      }
+      if (driver_compressed_pavg) {
+        console.warn(`⚠️ DRIVER COMPRESSED AT Pavg: Pout=${driver.properties.pout_pavg.toFixed(2)} dBm >= P1dB=${driver.properties.p1db.toFixed(2)} dBm`);
+      }
+      
+      driver.properties.compressed_p3db = driver_compressed_p3db;
+      driver.properties.compressed_pavg = driver_compressed_pavg;
+      
+      driver.properties.pout = driverStage_p3db.pout;
+      driver.properties.pin = driverStage_p3db.pin;
+      
+      console.log('[Apply Specs] Updated Driver:');
+      console.log(`  At P3dB: Pin=${driver.properties.pin_p3db.toFixed(2)} dBm, Pout=${driver.properties.pout_p3db.toFixed(2)} dBm, PAE=${driver.properties.pae_p3db}%, Compressed=${driver_compressed_p3db}`);
+      console.log(`  At Pavg: Pin=${driver.properties.pin_pavg.toFixed(2)} dBm, Pout=${driver.properties.pout_pavg.toFixed(2)} dBm, PAE=${driver.properties.pae_pavg}%, Compressed=${driver_compressed_pavg}`);
+    }
+    
+    // Update Main PA (same as 2-stage case)
+    if (mainPA) {
+      const paStage_p3db = powerCascade_p3db.find(s => s.stage === 'PA');
+      const paStage_pavg = powerCascade_pavg.find(s => s.stage === 'PA');
+      
+      mainPA.properties.frequency = specs.frequency_ghz;
+      mainPA.properties.technology = techSelection.technology;
+      mainPA.properties.gain = paStage_p3db.gain;
+      
+      const powerCombiningFactor = 3.01;
+      
+      // P3dB operating point
+      const pa_p3db_target = specs.p3db - powerCombiningFactor + combinerLoss;
+      mainPA.properties.pout_p3db = pa_p3db_target;
+      mainPA.properties.pin_p3db = pa_p3db_target - paStage_p3db.gain;
+      mainPA.properties.p3db = pa_p3db_target;
+      mainPA.properties.p1db = pa_p3db_target - 2.0;
+      
+      // Pavg operating point
+      const pa_pavg_target = pavg_dbm - powerCombiningFactor + combinerLoss;
+      mainPA.properties.pout_pavg = pa_pavg_target;
+      mainPA.properties.pin_pavg = pa_pavg_target - paStage_pavg.gain;
+      mainPA.properties.pavg = pa_pavg_target;
+      
+      mainPA.properties.biasClass = 'AB';
+      mainPA.properties.pae_p3db = estimatePAE('AB', 'doherty', specs.frequency_ghz);
+      mainPA.properties.pae_pavg = Math.round(estimatePAE('AB', 'doherty', specs.frequency_ghz) * 1.1);
+      mainPA.properties.pae = mainPA.properties.pae_p3db;
+      mainPA.properties.vdd = specs.supply_voltage;
+      
+      mainPA.properties.pout = pa_p3db_target;
+      mainPA.properties.pin = mainPA.properties.pin_p3db;
+      
+      console.log(`[Apply Specs] Updated Main PA (Doherty):`);
+      console.log(`  At P3dB: Pin=${mainPA.properties.pin_p3db.toFixed(2)} dBm, Pout=${mainPA.properties.pout_p3db.toFixed(2)} dBm, PAE=${mainPA.properties.pae_p3db}%`);
+      console.log(`  At Pavg: Pin=${mainPA.properties.pin_pavg.toFixed(2)} dBm, Pout=${mainPA.properties.pout_pavg.toFixed(2)} dBm, PAE=${mainPA.properties.pae_pavg}%`);
+    }
+    
+    // Update Aux PA
+    if (auxPA) {
+      const paStage_p3db = powerCascade_p3db.find(s => s.stage === 'PA');
+      const paStage_pavg = powerCascade_pavg.find(s => s.stage === 'PA');
+      
+      auxPA.properties.frequency = specs.frequency_ghz;
+      auxPA.properties.technology = techSelection.technology;
+      auxPA.properties.gain = paStage_p3db.gain;
+      
+      const powerCombiningFactor = 3.01;
+      
+      // P3dB operating point
+      const pa_p3db_target = specs.p3db - powerCombiningFactor + combinerLoss;
+      auxPA.properties.pout_p3db = pa_p3db_target;
+      auxPA.properties.pin_p3db = pa_p3db_target - paStage_p3db.gain;
+      auxPA.properties.p3db = pa_p3db_target;
+      auxPA.properties.p1db = pa_p3db_target - 2.0;
+      
+      // Pavg operating point (Aux PA mostly off at backoff)
+      const aux_backoff_reduction = 10;
+      auxPA.properties.pout_pavg = pa_pavg_target - aux_backoff_reduction;
+      auxPA.properties.pin_pavg = auxPA.properties.pout_pavg - paStage_pavg.gain;
+      auxPA.properties.pavg = auxPA.properties.pout_pavg;
+      
+      auxPA.properties.biasClass = 'C';
+      auxPA.properties.pae_p3db = estimatePAE('C', 'doherty', specs.frequency_ghz);
+      auxPA.properties.pae_pavg = 15;
+      auxPA.properties.pae = auxPA.properties.pae_p3db;
+      auxPA.properties.vdd = specs.supply_voltage;
+      
+      auxPA.properties.pout = pa_p3db_target;
+      auxPA.properties.pin = auxPA.properties.pin_p3db;
+      
+      console.log(`[Apply Specs] Updated Aux PA (Doherty):`);
+      console.log(`  At P3dB: Pin=${auxPA.properties.pin_p3db.toFixed(2)} dBm, Pout=${auxPA.properties.pout_p3db.toFixed(2)} dBm, PAE=${auxPA.properties.pae_p3db}%`);
+      console.log(`  At Pavg: Pin=${auxPA.properties.pin_pavg.toFixed(2)} dBm, Pout=${auxPA.properties.pout_pavg.toFixed(2)} dBm, PAE=${auxPA.properties.pae_pavg}%`);
     }
   }
   

@@ -2307,29 +2307,38 @@ server <- function(input, output, session) {
   # ============================================================
   
   output$calculated_Pavg <- renderText({
-    # Get components to calculate total lineup Pout
-    components <- lineup_components()
+    # CRITICAL FIX: Calculate Pavg from SPECIFICATIONS (P3dB - PAR), not from components!
+    # The specification defines the system operating points, not the component calculations.
     
-    if(is.null(components) || length(components) == 0) {
-      return("N/A")
-    }
+    # Get specification values
+    p3db <- input$spec_p3db
+    par <- input$spec_par
     
-    # Find final output power (last transistor in chain)
-    final_pout <- 43  # default if no transistors found
-    
-    for(comp in components) {
-      if(!is.null(comp$type) && comp$type == "transistor") {
-        if(!is.null(comp$properties) && !is.null(comp$properties$pout)) {
-          final_pout <- comp$properties$pout
+    # Validate inputs
+    if(is.null(p3db) || is.null(par)) {
+      # Fallback: try to get from components if specs not available
+      components <- lineup_components()
+      if(is.null(components) || length(components) == 0) {
+        return("N/A")
+      }
+      
+      # Find final output power (last transistor in chain)
+      final_pout <- 43  # default
+      for(comp in components) {
+        if(!is.null(comp$type) && comp$type == "transistor") {
+          if(!is.null(comp$properties) && !is.null(comp$properties$pout)) {
+            final_pout <- comp$properties$pout
+          }
         }
       }
+      
+      backoff <- input$global_backoff
+      if(is.null(backoff)) backoff <- 6
+      pavg <- final_pout - backoff
+    } else {
+      # ✓ CORRECT: Pavg = P3dB - PAR (from specifications)
+      pavg <- p3db - par
     }
-    
-    # Calculate Pavg = Pout - Backoff
-    backoff <- input$global_backoff
-    if(is.null(backoff)) backoff <- 6
-    
-    pavg <- final_pout - backoff
     
     return(sprintf("%.1f dBm", pavg))
   })
@@ -3348,7 +3357,7 @@ server <- function(input, output, session) {
           pin_dbm = current_pin,
           pout_dbm = pout_dbm,
           gain_db = gain,
-          pae_pct = as.numeric(safeProp(props, "pae", 50)),
+          pae_pct = pae_full * 100,  # ← FIX: Use calculated PAE, not component property!
           pdc_w = pdc_w,
           pdiss_w = pdiss_w,
           idc_a = idc_a,
@@ -3534,8 +3543,18 @@ server <- function(input, output, session) {
       connections = lineup_connections()
     ))
     
-    # Get input power from first component or use default
-    input_power <- 0  # Default 0 dBm
+    # ═══ CRITICAL FIX: Calculate required input power from specifications ═══
+    # If specs available: Pin_required = P3dB - Total_Gain
+    # This ensures the cascade reaches the target P3dB output power
+    if(!is.null(input$spec_p3db) && !is.null(input$spec_gain)) {
+      input_power <- input$spec_p3db - input$spec_gain
+      cat(sprintf("[Calculate] Using specs: P3dB=%.1f dBm, Gain=%.1f dB → Pin=%.2f dBm\n", 
+        input$spec_p3db, input$spec_gain, input_power))
+    } else {
+      # Fallback: use default input power
+      input_power <- 0  # dBm
+      cat("[Calculate] Warning: No specs available, using default Pin=0 dBm\n")
+    }
     
     # ═══ CRITICAL FIX: Use PAR from specs if available, else backoff_db ═══
     # Priority: 1) spec_par (correct), 2) backoff_db (legacy)
