@@ -6198,6 +6198,9 @@ function initializeMultiCanvas(layout = "1x1") {
     }
   });
   window.paCanvases = [];
+  
+  // Clear shared palette before creating new layout
+  d3.select('#shared_component_palette').remove();
   window.canvasLabels = [];
   
   // Find or create the canvas grid container
@@ -6325,8 +6328,13 @@ function initializeMultiCanvas(layout = "1x1") {
     setActiveCanvas(0);
   }
   
-  // Create shared palette for multi-canvas mode
-  createSharedPalette();
+  // IMPORTANT: Only create shared palette if NOT in single canvas mode
+  if (layout !== '1x1') {
+    createSharedPalette();
+    console.log('✓ Shared palette created for multi-canvas layout');
+  } else {
+    console.log('📌 Single canvas mode - palette disabled (use right sidebar)');
+  }
   
   console.log(`✅ Multi-canvas initialized: ${dimensions.count} canvases`);
   return true;
@@ -7246,6 +7254,28 @@ function editTemplate(filename, currentName) {
 }
 
 window.editTemplate = editTemplate;
+
+// Load User Template Function
+function loadUserTemplate(filename) {
+  console.log('=== loadUserTemplate called ===');
+  console.log('Filename:', filename);
+  
+  if (!window.paCanvas) {
+    alert('Canvas not initialized!');
+    return;
+  }
+  
+  // Send to Shiny to load the template
+  if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
+    Shiny.setInputValue('load_user_template_filename', filename, {priority: 'event'});
+    console.log(`📂 Loading user template: ${filename}`);
+  } else {
+    console.error('Shiny not available!');
+    alert('Error: Cannot load template (Shiny not connected)');
+  }
+}
+
+window.loadUserTemplate = loadUserTemplate;
 
 console.log('✓ Save template functions loaded');
 // ============================================================

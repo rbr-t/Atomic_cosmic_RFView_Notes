@@ -563,6 +563,11 @@ ui <- dashboardPage(
                             div(class = "preset-template", `data-preset` = "blank",
                               h5("Blank Canvas"),
                               p("Start from scratch")
+                            ),
+                            # User Saved Templates Section
+                            tags$div(class = "sidebar-section-label", style = "font-size: 10px; color: #999; margin: 15px 10px 5px 10px; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;", "USER SAVED TEMPLATES"),
+                            tags$div(id = "user_templates_top_sidebar",
+                              uiOutput("user_templates_top_display")
                             )
                           )
                         )
@@ -803,6 +808,82 @@ ui <- dashboardPage(
                 
                 # Right: Component Properties & Results
                 column(4,
+                  # Specifications Box (NEW)
+                  box(
+                    title = tagList(icon("clipboard-list"), "Specifications"),
+                    width = 12,
+                    status = "info",
+                    solidHeader = TRUE,
+                    collapsible = TRUE,
+                    collapsed = TRUE,
+                    fluidRow(
+                      column(6,
+                        numericInput("spec_frequency", "Frequency (MHz)", value = 1805, min = 100, max = 10000, step = 1)
+                      ),
+                      column(6,
+                        numericInput("spec_supply_voltage", "Supply Voltage (V)", value = 30, min = 5, max = 50, step = 1)
+                      )
+                    ),
+                    fluidRow(
+                      column(6,
+                        numericInput("spec_gain", "Gain (dB)", value = 41.5, min = 0, max = 80, step = 0.1)
+                      ),
+                      column(6,
+                        numericInput("spec_p3db", "P3dB (dBm)", value = 55.3, min = 0, max = 80, step = 0.1)
+                      )
+                    ),
+                    fluidRow(
+                      column(6,
+                        numericInput("spec_am_pm_p3db", "AM-PM @ P3dB (deg)", value = -25, min = -50, max = 50, step = 0.1)
+                      ),
+                      column(6,
+                        numericInput("spec_am_pm_dispersion", "AM-PM Dispersion (deg)", value = 8, min = 0, max = 50, step = 0.1)
+                      )
+                    ),
+                    fluidRow(
+                      column(6,
+                        numericInput("spec_group_delay", "Group Delay Flatness (ns)", value = 1, min = 0, max = 100, step = 0.1)
+                      ),
+                      column(6,
+                        numericInput("spec_efficiency", "Efficiency (%)", value = 47, min = 0, max = 100, step = 1)
+                      )
+                    ),
+                    fluidRow(
+                      column(6,
+                        numericInput("spec_acp", "ACP (dBc)", value = -30, min = -80, max = 0, step = 0.1)
+                      ),
+                      column(6,
+                        numericInput("spec_gain_ripple_inband", "Gain Ripple In-band (dB)", value = 1.0, min = 0, max = 10, step = 0.1)
+                      )
+                    ),
+                    fluidRow(
+                      column(6,
+                        numericInput("spec_gain_ripple_3xband", "Gain Ripple 3x Band (dB)", value = 3.0, min = 0, max = 10, step = 0.1)
+                      ),
+                      column(6,
+                        numericInput("spec_input_return_loss", "Input Return Loss (dB)", value = -15, min = -50, max = 0, step = 0.1)
+                      )
+                    ),
+                    fluidRow(
+                      column(6,
+                        numericInput("spec_vbw", "VBW (MHz)", value = 225, min = 1, max = 1000, step = 1)
+                      ),
+                      column(6,
+                        selectInput("spec_test_conditions", "Test Conditions",
+                          choices = c(
+                            "DC" = "dc",
+                            "CW" = "cw",
+                            "NVA Sweep 25ms" = "nva_25ms",
+                            "Nokia LTE 1c 10MHz" = "nokia_lte",
+                            "Low Freq Resonance" = "low_freq_res"
+                          ),
+                          selected = "cw"
+                        )
+                      )
+                    ),
+                    helpText(icon("info-circle"), " Target specifications for the PA lineup design.")
+                  ),
+                  
                   # Global Lineup Parameters
                   box(
                     title = tagList(icon("globe"), "Global Lineup Parameters"),
@@ -3082,8 +3163,7 @@ server <- function(input, output, session) {
               icon("trash"),
               class = "btn btn-danger btn-xs",
               style = "padding: 2px 6px;",
-              title = "Delete template",
-              onclick = sprintf("console.log('Delete clicked: %s');", filename)
+              title = "Delete template"
             )
           )
         )
@@ -3091,7 +3171,38 @@ server <- function(input, output, session) {
     })
   })
   
-  # Delete template observer
+  # Render user templates in top sidebar (Architecture Templates section)
+  output$user_templates_top_display <- renderUI({
+    templates <- getUserTemplates()
+    
+    if(length(templates) == 0) {
+      return(tags$div(
+        style = "text-align: center; color: #777; font-size: 11px; padding: 10px; font-style: italic;",
+        "No saved templates yet"
+      ))
+    }
+    
+    lapply(templates, function(tmpl) {
+      template_filename <- sub("^user_", "", tmpl$id)
+      
+      tags$div(
+        class = "preset-template user-template",
+        `data-preset` = paste0("user_", template_filename),
+        `data-user-template` = "true",
+        onclick = sprintf("loadUserTemplate('%s');", template_filename),
+        tags$h5(style = "margin: 0; color: #FF7F11;", icon("star"), " ", tmpl$name),
+        tags$p(style = "margin: 2px 0 0 0; font-size: 10px;", sprintf("%d components", tmpl$components_count))
+      )
+    })
+  })
+  
+  # Observe changes that require updating both template displays
+  observe({
+    # Trigger re-render of both template UIs when files change
+    list.files(file.path("R", "user_templates"), pattern = "\\.json$")
+  }) %>% debounce(500)  # Debounce to avoid too frequent updates
+  
+  # Template delete/edit observers remain the same
   observe({
     templates <- getUserTemplates()
     
@@ -3195,6 +3306,41 @@ server <- function(input, output, session) {
         type = "error"
       )
       cat(sprintf("[Template Error] %s\n", e$message))
+    })
+  })
+  
+  # Load user template observer (from top sidebar Architecture Templates)
+  observeEvent(input$load_user_template_filename, {
+    req(input$load_user_template_filename)
+    
+    filename <- input$load_user_template_filename
+    filepath <- file.path("R", "user_templates", paste0(filename, ".json"))
+    
+    if(!file.exists(filepath)) {
+      showNotification("Template file not found", type = "error")
+      return()
+    }
+    
+    tryCatch({
+      template_data <- jsonlite::read_json(filepath, simplifyVector = TRUE)
+      
+      # Send template data to JavaScript  
+      session$sendCustomMessage("loadTemplateData", template_data)
+      
+      showNotification(
+        sprintf("Loaded template: %s", template_data$name),
+        type = "message",
+        duration = 3
+      )
+      
+      cat(sprintf("[Template] Loaded: %s\n", template_data$name))
+      
+    }, error = function(e) {
+      showNotification(
+        sprintf("Failed to load template: %s", e$message),
+        type = "error"
+      )
+      cat(sprintf("[Template Error] Failed to load %s: %s\n", filename, e$message))
     })
   })
   

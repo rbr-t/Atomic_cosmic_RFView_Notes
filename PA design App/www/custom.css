@@ -1,16 +1,21 @@
 /* PA Design App Custom Styles */
 
 /* ============================================================ */
-/* Sticky Canvas Box - Stays visible during scroll              */
+/* Sticky Canvas Box - Make canvas stay at top during scroll    */
 /* ============================================================ */
 
-/* Ensure parent containers don't break sticky positioning */
-.content-wrapper, 
-.tab-content,
-#pa_lineup_tab {
+/* Critical: Prevent parent containers from breaking sticky */
+.content-wrapper {
+  overflow: visible !important;
+  height: auto !important;
+}
+
+#pa_lineup_tab,
+.tab-content {
   overflow: visible !important;
 }
 
+/* Sticky canvas box */
 #sticky_canvas_box {
   position: -webkit-sticky !important;
   position: sticky !important;
@@ -19,17 +24,17 @@
   background: #1b1b1b;
   transition: all 0.3s ease;
   margin-bottom: 20px;
-  /* Ensure element is block-level for sticky to work */
   display: block;
   width: 100%;
 }
 
+/* Visual feedback when stuck */
 #sticky_canvas_box.stuck {
   box-shadow: 0 4px 20px rgba(255, 127, 17, 0.3);
   border-bottom: 2px solid rgba(255, 127, 17, 0.5);
 }
 
-/* Alternative: If sticky doesn't work, provide visual feedback */
+/* Fallback for older browsers */
 @supports not (position: sticky) {
   #sticky_canvas_box {
     position: relative;
