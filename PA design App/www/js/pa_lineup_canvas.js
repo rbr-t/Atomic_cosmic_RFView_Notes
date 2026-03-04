@@ -6501,6 +6501,154 @@ function setupTemplateHandlers(templates) {
   console.log('✓ All template handlers set up successfully');
 }
 
+// ==============================================================================
+// APPLY SPECIFICATIONS TO COMPONENTS
+// ==============================================================================
+
+/**
+ * Apply specifications to existing lineup components
+ * Updates transistor parameters based on specs
+ */
+function applySpecsToComponents(specs) {
+  console.log('[Apply Specs] Starting component adaptation...');
+  
+  if (!window.paCanvas || !window.paCanvas.components) {
+    console.error('[Apply Specs] Canvas or components not available');
+    return;
+  }
+  
+  const components = window.paCanvas.components;
+  console.log(`[Apply Specs] Found ${components.length} components`);
+  
+  // Select technology based on frequency and power
+  const techSelection = selectTechnology(specs.frequency_ghz, specs.p3db, specs.supply_voltage);
+  console.log('[Apply Specs] Technology selected:', techSelection.technology);
+  
+  // Distribute gain across stages
+  const gainDist = distributeGain(specs.gain, 'doherty');  // Assume Doherty for now
+  console.log('[Apply Specs] Gain distribution:', gainDist);
+  
+  // Calculate power cascade
+  const powerCascade = calculatePowerCascade(specs.p3db, gainDist.stages);
+  console.log('[Apply Specs] Power cascade:', powerCascade);
+  
+  // Find transistor components
+  const transistors = components.filter(c => c.type === 'transistor');
+  console.log(`[Apply Specs] Found ${transistors.length} transistors`);
+  
+  // Identify component roles based on labels
+  let driver = null, mainPA = null, auxPA = null, preDriver = null;
+  
+  transistors.forEach(t => {
+    const label = t.properties.label.toLowerCase();
+    if (label.includes('pre') || label.includes('predriver')) {
+      preDriver = t;
+    } else if (label.includes('driver') && !label.includes('main') && !label.includes('aux')) {
+      driver = t;
+    } else if (label.includes('main')) {
+      mainPA = t;
+    } else if (label.includes('aux')) {
+      auxPA = t;
+    }
+  });
+  
+  console.log('[Apply Specs] Identified components:', {
+    preDriver: preDriver?.properties.label,
+    driver: driver?.properties.label,
+    mainPA: mainPA?.properties.label,
+    auxPA: auxPA?.properties.label
+  });
+  
+  // Update frequency for all components
+  components.forEach(comp => {
+    if (comp.properties) {
+      comp.properties.frequency = specs.frequency_ghz;
+    }
+  });
+  
+  // Calculate passive losses
+  const matchingLoss = estimatePassiveLoss('matching', specs.frequency_ghz, 0.25).loss;
+  const splitterLoss = estimatePassiveLoss('splitter', specs.frequency_ghz).loss;
+  const combinerLoss = estimatePassiveLoss('doherty_combiner', specs.frequency_ghz).loss;
+  
+  console.log('[Apply Specs] Estimated losses:', { matchingLoss, splitterLoss, combinerLoss });
+  
+  // Update passive component losses
+  components.filter(c => c.type === 'matching').forEach(m => {
+    m.properties.loss = matchingLoss;
+  });
+  
+  components.filter(c => c.type === 'splitter').forEach(s => {
+    s.properties.loss = splitterLoss;
+  });
+  
+  components.filter(c => c.type === 'combiner').forEach(c => {
+    c.properties.loss = combinerLoss;
+  });
+  
+  // Update transistors based on cascade and topology
+  if (gainDist.num_stages === 2) {
+    // Driver + PA configuration
+    if (driver) {
+      const driverStage = powerCascade.find(s => s.stage === 'Driver');
+      driver.properties.frequency = specs.frequency_ghz;
+      driver.properties.technology = techSelection.technology;
+      driver.properties.gain = driverStage.gain;
+      driver.properties.pout = driverStage.pout;
+      driver.properties.p1db = calculateP1dB(driverStage.pout);
+      driver.properties.p3db = driverStage.pout + 2;
+      driver.properties.biasClass = 'A';  // Driver typically Class A
+      driver.properties.pae = estimatePAE('A', 'conventional', specs.frequency_ghz);
+      driver.properties.vdd = specs.supply_voltage;
+      console.log('[Apply Specs] Updated Driver:', driver.properties);
+    }
+    
+    // Update Main PA
+    if (mainPA) {
+      const paStage = powerCascade.find(s => s.stage === 'PA');
+      mainPA.properties.frequency = specs.frequency_ghz;
+      mainPA.properties.technology = techSelection.technology;
+      mainPA.properties.gain = paStage.gain;
+      mainPA.properties.pout = specs.p3db;
+      mainPA.properties.p1db = specs.p1db;
+      mainPA.properties.p3db = specs.p3db;
+      mainPA.properties.biasClass = 'AB';  // Main PA in Doherty
+      mainPA.properties.pae = estimatePAE('AB', 'doherty', specs.frequency_ghz);
+      mainPA.properties.vdd = specs.supply_voltage;
+      console.log('[Apply Specs] Updated Main PA:', mainPA.properties);
+    }
+    
+    // Update Aux PA (should have similar power to Main)
+    if (auxPA) {
+      const paStage = powerCascade.find(s => s.stage === 'PA');
+      auxPA.properties.frequency = specs.frequency_ghz;
+      auxPA.properties.technology = techSelection.technology;
+      auxPA.properties.gain = paStage.gain;
+      auxPA.properties.pout = specs.p3db - 3;  // Aux typically 3dB lower
+      auxPA.properties.p1db = auxPA.properties.pout - 2;
+      auxPA.properties.p3db = auxPA.properties.pout;
+      auxPA.properties.biasClass = 'C';  // Aux PA in Doherty
+      auxPA.properties.pae = estimatePAE('C', 'doherty', specs.frequency_ghz);
+      auxPA.properties.vdd = specs.supply_voltage;
+      console.log('[Apply Specs] Updated Aux PA:', auxPA.properties);
+    }
+  }
+  
+  // Trigger canvas redraw
+  if (window.paCanvas && window.paCanvas.render) {
+    window.paCanvas.render();
+    console.log('[Apply Specs] Canvas redrawn');
+  }
+  
+  // Send updated components back to Shiny
+  if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
+    Shiny.setInputValue('lineup_components', components, {priority: 'event'});
+    console.log('[Apply Specs] Sent updated components to Shiny');
+  }
+  
+  alert(`✓ Specifications applied!\n\nTechnology: ${techSelection.technology}\nFrequency: ${specs.frequency_ghz} GHz\nP3dB: ${specs.p3db} dBm\nGain: ${specs.gain} dB\n\nComponents updated. Click "Calculate Lineup" to see results.`);
+}
+
 // Custom message handlers for Shiny
 console.log('pa_lineup_canvas.js: Script loaded at', new Date().toISOString());
 console.log('pa_lineup_canvas.js: Shiny object available?', typeof Shiny !== 'undefined');
@@ -6731,6 +6879,36 @@ function registerMessageHandlers() {
       console.log('=== RECEIVED reloadUserTemplates MESSAGE FROM R ===');
       // Trigger re-render by requesting updated list
       // The observer in R will automatically send updateUserTemplates
+    });
+    
+    // Handler 7: Apply Specifications to Lineup
+    ShinyObj.addCustomMessageHandler('applySpecsToLineup', function(specs) {
+      console.log('=== RECEIVED applySpecsToLineup MESSAGE FROM R ===');
+      console.log('Specifications:', specs);
+      
+      if (!window.paCanvas) {
+        console.error('Canvas not initialized!');
+        alert('Canvas not initialized. Please wait for canvas to load.');
+        return;
+      }
+      
+      // Store specs globally for current canvas
+      window.currentLineupSpecs = specs;
+      
+      // Get current components to determine if we have a template loaded
+      const components = window.paCanvas.components;
+      
+      if (!components || components.length === 0) {
+        // No template loaded - inform user
+        console.log('[Apply Specs] No template loaded');
+        alert('Please load a template first (e.g., Single Doherty from Architecture Templates), then apply specifications.');
+        return;
+      }
+      
+      // Apply specs to existing components
+      applySpecsToComponents(specs);
+      
+      console.log('✓ Specifications applied to lineup');
     });
     
     console.log('✓ Shiny message handlers registered successfully');
@@ -7342,3 +7520,317 @@ if (window.Shiny) {
 }
 
 console.log('✓ Sticky canvas script loaded');
+
+// ==============================================================================
+// SPECIFICATION-DRIVEN DESIGN UTILITIES
+// ==============================================================================
+
+/**
+ * Technology Selection based on frequency, power, and fT/fmax requirements
+ * Reference: fT > 5 × fop rule from Frequency Planning tab
+ */
+window.selectTechnology = function(freq_ghz, pout_dbm, vdd = 30) {
+  // Convert power to watts
+  const pout_watts = Math.pow(10, (pout_dbm - 30) / 10);
+  
+  console.log(`[Tech Select] Frequency: ${freq_ghz} GHz, Pout: ${pout_dbm} dBm (${pout_watts.toFixed(2)}W), Vdd: ${vdd}V`);
+  
+  // Required fT: > 5 × operating frequency
+  const required_fT = 5 * freq_ghz;
+  
+  // Decision matrix based on frequency first, then power capability
+  let technology = 'GaN';  // Default
+  let rationale = '';
+  
+  if (freq_ghz < 1) {
+    // HF/VHF band (< 1 GHz)
+    if (pout_watts > 100) {
+      technology = 'LDMOS';
+      rationale = `High power (${pout_watts.toFixed(0)}W) at ${freq_ghz} GHz → Si LDMOS (fT: 20-40 GHz > ${required_fT.toFixed(0)} GHz)`;
+    } else {
+      technology = 'LDMOS';
+      rationale = `Sub-1GHz operation → Si LDMOS or Si BJT`;
+    }
+  } else if (freq_ghz < 4) {
+    // Sub-4GHz (LTE, early 5G)
+    if (pout_watts > 50) {
+      technology = 'GaN';
+      rationale = `High power (${pout_watts.toFixed(0)}W) at ${freq_ghz} GHz → GaN HEMT (fT: 50-100 GHz > ${required_fT.toFixed(0)} GHz)`;
+    } else if (pout_watts > 10) {
+      technology = 'LDMOS';
+      rationale = `Medium power (${pout_watts.toFixed(1)}W) at ${freq_ghz} GHz → Si LDMOS (fT: 20-40 GHz > ${required_fT.toFixed(0)} GHz)`;
+    } else {
+      technology = 'GaAs';
+      rationale = `Low power (${pout_watts.toFixed(1)}W) at ${freq_ghz} GHz → GaAs pHEMT (fT: 30-60 GHz > ${required_fT.toFixed(0)} GHz)`;
+    }
+  } else if (freq_ghz < 12) {
+    // Mid-band (4-12 GHz)
+    if (pout_watts > 10) {
+      technology = 'GaN';
+      rationale = `${freq_ghz} GHz, ${pout_watts.toFixed(1)}W → GaN HEMT (fT: 50-100 GHz > ${required_fT.toFixed(0)} GHz)`;
+    } else {
+      technology = 'GaAs';
+      rationale = `${freq_ghz} GHz, ${pout_watts.toFixed(1)}W → GaAs pHEMT (fT: 30-60 GHz > ${required_fT.toFixed(0)} GHz)`;
+    }
+  } else if (freq_ghz < 40) {
+    // High microwave (12-40 GHz) - 5G mmWave
+    technology = 'GaN';
+    rationale = `${freq_ghz} GHz mmWave → GaN HEMT (fT: 50-100 GHz > ${required_fT.toFixed(0)} GHz)`;
+  } else if (freq_ghz < 100) {
+    // W-band and beyond (40-100 GHz)
+    technology = 'SiGe';
+    rationale = `${freq_ghz} GHz → SiGe HBT (fT: 200-300 GHz > ${required_fT.toFixed(0)} GHz)`;
+  } else {
+    // Sub-THz (> 100 GHz)
+    technology = 'InP';
+    rationale = `${freq_ghz} GHz sub-THz → InP HEMT (fT: 300-600 GHz > ${required_fT.toFixed(0)} GHz)`;
+  }
+  
+  console.log(`[Tech Select] Selected: ${technology} - ${rationale}`);
+  
+  return {
+    technology: technology,
+    rationale: rationale,
+    required_fT: required_fT
+  };
+};
+
+/**
+ * Estimate passive component losses based on frequency
+ * Uses realistic curves based on industry data
+ */
+window.estimatePassiveLoss = function(component_type, freq_ghz, length_lambda = 0.25) {
+  let loss_db = 0;
+  let rationale = '';
+  
+  switch(component_type) {
+    case 'matching':
+    case 'transformer':
+      // Matching networks: primarily transmission line loss + mismatch
+      // Loss increases with frequency due to dielectric and conductor losses
+      if (freq_ghz < 2) {
+        loss_db = 0.1 + 0.05 * length_lambda;  // ~0.1-0.3 dB
+      } else if (freq_ghz < 6) {
+        loss_db = 0.15 + 0.1 * length_lambda;   // ~0.15-0.4 dB
+      } else if (freq_ghz < 30) {
+        loss_db = 0.25 + 0.15 * length_lambda;  // ~0.25-0.6 dB
+      } else {
+        loss_db = 0.5 + 0.3 * length_lambda;    // ~0.5-1.0 dB
+      }
+      rationale = `Matching network at ${freq_ghz} GHz: ${loss_db.toFixed(2)} dB (TL loss + mismatch)`;
+      break;
+      
+    case 'splitter':
+      // Wilkinson: ~0.1-0.5 dB depending on frequency
+      // Hybrid: ~0.3-0.8 dB
+      // Corporate: cumulative, depends on stages
+      if (freq_ghz < 6) {
+        loss_db = 0.2;  // Ideal Wilkinson
+      } else if (freq_ghz < 30) {
+        loss_db = 0.3 + 0.01 * freq_ghz;  // Increases with frequency
+      } else {
+        loss_db = 0.5 + 0.02 * freq_ghz;  // Higher mmWave losses
+      }
+      rationale = `Splitter at ${freq_ghz} GHz: ${loss_db.toFixed(2)} dB`;
+      break;
+      
+    case 'combiner':
+      // Similar to splitter, may have slightly higher loss due to isolation
+      if (freq_ghz < 6) {
+        loss_db = 0.25;  
+      } else if (freq_ghz < 30) {
+        loss_db = 0.35 + 0.01 * freq_ghz;  
+      } else {
+        loss_db = 0.6 + 0.02 * freq_ghz;  
+      }
+      rationale = `Combiner at ${freq_ghz} GHz: ${loss_db.toFixed(2)} dB`;
+      break;
+      
+    case 'doherty_combiner':
+      // Doherty combining point: includes λ/4 transformer losses
+      loss_db = estimatePassiveLoss('matching', freq_ghz, 0.25).loss + 0.1;  // Add combining loss
+      rationale = `Doherty combiner at ${freq_ghz} GHz: ${loss_db.toFixed(2)} dB (λ/4 + combining)`;
+      break;
+      
+    default:
+      loss_db = 0.3;  // Generic default
+      rationale = `Generic passive at ${freq_ghz} GHz: ${loss_db.toFixed(2)} dB`;
+  }
+  
+  return {
+    loss: loss_db,
+    rationale: rationale
+  };
+};
+
+/**
+ * Distribute gain across stages based on total gain requirement
+ * Heuristics: balance between stages, avoid overly high gain per stage
+ */
+window.distributeGain = function(total_gain_db, topology = 'balanced') {
+  console.log(`[Gain Distribution] Total: ${total_gain_db} dB, Topology: ${topology}`);
+  
+  let stages = [];
+  let remaining_gain = total_gain_db;
+  
+  // Determine number of stages based on total gain
+  let num_stages = 1;
+  if (total_gain_db < 15) {
+    num_stages = 1;  // Single stage PA
+  } else if (total_gain_db < 30) {
+    num_stages = 2;  // Driver + PA
+  } else if (total_gain_db < 45) {
+    num_stages = 3;  // Pre-driver + Driver + PA
+  } else {
+    num_stages = 4;  // Multi-stage
+  }
+  
+  // Cap individual stage gain at 18 dB (realistic limit for stable operation)
+  const max_stage_gain = 18;
+  
+  if (topology === 'doherty' || topology === 'balanced') {
+    // For Doherty: Driver stage + PA stages (main/aux have same gain)
+    if (num_stages === 1) {
+      // No driver, just PA stage
+      stages = [{
+        name: 'PA',
+        gain: total_gain_db,
+        type: 'pa'
+      }];
+    } else if (num_stages === 2) {
+      // Driver + PA
+      let driver_gain = Math.min(max_stage_gain, total_gain_db / 2);
+      driver_gain = Math.max(10, driver_gain);  // At least 10 dB for driver
+      let pa_gain = total_gain_db - driver_gain;
+      
+      stages = [
+        { name: 'Driver', gain: driver_gain, type: 'driver' },
+        { name: 'PA', gain: pa_gain, type: 'pa' }
+      ];
+    } else {
+      // Pre-driver + Driver + PA
+      let predriver_gain = Math.min(15, total_gain_db / 3);
+      let driver_gain = Math.min(max_stage_gain, (total_gain_db - predriver_gain) / 2);
+      let pa_gain = total_gain_db - predriver_gain - driver_gain;
+      
+      stages = [
+        { name: 'Pre-Driver', gain: predriver_gain, type: 'predriver' },
+        { name: 'Driver', gain: driver_gain, type: 'driver' },
+        { name: 'PA', gain: pa_gain, type: 'pa' }
+      ];
+    }
+  }
+  
+  console.log('[Gain Distribution] Stages:', stages);
+  return {
+    num_stages: num_stages,
+    stages: stages
+  };
+};
+
+/**
+ * Calculate P1dB from P3dB (typical relationship for solid state amplifiers)
+ */
+window.calculateP1dB = function(p3db) {
+  // Typical: P1dB ≈ P3dB - 2 dB for solid state
+  return p3db - 2;
+};
+
+/**
+ * Estimate PAE (Power Added Efficiency) based on bias class and topology
+ */
+window.estimatePAE = function(bias_class, topology = 'conventional', freq_ghz = 2.6) {
+  let pae = 40;  // Default
+  
+  if (topology === 'doherty') {
+    // Doherty provides efficiency enhancement
+    if (bias_class === 'AB') {
+      pae = 50;  // Main PA in AB
+    } else if (bias_class === 'C') {
+      pae = 45;  // Aux PA in C (slightly lower due to conduction angle)
+    } else {
+      pae = 45;
+    }
+  } else {
+    // Conventional PA
+    switch(bias_class) {
+      case 'A':
+        pae = 30;  // Low efficiency, high linearity
+        break;
+      case 'AB':
+        pae = 45;  // Balanced
+        break;
+      case 'B':
+        pae = 50;  // Higher efficiency
+        break;
+      case 'C':
+        pae = 55;  // Highest efficiency, poor linearity
+        break;
+      default:
+        pae = 40;
+    }
+  }
+  
+  // Efficiency degrades at higher frequencies
+  if (freq_ghz > 10) {
+    pae *= 0.9;  // 10% reduction for mmWave
+  }
+  if (freq_ghz > 30) {
+    pae *= 0.85;  // Additional reduction
+  }
+  
+  return Math.round(pae);
+};
+
+/**
+ * Select appropriate bias class based on efficiency target and topology
+ */
+window.selectBiasClass = function(efficiency_target, topology = 'conventional', pa_role = 'main') {
+  if (topology === 'doherty') {
+    // Doherty-specific bias selection
+    if (pa_role === 'main') {
+      return 'AB';  // Main PA: Class AB for linearity
+    } else if (pa_role === 'aux' || pa_role === 'auxiliary') {
+      return 'C';   // Aux PA: Class C for efficiency
+    }
+  }
+  
+  // Conventional PA bias selection based on efficiency target
+  if (efficiency_target < 35) {
+    return 'A';   // Prioritize linearity
+  } else if (efficiency_target < 48) {
+    return 'AB';  // Balanced
+  } else if (efficiency_target < 55) {
+    return 'B';   // Higher efficiency
+  } else {
+    return 'C';   // Maximum efficiency
+  }
+};
+
+/**
+ * Calculate power cascade through lineup stages
+ */
+window.calculatePowerCascade = function(pout_final_dbm, gain_stages) {
+  let cascade = [];
+  let current_pout = pout_final_dbm;
+  
+  // Work backwards from output
+  for (let i = gain_stages.length - 1; i >= 0; i--) {
+    let stage = gain_stages[i];
+    let pin = current_pout - stage.gain;
+    
+    cascade.unshift({
+      stage: stage.name,
+      gain: stage.gain,
+      pin: pin,
+      pout: current_pout
+    });
+    
+    current_pout = pin;  // Output of this stage becomes input to previous
+  }
+  
+  console.log('[Power Cascade]', cascade);
+  return cascade;
+};
+
+console.log('✓ Specification-driven design utilities loaded');
