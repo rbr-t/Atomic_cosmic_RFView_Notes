@@ -417,6 +417,12 @@ class PALineupCanvas {
     console.log('Creating component palette...');
     
     // In multi-canvas mode, don't create individual palettes
+    // Check if shared palette already exists
+    if (document.getElementById('shared_component_palette')) {
+      console.log('Shared palette detected, skipping individual palette creation');
+      return;
+    }
+    
     // Check if canvas layout is set (indicates multi-canvas initialization)
     if (window.canvasLayout && window.canvasLayout !== "1x1") {
       console.log(`Multi-canvas mode (${window.canvasLayout}) detected, skipping individual palette creation`);
@@ -447,7 +453,7 @@ class PALineupCanvas {
       .style('transition', 'width 0.3s')
       .style('z-index', '1100')  // Higher than sidebars to stay visible
       .on('mouseenter', function() {
-        d3.select(this).style('width', '200px');
+        d3.select(this).style('width', '180px');
         d3.selectAll('.palette-label').style('display', 'block');
       })
       .on('mouseleave', function() {
@@ -456,11 +462,12 @@ class PALineupCanvas {
       });
     
     const components = [
-      { type: 'transistor', icon: '▲', label: 'Transistor', color: '#00aaff' },
-      { type: 'matching', icon: '═', label: 'Matching', color: '#00ff88' },
-      { type: 'splitter', icon: '⊥', label: 'Splitter', color: '#ffaa00' },
-      { type: 'combiner', icon: '⊤', label: 'Combiner', color: '#ff00aa' },
-      { type: 'wire', icon: '━', label: 'Wire Mode', color: '#ff7f11', isAction: true }
+      { type: 'transistor', icon: '▲', label: 'Transistor', color: '#00bfff', useIcon: true },
+      { type: 'matching', icon: 'M', label: 'Matching', color: '#00ff88', useIcon: false },
+      { type: 'splitter', icon: 'Y', label: 'Splitter', color: '#ffaa00', useIcon: false },
+      { type: 'combiner', icon: 'Ψ', label: 'Combiner', color: '#ff00aa', useIcon: false },
+      { type: 'termination', icon: '⏚', label: 'Termination', color: '#888888', useIcon: true },
+      { type: 'wire', icon: '━', label: 'Wire Mode', color: '#ff7f11', isAction: true, useIcon: true }
     ];
     
     console.log('Adding components to palette:', components.length);
@@ -492,10 +499,82 @@ class PALineupCanvas {
           }
         });
       
-      item.append('div')
-        .style('font-size', '24px')
-        .style('color', comp.color)
-        .text(comp.icon);
+      // Create SVG icon for matching, splitter, combiner (same as shared palette)
+      if (!comp.useIcon && (comp.type === 'matching' || comp.type === 'splitter' || comp.type === 'combiner')) {
+        const iconSvg = item.append('svg')
+          .attr('width', 30)
+          .attr('height', 30)
+          .style('overflow', 'visible');
+        
+        const g = iconSvg.append('g')
+          .attr('transform', 'translate(15, 15)');
+        
+        if (comp.type === 'matching') {
+          // Matching: Small transformer/inductor symbol
+          g.append('path')
+            .attr('d', 'M-10,0 L-5,0')
+            .attr('stroke', comp.color)
+            .attr('stroke-width', 2)
+            .attr('fill', 'none');
+          
+          // Coil/transformer
+          g.append('path')
+            .attr('d', 'M-5,0 Q-3,-5 0,-5 Q3,-5 5,0 Q3,5 0,5 Q-3,5 -5,0')
+            .attr('stroke', comp.color)
+            .attr('stroke-width', 2)
+            .attr('fill', 'none');
+          
+          g.append('path')
+            .attr('d', 'M5,0 L10,0')
+            .attr('stroke', comp.color)
+            .attr('stroke-width', 2)
+            .attr('fill', 'none');
+        } else if (comp.type === 'splitter') {
+          // Splitter: Y-junction (input on left, outputs on right)
+          g.append('line')
+            .attr('x1', -10).attr('y1', 0)
+            .attr('x2', 0).attr('y2', 0)
+            .attr('stroke', comp.color)
+            .attr('stroke-width', 2);
+          
+          g.append('line')
+            .attr('x1', 0).attr('y1', 0)
+            .attr('x2', 10).attr('y2', -8)
+            .attr('stroke', comp.color)
+            .attr('stroke-width', 2);
+          
+          g.append('line')
+            .attr('x1', 0).attr('y1', 0)
+            .attr('x2', 10).attr('y2', 8)
+            .attr('stroke', comp.color)
+            .attr('stroke-width', 2);
+        } else if (comp.type === 'combiner') {
+          // Combiner: Inverted Y-junction (inputs on left, output on right)
+          g.append('line')
+            .attr('x1', -10).attr('y1', -8)
+            .attr('x2', 0).attr('y2', 0)
+            .attr('stroke', comp.color)
+            .attr('stroke-width', 2);
+          
+          g.append('line')
+            .attr('x1', -10).attr('y1', 8)
+            .attr('x2', 0).attr('y2', 0)
+            .attr('stroke', comp.color)
+            .attr('stroke-width', 2);
+          
+          g.append('line')
+            .attr('x1', 0).attr('y1', 0)
+            .attr('x2', 10).attr('y2', 0)
+            .attr('stroke', comp.color)
+            .attr('stroke-width', 2);
+        }
+      } else {
+        // Use text icon for transistor, termination, wire
+        item.append('div')
+          .style('font-size', '24px')
+          .style('color', comp.color)
+          .text(comp.icon);
+      }
       
       item.append('div')
         .attr('class', 'palette-label')
@@ -520,8 +599,44 @@ class PALineupCanvas {
       return;
     }
     
-    const x = this.width / 2;
-    const y = this.height / 2;
+    // Calculate staggered default positions based on component type
+    // This prevents all components from appearing on top of each other
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+    const padding = 80; // Distance from center for each type
+    
+    let x, y;
+    switch(type) {
+      case 'transistor':
+        // Center-left position
+        x = centerX - padding;
+        y = centerY;
+        break;
+      case 'matching':
+        // Top-center position
+        x = centerX;
+        y = centerY - padding;
+        break;
+      case 'splitter':
+        // Left-top position
+        x = centerX - padding * 1.5;
+        y = centerY - padding * 0.8;
+        break;
+      case 'combiner':
+        // Right-center position
+        x = centerX + padding;
+        y = centerY;
+        break;
+      case 'termination':
+        // Bottom-right position
+        x = centerX + padding;
+        y = centerY + padding;
+        break;
+      default:
+        // Default center position
+        x = centerX;
+        y = centerY;
+    }
     
     // For matching, splitter, and combiner: prompt for sub-type
     if (type === 'matching') {
@@ -5367,14 +5482,19 @@ class PALineupCanvas {
       const infoGroup = this.impedanceLayer.append('g')
         .attr('transform', `translate(${x - 65}, ${y + 55})`)
         .attr('class', 'impedance-info')
-        .style('cursor', 'move');
+        .attr('data-component-id', comp.id)
+        .style('cursor', 'move')
+        .style('pointer-events', 'all'); // Ensure drag events are captured
       
       // Add drag behavior to impedance display
       const impedanceDrag = d3.drag()
         .on('start', function(event) {
+          event.sourceEvent.stopPropagation(); // Prevent canvas pan/zoom
           d3.select(this).raise().style('opacity', 0.7);
+          console.log('Impedance box drag started');
         })
         .on('drag', function(event) {
+          event.sourceEvent.stopPropagation(); // Prevent canvas pan/zoom
           const currentTransform = d3.select(this).attr('transform');
           const match = currentTransform.match(/translate\\(([^,]+),([^)]+)\\)/);
           if (match) {
@@ -5384,7 +5504,9 @@ class PALineupCanvas {
           }
         })
         .on('end', function(event) {
+          event.sourceEvent.stopPropagation(); // Prevent canvas pan/zoom
           d3.select(this).style('opacity', 1);
+          console.log('Impedance box drag ended');
         });
       
       infoGroup.call(impedanceDrag);
@@ -5511,20 +5633,26 @@ class PALineupCanvas {
         .attr('class', 'power-info-group')
         .attr('data-component-id', comp.id)
         .attr('transform', `translate(${x - columnWidth/2 + 10 + comp.powerBoxOffset.x}, ${infoY + comp.powerBoxOffset.y})`)
-        .style('cursor', 'move');
+        .style('cursor', 'move')
+        .style('pointer-events', 'all'); // Ensure drag events are captured
       
       // Add drag behavior to power info box
       const powerBoxDrag = d3.drag()
         .on('start', (event) => {
-          event.sourceEvent.stopPropagation();
+          event.sourceEvent.stopPropagation(); // Prevent canvas pan/zoom
           infoGroup.raise(); // Bring to front
+          infoGroup.style('opacity', 0.7);
+          console.log('Power box drag started');
         })
         .on('drag', (event) => {
+          event.sourceEvent.stopPropagation(); // Prevent canvas pan/zoom
           comp.powerBoxOffset.x += event.dx;
           comp.powerBoxOffset.y += event.dy;
           infoGroup.attr('transform', `translate(${x - columnWidth/2 + 10 + comp.powerBoxOffset.x}, ${infoY + comp.powerBoxOffset.y})`);
         })
         .on('end', () => {
+          infoGroup.style('opacity', 1);
+          console.log('Power box drag ended');
           this.saveHistory();
         });
       
