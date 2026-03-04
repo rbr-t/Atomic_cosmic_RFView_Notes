@@ -1022,22 +1022,45 @@ class PALineupCanvas {
       yOffset += 10;
     }
     
-    if (display.includes('pout')) {
-      const poutValue = component.properties.pout || 40;
-      const poutText = this.formatPower(poutValue, this.powerUnit);
-      textGroup.append('text')
-        .attr('x', 15)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#ff88ff')
-        .attr('font-size', '8px')
-        .text(`Pout: ${poutText}`);
-      yOffset += 10;
-    }
-    
-    if (display.includes('p1db')) {
-      const p1dbValue = component.properties.p1db || component.properties.pout || 40;
-      const p1dbText = this.formatPower(p1dbValue, this.powerUnit);
+// Show Pin (input power) if available or if pin is in display
+      if (display.includes('pin')) {
+        const pinValue = component.properties.pin || 30;
+        const pinText = this.formatPower(pinValue, this.powerUnit);
+        textGroup.append('text')
+          .attr('x', 15)
+          .attr('y', yOffset)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#66ccff')
+          .attr('font-size', '8px')
+          .text(`Pin: ${pinText}`);
+        yOffset += 10;
+      }
+      
+      // Show Pout as P3dB (3dB compression point) with clarification
+      if (display.includes('pout') || display.includes('p3db')) {
+        // Use p3db property if available, otherwise pout
+        const p3dbValue = component.properties.p3db || component.properties.pout || 40;
+        const p3dbText = this.formatPower(p3dbValue, this.powerUnit);
+        textGroup.append('text')
+          .attr('x', 15)
+          .attr('y', yOffset)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#ff88ff')
+          .attr('font-size', '8px')
+          .text(`Pout(P3dB): ${p3dbText}`);
+        yOffset += 10;
+      }
+      
+      // P1dB must always be below P3dB (1dB compression point)
+      if (display.includes('p1db')) {
+        const p3dbValue = component.properties.p3db || component.properties.pout || 40;
+        // P1dB should be 2dB below P3dB for solid state devices (typical)
+        const p1dbValue = component.properties.p1db || (p3dbValue - 2);
+        
+        // Sanity check: P1dB must be less than P3dB
+        const validP1db = Math.min(p1dbValue, p3dbValue - 0.5);
+        
+        const p1dbText = this.formatPower(validP1db, this.powerUnit);
       textGroup.append('text')
         .attr('x', 15)
         .attr('y', yOffset)
@@ -2423,7 +2446,9 @@ class PALineupCanvas {
     // Doherty combiner
     const combiner = this.addComponent('combiner', 780 + offsetX, 300 + offsetY, {
       label: 'Doherty',
-      type: 'Load-Modulation'
+      type: 'doherty',
+      subtype: 'Load-Modulation',
+      ways: 2
     });
     
     
@@ -2539,7 +2564,9 @@ class PALineupCanvas {
     // Combiner
     const combiner = this.addComponent('combiner', 600 + offsetX, 300 + offsetY, {
       label: 'Doherty',
-      type: 'Load-Modulation'
+      type: 'doherty',
+      subtype: 'Load-Modulation',
+      ways: 2
     });
     
     // Load termination
@@ -2745,7 +2772,9 @@ class PALineupCanvas {
     // Doherty combiner (load modulation node)
     const combiner = this.addComponent('combiner', 780 + offsetX, 300 + offsetY, {
       label: 'Doherty',
-      type: 'Load-Modulation'
+      type: 'doherty',
+      subtype: 'Load-Modulation',
+      ways: 2
     });
     
     // Load termination
@@ -2860,7 +2889,9 @@ class PALineupCanvas {
     // Inverted Doherty combiner
     const combiner = this.addComponent('combiner', 780 + offsetX, 300 + offsetY, {
       label: 'Inverted',
-      type: 'Inverted-Doherty'
+      type: 'doherty',
+      subtype: 'Inverted-Doherty',
+      ways: 2
     });
     
     // Create pre-connected wires
@@ -2966,7 +2997,9 @@ class PALineupCanvas {
     // Symmetric combiner
     const combiner = this.addComponent('combiner', 780 + offsetX, 300 + offsetY, {
       label: 'Symmetric',
-      type: 'Symmetric-Doherty'
+      type: 'doherty',
+      subtype: 'Symmetric-Doherty',
+      ways: 2
     });
     
     // Load termination
@@ -3083,7 +3116,9 @@ class PALineupCanvas {
     // Asymmetric combiner
     const combiner = this.addComponent('combiner', 780 + offsetX, 300 + offsetY, {
       label: 'Asymmetric 2:1',
-      type: 'Asymmetric-Doherty'
+      type: 'doherty',
+      subtype: 'Asymmetric-Doherty',
+      ways: 2
     });
     
     // Load termination
@@ -3218,7 +3253,9 @@ class PALineupCanvas {
     // Doherty combiner
     const combiner = this.addComponent('combiner', 780 + offsetX, 320 + offsetY, {
       label: 'Doherty',
-      type: 'Load-Modulation'
+      type: 'doherty',
+      subtype: 'Load-Modulation',
+      ways: 2
     });
     
     // Load termination
@@ -3364,8 +3401,10 @@ class PALineupCanvas {
     // 3-way combiner
     const combiner = this.addComponent('combiner', 860 + offsetX, 350 + offsetY, {
       label: '3-Way Doherty',
-      type: '3-Way',
-      portCount: 3
+      type: 'doherty',
+      subtype: '3-Way',
+      portCount: 3,
+      ways: 3
     });
     
     // Load termination
@@ -3511,8 +3550,10 @@ class PALineupCanvas {
     // 3-way asymmetric combiner
     const combiner = this.addComponent('combiner', 860 + offsetX, 350 + offsetY, {
       label: '3-Way Asym 2:1:1',
-      type: '3-Way-Asymmetric',
-      portCount: 3
+      type: 'doherty',
+      subtype: '3-Way-Asymmetric',
+      portCount: 3,
+      ways: 3
     });
     
     // Load termination
@@ -5815,9 +5856,52 @@ class PALineupCanvas {
         
       case 'combiner':
         const combine_loss = props.loss || 0.5;
-        // Combiner adds power (assuming N-way combiner)
-        const ways = props.ways || 2;
-        pout_dbm = pin_dbm + 10 * Math.log10(ways) - combine_loss;
+        
+        /// Check if this is a Doherty combiner with two separate inputs
+        if (props.type === 'doherty' || props.label?.toLowerCase().includes('doherty')) {
+          // For Doherty, we need to combine powers from Main and Aux PAs
+          // Find the input connections
+          const inputConns = this.connections.filter(conn => conn.to === component.id);
+          
+          if (inputConns.length === 2) {
+            // Get both input components (Main and Aux PAs)
+            const input1Comp = this.components.find(c => c.id === inputConns[0].from);
+            const input2Comp = this.components.find(c => c.id === inputConns[1].from);
+            
+            if (input1Comp && input2Comp) {
+              // Get output powers from both input components
+              const p1_dbm = input1Comp.properties.pout || input1Comp.properties.p3db || 40;
+              const p2_dbm = input2Comp.properties.pout || input2Comp.properties.p3db || 40;
+              
+              // Convert dBm to watts
+              const p1_watts = Math.pow(10, (p1_dbm - 30) / 10);
+              const p2_watts = Math.pow(10, (p2_dbm - 30) / 10);
+              
+              // Combine in watts domain
+              const combined_watts = p1_watts + p2_watts;
+              
+              // Convert back to dBm
+              const combined_dbm = 10 * Math.log10(combined_watts) + 30;
+              
+              // Subtract combiner loss
+              pout_dbm = combined_dbm - combine_loss;
+              
+              console.log(`[Doherty Combiner] Main=${p1_dbm.toFixed(1)}dBm (${p1_watts.toFixed(1)}W) + Aux=${p2_dbm.toFixed(1)}dBm (${p2_watts.toFixed(1)}W) = ${combined_dbm.toFixed(1)}dBm (${combined_watts.toFixed(1)}W) - Loss ${combine_loss}dB = ${pout_dbm.toFixed(1)}dBm`);
+            } else {
+              // Fallback to standard combining if components not found
+              const ways = props.ways || 2;
+              pout_dbm = pin_dbm + 10 * Math.log10(ways) - combine_loss;
+            }
+          } else {
+            // Fallback to standard combining if not 2 inputs
+            const ways = props.ways || 2;
+            pout_dbm = pin_dbm + 10 * Math.log10(ways) - combine_loss;
+          }
+        } else {
+          // Standard combiner: adds power (assuming N-way combiner)
+          const ways = props.ways || 2;
+          pout_dbm = pin_dbm + 10 * Math.log10(ways) - combine_loss;
+        }
         break;
         
       default:
@@ -6594,9 +6678,17 @@ function applySpecsToComponents(specs) {
       driver.properties.frequency = specs.frequency_ghz;
       driver.properties.technology = techSelection.technology;
       driver.properties.gain = driverStage.gain;
+      
+      // Driver output power from cascade calculation
       driver.properties.pout = driverStage.pout;
-      driver.properties.p1db = calculateP1dB(driverStage.pout);
-      driver.properties.p3db = driverStage.pout + 2;
+      driver.properties.p3db = driverStage.pout;  // P3dB equals Pout at this level
+      
+      // P1dB below P3dB (2dB typical for solid state)
+      driver.properties.p1db = driverStage.pout - 2;
+      
+      // Input power from cascade
+      driver.properties.pin = driverStage.pin;
+      
       driver.properties.biasClass = 'A';  // Driver typically Class A
       driver.properties.pae = estimatePAE('A', 'conventional', specs.frequency_ghz);
       driver.properties.vdd = specs.supply_voltage;
@@ -6609,24 +6701,42 @@ function applySpecsToComponents(specs) {
       mainPA.properties.frequency = specs.frequency_ghz;
       mainPA.properties.technology = techSelection.technology;
       mainPA.properties.gain = paStage.gain;
-      mainPA.properties.pout = specs.p3db;
-      mainPA.properties.p1db = specs.p1db;
+      
+      // P3dB (3dB compression point) is the target output power
       mainPA.properties.p3db = specs.p3db;
+      mainPA.properties.pout = specs.p3db;  // Pout at P3dB
+      
+      // P1dB (1dB compression) must be below P3dB
+      // For solid state PAs, typically 2-3dB below P3dB
+      mainPA.properties.p1db = specs.p3db - 2.5;
+      
+      // Calculate input power needed
+      mainPA.properties.pin = paStage.pin;
+      
       mainPA.properties.biasClass = 'AB';  // Main PA in Doherty
       mainPA.properties.pae = estimatePAE('AB', 'doherty', specs.frequency_ghz);
       mainPA.properties.vdd = specs.supply_voltage;
       console.log('[Apply Specs] Updated Main PA:', mainPA.properties);
     }
     
-    // Update Aux PA (should have similar power to Main)
+    // Update Aux PA (should match Main PA power for balanced Doherty)
     if (auxPA) {
       const paStage = powerCascade.find(s => s.stage === 'PA');
       auxPA.properties.frequency = specs.frequency_ghz;
       auxPA.properties.technology = techSelection.technology;
       auxPA.properties.gain = paStage.gain;
-      auxPA.properties.pout = specs.p3db - 3;  // Aux typically 3dB lower
-      auxPA.properties.p1db = auxPA.properties.pout - 2;
-      auxPA.properties.p3db = auxPA.properties.pout;
+      
+      // For balanced Doherty, Aux should match Main PA capability
+      // Both PAs combine to achieve the target output
+      auxPA.properties.p3db = specs.p3db;
+      auxPA.properties.pout = specs.p3db;
+      
+      // P1dB below P3dB
+      auxPA.properties.p1db = specs.p3db - 2.5;
+      
+      // Calculate input power needed  
+      auxPA.properties.pin = paStage.pin;
+      
       auxPA.properties.biasClass = 'C';  // Aux PA in Doherty
       auxPA.properties.pae = estimatePAE('C', 'doherty', specs.frequency_ghz);
       auxPA.properties.vdd = specs.supply_voltage;

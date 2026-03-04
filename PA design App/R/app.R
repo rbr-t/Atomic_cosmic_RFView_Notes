@@ -279,105 +279,316 @@ ui <- dashboardPage(
               
               hr(),
               
-              # Technology Selection Guide with fT/fmax Reference
-              box(
-                title = tagList(icon("microchip"), "Technology Selection Guide (fT/fmax)"),
-                width = 12,
-                collapsible = TRUE,
-                collapsed = FALSE,
-                status = "info",
-                solidHeader = TRUE,
+              # Tabset for Technology References
+              tabsetPanel(
+                id = "freq_tech_tabs",
+                type = "tabs",
                 
-                h4("Transition Frequency (fT) and Maximum Oscillation Frequency (fmax)"),
-                p("For selecting the appropriate transistor technology based on operating frequency:"),
+                # Tab 1: Technology Selection Guide
+                tabPanel(
+                  title = tagList(icon("microchip"), "Technology Selection"),
+                  value = "tech_select",
+                  
+                  br(),
+                  h4(icon("info-circle"), " Transition Frequency (fT) and Maximum Oscillation Frequency (fmax)"),
+                  p("For selecting the appropriate transistor technology based on operating frequency:"),
+                  
+                  HTML("
+                    <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #17a2b8; margin: 10px 0;'>
+                      <h5><i class='fa fa-info-circle'></i> Selection Rule of Thumb</h5>
+                      <p><strong>For operating frequency fop, select technology with: fT > 5 × fop</strong></p>
+                      <p style='color: #666; font-size: 13px;'>This ensures sufficient gain and prevents instability at the design frequency.</p>
+                    </div>
+                    
+                    <h5 style='margin-top: 20px;'>Technology Comparison</h5>
+                    <table class='table table-striped table-sm'>
+                      <thead>
+                        <tr>
+                          <th>Technology</th>
+                          <th>fT Range</th>
+                          <th>fmax Range</th>
+                          <th>Recommended Frequency</th>
+                          <th>Key Applications</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><strong>Si LDMOS</strong></td>
+                          <td>20-40 GHz</td>
+                          <td>30-60 GHz</td>
+                          <td>< 4 GHz</td>
+                          <td>Base stations, high power</td>
+                        </tr>
+                        <tr>
+                          <td><strong>GaAs pHEMT</strong></td>
+                          <td>30-60 GHz</td>
+                          <td>80-150 GHz</td>
+                          <td>2-12 GHz</td>
+                          <td>Microwave, mmWave</td>
+                        </tr>
+                        <tr>
+                          <td><strong>GaN HEMT</strong></td>
+                          <td>50-100 GHz</td>
+                          <td>150-300 GHz</td>
+                          <td>2-40 GHz</td>
+                          <td>5G, radar, satellite</td>
+                        </tr>
+                        <tr>
+                          <td><strong>SiGe HBT</strong></td>
+                          <td>200-300 GHz</td>
+                          <td>400-500 GHz</td>
+                          <td>20-100 GHz</td>
+                          <td>mmWave, sub-THz</td>
+                        </tr>
+                        <tr>
+                          <td><strong>InP HEMT</strong></td>
+                          <td>300-600 GHz</td>
+                          <td>600-1000 GHz</td>
+                          <td>60-300 GHz</td>
+                          <td>Sub-THz, 6G research</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  "),
+                  
+                  # Dynamic recommendation
+                  uiOutput("technology_fT_recommendation")
+                ),
                 
-                HTML("
-                  <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #17a2b8; margin: 10px 0;'>
-                    <h5><i class='fa fa-info-circle'></i> Selection Rule of Thumb</h5>
-                    <p><strong>For operating frequency fop, select technology with: fT > 5 × fop</strong></p>
-                    <p style='color: #666; font-size: 13px;'>This ensures sufficient gain and prevents instability at the design frequency.</p>
-                  </div>
+                # Tab 2: fT/fmax Plots
+                tabPanel(
+                  title = tagList(icon("chart-line"), "fT/fmax Plots"),
+                  value = "ft_fmax_plots",
                   
-                  <h5 style='margin-top: 20px;'>Technology Comparison</h5>
-                  <table class='table table-striped table-sm'>
-                    <thead>
-                      <tr>
-                        <th>Technology</th>
-                        <th>fT Range</th>
-                        <th>fmax Range</th>
-                        <th>Recommended Frequency</th>
-                        <th>Key Applications</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td><strong>Si LDMOS</strong></td>
-                        <td>20-40 GHz</td>
-                        <td>30-60 GHz</td>
-                        <td>< 4 GHz</td>
-                        <td>Base stations, high power</td>
-                      </tr>
-                      <tr>
-                        <td><strong>GaAs pHEMT</strong></td>
-                        <td>30-60 GHz</td>
-                        <td>80-150 GHz</td>
-                        <td>2-12 GHz</td>
-                        <td>Microwave, mmWave</td>
-                      </tr>
-                      <tr>
-                        <td><strong>GaN HEMT</strong></td>
-                        <td>50-100 GHz</td>
-                        <td>150-300 GHz</td>
-                        <td>2-40 GHz</td>
-                        <td>5G, radar, satellite</td>
-                      </tr>
-                      <tr>
-                        <td><strong>SiGe HBT</strong></td>
-                        <td>200-300 GHz</td>
-                        <td>400-500 GHz</td>
-                        <td>20-100 GHz</td>
-                        <td>mmWave, sub-THz</td>
-                      </tr>
-                      <tr>
-                        <td><strong>InP HEMT</strong></td>
-                        <td>300-600 GHz</td>
-                        <td>600-1000 GHz</td>
-                        <td>60-300 GHz</td>
-                        <td>Sub-THz, 6G research</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  br(),
+                  h4(icon("chart-area"), " Transistor Frequency Performance"),
                   
-                  <h5 style='margin-top: 20px;'>Key Definitions</h5>
-                  <ul>
-                    <li><strong>fT (Transition Frequency):</strong> Frequency at which current gain drops to unity (0 dB). Indicates high-frequency amplification capability.</li>
-                    <li><strong>fmax (Maximum Oscillation Frequency):</strong> Frequency at which power gain drops to unity. Represents the practical upper limit for oscillator or amplifier design.</li>
-                    <li><strong>Gain-Bandwidth Product:</strong> At operating frequency f, available gain ≈ 20·log<sub>10</sub>(fT/f) dB</li>
-                  </ul>
-                  
-                  <div style='background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 10px 0;'>
-                    <h5><i class='fa fa-lightbulb'></i> Design Tip</h5>
-                    <p><strong>Example:</strong> For a 28 GHz 5G PA design:</p>
-                    <ul style='margin-bottom: 0;'>
-                      <li>Required fT: > 5 × 28 GHz = 140 GHz</li>
-                      <li><strong>Recommendation:</strong> GaN HEMT (fT ~50-100 GHz minimum) or SiGe HBT (fT 200-300 GHz)</li>
-                      <li><strong>Expected gain:</strong> ~8-10 dB at 28 GHz with GaN, ~12-15 dB with SiGe</li>
+                  HTML("
+                    <div style='background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 10px 0;'>
+                      <h5><i class='fa fa-exclamation-triangle'></i> Note</h5>
+                      <p>Detailed fT and fmax plots with technology evolution trends are available in:</p>
+                      <p><strong><a href='../PA_Design_Reference_Manual/Chapters/Chapter_01_Transistor_Fundamentals.html#section-2-2' target='_blank'>
+                        <i class='fa fa-external-link'></i> Chapter 1: Transistor Fundamentals - Section 2.2 (High-Frequency Parameters)
+                      </a></strong></p>
+                      <p style='margin-bottom: 0; font-size: 13px;'>Includes detailed figures showing fT and fmax evolution over time for different technologies.</p>
+                    </div>
+                    
+                    <h5 style='margin-top: 25px;'>Key Frequency Relationships:</h5>
+                    <div class='row' style='margin-top: 15px;'>
+                      <div class='col-md-6'>
+                        <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; height: 100%;'>
+                          <h6><strong>Transition Frequency  (fT)</strong></h6>
+                          <ul style='font-size: 14px;'>
+                            <li>Frequency where current gain h<sub>21</sub> = 1 (0 dB)</li>
+                            <li>Indicates amplification capability</li>
+                            <li>Higher fT → Better high-frequency performance</li>
+                            <li><strong>Formula:</strong> fT ≈ g<sub>m</sub> / (2πC<sub>gs</sub>)</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div class='col-md-6'>
+                        <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; height: 100%;'>
+                          <h6><strong>Maximum Oscillation Frequency (fmax)</strong></h6>
+                          <ul style='font-size: 14px;'>
+                            <li>Frequency where power gain U = 1 (0 dB)</li>
+                            <li>Practical upper limit for oscillators/amplifiers</li>
+                            <li>Always: fmax ≥ fT</li>
+                            <li><strong>Formula:</strong> fmax ≈ √(fT / (8πR<sub>g</sub>C<sub>gd</sub>))</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <h5 style='margin-top: 25px;'>Available Gain at Operating Frequency:</h5>
+                    <div style='background: #e7f3ff; padding: 15px; border-left: 4px solid #007bff; margin: 10px 0;'>
+                      <p style='margin: 0;'><strong>G<sub>available</sub>(f<sub>op</sub>) ≈ 20 × log<sub>10</sub>(fT / f<sub>op</sub>) dB</strong></p>
+                      <p style='margin: 5px 0 0 0; font-size: 13px; color: #666;'>Example: With fT = 100 GHz at f<sub>op</sub> = 10 GHz → G ≈ 20 dB</p>
+                    </div>
+                    
+                    <h5 style='margin-top: 25px;'>Technology Evolution Trends:</h5>
+                    <table class='table table-bordered table-sm'>
+                      <thead>
+                        <tr>
+                          <th>Year Range</th>
+                          <th>Si LDMOS fT</th>
+                          <th>GaN HEMT fT</th>
+                          <th>SiGe HBT fT</th>
+                          <th>InP HEMT fT</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>2000-2005</td>
+                          <td>~20 GHz</td>
+                          <td>~30 GHz</td>
+                          <td>~120 GHz</td>
+                          <td>~200 GHz</td>
+                        </tr>
+                        <tr>
+                          <td>2005-2010</td>
+                          <td>~30 GHz</td>
+                          <td>~50 GHz</td>
+                          <td>~200 GHz</td>
+                          <td>~350 GHz</td>
+                        </tr>
+                        <tr>
+                          <td>2010-2015</td>
+                          <td>~35 GHz</td>
+                          <td>~70 GHz</td>
+                          <td>~250 GHz</td>
+                          <td>~500 GHz</td>
+                        </tr>
+                        <tr>
+                          <td>2015-2020</td>
+                          <td>~40 GHz</td>
+                          <td>~90 GHz</td>
+                          <td>~300 GHz</td>
+                          <td>~600 GHz</td>
+                        </tr>
+                        <tr>
+                          <td><strong>2020+</strong></td>
+                          <td><strong>~40 GHz</strong></td>
+                          <td><strong>~100 GHz</strong></td>
+                          <td><strong>~350 GHz</strong></td>
+                          <td><strong>~700+ GHz</strong></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    
+                    <p style='margin-top: 15px; font-size: 13px; color: #666;'>
+                      <i class='fa fa-book'></i> <strong>References:</strong>
+                    </p>
+                    <ul style='font-size: 13px; color: #666;'>
+                      <li>Figures 2.2.4, 2.2.5 in <a href='../PA_Design_Reference_Manual/Chapters/Chapter_01_Transistor_Fundamentals.html' target='_blank'>Chapter 1</a></li>
+                      <li>ITRS Roadmap for RF and Analog/Mixed-Signal Technologies</li>
+                      <li>IEEE Transactions on Electron Devices (various years)</li>
                     </ul>
-                  </div>
+                  ")
+                ),
+                
+                # Tab 3: Design Guidelines
+                tabPanel(
+                  title = tagList(icon("lightbulb"), "Design Guidelines"),
+                  value = "design_guide",
                   
-                  <p style='margin-top: 15px; font-size: 13px; color: #666;'>
-                    <i class='fa fa-book'></i> <strong>Reference:</strong> For detailed fT/fmax plots and technology comparison figures, 
-                    see sections 2.2.4, 2.2.5, and Figure 1.2c in 
-                    <a href='../PA_Design_Reference_Manual/Chapters/Chapter_01_Transistor_Fundamentals.html' target='_blank'>
-                      Chapter 1: Transistor Fundamentals
-                    </a>
-                  </p>
-                "),
-                
-                hr(),
-                
-                # Dynamic recommendation based on global frequency
-                uiOutput("technology_fT_recommendation")
+                  br(),
+                  h4(icon("tools"), " Practical Design Rules"),
+                  
+                  HTML("
+                    <h5>Frequency Selection Criteria:</h5>
+                    <div class='row' style='margin-top: 15px;'>
+                      <div class='col-md-4'>
+                        <div style='background: #d4edda; padding: 15px; border-radius: 5px; border-left: 4px solid #28a745;'>
+                          <h6><strong><i class='fa fa-check-circle'></i> Safe Range</strong></h6>
+                          <p style='font-size: 14px; margin: 0;'>f<sub>op</sub> < fT / 10</p>
+                          <p style='font-size: 12px; color: #666; margin: 5px 0 0 0;'>High gain, excellent stability, easy matching</p>
+                        </div>
+                      </div>
+                      <div class='col-md-4'>
+                        <div style='background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;'>
+                          <h6><strong><i class='fa fa-exclamation-triangle'></i> Acceptable Range</strong></h6>
+                          <p style='font-size: 14px; margin: 0;'>fT / 10 < f<sub>op</sub> < fT / 5</p>
+                          <p style='font-size: 12px; color: #666; margin: 5px 0 0 0;'>Moderate gain, requires attention to stability</p>
+                        </div>
+                      </div>
+                      <div class='col-md-4'>
+                        <div style='background: #f8d7da; padding: 15px; border-radius: 5px; border-left: 4px solid #dc3545;'>
+                          <h6><strong><i class='fa fa-times-circle'></i> Avoid</strong></h6>
+                          <p style='font-size: 14px; margin: 0;'>f<sub>op</sub> > fT / 5</p>
+                          <p style='font-size: 12px; color: #666; margin: 5px 0 0 0;'>Low gain, stability issues, difficult matching</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <h5 style='margin-top: 25px;'>Design Examples:</h5>
+                    <table class='table table-bordered'>
+                      <thead>
+                        <tr>
+                          <th>Application</th>
+                          <th>Frequency</th>
+                          <th>Required fT</th>
+                          <th>Technology Choice</th>
+                          <th>Expected Gain</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><strong>LTE Base Station</strong></td>
+                          <td>1.8 GHz</td>
+                          <td>> 9 GHz</td>
+                          <td>Si LDMOS (fT ~40 GHz)</td>
+                          <td>~25 dB per stage</td>
+                        </tr>
+                        <tr>
+                          <td><strong>5G Sub-6GHz</strong></td>
+                          <td>3.5 GHz</td>
+                          <td>> 17.5 GHz</td>
+                          <td>GaN HEMT (fT ~100 GHz)</td>
+                          <td>~28 dB per stage</td>
+                        </tr>
+                        <tr>
+                          <td><strong>5G mmWave</strong></td>
+                          <td>28 GHz</td>
+                          <td>> 140 GHz</td>
+                          <td>SiGe HBT (fT ~300 GHz) or GaN</td>
+                          <td>~10-12 dB per stage</td>
+                        </tr>
+                        <tr>
+                          <td><strong>6G Research (Sub-THz)</strong></td>
+                          <td>140 GHz</td>
+                          <td>> 700 GHz</td>
+                          <td>InP HEMT (fT ~700+ GHz)</td>
+                          <td>~6-8 dB per stage</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    
+                    <div style='background-color: #e7f3ff; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;'>
+                      <h5><i class='fa fa-calculator'></i> Quick Calculator:</h5>
+                      <p><strong>For your current global frequency: </strong><span id='calc_freq'></span></p>
+                      <p><strong>Minimum Required fT: </strong><span id='calc_ft_min'></span></p>
+                      <p><strong>Recommended fT: </strong><span id='calc_ft_rec'></span></p>
+                      <p><strong>Suggested Technologies: </strong><span id='calc_tech'></span></p>
+                      <script>
+                        // Update calculator when frequency changes
+                        $(document).ready(function() {
+                          function updateCalc() {
+                            if (typeof Shiny !== 'undefined' && Shiny.shinyapp && Shiny.shinyapp.$inputValues) {
+                              var freq = Shiny.shinyapp.$inputValues.global_frequency || 2.6;
+                              var ft_min = freq * 5;
+                              var ft_rec = freq * 10;
+                              
+                              $('#calc_freq').text(freq.toFixed(2) + ' GHz');
+                              $('#calc_ft_min').text(ft_min.toFixed(1) + ' GHz');
+                              $('#calc_ft_rec').text(ft_rec.toFixed(1) + ' GHz');
+                              
+                              var tech = [];
+                              if (ft_rec < 40) tech.push('Si LDMOS');
+                              if (ft_rec < 100) tech.push('GaN HEMT');
+                              if (ft_rec < 300) tech.push('SiGe HBT');
+                              if (ft_rec >= 200) tech.push('InP HEMT');
+                              
+                              $('#calc_tech').text(tech.join(', ') || 'Advanced research technologies required');
+                            }
+                          }
+                          
+                          // Update on load and when frequency changes
+                          updateCalc();
+                          setInterval(updateCalc, 1000);
+                        });
+                      </script>
+                    </div>
+                    
+                    <h5 style='margin-top: 25px;'>Key Takeaways:</h5>
+                    <ul>
+                      <li><strong>Always check fT before selecting a technology</strong> - It's the single most important parameter for frequency selection</li>
+                      <li><strong>Use the 5× rule as minimum</strong> - fT should be at least 5× your operating frequency</li>
+                      <li><strong>Higher fT = More margin</strong> - Provides better gain, easier matching, and improved stability</li>
+                      <li><strong>Consider fmax for oscillators</strong> - For VCOs and oscillators, use fmax instead of fT as the limit</li>
+                      <li><strong>Technology roadmaps matter</strong> - fT has improved steadily, enabling higher frequency designs each year</li>
+                    </ul>
+                  ")
+                )
               ),
               
               htmlOutput("freq_recommendation")
@@ -469,7 +680,210 @@ ui <- dashboardPage(
             ),
             
             # ======================================
-            # Tab 3: PA Lineup Calculator (Enhanced Interactive)
+            # Tab 3: Passive Component Loss Curves
+            # ======================================
+            tabPanel(
+              title = tagList(icon("chart-line"), "Loss Curves"),
+              value = "loss_curves",
+              
+              fluidRow(
+                column(12,
+                  box(
+                    title = tagList(icon("chart-area"), "Passive Component Loss vs Frequency"),
+                    width = 12,
+                    status = "warning",
+                    solidHeader = TRUE,
+                    
+                    fluidRow(
+                      column(8,
+                        plotlyOutput("loss_curves_plot", height = "550px")
+                      ),
+                      column(4,
+                        wellPanel(
+                          h4(icon("wrench"), " Component Selection"),
+                          
+                          checkboxGroupInput("loss_curve_components",
+                            "Display Components:",
+                            choices = c(
+                              "Wilkinson Splitter (2-way)" = "wilkinson_splitter",
+                              "Wilkinson Combiner (2-way)" = "wilkinson_combiner",
+                              "Quadrature Hybrid (90°)" = "quadrature_hybrid",
+                              "T-Junction Splitter" = "t_junction",
+                              "Transmission Line (10cm)" = "transmission_line",
+                              "Doherty Combiner" = "doherty_combiner",
+                              "Transformer (1:1)" = "transformer"
+                            ),
+                            selected = c("wilkinson_splitter", "wilkinson_combiner", "doherty_combiner", "transmission_line")
+                          ),
+                          
+                          hr(),
+                          
+                          h5(icon("calculator"), " Quick Calculator"),
+                          numericInput("loss_calc_freq", "Frequency (GHz)", value = 2.6, min = 0.1, max = 30, step = 0.1),
+                          selectInput("loss_calc_type", "Component Type",
+                            choices = c(
+                              "Wilkinson Splitter" = "wilkinson_splitter",
+                              "Wilkinson Combiner" = "wilkinson_combiner",
+                              "Quadrature Hybrid" = "quadrature_hybrid",
+                              "T-Junction" = "t_junction",
+                              "Transmission Line (10cm)" = "transmission_line",
+                              "Doherty Combiner" = "doherty_combiner",
+                              "Transformer" = "transformer"
+                            )
+                          ),
+                          div(style = "background-color: #f8f9fa; padding: 15px; border-left: 4px solid #ff851b; margin-top: 10px;",
+                            h4(icon("arrow-right"), " Estimated Loss:"),
+                            h3(textOutput("loss_calc_result", inline = TRUE), style = "color: #ff851b; margin: 5px 0;"),
+                            p("dB", style = "color: #666; margin: 0;")
+                          )
+                        )
+                      )
+                    ),
+                    
+                    hr(),
+                    
+                    h4(icon("book"), " Loss Estimation Models & Academic References"),
+                    
+                    tabsetPanel(
+                      tabPanel("Formulas",
+                        br(),
+                        HTML("
+                          <h5>1. Wilkinson Splitter/Combiner</h5>
+                          <p><strong>Model:</strong> L<sub>wilk</sub>(f) = 3.0 + 0.1 + 0.05·f [dB]</p>
+                          <ul>
+                            <li>3.0 dB: Ideal power split (2-way)</li>
+                            <li>0.1 dB: Quarter-wave transformer insertion loss (baseline)</li>
+                            <li>0.05·f: Frequency-dependent losses (skin effect, dielectric)</li>
+                          </ul>
+                          <p><strong>Reference:</strong> Wilkinson, E.J. 'An N-Way Hybrid Power Divider' (IEEE Trans. MTT, 1960)</p>
+                          
+                          <h5>2. Quadrature Hybrid (90° Coupler)</h5>
+                          <p><strong>Model:</strong> L<sub>quad</sub>(f) = 0.3 + 0.08·f + 0.02·f<sup>1.5</sup> [dB]</p>
+                          <ul>
+                            <li>Coupled-line structure with directivity limitations</li>
+                            <li>Higher frequency → Reduced directivity → Increased loss</li>
+                          </ul>
+                          <p><strong>Reference:</strong> Mongia et al. 'RF and Microwave Coupled-Line Circuits' (Artech House, 2007)</p>
+                          
+                          <h5>3. Transmission Line (Microstrip on FR4)</h5>
+                          <p><strong>Model:</strong> L<sub>line</sub>(f) = (0.05 + 0.15·√f + 0.02·f) × L/10 [dB]</p>
+                          <ul>
+                            <li>Skin effect losses: ∝ √f</li>
+                            <li>Dielectric losses: ∝ f (tanδ = 0.02 for FR4)</li>
+                            <li>L: Length in cm</li>
+                          </ul>
+                          <p><strong>Reference:</strong> Wadell, B.C. 'Transmission Line Design Handbook' (Artech House, 1991), Section 3.4</p>
+                          
+                          <h5>4. Doherty Combiner</h5>
+                          <p><strong>Model:</strong> L<sub>doh</sub>(f) = 0.2 + 0.02·f + 0.01·f<sup>1.3</sup> [dB]</p>
+                          <ul>
+                            <li>Lower loss than Wilkinson (impedance transformation, no resistor)</li>
+                            <li>Quarter-wave impedance inverter</li>
+                          </ul>
+                          <p><strong>Reference:</strong> Cripps, S.C. 'RF Power Amplifiers for Wireless Communications' Ch.9 (Artech House, 2006)</p>
+                          
+                          <h5>5. Transformer (1:1 ratio)</h5>
+                          <p><strong>Model:</strong></p>
+                          <ul>
+                            <li>f < 0.5 GHz: L = 0.3 + 0.05·f (core loss dominant)</li>
+                            <li>0.5 - 3 GHz: L = 0.2 + 0.03·(f - 0.5) (optimal range)</li>
+                            <li>f > 3 GHz: L = 0.4 + 0.1·(f - 3) (winding/stray capacitance)</li>
+                          </ul>
+                          <p><strong>Reference:</strong> Sevick, J. 'Transmission Line Transformers' (Noble Publishing, 2001)</p>
+                          
+                          <h5>6. T-Junction Splitter</h5>
+                          <p><strong>Model:</strong> L<sub>tjunc</sub>(f) = 0.05 + 0.03·f [dB]</p>
+                          <ul>
+                            <li>Very low loss but poor isolation</li>
+                            <li>Simple transmission line junction</li>
+                          </ul>
+                        ")
+                      ),
+                      
+                      tabPanel("Usage in Lineup",
+                        br(),
+                        HTML("
+                          <div style='background-color: #d1ecf1; padding: 15px; border-left: 4px solid #0c5460; margin-bottom: 15px;'>
+                            <h5><i class='fa fa-info-circle'></i> Automatic Loss Application</h5>
+                            <p>When you apply specifications to a lineup, these loss curves are <strong>automatically</strong> consulted to populate passive component parameters at the appropriate frequency.</p>
+                          </div>
+                          
+                          <h5>How Loss Curves Impact Lineup Design</h5>
+                          
+                          <h6>1. Power Budget Calculations</h6>
+                          <p>Each passive component reduces available power:</p>
+                          <ul>
+                            <li><strong>Splitters:</strong> P<sub>out</sub> = P<sub>in</sub> - 10·log<sub>10</sub>(N) - L<sub>insertion</sub></li>
+                            <li><strong>Transmission Lines:</strong> Cumulative loss through cascade</li>
+                            <li><strong>Combiners:</strong> Slightly reduce combined output power</li>
+                          </ul>
+                          
+                          <h6>2. Gain Reduction</h6>
+                          <p>Total lineup gain is reduced by passive losses:</p>
+                          <p style='background-color: #f8f9fa; padding: 10px; font-family: monospace;'>
+                            G<sub>total</sub> = Σ(G<sub>transistor</sub>) - Σ(L<sub>passive</sub>)
+                          </p>
+                          
+                          <h6>3. Frequency-Dependent Behavior</h6>
+                          <table class='table table-sm table-striped'>
+                            <thead>
+                              <tr>
+                                <th>Frequency</th>
+                                <th>Wilkinson Loss</th>
+                                <th>Transmission Line (10cm)</th>
+                                <th>Impact</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>1 GHz</td>
+                                <td>~3.2 dB</td>
+                                <td>~0.37 dB</td>
+                                <td>Manageable</td>
+                              </tr>
+                              <tr>
+                                <td>5 GHz</td>
+                                <td>~3.35 dB</td>
+                                <td>~0.89 dB</td>
+                                <td>Moderate</td>
+                              </tr>
+                              <tr>
+                                <td>10 GHz</td>
+                                <td>~3.60 dB</td>
+                                <td>~1.45 dB</td>
+                                <td>Significant</td>
+                              </tr>
+                              <tr>
+                                <td>28 GHz</td>
+                                <td>~3.80 dB</td>
+                                <td>~3.50 dB</td>
+                                <td>Critical (mmWave)</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          
+                          <h6>4. Design Strategies</h6>
+                          <ul>
+                            <li><strong>Minimize Interconnect Length:</strong> Each cm matters at mmWave</li>
+                            <li><strong>Choose Low-Loss Substrate:</strong> Rogers/Alumina vs FR4 at high freq</li>
+                            <li><strong>Prefer Doherty Combiner:</strong> ~0.5 dB vs 3.2 dB for Wilkinson</li>
+                            <li><strong>Use T-Junction When Isolation Not Critical:</strong> Lowest loss option</li>
+                          </ul>
+                          
+                          <div style='background-color: #fff3cd; padding: 15px; border-left: 4px solid #856404; margin-top: 15px;'>
+                            <h5><i class='fa fa-lightbulb'></i> Pro Tip</h5>
+                            <p><strong>At mmWave (>20 GHz):</strong> Passive losses can exceed active device gains! Consider integrated approaches or waveguide structures to minimize interconnect.</p>
+                          </div>
+                        ")
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            
+            # ======================================
+            # Tab 4: PA Lineup Calculator (Enhanced Interactive)
             # ======================================
             tabPanel(
               title = tagList(icon("project-diagram"), "PA Lineup"),
@@ -816,20 +1230,66 @@ ui <- dashboardPage(
                     solidHeader = TRUE,
                     collapsible = TRUE,
                     collapsed = TRUE,
-                    fluidRow(
-                      column(6,
-                        numericInput("spec_frequency", "Frequency (MHz)", value = 1805, min = 100, max = 10000, step = 1)
+                    
+                    # PRIMARY LINEUP DRIVING PARAMETERS (highlighted)
+                    div(style = "background-color: #fff3cd; padding: 10px; border-left: 4px solid #ff851b; margin-bottom: 15px;",
+                      h5(icon("star"), " PRIMARY LINEUP DRIVERS", style = "color: #ff851b; margin-top: 0;"),
+                      fluidRow(
+                        column(6,
+                          div(style = "border: 2px solid #ff851b; border-radius: 4px; padding: 5px; background-color: #fffbf5;",
+                            numericInput("spec_frequency", 
+                              tags$strong("⚡ Frequency (MHz)", style = "color: #ff851b;"), 
+                              value = 1805, min = 100, max = 10000, step = 1)
+                          )
+                        ),
+                        column(6,
+                          div(style = "border: 2px solid #ff851b; border-radius: 4px; padding: 5px; background-color: #fffbf5;",
+                            numericInput("spec_p3db", 
+                              tags$strong("⚡ P3dB Output (dBm)", style = "color: #ff851b;"), 
+                              value = 55.3, min = 0, max = 80, step = 0.1)
+                          )
+                        )
                       ),
-                      column(6,
-                        numericInput("spec_supply_voltage", "Supply Voltage (V)", value = 30, min = 5, max = 50, step = 1)
+                      fluidRow(
+                        column(6,
+                          div(style = "border: 2px solid #ff851b; border-radius: 4px; padding: 5px; background-color: #fffbf5;",
+                            numericInput("spec_gain", 
+                              tags$strong("⚡ Total Gain (dB)", style = "color: #ff851b;"), 
+                              value = 41.5, min = 0, max = 80, step = 0.1)
+                          )
+                        ),
+                        column(6,
+                          numericInput("spec_supply_voltage", "Supply Voltage (V)", 
+                            value = 30, min = 5, max = 50, step = 1)
+                        )
+                      ),
+                      fluidRow(
+                        column(4,
+                          numericInput("spec_bw_lower", "BW Lower Margin (%)", 
+                            value = 10, min = 0, max = 50, step = 1)
+                        ),
+                        column(4,
+                          numericInput("spec_bw_upper", "BW Upper Margin (%)", 
+                            value = 10, min = 0, max = 50, step = 1)
+                        ),
+                        column(4,
+                          div(style = "margin-top: 25px;",
+                            strong("Bandwidth:"),
+                            textOutput("spec_bandwidth_display", inline = TRUE),
+                            tags$span(" MHz", style = "color: #666;")
+                          )
+                        )
                       )
                     ),
+                    
+                    # SECONDARY SPECIFICATIONS
+                    h5(icon("sliders-h"), " Secondary Specifications", style = "margin-top: 5px;"),
                     fluidRow(
                       column(6,
-                        numericInput("spec_gain", "Gain (dB)", value = 41.5, min = 0, max = 80, step = 0.1)
+                        numericInput("spec_efficiency", "Efficiency (%)", value = 47, min = 0, max = 100, step = 1)
                       ),
                       column(6,
-                        numericInput("spec_p3db", "P3dB (dBm)", value = 55.3, min = 0, max = 80, step = 0.1)
+                        numericInput("spec_vbw", "VBW (MHz)", value = 225, min = 1, max = 1000, step = 1)
                       )
                     ),
                     fluidRow(
@@ -911,23 +1371,36 @@ ui <- dashboardPage(
                           value = 2.6, min = 0.1, max = 100, step = 0.1)
                       ),
                       column(6,
-                        numericInput("global_backoff", "Back-off (dB)", 
-                          value = 6, min = 0, max = 20, step = 0.5)
+                        numericInput("global_pout_p3db", tags$strong("Pout (P3dB) (dBm)"), 
+                          value = 55.3, min = 0, max = 80, step = 0.1)
                       )
                     ),
                     fluidRow(
                       column(6,
+                        numericInput("global_backoff", "Back-off (dB)", 
+                          value = 6, min = 0, max = 20, step = 0.5)
+                      ),
+                      column(6,
                         numericInput("global_PAR", "PAR (dB)", 
                           value = 8, min = 0, max = 15, step = 0.5)
-                      ),
+                      )
+                    ),
+                    fluidRow(
                       column(6,
                         div(style = "margin-top: 25px;",
                           strong("Pavg (dBm):"),
                           textOutput("calculated_Pavg", inline = TRUE)
                         )
+                      ),
+                      column(6,
+                        div(style = "margin-top: 25px;",
+                          strong("Pin (dBm):"),
+                          textOutput("calculated_Pin_global", inline = TRUE),
+                          tags$span(" (from specs)", style = "color: #999; font-size: 12px;")
+                        )
                       )
                     ),
-                    helpText("These parameters apply to the entire lineup for power calculations.")
+                    helpText(icon("info-circle"), " These parameters apply to the entire lineup. Pout(P3dB) typically derived from Specifications.")
                   ),
                   
                   # Canvas Layout Selector
@@ -1851,6 +2324,158 @@ server <- function(input, output, session) {
     pavg <- final_pout - backoff
     
     return(sprintf("%.1f dBm", pavg))
+  })
+  
+  # Calculated Pin from Global Parameters (based on specs)
+  output$calculated_Pin_global <- renderText({
+    req(input$global_pout_p3db, input$spec_gain)
+    
+    pin_calc <- input$global_pout_p3db - input$spec_gain
+    
+    return(sprintf("%.1f dBm", pin_calc))
+  })
+  
+  # Bandwidth Display in Specifications
+  output$spec_bandwidth_display <- renderText({
+    req(input$spec_frequency, input$spec_bw_lower, input$spec_bw_upper)
+    
+    freq_mhz <- input$spec_frequency
+    bw_lower_pct <- input$spec_bw_lower / 100
+    bw_upper_pct <- input$spec_bw_upper / 100
+    
+    bw_total <- freq_mhz * (bw_lower_pct + bw_upper_pct)
+    
+    return(sprintf("%.0f", bw_total))
+  })
+  
+  # ============================================================
+  # Loss Curves Tab - Plotting and Calculations
+  # ============================================================
+  
+  # Loss estimation function (matching JavaScript implementation)
+  estimatePassiveLoss_R <- function(type, freq_ghz) {
+    loss_db <- 0
+    
+    if (type == "transmission_line") {
+      # Microstrip on FR4, 10cm length
+      loss_db <- (0.05 + 0.15 * sqrt(freq_ghz) + 0.02 * freq_ghz) * 1.0  # per 10cm
+    } else if (type == "wilkinson_splitter") {
+      # 2-way Wilkinson with quarter-wave transformer
+      loss_db <- 3.0 + 0.1 + 0.05 * freq_ghz
+    } else if (type == "wilkinson_combiner") {
+      loss_db <- 3.0 + 0.1 + 0.05 * freq_ghz
+    } else if (type == "quadrature_hybrid") {
+      # 90-degree coupler
+      loss_db <- 0.3 + 0.08 * freq_ghz + 0.02 * freq_ghz^1.5
+    } else if (type == "t_junction") {
+      loss_db <- 0.05 + 0.03 * freq_ghz
+    } else if (type == "doherty_combiner") {
+      # Lower loss than Wilkinson
+      loss_db <- 0.2 + 0.02 * freq_ghz + 0.01 * freq_ghz^1.3
+    } else if (type == "transformer") {
+      # 1:1 transformer
+      if (freq_ghz < 0.5) {
+        loss_db <- 0.3 + 0.05 * freq_ghz
+      } else if (freq_ghz < 3) {
+        loss_db <- 0.2 + 0.03 * (freq_ghz - 0.5)
+      } else {
+        loss_db <- 0.4 + 0.1 * (freq_ghz - 3)
+      }
+    }
+    
+    return(loss_db)
+  }
+  
+  # Loss Curves Plot
+  output$loss_curves_plot <- renderPlotly({
+    req(input$loss_curve_components)
+    
+    # Generate frequency range
+    freq_range <- seq(0.5, 30, by = 0.1)
+    
+    # Component names for legend
+    component_names <- list(
+      "wilkinson_splitter" = "Wilkinson Splitter (2-way)",
+      "wilkinson_combiner" = "Wilkinson Combiner (2-way)",
+      "quadrature_hybrid" = "Quadrature Hybrid (90°)",
+      "t_junction" = "T-Junction Splitter",
+      "transmission_line" = "Transmission Line (10cm)",
+      "doherty_combiner" = "Doherty Combiner",
+      "transformer" = "Transformer (1:1)"
+    )
+    
+    # Component colors
+    component_colors <- list(
+      "wilkinson_splitter" = "#e74c3c",
+      "wilkinson_combiner" = "#3498db",
+      "quadrature_hybrid" = "#2ecc71",
+      "t_junction" = "#f39c12",
+      "transmission_line" = "#9b59b6",
+      "doherty_combiner" = "#1abc9c",
+      "transformer" = "#e67e22"
+    )
+    
+    # Create empty plot
+    p <- plot_ly()
+    
+    # Add trace for each selected component
+    for (comp_type in input$loss_curve_components) {
+      loss_values <- sapply(freq_range, function(f) estimatePassiveLoss_R(comp_type, f))
+      
+      p <- p %>% add_trace(
+        x = freq_range,
+        y = loss_values,
+        type = 'scatter',
+        mode = 'lines',
+        name = component_names[[comp_type]],
+        line = list(color = component_colors[[comp_type]], width = 2.5),
+        hovertemplate = paste0(
+          '<b>', component_names[[comp_type]], '</b><br>',
+          'Frequency: %{x:.2f} GHz<br>',
+          'Loss: %{y:.2f} dB<br>',
+          '<extra></extra>'
+        )
+      )
+    }
+    
+    # Layout
+    p <- p %>% layout(
+      title = list(
+        text = "<b>Passive Component Loss vs Frequency</b>",
+        font = list(size = 16)
+      ),
+      xaxis = list(
+        title = "Frequency (GHz)",
+        gridcolor = '#e0e0e0',
+        zeroline = FALSE
+      ),
+      yaxis = list(
+        title = "Insertion Loss (dB)",
+        gridcolor = '#e0e0e0',
+        zeroline = FALSE
+      ),
+      hovermode = 'closest',
+      legend = list(
+        x = 0.02,
+        y = 0.98,
+        bgcolor = 'rgba(255, 255, 255, 0.9)',
+        bordercolor = '#999',
+        borderwidth = 1
+      ),
+      plot_bgcolor = '#f8f9fa',
+      paper_bgcolor = 'white'
+    )
+    
+    return(p)
+  })
+  
+  # Loss Calculator Result
+  output$loss_calc_result <- renderText({
+    req(input$loss_calc_freq, input$loss_calc_type)
+    
+    loss_db <- estimatePassiveLoss_R(input$loss_calc_type, input$loss_calc_freq)
+    
+    return(sprintf("%.2f", loss_db))
   })
   
   # ============================================================
@@ -3005,6 +3630,7 @@ server <- function(input, output, session) {
     
     # Update global parameters
     updateNumericInput(session, "global_frequency", value = specs$frequency_ghz)
+    updateNumericInput(session, "global_pout_p3db", value = specs$p3db)
     
     # Send specifications to JavaScript for component adaptation
     session$sendCustomMessage("applySpecsToLineup", specs)
