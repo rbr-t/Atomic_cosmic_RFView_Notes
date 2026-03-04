@@ -1012,43 +1012,127 @@ class PALineupCanvas {
     }
     
     if (display.includes('pae')) {
-      textGroup.append('text')
-        .attr('x', 15)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#ffdd44')
-        .attr('font-size', '8px')
-        .text(`PAE: ${component.properties.pae || 50}%`);
-      yOffset += 10;
-    }
-    
-// Show Pin (input power) if available or if pin is in display
-      if (display.includes('pin')) {
-        const pinValue = component.properties.pin || 30;
-        const pinText = this.formatPower(pinValue, this.powerUnit);
+      // Check if dual operating point efficiency data is available
+      const hasDualOp = component.properties.pae_pavg !== undefined && component.properties.pae_p3db !== undefined;
+      
+      if (hasDualOp) {
+        // Display efficiency at both operating points
         textGroup.append('text')
           .attr('x', 15)
           .attr('y', yOffset)
           .attr('text-anchor', 'middle')
-          .attr('fill', '#66ccff')
+          .attr('fill', '#ffdd44')
           .attr('font-size', '8px')
-          .text(`Pin: ${pinText}`);
+          .attr('font-weight', 'bold')
+          .text(`PAE@Pavg: ${component.properties.pae_pavg}%`);
+        yOffset += 10;
+        
+        textGroup.append('text')
+          .attr('x', 15)
+          .attr('y', yOffset)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#ffee88')
+          .attr('font-size', '8px')
+          .text(`PAE@P3dB: ${component.properties.pae_p3db}%`);
+        yOffset += 10;
+      } else {
+        // Legacy single efficiency display
+        textGroup.append('text')
+          .attr('x', 15)
+          .attr('y', yOffset)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#ffdd44')
+          .attr('font-size', '8px')
+          .text(`PAE: ${component.properties.pae || 50}%`);
         yOffset += 10;
       }
+    }
+    
+// ===== DUAL OPERATING POINT DISPLAY =====
+      // Show Pin at BOTH Pavg and P3dB if available
+      if (display.includes('pin')) {
+        // Check if dual operating point data is available
+        const hasDualOp = component.properties.pin_pavg !== undefined && component.properties.pin_p3db !== undefined;
+        
+        if (hasDualOp) {
+          // Display both operating points
+          const pinPavgText = this.formatPower(component.properties.pin_pavg, this.powerUnit);
+          const pinP3dbText = this.formatPower(component.properties.pin_p3db, this.powerUnit);
+          
+          textGroup.append('text')
+            .attr('x', 15)
+            .attr('y', yOffset)
+            .attr('text-anchor', 'middle')
+            .attr('fill', '#66ccff')
+            .attr('font-size', '8px')
+            .attr('font-weight', 'bold')
+            .text(`Pin@Pavg: ${pinPavgText}`);
+          yOffset += 10;
+          
+          textGroup.append('text')
+            .attr('x', 15)
+            .attr('y', yOffset)
+            .attr('text-anchor', 'middle')
+            .attr('fill', '#88ddff')
+            .attr('font-size', '8px')
+            .text(`Pin@P3dB: ${pinP3dbText}`);
+          yOffset += 10;
+        } else {
+          // Legacy single operating point display
+          const pinValue = component.properties.pin || 30;
+          const pinText = this.formatPower(pinValue, this.powerUnit);
+          textGroup.append('text')
+            .attr('x', 15)
+            .attr('y', yOffset)
+            .attr('text-anchor', 'middle')
+            .attr('fill', '#66ccff')
+            .attr('font-size', '8px')
+            .text(`Pin: ${pinText}`);
+          yOffset += 10;
+        }
+      }
       
-      // Show Pout as P3dB (3dB compression point) with clarification
+      // Show Pout at BOTH Pavg and P3dB if available
       if (display.includes('pout') || display.includes('p3db')) {
-        // Use p3db property if available, otherwise pout
-        const p3dbValue = component.properties.p3db || component.properties.pout || 40;
-        const p3dbText = this.formatPower(p3dbValue, this.powerUnit);
-        textGroup.append('text')
-          .attr('x', 15)
-          .attr('y', yOffset)
-          .attr('text-anchor', 'middle')
-          .attr('fill', '#ff88ff')
-          .attr('font-size', '8px')
-          .text(`Pout(P3dB): ${p3dbText}`);
-        yOffset += 10;
+        // Check if dual operating point data is available
+        const hasDualOp = component.properties.pout_pavg !== undefined && component.properties.pout_p3db !== undefined;
+        
+        if (hasDualOp) {
+          // Display both operating points
+          const poutPavgText = this.formatPower(component.properties.pout_pavg, this.powerUnit);
+          const poutP3dbText = this.formatPower(component.properties.pout_p3db, this.powerUnit);
+          
+          textGroup.append('text')
+            .attr('x', 15)
+            .attr('y', yOffset)
+            .attr('text-anchor', 'middle')
+            .attr('fill', '#ff88ff')
+            .attr('font-size', '8px')
+            .attr('font-weight', 'bold')
+            .text(`Pout@Pavg: ${poutPavgText}`);
+          yOffset += 10;
+          
+          textGroup.append('text')
+            .attr('x', 15)
+            .attr('y', yOffset)
+            .attr('text-anchor', 'middle')
+            .attr('fill', '#ffaaff')
+            .attr('font-size', '8px')
+            .text(`Pout@P3dB: ${poutP3dbText}`);
+          yOffset += 10;
+        } else {
+          // Legacy single operating point display
+          const p3dbValue = component.properties.p3db || component.properties.pout || 40;
+          const p3dbText = this.formatPower(p3dbValue, this.powerUnit);
+          textGroup.append('text')
+            .attr('x', 15)
+            .attr('y', yOffset)
+            .attr('text-anchor', 'middle')
+            .attr('fill', '#ff88ff')
+            .attr('font-size', '8px')
+            .text(`Pout(P3dB): ${p3dbText}`);
+          yOffset += 10;
+        }
       }
       
       // P1dB must always be below P3dB (1dB compression point)
@@ -6636,9 +6720,24 @@ function applySpecsToComponents(specs) {
   
   console.log(`[Apply Specs] Power cascade input: ${pa_target_power.toFixed(2)} dBm (system target: ${specs.p3db} dBm, topology: ${topology})`);
   
-  // Calculate power cascade with correct per-PA target
-  const powerCascade = calculatePowerCascade(pa_target_power, gainDist.stages);
-  console.log('[Apply Specs] Power cascade:', powerCascade);
+  // CRITICAL: Extract PAR and Pavg from specs
+  const par_db = specs.par || 8.0;  // Peak-to-Average Ratio (dB)
+  const pavg_dbm = specs.pavg || (specs.p3db - par_db);  // Average/backoff power
+  
+  console.log(`[Apply Specs] Operating Points: Pavg=${pavg_dbm.toFixed(2)} dBm (BO), P3dB=${specs.p3db.toFixed(2)} dBm (Peak), PAR=${par_db.toFixed(1)} dB`);
+  
+  // Calculate power cascade at P3dB (peak power) with correct per-PA target
+  const powerCascade_p3db = calculatePowerCascade(pa_target_power, gainDist.stages);
+  console.log('[Apply Specs] Power cascade at P3dB (Peak):', powerCascade_p3db);
+  
+  // Calculate power cascade at Pavg (backoff power)
+  // For Doherty: at backoff, only Main PA is active (Aux PA is off or very low power)
+  // Power split: assume Main PA handles most backoff power
+  const pavg_pa_target = topology === 'doherty'
+    ? pavg_dbm - powerCombiningFactor + combinerLoss  // Per-PA power at backoff
+    : pavg_dbm;
+  const powerCascade_pavg = calculatePowerCascade(pavg_pa_target, gainDist.stages);
+  console.log('[Apply Specs] Power cascade at Pavg (Backoff):', powerCascade_pavg);
   
   // Find transistor components
   const transistors = components.filter(c => c.type === 'transistor');
@@ -6691,86 +6790,146 @@ function applySpecsToComponents(specs) {
   if (gainDist.num_stages === 2) {
     // Driver + PA configuration
     if (driver) {
-      const driverStage = powerCascade.find(s => s.stage === 'Driver');
+      const driverStage_p3db = powerCascade_p3db.find(s => s.stage === 'Driver');
+      const driverStage_pavg = powerCascade_pavg.find(s => s.stage === 'Driver');
+      
       driver.properties.frequency = specs.frequency_ghz;
       driver.properties.technology = techSelection.technology;
-      driver.properties.gain = driverStage.gain;
+      driver.properties.gain = driverStage_p3db.gain;
       
-      // Driver output power from cascade calculation
-      driver.properties.pout = driverStage.pout;
-      driver.properties.p3db = driverStage.pout;  // P3dB equals Pout at this level
+      // ===== OPERATING POINT: P3dB (Peak Power) =====
+      driver.properties.pout_p3db = driverStage_p3db.pout;
+      driver.properties.pin_p3db = driverStage_p3db.pin;
+      driver.properties.p3db = driverStage_p3db.pout;  // P3dB equals Pout at peak
+      driver.properties.p1db = driverStage_p3db.pout - 2;  // P1dB for compression check
       
-      // P1dB below P3dB (2dB typical for solid state)
-      driver.properties.p1db = driverStage.pout - 2;
+      // ===== OPERATING POINT: Pavg (Backoff Power) =====
+      driver.properties.pout_pavg = driverStage_pavg.pout;
+      driver.properties.pin_pavg = driverStage_pavg.pin;
+      driver.properties.pavg = driverStage_pavg.pout;
       
-      // Input power from cascade
-      driver.properties.pin = driverStage.pin;
-      
+      // Efficiency at both operating points
       driver.properties.biasClass = 'A';  // Driver typically Class A
-      driver.properties.pae = estimatePAE('A', 'conventional', specs.frequency_ghz);
+      driver.properties.pae_p3db = estimatePAE('A', 'conventional', specs.frequency_ghz);
+      driver.properties.pae_pavg = estimatePAE('A', 'conventional', specs.frequency_ghz);  // Class A has constant efficiency
+      driver.properties.pae = driver.properties.pae_p3db;  // Default display
       driver.properties.vdd = specs.supply_voltage;
-      console.log('[Apply Specs] Updated Driver:', driver.properties);
+      
+      // CRITICAL: Check driver compression at BOTH operating points
+      const driver_compressed_p3db = driver.properties.pout_p3db >= driver.properties.p1db;
+      const driver_compressed_pavg = driver.properties.pout_pavg >= driver.properties.p1db;
+      
+      if (driver_compressed_p3db) {
+        console.warn(`⚠️ DRIVER COMPRESSED AT P3dB: Pout=${driver.properties.pout_p3db.toFixed(2)} dBm >= P1dB=${driver.properties.p1db.toFixed(2)} dBm`);
+        console.warn(`   → Driver needs higher P1dB capability or lower output power requirement`);
+      }
+      if (driver_compressed_pavg) {
+        console.warn(`⚠️ DRIVER COMPRESSED AT Pavg: Pout=${driver.properties.pout_pavg.toFixed(2)} dBm >= P1dB=${driver.properties.p1db.toFixed(2)} dBm`);
+        console.warn(`   → Driver must operate in linear region at backoff!`);
+      }
+      
+      // Store compression status
+      driver.properties.compressed_p3db = driver_compressed_p3db;
+      driver.properties.compressed_pavg = driver_compressed_pavg;
+      
+      // Legacy fields for backward compatibility
+      driver.properties.pout = driverStage_p3db.pout;
+      driver.properties.pin = driverStage_p3db.pin;
+      
+      console.log('[Apply Specs] Updated Driver:');
+      console.log(`  At P3dB: Pin=${driver.properties.pin_p3db.toFixed(2)} dBm, Pout=${driver.properties.pout_p3db.toFixed(2)} dBm, PAE=${driver.properties.pae_p3db}%, Compressed=${driver_compressed_p3db}`);
+      console.log(`  At Pavg: Pin=${driver.properties.pin_pavg.toFixed(2)} dBm, Pout=${driver.properties.pout_pavg.toFixed(2)} dBm, PAE=${driver.properties.pae_pavg}%, Compressed=${driver_compressed_pavg}`);
     }
     
     // Update Main PA
     if (mainPA) {
-      const paStage = powerCascade.find(s => s.stage === 'PA');
+      const paStage_p3db = powerCascade_p3db.find(s => s.stage === 'PA');
+      const paStage_pavg = powerCascade_pavg.find(s => s.stage === 'PA');
+      
       mainPA.properties.frequency = specs.frequency_ghz;
       mainPA.properties.technology = techSelection.technology;
-      mainPA.properties.gain = paStage.gain;
+      mainPA.properties.gain = paStage_p3db.gain;
       
-      // CRITICAL FIX: For Doherty architecture, each PA must produce power such that
-      // when combined in linear domain (watts), they reach the target output.
-      // For balanced Doherty: P_combined_dBm = 10*log10(P_main_watts + P_aux_watts)
-      // If Main and Aux are equal: P_combined = 10*log10(2 * P_PA_watts) = P_PA + 3.01 dB
-      // Therefore: P_PA_required = P_target - 3.01 dB + combiner_loss
+      // CRITICAL: For Doherty architecture, power combining depends on operating point
+      // At P3dB (Peak): Both Main and Aux contribute equally → P_combined = P_PA + 3.01 dB
+      // At Pavg (Backoff): Mainly Main PA, Aux is off/low → P_combined ≈ P_main
       
-      const powerCombiningFactor = 3.01;  // dB, accounts for 2 PAs combining (10*log10(2))
+      const powerCombiningFactor = 3.01;  // dB, accounts for 2 PAs combining
+      
+      // ===== OPERATING POINT: P3dB (Peak Power) =====
+      // Each PA must produce power such that combined output reaches system target
       const pa_p3db_target = specs.p3db - powerCombiningFactor + combinerLoss;
+      mainPA.properties.pout_p3db = pa_p3db_target;  // Each PA contributes ~52.8 dBm
+      mainPA.properties.pin_p3db = pa_p3db_target - paStage_p3db.gain;
+      mainPA.properties.p3db = pa_p3db_target;
+      mainPA.properties.p1db = pa_p3db_target - 2.0;  // P1dB for compression check
       
-      mainPA.properties.p3db = pa_p3db_target;  // Each PA contributes ~52.3 dBm
-      mainPA.properties.pout = pa_p3db_target;  // Pout at P3dB
+      // ===== OPERATING POINT: Pavg (Backoff Power) =====
+      // At backoff, Main PA handles most power (Doherty principle)
+      // For balanced Doherty, Main PA produces ~pavg_dbm, Aux is minimal
+      const pa_pavg_target = pavg_dbm - powerCombiningFactor + combinerLoss;
+      mainPA.properties.pout_pavg = pa_pavg_target;
+      mainPA.properties.pin_pavg = pa_pavg_target - paStage_pavg.gain;
+      mainPA.properties.pavg = pa_pavg_target;
       
-      // P1dB (1dB compression) must be below P3dB
-      // For solid state PAs, typically 2-3dB below P3dB
-      mainPA.properties.p1db = pa_p3db_target - 2.0;
-      
-      // Calculate input power needed (from PA output - gain)
-      mainPA.properties.pin = pa_p3db_target - paStage.gain;
-      
+      // Efficiency at both operating points (Doherty optimizes efficiency at backoff!)
       mainPA.properties.biasClass = 'AB';  // Main PA in Doherty
-      mainPA.properties.pae = estimatePAE('AB', 'doherty', specs.frequency_ghz);
+      mainPA.properties.pae_p3db = estimatePAE('AB', 'doherty', specs.frequency_ghz);  // ~50%
+      mainPA.properties.pae_pavg = Math.round(estimatePAE('AB', 'doherty', specs.frequency_ghz) * 1.1);  // ~55% (Doherty efficiency boost at backoff)
+      mainPA.properties.pae = mainPA.properties.pae_p3db;  // Default display
       mainPA.properties.vdd = specs.supply_voltage;
-      console.log(`[Apply Specs] Updated Main PA (Doherty): P3dB=${pa_p3db_target.toFixed(2)} dBm (target ${specs.p3db} dBm after combining)`);
-      console.log('[Apply Specs] Main PA properties:', mainPA.properties);
+      
+      // Legacy fields for backward compatibility
+      mainPA.properties.pout = pa_p3db_target;
+      mainPA.properties.pin = mainPA.properties.pin_p3db;
+      
+      console.log(`[Apply Specs] Updated Main PA (Doherty):`);
+      console.log(`  At P3dB: Pin=${mainPA.properties.pin_p3db.toFixed(2)} dBm, Pout=${mainPA.properties.pout_p3db.toFixed(2)} dBm, PAE=${mainPA.properties.pae_p3db}% → Combined=${specs.p3db.toFixed(2)} dBm`);
+      console.log(`  At Pavg: Pin=${mainPA.properties.pin_pavg.toFixed(2)} dBm, Pout=${mainPA.properties.pout_pavg.toFixed(2)} dBm, PAE=${mainPA.properties.pae_pavg}% (Efficiency Boost!) → Combined=${pavg_dbm.toFixed(2)} dBm`);
     }
     
     // Update Aux PA (should match Main PA power for balanced Doherty)
     if (auxPA) {
-      const paStage = powerCascade.find(s => s.stage === 'PA');
+      const paStage_p3db = powerCascade_p3db.find(s => s.stage === 'PA');
+      const paStage_pavg = powerCascade_pavg.find(s => s.stage === 'PA');
+      
       auxPA.properties.frequency = specs.frequency_ghz;
       auxPA.properties.technology = techSelection.technology;
-      auxPA.properties.gain = paStage.gain;
+      auxPA.properties.gain = paStage_p3db.gain;
       
-      // For balanced Doherty, Aux must match Main PA
-      // Each PA produces equal power, which combines to reach system target
+      // For balanced Doherty: Aux PA matches Main PA at peak, but is OFF/minimal at backoff
       const powerCombiningFactor = 3.01;  // dB
+      
+      // ===== OPERATING POINT: P3dB (Peak Power) =====
+      // At peak, Aux PA contributes equally with Main PA
       const pa_p3db_target = specs.p3db - powerCombiningFactor + combinerLoss;
-      
-      auxPA.properties.p3db = pa_p3db_target;  // Same as Main PA
-      auxPA.properties.pout = pa_p3db_target;
-      
-      // P1dB below P3dB
+      auxPA.properties.pout_p3db = pa_p3db_target;  // Same as Main PA
+      auxPA.properties.pin_p3db = pa_p3db_target - paStage_p3db.gain;
+      auxPA.properties.p3db = pa_p3db_target;
       auxPA.properties.p1db = pa_p3db_target - 2.0;
       
-      // Calculate input power needed  
-      auxPA.properties.pin = pa_p3db_target - paStage.gain;
+      // ===== OPERATING POINT: Pavg (Backoff Power) =====
+      // CRITICAL: At backoff, Aux PA is OFF or very low power (Doherty principle!)
+      // Aux PA turns on only as power increases beyond backoff point
+      const aux_backoff_reduction = 10;  // dB reduction at backoff (Aux PA mostly off)
+      auxPA.properties.pout_pavg = pa_pavg_target - aux_backoff_reduction;  // Minimal output
+      auxPA.properties.pin_pavg = auxPA.properties.pout_pavg - paStage_pavg.gain;
+      auxPA.properties.pavg = auxPA.properties.pout_pavg;
       
-      auxPA.properties.biasClass = 'C';  // Aux PA in Doherty
-      auxPA.properties.pae = estimatePAE('C', 'doherty', specs.frequency_ghz);
+      // Efficiency at both operating points
+      auxPA.properties.biasClass = 'C';  // Aux PA in Doherty (Class C)
+      auxPA.properties.pae_p3db = estimatePAE('C', 'doherty', specs.frequency_ghz);  // ~45%
+      auxPA.properties.pae_pavg = 15;  // Low efficiency at backoff (Aux PA mostly off)
+      auxPA.properties.pae = auxPA.properties.pae_p3db;  // Default display
       auxPA.properties.vdd = specs.supply_voltage;
-      console.log(`[Apply Specs] Updated Aux PA (Doherty): P3dB=${pa_p3db_target.toFixed(2)} dBm (target ${specs.p3db} dBm after combining)`);
-      console.log('[Apply Specs] Aux PA properties:', auxPA.properties);
+      
+      // Legacy fields for backward compatibility
+      auxPA.properties.pout = pa_p3db_target;
+      auxPA.properties.pin = auxPA.properties.pin_p3db;
+      
+      console.log(`[Apply Specs] Updated Aux PA (Doherty):`);
+      console.log(`  At P3dB: Pin=${auxPA.properties.pin_p3db.toFixed(2)} dBm, Pout=${auxPA.properties.pout_p3db.toFixed(2)} dBm, PAE=${auxPA.properties.pae_p3db}% (Active)`);
+      console.log(`  At Pavg: Pin=${auxPA.properties.pin_pavg.toFixed(2)} dBm, Pout=${auxPA.properties.pout_pavg.toFixed(2)} dBm, PAE=${auxPA.properties.pae_pavg}% (Mostly OFF - Doherty principle)`);
     }
   }
   

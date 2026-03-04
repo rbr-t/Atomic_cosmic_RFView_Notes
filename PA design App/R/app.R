@@ -1248,6 +1248,14 @@ ui <- dashboardPage(
                               tags$strong("⚡ P3dB Output (dBm)", style = "color: #ff851b;"), 
                               value = 55.3, min = 0, max = 80, step = 0.1)
                           )
+                        ),
+                        column(6,
+                          div(style = "border: 2px solid #ff851b; border-radius: 4px; padding: 5px; background-color: #fffbf5;",
+                            numericInput("spec_par", 
+                              tags$strong("⚡ PAR / BO (dB)", style = "color: #ff851b;"), 
+                              value = 8.0, min = 0, max = 20, step = 0.1),
+                            tags$small("Pavg = P3dB - PAR", style = "color: #999;")
+                          )
                         )
                       ),
                       fluidRow(
@@ -3600,6 +3608,8 @@ server <- function(input, output, session) {
       frequency_ghz = input$spec_frequency / 1000,
       p3db = input$spec_p3db,
       p5db = if(!is.null(input$spec_p5db)) input$spec_p5db else (input$spec_p3db + 2),
+      par = if(!is.null(input$spec_par)) input$spec_par else 8.0,  # Peak-to-Average Ratio
+      pavg = input$spec_p3db - (if(!is.null(input$spec_par)) input$spec_par else 8.0),  # Average/backoff power
       gain = input$spec_gain,
       
       # Secondary specifications
@@ -3622,7 +3632,9 @@ server <- function(input, output, session) {
     
     cat("[Spec→Lineup] Applying specifications:\n")
     cat(sprintf("  Frequency: %.3f GHz (%.0f MHz)\n", specs$frequency_ghz, specs$frequency_mhz))
-    cat(sprintf("  P3dB: %.1f dBm\n", specs$p3db))
+    cat(sprintf("  P3dB (Peak): %.1f dBm\n", specs$p3db))
+    cat(sprintf("  PAR/BO: %.1f dB\n", specs$par))
+    cat(sprintf("  Pavg (Backoff): %.1f dBm\n", specs$pavg))
     cat(sprintf("  Gain: %.1f dB\n", specs$gain))
     cat(sprintf("  Pin required: %.1f dBm\n", specs$pin_required))
     cat(sprintf("  Efficiency target: %.0f%%\n", specs$efficiency_target))
