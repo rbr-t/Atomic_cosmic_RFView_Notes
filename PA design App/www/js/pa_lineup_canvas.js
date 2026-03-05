@@ -7194,8 +7194,10 @@ function applySpecsToComponents(specs) {
       // ===== OPERATING POINT: Pavg (Backoff Power) =====
       // CRITICAL: At backoff, Aux PA is OFF or very low power (Doherty principle!)
       // Aux PA turns on only as power increases beyond backoff point
+      // Recalculate pa_pavg_target here (was block-scoped in mainPA block)
+      const aux_pa_pavg_target = pavg_dbm - powerCombiningFactor + combinerLoss;
       const aux_backoff_reduction = 10;  // dB reduction at backoff (Aux PA mostly off)
-      auxPA.properties.pout_pavg = pa_pavg_target - aux_backoff_reduction;  // Minimal output
+      auxPA.properties.pout_pavg = aux_pa_pavg_target - aux_backoff_reduction;  // Minimal output
       auxPA.properties.pin_pavg = auxPA.properties.pout_pavg - paStage_pavg.gain;
       auxPA.properties.pavg = auxPA.properties.pout_pavg;
       
@@ -7357,8 +7359,10 @@ function applySpecsToComponents(specs) {
       auxPA.properties.p1db = pa_p3db_target - 2.0;
       
       // Pavg operating point (Aux PA mostly off at backoff)
-      const aux_backoff_reduction = 10;
-      auxPA.properties.pout_pavg = pa_pavg_target - aux_backoff_reduction;
+      // Recalculate pa_pavg_target here (was block-scoped in mainPA block above)
+      const aux_pa_pavg_target_3stage = pavg_dbm - powerCombiningFactor + combinerLoss;
+      const aux_backoff_reduction_3stage = 10;
+      auxPA.properties.pout_pavg = aux_pa_pavg_target_3stage - aux_backoff_reduction_3stage;
       auxPA.properties.pin_pavg = auxPA.properties.pout_pavg - paStage_pavg.gain;
       auxPA.properties.pavg = auxPA.properties.pout_pavg;
       
