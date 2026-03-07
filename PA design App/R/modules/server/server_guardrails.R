@@ -3,291 +3,361 @@
 # Server module: Performance Guardrails tab.
 #
 # Renders:
-#   - 4D Design Space bubble plot  (grd_design_space_plot)
-#   - Gain vs Frequency plot       (grd_gain_bw_plot)
-#   - PAE vs Backoff curves        (grd_pae_bo_plot)
-#   - Reference table              (grd_ref_table_dt)
-#   - Validation result card       (grd_validation_result)
+#   - 4D Design Space bubble plot  (dual axes: PAE right Y, Gain top X)
+#   - Gain vs Frequency plot       (click-to-reposition ★ marker)
+#   - PAE vs Backoff curves        (click-to-reposition ★)
+#   - Reference table              (guardrail summary DT)
+#   - Validation result card       (per-device sanity check)
+#   - Save to Device Library       (JSON portfolio → canvas palette)
 #
-# All heavy calculation is delegated to calc_guardrails.R
+# All heavy calculation delegated to calc_guardrails.R
 # ============================================================
 
 serverGuardrails <- function(input, output, session, state) {
+
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+
+  # ── Helper: load saved device portfolio ─────────────────────
+  loadDevicePortfolio <- function(dir = "device_portfolio") {
+    if (!dir.exists(dir)) return(list())
+    files <- list.files(dir, pattern = "\\.json$", full.names = TRUE)
+    devices <- lapply(files, function(f) {
+      tryCatch(jsonlite::read_json(f, simplifyVector = FALSE), error = function(e) NULL)
+    })
+    Filter(Negate(is.null), devices)
+  }
+
+  # ── On startup: push saved devices to canvas ─────────────────
+  observe({
+    devices <- loadDevicePortfolio("device_portfolio")
+    if (length(devices) > 0) {
+      session$sendCustomMessage("updateDevicePortfolio", devices)
+    }
+  })
 
   # ── Load guardrails once at module init ──────────────────────
   guardrails <- tryCatch(
     loadGuardrails("../config/technology_guardrails.yaml"),
     error = function(e) {
-      cat("[Guardrails] YAML load error:", e$message, "\n")
-      loadGuardrails("config/technology_guardrails.yaml")
+      tryCatch(
+        loadGuardrails("config/technology_guardrails.yaml"),
+        error = function(e2) { cat("[Guardrails] using embedded fallback\n"); loadGuardrails() }
+      )
     }
   )
 
-  # ── Cached data frames (reactive, but only re-computed on tech filter) ──
+  # ── Cached data frames (re-computed on tech overlay filter change) ──
   design_space_df <- reactive({
-    df <- buildDesignSpaceData(guardrails)
-    # Filter to selected technologies
+    df  <- buildDesignSpaceData(guardrails)
     sel <- input$grd_tech_overlay
-    if (!is.null(sel) && length(sel) > 0) df[df$tech %in% sel, ]
-    else df
+    if (!is.null(sel) && length(sel) > 0) df[df$tech %in% sel, ] else df
   })
 
   gain_bw_df <- reactive({
-    df <- buildGainBandwidthData(guardrails)
+    df  <- buildGainBandwidthData(guardrails)
     sel <- input$grd_tech_overlay
-    if (!is.null(sel) && length(sel) > 0) df[df$tech %in% sel, ]
-    else df
+    if (!is.null(sel) && length(sel) > 0) df[df$tech %in% sel, ] else df
   })
 
-  pae_bo_df <- reactive({
-    buildPAEBackoffData(guardrails)
+  pae_bo_df <- reactive({ buildPAEBackoffData(guardrails) })
+
+  # ── User device value helpers ────────────────────────────────
+  user_freq  <- reactive({ input$grd_chk_freq    %||% 3.5  })
+  user_gain  <- reactive({ input$grd_chk_gain    %||% 15   })
+  user_pae   <- reactive({ input$grd_chk_pae     %||% 60   })
+  user_pout  <- reactive({ input$grd_chk_pout    %||% 43   })
+  user_vdd   <- reactive({ input$grd_chk_vdd     %||% 28   })
+  user_tech  <- reactive({ input$grd_tech_select %||% "GaN_SiC" })
+  user_pd    <- reactive({
+    pd <- input$grd_chk_pdensity %||% 0
+    if (pd == 0) 10^(user_pout() / 10) / 1000 else pd
   })
 
-  # ── Helper: user device marker values ───────────────────────
-  user_freq  <- reactive({ req(input$grd_chk_freq);  input$grd_chk_freq  })
-  user_gain  <- reactive({ req(input$grd_chk_gain);  input$grd_chk_gain  })
-  user_pae   <- reactive({ req(input$grd_chk_pae);   input$grd_chk_pae   })
-  user_pout  <- reactive({ req(input$grd_chk_pout);  input$grd_chk_pout  })
-  user_vdd   <- reactive({ req(input$grd_chk_vdd);   input$grd_chk_vdd   })
-  user_tech  <- reactive({ req(input$grd_tech_select); input$grd_tech_select })
-
-  # ── Helper: pout density from pout_dbm (assume single mm gate width) ──
-  # We display it as pout_dbm directly on the density plot if density = 0
-  user_pout_density <- reactive({
-    pd <- input$grd_chk_pdensity
-    if (is.null(pd) || pd == 0) {
-      # Estimate from pout dBm using typical Ropt for selected tech
-      tech <- guardrails$technologies[[user_tech()]]
-      vdd_v <- user_vdd()
-      # Pout(W) / Pgatewidth(mm).  Assume 1mm gate for estimation.
-      pout_w <- 10^(user_pout() / 10) / 1000
-      pout_w   # store as W — will be interpreted as W/mm for a 1mm gate
-    } else {
-      pd
-    }
-  })
-
-  # ══════════════════════════════════════════════════════════════
-  # PLOT 1 — Technology Design Space (4D Bubble)
-  # X: Frequency (GHz), Y: Pout density (W/mm) or Pout (dBm)
-  # Size: PAE or Gain, Colour: Technology
-  # ══════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
+  # PLOT 1 — Technology Design Space (4D bubble)
+  # Bottom X : Frequency (GHz) — log scale
+  # Left Y   : Pout density (W/mm) or Pout (dBm est.)
+  # Right Y  : PAE @ P3dB (%) — dashed line per technology
+  # Top X    : Available Gain (dB) — reference labels aligned to log freq
+  # Bubble   : size = PAE or Gain  |  colour = technology
+  # Click    → repositions ★ marker & updates freq / pout_density inputs
+  # ═══════════════════════════════════════════════════════════════
   output$grd_design_space_plot <- renderPlotly({
-    df  <- design_space_df()
+    df       <- design_space_df()
     req(nrow(df) > 0)
 
-    y_mode   <- input$grd_yaxis_mode    %||% "density"
-    sz_mode  <- input$grd_bubble_size   %||% "pae"
+    y_mode   <- input$grd_yaxis_mode  %||% "density"
+    sz_mode  <- input$grd_bubble_size %||% "pae"
     tech_sel <- user_tech()
 
-    # Build one trace per technology
-    techs_in_plot <- unique(df$tech)
-    fig <- plot_ly()
+    # ── Top-X gain ticks (GaN SiC ref: fT=70 GHz, fmax=180 GHz) ──
+    # Because gain = 0.7·20·log10(fT/f) + 0.3·20·log10(fmax/f)
+    # is LINEAR in log10(f), ticks placed at actual frequencies on a
+    # log x-scale align perfectly with gain labels on the top axis.
+    ft_ref    <- 70;  fmax_ref <- 180
+    tick_freqs <- c(0.2, 0.5, 1, 2, 5, 10, 20, 50, 100)
+    tick_gains <- round(calcAvailableGain(tick_freqs, ft_ref, fmax_ref), 0)
+    tick_text  <- paste0(tick_gains, " dB")
 
-    marker_size_range <- c(6, 40)   # px for bubble size
+    fig <- plot_ly() %>% config(displayModeBar = TRUE)
 
-    for (tk in techs_in_plot) {
+    y_lab <- if (y_mode == "density") "Pout density (W/mm)" else "Pout (dBm est.)"
+
+    for (tk in unique(df$tech)) {
       sub <- df[df$tech == tk, ]
-      # Sample to ~15 representative points spread across freq range
       idx   <- round(seq(1, nrow(sub), length.out = min(nrow(sub), 15)))
       sub_s <- sub[idx, ]
+      col   <- sub_s$color[1]
 
-      y_vals  <- if (y_mode == "density") sub_s$pout_density_typ else {
-        10 * log10(sub_s$pout_density_typ * 1e3)  # rough dBm estimate
-      }
+      y_vals  <- if (y_mode == "density") sub_s$pout_density_typ
+                 else 10 * log10(sub_s$pout_density_typ * 1e3)
       sz_vals <- if (sz_mode == "pae") sub_s$pae_typ_pct else sub_s$gain_db
-      sz_lab  <- if (sz_mode == "pae") "PAE (%)" else "Gain (dB)"
-      y_lab   <- if (y_mode == "density") "Pout density (W/mm)" else "Pout (dBm)"
+      opacities <- ifelse(sub_s$in_sweet_spot, 0.85, 0.30)
 
-      # Sweet spot highlight: use opacity
-      opacities <- ifelse(sub_s$in_sweet_spot, 0.85, 0.35)
-      col <- sub_s$color[1]
+      # Sweet-spot fill band on left Y-axis
+      sweet_s <- sub_s[sub_s$in_sweet_spot, ]
+      if (nrow(sweet_s) > 2) {
+        yhi <- if (y_mode == "density") sweet_s$pout_density_max
+               else 10 * log10(sweet_s$pout_density_max * 1e3)
+        ylo <- if (y_mode == "density") sweet_s$pout_density_typ * 0.7
+               else 10 * log10(sweet_s$pout_density_typ * 0.7 * 1e3)
+        fig <- fig %>% add_trace(
+          type = "scatter", mode = "lines",
+          x = c(sweet_s$freq_ghz, rev(sweet_s$freq_ghz)),
+          y = c(yhi, rev(ylo)),
+          fill = "toself", fillcolor = paste0(col, "20"),
+          line = list(color = "transparent"),
+          hoverinfo = "skip", showlegend = FALSE
+        )
+      }
 
+      # Bubbles
       fig <- fig %>% add_trace(
-        type       = "scatter",
-        mode       = "markers",
-        x          = sub_s$freq_ghz,
-        y          = y_vals,
-        name       = sub_s$label[1],
-        text       = paste0(
+        type = "scatter", mode = "markers",
+        x = sub_s$freq_ghz, y = y_vals,
+        name = sub_s$label[1],
+        text = paste0(
           "<b>", sub_s$label[1], "</b><br>",
-          "Freq: ", round(sub_s$freq_ghz, 2), " GHz<br>",
+          "f = ", round(sub_s$freq_ghz, 2), " GHz<br>",
           y_lab, ": ", round(y_vals, 2), "<br>",
           "PAE typ: ", round(sub_s$pae_typ_pct, 1), "%<br>",
           "Gain: ", round(sub_s$gain_db, 1), " dB<br>",
-          if (sub_s$in_sweet_spot[1]) "<b>★ Sweet spot</b>" else "(outside sweet spot)"
+          ifelse(sub_s$in_sweet_spot, "<b style='color:#7f7;'>★ Sweet spot</b>",
+                 "<span style='color:#888;'>(peripheral)</span>")
         ),
-        hoverinfo  = "text",
-        marker     = list(
-          color   = col,
-          opacity = opacities,
-          size    = pmax(pmin(sz_vals * 0.65, 40), 6),  # scale PAE% → px
-          line    = list(color = "white", width = 0.8),
-          symbol  = "circle"
-        )
+        hoverinfo = "text",
+        marker = list(color = col, opacity = opacities,
+                      size = pmax(pmin(sz_vals * 0.65, 40), 7),
+                      line = list(color = "white", width = 0.8)),
+        legendgroup = tk,
+        source = "grd_ds"
+      )
+
+      # PAE dashed line on right Y-axis (yaxis2)
+      sub_l <- sub[seq(1, nrow(sub), length.out = min(nrow(sub), 80)), ]
+      fig <- fig %>% add_trace(
+        type = "scatter", mode = "lines",
+        x = sub_l$freq_ghz, y = sub_l$pae_typ_pct,
+        name = paste(sub_s$label[1], "PAE%"),
+        yaxis = "y2",
+        line = list(color = col, width = 1.5, dash = "dashdot"),
+        text = paste0(sub_s$label[1], " PAE: ", round(sub_l$pae_typ_pct, 1),
+                      "% @ ", round(sub_l$freq_ghz, 2), " GHz"),
+        hoverinfo = "text",
+        legendgroup = tk, showlegend = FALSE
       )
     }
 
-    # ── User device marker ──────────────────────────────────────
-    u_freq  <- user_freq()
-    u_pae   <- user_pae()
-    u_gain  <- user_gain()
-    u_pd    <- user_pout_density()
-    tech_info <- guardrails$technologies[[tech_sel]]
-
-    u_y <- if (y_mode == "density") u_pd else user_pout()
-    u_sz <- if (sz_mode == "pae") u_pae else u_gain
-
+    # Invisible anchor trace to force xaxis2 (top gain labels) to render
     fig <- fig %>% add_trace(
-      type      = "scatter",
-      mode      = "markers+text",
-      x         = u_freq,
-      y         = u_y,
-      name      = "Your Device",
-      text      = "★",
-      textposition = "middle center",
-      hovertext = paste0(
-        "<b>★ Your Device</b><br>",
-        "Tech: ", tech_info$label, "<br>",
-        "Freq: ", u_freq, " GHz<br>",
-        y_lab, ": ", round(u_y, 2), "<br>",
-        "PAE: ", u_pae, "%<br>",
-        "Gain: ", u_gain, " dB"
-      ),
-      hoverinfo = "text",
-      marker    = list(
-        symbol = "star",
-        size   = 24,
-        color  = "white",
-        line   = list(color = "#ff7f11", width = 2)
-      )
+      type = "scatter", mode = "markers",
+      x = tick_freqs, y = rep(0, length(tick_freqs)),
+      xaxis = "x2", yaxis = "y",
+      marker = list(opacity = 0, size = 1),
+      hoverinfo = "skip", showlegend = FALSE
     )
 
-    y_lab_full <- if (y_mode == "density") "Pout Density (W/mm)" else "Pout (dBm)"
-    sz_lab_full <- if (sz_mode == "pae") "Bubble size = PAE (%)" else "Bubble size = Gain (dB)"
+    # ★ User device marker
+    u_freq <- user_freq(); u_y <- if (y_mode == "density") user_pd() else user_pout()
+    ti     <- guardrails$technologies[[tech_sel]]
+    y_unit <- if (y_mode == "density") "W/mm" else "dBm"
+
+    fig <- fig %>% add_trace(
+      type = "scatter", mode = "markers+text",
+      x = u_freq, y = u_y, name = "Your Device",
+      text = "★", textfont = list(size = 14, color = "#ff7f11"),
+      textposition = "top right",
+      xaxis = "x", yaxis = "y",
+      hovertext = paste0(
+        "<b>★ Your Device</b><br>Tech: ", ti$label, "<br>",
+        "f = ", u_freq, " GHz<br>Y = ", round(u_y, 2), " ", y_unit, "<br>",
+        "PAE = ", user_pae(), "%  Gain = ", user_gain(), " dB"
+      ),
+      hoverinfo = "text",
+      marker = list(symbol = "star", size = 22, color = "#ff7f11",
+                    line = list(color = "white", width = 1.5)),
+      source = "grd_ds"
+    )
+
+    sz_label <- if (sz_mode == "pae") "Bubble size = PAE (%)" else "Bubble size = Gain (dB)"
+    y_title  <- if (y_mode == "density") "Pout Density (W/mm)" else "Pout (dBm est.)"
 
     fig %>% layout(
-      title     = list(text = paste0("<b>Technology Design Space</b>  —  ", sz_lab_full),
-                       font = list(color = "#fff")),
+      title = list(
+        text = paste0("<b>Technology Design Space</b>  —  ", sz_label,
+                      "   <span style='font-size:12px;color:#aaa;'>(click chart to reposition ★)</span>"),
+        font = list(color = "#fff", size = 15)),
       paper_bgcolor = "#0b0b0b",
       plot_bgcolor  = "#141414",
+      clickmode     = "event",
+
+      # Bottom X: log-frequency
       xaxis = list(
-        title      = "Frequency (GHz)",
-        type       = "log",
-        tickfont   = list(color = "#ccc"),
-        gridcolor  = "#333",
-        color      = "#ccc"
+        title = list(text = "Frequency (GHz)", standoff = 30),
+        type = "log", range = c(-1, 2.48),
+        tickfont = list(color = "#ccc"), gridcolor = "#2a2a2a", color = "#ccc"
       ),
+
+      # Top X: gain (dB) labels at same log positions (xaxis2)
+      # type='log' with same range + custom tickvals/text makes ticks align
+      xaxis2 = list(
+        overlaying = "x", side = "top", type = "log", range = c(-1, 2.48),
+        tickmode = "array", tickvals = tick_freqs, ticktext = tick_text,
+        title = list(text = "Available Gain — GaN SiC ref. (dB)", standoff = 5),
+        tickfont = list(color = "#88ccff"), color = "#88ccff",
+        showgrid = FALSE
+      ),
+
+      # Left Y: Pout density / Pout
       yaxis = list(
-        title    = y_lab_full,
-        tickfont = list(color = "#ccc"),
-        gridcolor = "#333",
-        color    = "#ccc"
+        title = list(text = y_title),
+        tickfont = list(color = "#ccc"), gridcolor = "#2a2a2a", color = "#ccc"
       ),
-      legend = list(font = list(color = "#ccc"), bgcolor = "rgba(0,0,0,0.4)"),
+
+      # Right Y: PAE (%)
+      yaxis2 = list(
+        overlaying = "y", side = "right",
+        title = list(text = "PAE @ P3dB (%)"),
+        range = c(0, 85),
+        tickfont = list(color = "#ffd700"), color = "#ffd700", showgrid = FALSE
+      ),
+
+      legend = list(font = list(color = "#ccc"), bgcolor = "rgba(0,0,0,0.5)",
+                    x = 0.01, y = 0.99),
       font   = list(color = "#ccc"),
+      margin = list(t = 80, r = 80),
       annotations = list(list(
-        x = 0.01, y = -0.12, xref = "paper", yref = "paper",
-        text = "Solid opacity = sweet spot  |  Faded = peripheral operating range  |  ★ = your device",
-        showarrow = FALSE, font = list(size = 11, color = "#888")
+        x = 0.01, y = -0.14, xref = "paper", yref = "paper",
+        text = paste0(
+          "<span style='color:#7f7;'>■</span> Solid = sweet spot  ",
+          "<span style='color:#555;'>■</span> Faded = peripheral  ",
+          "<span style='color:#ffd700;'>− ·</span> PAE right axis  ",
+          "<span style='color:#88ccff;'>top</span> = gain ref."
+        ),
+        showarrow = FALSE, font = list(size = 11, color = "#888"), align = "left"
       ))
     )
   })
 
+  # Click on Design Space → reposition ★ + sync input fields
+  observeEvent(event_data("plotly_click", source = "grd_ds"), {
+    click <- event_data("plotly_click", source = "grd_ds")
+    if (is.null(click)) return()
+    f <- click$x;  y_v <- click$y
+    if (!is.null(f) && is.numeric(f) && f > 0)
+      updateNumericInput(session, "grd_chk_freq", value = round(f, 2))
+    if (!is.null(y_v) && is.numeric(y_v) && y_v > 0) {
+      if (isTRUE((input$grd_yaxis_mode %||% "density") == "density"))
+        updateNumericInput(session, "grd_chk_pdensity", value = round(y_v, 2))
+      else
+        updateNumericInput(session, "grd_chk_pout", value = round(y_v, 1))
+    }
+    showNotification(sprintf("★ moved to %.2f GHz", f %||% 0), type = "message", duration = 2)
+  })
 
-  # ══════════════════════════════════════════════════════════════
-  # PLOT 2 — Gain vs Frequency (bandwidth envelope)
-  # ══════════════════════════════════════════════════════════════
+
+  # ═══════════════════════════════════════════════════════════════
+  # PLOT 2 — Gain vs Frequency  (click → update freq + gain inputs)
+  # ═══════════════════════════════════════════════════════════════
   output$grd_gain_bw_plot <- renderPlotly({
     df  <- gain_bw_df()
     req(nrow(df) > 0)
 
     show_ft_rule <- isTRUE(input$grd_gain_show_ft_rule)
-    fig <- plot_ly()
+    fig <- plot_ly() %>% config(displayModeBar = TRUE)
 
-    techs_in_plot <- unique(df$tech)
-
-    for (tk in techs_in_plot) {
+    for (tk in unique(df$tech)) {
       sub <- df[df$tech == tk & df$in_range, ]
       if (nrow(sub) == 0) next
-      col <- sub$color[1]
-      lbl <- sub$label[1]
+      col <- sub$color[1]; lbl <- sub$label[1]
 
-      # Shaded region between gain_typ and gain_max
-      fig <- fig %>% add_trace(
-        type = "scatter", mode = "lines",
-        x    = c(sub$freq_ghz, rev(sub$freq_ghz)),
-        y    = c(sub$gain_max, rev(sub$gain_typ)),
-        name = paste(lbl, "range"),
-        fill = "toself",
-        fillcolor = paste0(col, "33"),   # ~20% opacity hex
-        line      = list(color = "transparent"),
-        hoverinfo = "skip",
-        showlegend = FALSE
-      )
-
-      # Typical gain line
-      fig <- fig %>% add_trace(
-        type = "scatter", mode = "lines",
-        x    = sub$freq_ghz,
-        y    = sub$gain_typ,
-        name = lbl,
-        line = list(color = col, width = 2.5),
-        text = paste0("<b>", lbl, "</b><br>",
-                      "f=", round(sub$freq_ghz, 2), " GHz<br>",
-                      "G_typ=", round(sub$gain_typ, 1), " dB"),
-        hoverinfo = "text"
-      )
+      fig <- fig %>%
+        add_trace(type = "scatter", mode = "lines",
+                  x = c(sub$freq_ghz, rev(sub$freq_ghz)),
+                  y = c(sub$gain_max, rev(sub$gain_typ)),
+                  fill = "toself", fillcolor = paste0(col, "33"),
+                  line = list(color = "transparent"), hoverinfo = "skip", showlegend = FALSE) %>%
+        add_trace(type = "scatter", mode = "lines",
+                  x = sub$freq_ghz, y = sub$gain_typ, name = lbl,
+                  line = list(color = col, width = 2.5),
+                  text = paste0("<b>", lbl, "</b><br>f=", round(sub$freq_ghz, 2),
+                                " GHz<br>G_typ=", round(sub$gain_typ, 1), " dB"),
+                  hoverinfo = "text", source = "grd_gn")
     }
 
-    # 20 dB/decade reference
     if (show_ft_rule) {
       f_ref <- exp(seq(log(0.1), log(300), length.out = 200))
-      for (ft_val in c(35, 70, 300)) {
+      for (ft_v in c(35, 70, 300)) {
         fig <- fig %>% add_trace(
-          type = "scatter", mode = "lines",
-          x    = f_ref,
-          y    = pmax(20 * log10(ft_val / f_ref), 0),
-          name = paste0("20dB/dec (fT=", ft_val, "GHz)"),
-          line = list(color = "#555", width = 1, dash = "dot"),
-          hoverinfo = "skip"
-        )
+          type = "scatter", mode = "lines", x = f_ref,
+          y = pmax(20 * log10(ft_v / f_ref), 0),
+          name = paste0("20dB/dec (fT=", ft_v, "GHz)"),
+          line = list(color = "#555", width = 1, dash = "dot"), hoverinfo = "skip")
       }
     }
 
-    # User design point
-    u_freq <- user_freq()
-    u_gain <- user_gain()
+    u_freq <- user_freq(); u_gain <- user_gain()
     fig <- fig %>% add_trace(
       type = "scatter", mode = "markers+text",
-      x    = u_freq, y = u_gain,
-      name = "Your Device",
-      text = "★",
-      textposition = "top center",
-      marker   = list(symbol = "star", size = 20, color = "white",
-                      line = list(color = "#ff7f11", width = 2)),
-      hovertext = paste0("★ Your Device<br>f=", u_freq, " GHz, G=", u_gain, " dB"),
-      hoverinfo = "text"
-    )
+      x = u_freq, y = u_gain, name = "Your Device",
+      text = "★", textfont = list(size = 14, color = "#ff7f11"),
+      textposition = "top right",
+      marker = list(symbol = "star", size = 20, color = "#ff7f11",
+                    line = list(color = "white", width = 1.5)),
+      hovertext = paste0("★ f=", u_freq, " GHz, G=", u_gain, " dB"),
+      hoverinfo = "text", source = "grd_gn")
 
     fig %>% layout(
-      title  = list(text = "<b>Available Gain vs Frequency</b>  (fT/f model + shaded range)",
-                    font = list(color = "#fff")),
-      paper_bgcolor = "#0b0b0b",
-      plot_bgcolor  = "#141414",
-      xaxis  = list(title = "Frequency (GHz)", type = "log",
-                    tickfont = list(color = "#ccc"), gridcolor = "#333", color = "#ccc"),
-      yaxis  = list(title = "Available Gain (dB)", range = c(0, 38),
-                    tickfont = list(color = "#ccc"), gridcolor = "#333", color = "#ccc"),
-      legend = list(font = list(color = "#ccc"), bgcolor = "rgba(0,0,0,0.4)"),
-      font   = list(color = "#ccc")
+      title = list(
+        text = "<b>Available Gain vs Frequency</b>   <span style='font-size:12px;color:#aaa;'>(click to reposition ★)</span>",
+        font = list(color = "#fff", size = 15)),
+      paper_bgcolor = "#0b0b0b", plot_bgcolor = "#141414",
+      clickmode = "event",
+      xaxis = list(title = "Frequency (GHz)", type = "log",
+                   tickfont = list(color = "#ccc"), gridcolor = "#2a2a2a", color = "#ccc"),
+      yaxis = list(title = "Available Gain (dB)", range = c(0, 38),
+                   tickfont = list(color = "#ccc"), gridcolor = "#2a2a2a", color = "#ccc"),
+      legend = list(font = list(color = "#ccc"), bgcolor = "rgba(0,0,0,0.5)"),
+      font = list(color = "#ccc")
     )
   })
 
+  observeEvent(event_data("plotly_click", source = "grd_gn"), {
+    click <- event_data("plotly_click", source = "grd_gn")
+    if (is.null(click)) return()
+    f <- click$x; g <- click$y
+    if (!is.null(f) && is.numeric(f) && f > 0)
+      updateNumericInput(session, "grd_chk_freq", value = round(f, 2))
+    if (!is.null(g) && is.numeric(g) && g > 0)
+      updateNumericInput(session, "grd_chk_gain", value = round(g, 1))
+    showNotification(sprintf("★ f=%.2f GHz, G=%.1f dB", f %||% 0, g %||% 0),
+                     type = "message", duration = 2)
+  })
 
-  # ══════════════════════════════════════════════════════════════
-  # PLOT 3 — PAE vs Backoff
-  # ══════════════════════════════════════════════════════════════
+
+  # ═══════════════════════════════════════════════════════════════
+  # PLOT 3 — PAE vs Backoff  (click → update backoff + PAE inputs)
+  # ═══════════════════════════════════════════════════════════════
   output$grd_pae_bo_plot <- renderPlotly({
     df_all   <- pae_bo_df()
     req(nrow(df_all) > 0)
@@ -330,7 +400,8 @@ serverGuardrails <- function(input, output, session, state) {
         text = paste0("<b>Class ", cls, "</b><br>",
                       "BO: ", round(sub$backoff_db, 1), " dB<br>",
                       "PAE: ", round(sub$pae_pct, 1), "%"),
-        hoverinfo = "text"
+        hoverinfo = "text",
+        source = "grd_pae"
       )
     }
 
@@ -353,7 +424,8 @@ serverGuardrails <- function(input, output, session, state) {
         marker = list(symbol = "star", size = 20, color = "white",
                       line = list(color = "#ff7f11", width = 2)),
         hovertext = paste0("★ Your Device<br>BO=", op_bo, " dB, PAE=", u_pae, "%"),
-        hoverinfo = "text"
+        hoverinfo = "text",
+        source = "grd_pae"
       )
 
     # Theoretical Class-B ceiling line
@@ -368,16 +440,18 @@ serverGuardrails <- function(input, output, session, state) {
     )
 
     fig %>% layout(
-      title  = list(
-        text = paste0("<b>PAE vs Output Backoff</b>  — ", tech_info$label),
-        font = list(color = "#fff")),
+      title = list(
+        text = paste0("<b>PAE vs Output Backoff</b>  — ", tech_info$label,
+                      "   <span style='font-size:12px;color:#aaa;'>(click to set ★)</span>"),
+        font = list(color = "#fff", size = 15)),
       paper_bgcolor = "#0b0b0b",
       plot_bgcolor  = "#141414",
+      clickmode = "event",
       xaxis = list(title = "Output Backoff from P3dB (dB)", autorange = "reversed",
-                   tickfont = list(color = "#ccc"), gridcolor = "#333", color = "#ccc"),
+                   tickfont = list(color = "#ccc"), gridcolor = "#2a2a2a", color = "#ccc"),
       yaxis = list(title = "PAE (%)", range = c(0, 85),
-                   tickfont = list(color = "#ccc"), gridcolor = "#333", color = "#ccc"),
-      legend = list(font = list(color = "#ccc"), bgcolor = "rgba(0,0,0,0.4)"),
+                   tickfont = list(color = "#ccc"), gridcolor = "#2a2a2a", color = "#ccc"),
+      legend = list(font = list(color = "#ccc"), bgcolor = "rgba(0,0,0,0.5)"),
       font   = list(color = "#ccc"),
       annotations = list(list(
         x = 0.99, y = 0.97, xref = "paper", yref = "paper",
@@ -386,6 +460,19 @@ serverGuardrails <- function(input, output, session, state) {
         xanchor = "right"
       ))
     )
+  })
+
+  # Click on PAE plot → update backoff + PAE inputs
+  observeEvent(event_data("plotly_click", source = "grd_pae"), {
+    click <- event_data("plotly_click", source = "grd_pae")
+    if (is.null(click)) return()
+    bo_v <- click$x;  pae_v <- click$y
+    if (!is.null(bo_v)  && is.numeric(bo_v))
+      updateNumericInput(session, "grd_pae_pavg_bo", value = round(bo_v, 1))
+    if (!is.null(pae_v) && is.numeric(pae_v) && pae_v > 0)
+      updateNumericInput(session, "grd_chk_pae", value = round(pae_v, 0))
+    showNotification(sprintf("★ PAE=%.0f%% @ BO=%.1f dB", pae_v %||% 0, bo_v %||% 0),
+                     type = "message", duration = 2)
   })
 
 
@@ -498,6 +585,116 @@ serverGuardrails <- function(input, output, session, state) {
         )
       )
     })
+  })
+
+
+  # ═══════════════════════════════════════════════════════════════
+  # SAVE TO DEVICE LIBRARY
+  # Validates current params, persists JSON, notifies canvas palette
+  # ═══════════════════════════════════════════════════════════════
+  observeEvent(input$grd_save_device, {
+    req(input$grd_save_label)
+    safe_label <- trimws(input$grd_save_label)
+    if (nchar(safe_label) == 0) {
+      showNotification("Please enter a device label.", type = "warning")
+      return()
+    }
+
+    pd <- input$grd_chk_pdensity %||% 0
+    if (pd == 0) pd <- NULL
+
+    validation <- validateDeviceParams(
+      tech_key     = input$grd_tech_select,
+      freq_ghz     = input$grd_chk_freq,
+      gain_db      = input$grd_chk_gain,
+      pae_pct      = input$grd_chk_pae,
+      pout_dbm     = input$grd_chk_pout,
+      vdd          = input$grd_chk_vdd,
+      pout_density = pd,
+      guardrails   = guardrails
+    )
+
+    device <- list(
+      id          = paste0("dev_", gsub("[^a-zA-Z0-9]", "_", safe_label), "_",
+                           format(Sys.time(), "%Y%m%d%H%M%S")),
+      label       = safe_label,
+      notes       = trimws(input$grd_save_notes %||% ""),
+      technology  = input$grd_tech_select,
+      tech_label  = guardrails$technologies[[input$grd_tech_select]]$label,
+      freq_ghz    = input$grd_chk_freq,
+      gain_db     = input$grd_chk_gain,
+      pae_pct     = input$grd_chk_pae,
+      pout_dbm    = input$grd_chk_pout,
+      vdd         = input$grd_chk_vdd,
+      p1db_dbm    = input$grd_chk_pout - 2,
+      pout_density_w_per_mm = input$grd_chk_pdensity %||% 0,
+      validation_status     = validation$status,
+      saved_at    = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+      canvas_component = list(
+        type       = "transistor",
+        label      = safe_label,
+        technology = input$grd_tech_select,
+        gain       = input$grd_chk_gain,
+        pout       = input$grd_chk_pout,
+        p1db       = input$grd_chk_pout - 2,
+        pae        = input$grd_chk_pae,
+        vdd        = input$grd_chk_vdd,
+        freq       = input$grd_chk_freq,
+        biasClass  = "AB"
+      )
+    )
+
+    portfolio_dir <- "device_portfolio"
+    if (!dir.exists(portfolio_dir)) dir.create(portfolio_dir, recursive = TRUE)
+    fname <- file.path(portfolio_dir, paste0(device$id, ".json"))
+    jsonlite::write_json(device, fname, pretty = TRUE, auto_unbox = TRUE)
+
+    # Notify canvas about the full updated portfolio
+    all_devices <- loadDevicePortfolio(portfolio_dir)
+    session$sendCustomMessage("updateDevicePortfolio", all_devices)
+
+    status_colors <- c(ok = "#27ae60", warning = "#f39c12", error = "#e74c3c")
+    sc <- status_colors[[device$validation_status]] %||% "#888"
+
+    output$grd_save_result <- renderUI({
+      div(style = paste0("background:#1a3a1a; border-left:4px solid #27ae60;",
+                         " padding:8px 10px; border-radius:3px; margin-top:8px;"),
+          div(style = "color:#7fff7f; font-size:13px; font-weight:bold;",
+              icon("check-circle"), " Saved: ", device$label),
+          div(style = paste0("color:", sc, "; font-size:12px; margin-top:3px;"),
+              "Guardrails: ", toupper(device$validation_status)),
+          div(style = "color:#bbb; font-size:11px; margin-top:4px;",
+              "Available in PA Lineup palette under 'Device Library'.")
+      )
+    })
+
+    showNotification(paste0("Saved '", device$label, "' to Device Library"),
+                     type = "message", duration = 4)
+  })
+
+  # Render list of saved devices (refreshes when save button is clicked)
+  output$grd_saved_devices_list <- renderUI({
+    input$grd_save_device  # reactive dependency
+    devices <- loadDevicePortfolio("device_portfolio")
+    if (length(devices) == 0) {
+      return(div(style = "color:#888; font-size:12px; padding:6px;",
+                 "No devices saved yet."))
+    }
+    status_colors <- c(ok = "#27ae60", warning = "#f39c12", error = "#e74c3c")
+    tags$ul(
+      style = "padding-left:0; list-style:none; margin:0;",
+      lapply(devices, function(d) {
+        sc <- status_colors[[d$validation_status %||% "ok"]] %||% "#888"
+        tags$li(
+          style = paste0("padding:5px 6px; margin-bottom:4px; background:#222;",
+                         " border-radius:3px; border-left:3px solid ", sc, ";"),
+          div(style = "color:#fff; font-size:12px; font-weight:bold;", d$label),
+          div(style = "color:#aaa; font-size:11px;",
+              d$tech_label, " · ", d$freq_ghz, " GHz · G=", d$gain_db,
+              " dB · PAE=", d$pae_pct, "% · Pout=", d$pout_dbm, " dBm")
+        )
+      })
+    )
   })
 
 }

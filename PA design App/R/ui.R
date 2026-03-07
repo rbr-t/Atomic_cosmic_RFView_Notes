@@ -870,6 +870,27 @@ ui <- dashboardPage(
                       class = "btn-warning btn-block", icon = icon("flask")),
                     br(),
                     uiOutput("grd_validation_result")
+                  ),
+
+                  # ── Save to Device Library ──────────────────────────
+                  box(
+                    title = tagList(icon("save"), "Save to Device Library"),
+                    width = 12, status = "success", solidHeader = TRUE,
+                    collapsible = TRUE,
+                    p(style = "font-size:12px; color:#aaa; margin-bottom:8px;",
+                      "Save the current parameters as a reusable transistor component.",
+                      " It will appear in the PA Lineup canvas palette under 'Device Library'."),
+                    textInput("grd_save_label", "Device Label",
+                              placeholder = "e.g. GaN_3p5G_43dBm"),
+                    textInput("grd_save_notes", "Notes (optional)",
+                              placeholder = "e.g. 3.5 GHz driver stage"),
+                    actionButton("grd_save_device", "Save to Library",
+                      class = "btn-success btn-block", icon = icon("save")),
+                    uiOutput("grd_save_result"),
+                    br(),
+                    p(style = "font-size:11px; font-weight:bold; color:#aaa; text-transform:uppercase;",
+                      "Saved Devices:"),
+                    uiOutput("grd_saved_devices_list")
                   )
                 ),
 
@@ -981,7 +1002,7 @@ ui <- dashboardPage(
                       br(),
                       box(
                         title = tagList(icon("book"), "Key Design Rules"),
-                        width = 12, status = "default", collapsible = TRUE, collapsed = FALSE,
+                        width = 12, status = "primary", collapsible = TRUE, collapsed = FALSE,
                         HTML("
                           <table class='table table-sm table-bordered' style='font-size:13px;'>
                             <thead><tr>

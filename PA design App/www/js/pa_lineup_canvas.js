@@ -7659,7 +7659,106 @@ function registerMessageHandlers() {
       
       console.log('✓ Specifications applied to lineup');
     });
-    
+
+    // Handler 8: Update Device Portfolio (saved single-transistor devices from Guardrails tab)
+    ShinyObj.addCustomMessageHandler('updateDevicePortfolio', function(devices) {
+      console.log('=== RECEIVED updateDevicePortfolio MESSAGE FROM R ===');
+      console.log('Devices:', devices.length);
+
+      // Find or create the device-portfolio section inside the templates container
+      let container = document.querySelector('.top-sidebar-templates');
+      if (!container) {
+        console.warn('Templates container not found — device portfolio will not render.');
+        return;
+      }
+
+      // Remove any previous portfolio section
+      const existingSection = document.getElementById('device-portfolio-section');
+      if (existingSection) existingSection.remove();
+
+      if (!devices || devices.length === 0) return;
+
+      // Build section wrapper
+      const section = document.createElement('div');
+      section.id = 'device-portfolio-section';
+      section.style.cssText = 'border-top:2px solid #ff7f11; padding-top:8px; margin-top:10px;';
+
+      const heading = document.createElement('div');
+      heading.style.cssText = 'font-size:11px; text-transform:uppercase; color:#ff7f11; font-weight:bold; letter-spacing:0.05em; margin-bottom:6px; padding:0 4px;';
+      heading.textContent = '★ Device Library';
+      section.appendChild(heading);
+
+      const statusColors = { ok: '#27ae60', warning: '#f39c12', error: '#e74c3c' };
+
+      devices.forEach(function(dev) {
+        const div = document.createElement('div');
+        div.className = 'preset-template';
+        div.setAttribute('data-preset', dev.id);
+        div.setAttribute('data-device-type', 'portfolio');
+        const props = dev.canvas_component || {};
+
+        // Title row
+        const h5 = document.createElement('h5');
+        h5.textContent = dev.label || dev.id;
+        h5.style.marginBottom = '2px';
+
+        // Subtitle row
+        const p = document.createElement('p');
+        const sc = statusColors[dev.validation_status] || '#aaa';
+        p.innerHTML = (dev.tech_label || dev.technology || '') +
+          ' · ' + (dev.freq_ghz || '') + ' GHz · G=' + (dev.gain_db || '') +
+          ' dB · PAE=' + (dev.pae_pct || '') + '%' +
+          ' <span style="color:' + sc + '; font-size:10px;">[' +
+          (dev.validation_status || '').toUpperCase() + ']</span>';
+        p.style.fontSize = '11px';
+        p.style.color = '#aaa';
+        p.style.marginBottom = '0';
+
+        div.appendChild(h5);
+        div.appendChild(p);
+        section.appendChild(div);
+
+        // Click handler — adds transistor at canvas centre with saved properties
+        div.style.cursor = 'pointer';
+        div.style.borderLeft = '3px solid ' + sc;
+        div.addEventListener('click', function() {
+          if (!window.paCanvas) {
+            alert('Canvas not ready. Please wait and try again.');
+            return;
+          }
+          // Place in the middle of the visible canvas area
+          const canvasEl = document.getElementById('pa-canvas');
+          const cx = canvasEl ? Math.round(canvasEl.getBoundingClientRect().width  / 2) : 400;
+          const cy = canvasEl ? Math.round(canvasEl.getBoundingClientRect().height / 2) : 300;
+
+          const techName = (props.technology || dev.technology || 'GaN').replace(/_/g, ' ');
+          const compProps = {
+            label     : props.label      || dev.label || 'PA',
+            technology: techName,
+            biasClass : props.biasClass  || 'AB',
+            pout      : props.pout       || dev.pout_dbm || 43,
+            p1db      : props.p1db       || dev.p1db_dbm || 41,
+            gain      : props.gain       || dev.gain_db  || 15,
+            pae       : props.pae        || dev.pae_pct  || 50,
+            vdd       : props.vdd        || dev.vdd      || 28,
+            rth       : 2.5,
+            freq      : props.freq       || dev.freq_ghz || 3.5
+          };
+
+          console.log('Adding portfolio device to canvas:', compProps);
+          window.paCanvas.addComponent('transistor', cx, cy, compProps);
+
+          // Visual feedback
+          const allTpl = container.querySelectorAll('.preset-template');
+          allTpl.forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+        });
+      });
+
+      container.appendChild(section);
+      console.log('✓ Device portfolio rendered (' + devices.length + ' devices)');
+    });
+
     console.log('✓ Shiny message handlers registered successfully');
     return true;
   } else {
