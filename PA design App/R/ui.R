@@ -223,10 +223,10 @@ ui <- dashboardPage(
                   p("For selecting the appropriate transistor technology based on operating frequency:"),
                   
                   HTML("
-                    <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #17a2b8; margin: 10px 0;'>
+                    <div class='callout callout-info' style='margin: 10px 0;'>
                       <h5><i class='fa fa-info-circle'></i> Selection Rule of Thumb</h5>
                       <p><strong>For operating frequency fop, select technology with: fT > 5 × fop</strong></p>
-                      <p style='color: #666; font-size: 13px;'>This ensures sufficient gain and prevents instability at the design frequency.</p>
+                      <p style='font-size: 13px;'>This ensures sufficient gain and prevents instability at the design frequency.</p>
                     </div>
                     
                     <h5 style='margin-top: 20px;'>Technology Comparison</h5>
@@ -293,7 +293,7 @@ ui <- dashboardPage(
                   h4(icon("chart-area"), " Transistor Frequency Performance"),
                   
                   HTML("
-                    <div style='background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 10px 0;'>
+                    <div class='callout callout-warn' style='margin: 10px 0;'>
                       <h5><i class='fa fa-exclamation-triangle'></i> Note</h5>
                       <p>Detailed fT and fmax plots with technology evolution trends are available in:</p>
                       <p><strong><a href='../PA_Design_Reference_Manual/Chapters/Chapter_01_Transistor_Fundamentals.html#section-2-2' target='_blank'>
@@ -305,7 +305,7 @@ ui <- dashboardPage(
                     <h5 style='margin-top: 25px;'>Key Frequency Relationships:</h5>
                     <div class='row' style='margin-top: 15px;'>
                       <div class='col-md-6'>
-                        <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; height: 100%;'>
+                        <div class='callout callout-neutral' style='border-radius: 5px; height: 100%;'>
                           <h6><strong>Transition Frequency  (fT)</strong></h6>
                           <ul style='font-size: 14px;'>
                             <li>Frequency where current gain h<sub>21</sub> = 1 (0 dB)</li>
@@ -316,7 +316,7 @@ ui <- dashboardPage(
                         </div>
                       </div>
                       <div class='col-md-6'>
-                        <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; height: 100%;'>
+                        <div class='callout callout-neutral' style='border-radius: 5px; height: 100%;'>
                           <h6><strong>Maximum Oscillation Frequency (fmax)</strong></h6>
                           <ul style='font-size: 14px;'>
                             <li>Frequency where power gain U = 1 (0 dB)</li>
@@ -329,9 +329,9 @@ ui <- dashboardPage(
                     </div>
                     
                     <h5 style='margin-top: 25px;'>Available Gain at Operating Frequency:</h5>
-                    <div style='background: #e7f3ff; padding: 15px; border-left: 4px solid #007bff; margin: 10px 0;'>
+                    <div class='callout callout-info' style='margin: 10px 0;'>
                       <p style='margin: 0;'><strong>G<sub>available</sub>(f<sub>op</sub>) ≈ 20 × log<sub>10</sub>(fT / f<sub>op</sub>) dB</strong></p>
-                      <p style='margin: 5px 0 0 0; font-size: 13px; color: #666;'>Example: With fT = 100 GHz at f<sub>op</sub> = 10 GHz → G ≈ 20 dB</p>
+                      <p style='margin: 5px 0 0 0; font-size: 13px;'>Example: With fT = 100 GHz at f<sub>op</sub> = 10 GHz → G ≈ 20 dB</p>
                     </div>
                     
                     <h5 style='margin-top: 25px;'>Technology Evolution Trends:</h5>
@@ -407,24 +407,24 @@ ui <- dashboardPage(
                     <h5>Frequency Selection Criteria:</h5>
                     <div class='row' style='margin-top: 15px;'>
                       <div class='col-md-4'>
-                        <div style='background: #d4edda; padding: 15px; border-radius: 5px; border-left: 4px solid #28a745;'>
+                        <div class='callout callout-ok' style='border-radius: 5px;'>
                           <h6><strong><i class='fa fa-check-circle'></i> Safe Range</strong></h6>
                           <p style='font-size: 14px; margin: 0;'>f<sub>op</sub> < fT / 10</p>
-                          <p style='font-size: 12px; color: #666; margin: 5px 0 0 0;'>High gain, excellent stability, easy matching</p>
+                          <p style='font-size: 12px; margin: 5px 0 0 0;'>High gain, excellent stability, easy matching</p>
                         </div>
                       </div>
                       <div class='col-md-4'>
-                        <div style='background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;'>
+                        <div class='callout callout-warn' style='border-radius: 5px;'>
                           <h6><strong><i class='fa fa-exclamation-triangle'></i> Acceptable Range</strong></h6>
                           <p style='font-size: 14px; margin: 0;'>fT / 10 < f<sub>op</sub> < fT / 5</p>
-                          <p style='font-size: 12px; color: #666; margin: 5px 0 0 0;'>Moderate gain, requires attention to stability</p>
+                          <p style='font-size: 12px; margin: 5px 0 0 0;'>Moderate gain, requires attention to stability</p>
                         </div>
                       </div>
                       <div class='col-md-4'>
-                        <div style='background: #f8d7da; padding: 15px; border-radius: 5px; border-left: 4px solid #dc3545;'>
+                        <div class='callout callout-danger' style='border-radius: 5px;'>
                           <h6><strong><i class='fa fa-times-circle'></i> Avoid</strong></h6>
                           <p style='font-size: 14px; margin: 0;'>f<sub>op</sub> > fT / 5</p>
-                          <p style='font-size: 12px; color: #666; margin: 5px 0 0 0;'>Low gain, stability issues, difficult matching</p>
+                          <p style='font-size: 12px; margin: 5px 0 0 0;'>Low gain, stability issues, difficult matching</p>
                         </div>
                       </div>
                     </div>
@@ -472,7 +472,7 @@ ui <- dashboardPage(
                       </tbody>
                     </table>
                     
-                    <div style='background-color: #e7f3ff; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;'>
+                    <div class='callout callout-info' style='margin: 20px 0;'>
                       <h5><i class='fa fa-calculator'></i> Quick Calculator:</h5>
                       <p><strong>For your current global frequency: </strong><span id='calc_freq'></span></p>
                       <p><strong>Minimum Required fT: </strong><span id='calc_ft_min'></span></p>
@@ -660,10 +660,10 @@ ui <- dashboardPage(
                               "Transformer" = "transformer"
                             )
                           ),
-                          div(style = "background-color: #f8f9fa; padding: 15px; border-left: 4px solid #ff851b; margin-top: 10px;",
+                          div(class = "callout callout-accent", style = "margin-top: 10px;",
                             h4(icon("arrow-right"), " Estimated Loss:"),
-                            h3(textOutput("loss_calc_result", inline = TRUE), style = "color: #ff851b; margin: 5px 0;"),
-                            p("dB", style = "color: #666; margin: 0;")
+                            h3(textOutput("loss_calc_result", inline = TRUE), style = "color: var(--accent); margin: 5px 0;"),
+                            p("dB", style = "color: var(--tx-med); margin: 0;")
                           )
                         )
                       )
@@ -732,7 +732,7 @@ ui <- dashboardPage(
                       tabPanel("Usage in Lineup",
                         br(),
                         HTML("
-                          <div style='background-color: #d1ecf1; padding: 15px; border-left: 4px solid #0c5460; margin-bottom: 15px;'>
+                          <div class='callout callout-info' style='margin-bottom: 15px;'>
                             <h5><i class='fa fa-info-circle'></i> Automatic Loss Application</h5>
                             <p>When you apply specifications to a lineup, these loss curves are <strong>automatically</strong> consulted to populate passive component parameters at the appropriate frequency.</p>
                           </div>
@@ -749,7 +749,7 @@ ui <- dashboardPage(
                           
                           <h6>2. Gain Reduction</h6>
                           <p>Total lineup gain is reduced by passive losses:</p>
-                          <p style='background-color: #f8f9fa; padding: 10px; font-family: monospace;'>
+                          <p class='code-block'>
                             G<sub>total</sub> = Σ(G<sub>transistor</sub>) - Σ(L<sub>passive</sub>)
                           </p>
                           
@@ -799,7 +799,7 @@ ui <- dashboardPage(
                             <li><strong>Use T-Junction When Isolation Not Critical:</strong> Lowest loss option</li>
                           </ul>
                           
-                          <div style='background-color: #fff3cd; padding: 15px; border-left: 4px solid #856404; margin-top: 15px;'>
+                          <div class='callout callout-warn' style='margin-top: 15px;'>
                             <h5><i class='fa fa-lightbulb'></i> Pro Tip</h5>
                             <p><strong>At mmWave (>20 GHz):</strong> Passive losses can exceed active device gains! Consider integrated approaches or waveguide structures to minimize interconnect.</p>
                           </div>
@@ -1406,35 +1406,35 @@ ui <- dashboardPage(
                     collapsed = TRUE,
                     
                     # PRIMARY LINEUP DRIVING PARAMETERS (highlighted)
-                    div(style = "background-color: #fff3cd; padding: 10px; border-left: 4px solid #ff851b; margin-bottom: 15px;",
-                      h5(icon("star"), " PRIMARY LINEUP DRIVERS", style = "color: #ff851b; margin-top: 0;"),
+                    div(class = "callout callout-accent", style = "margin-bottom: 15px;",
+                      h5(icon("star"), " PRIMARY LINEUP DRIVERS", style = "color: var(--accent); margin-top: 0;"),
                       fluidRow(
                         column(6,
-                          div(style = "border: 2px solid #ff851b; border-radius: 4px; padding: 5px; background-color: #fffbf5;",
+                          div(class = "input-highlight",
                             numericInput("spec_frequency", 
                               tags$strong("⚡ Frequency (MHz)", style = "color: #ff851b;"), 
                               value = 1805, min = 100, max = 10000, step = 1)
                           )
                         ),
                         column(6,
-                          div(style = "border: 2px solid #ff851b; border-radius: 4px; padding: 5px; background-color: #fffbf5;",
+                          div(class = "input-highlight",
                             numericInput("spec_p3db", 
                               tags$strong("⚡ P3dB Output (dBm)", style = "color: #ff851b;"), 
                               value = 55.3, min = 0, max = 80, step = 0.1)
                           )
                         ),
                         column(6,
-                          div(style = "border: 2px solid #ff851b; border-radius: 4px; padding: 5px; background-color: #fffbf5;",
+                          div(class = "input-highlight",
                             numericInput("spec_par", 
                               tags$strong("⚡ PAR / BO (dB)", style = "color: #ff851b;"), 
                               value = 8.0, min = 0, max = 20, step = 0.1),
-                            tags$small("Pavg = P3dB - PAR", style = "color: #999;")
+                            tags$small("Pavg = P3dB - PAR", style = "color: var(--tx-med);")
                           )
                         )
                       ),
                       fluidRow(
                         column(6,
-                          div(style = "border: 2px solid #ff851b; border-radius: 4px; padding: 5px; background-color: #fffbf5;",
+                          div(class = "input-highlight",
                             numericInput("spec_gain", 
                               tags$strong("⚡ Total Gain (dB)", style = "color: #ff851b;"), 
                               value = 41.5, min = 0, max = 80, step = 0.1)
@@ -1458,7 +1458,7 @@ ui <- dashboardPage(
                           div(style = "margin-top: 25px;",
                             strong("Bandwidth:"),
                             textOutput("spec_bandwidth_display", inline = TRUE),
-                            tags$span(" MHz", style = "color: #666;")
+                            tags$span(" MHz", style = "color: var(--tx-med);")
                           )
                         )
                       )
@@ -1578,7 +1578,7 @@ ui <- dashboardPage(
                         div(style = "margin-top: 25px;",
                           strong("Pin (dBm):"),
                           textOutput("calculated_Pin_global", inline = TRUE),
-                          tags$span(" (from specs)", style = "color: #999; font-size: 12px;")
+                          tags$span(" (from specs)", style = "color: var(--tx-med); font-size: 12px;")
                         )
                       )
                     ),

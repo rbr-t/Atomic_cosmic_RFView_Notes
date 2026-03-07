@@ -959,6 +959,41 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 *[style*="background-color: #d1ecf1"],
 *[style*="background-color:#d1ecf1"]          { background-color: var(--c-info-bg) !important; }
 
+/* ── Background overrides PLUS explicit text for the element AND its children ── */
+/* Without setting color on children, near-white inherited text stays invisible    */
+*[style*="background-color: #f8f9fa"] *,
+*[style*="background-color:#f8f9fa"] *,
+*[style*="background: #f8f9fa"] * { color: var(--tx-hi) !important; }
+
+*[style*="background-color: #fffbf5"] *,
+*[style*="background-color:#fffbf5"] * { color: var(--tx-hi) !important; }
+
+*[style*="background-color: #d4edda"] *,
+*[style*="background-color:#d4edda"] * { color: var(--tx-hi) !important; }
+
+*[style*="background-color: #fff3cd"] *,
+*[style*="background-color:#fff3cd"] * { color: var(--tx-hi) !important; }
+
+*[style*="background-color: #f8d7da"] *,
+*[style*="background-color:#f8d7da"] * { color: var(--tx-hi) !important; }
+
+*[style*="background-color: #e7f3ff"] *,
+*[style*="background-color:#e7f3ff"] *,
+*[style*="background-color: #d1ecf1"] *,
+*[style*="background-color:#d1ecf1"] * { color: var(--tx-hi) !important; }
+
+/* Also force readable text on the container element itself */
+*[style*="background-color: #f8f9fa"],
+*[style*="background-color:#f8f9fa"],
+*[style*="background: #f8f9fa"],
+*[style*="background-color: #fffbf5"],
+*[style*="background-color: #d4edda"],
+*[style*="background-color: #fff3cd"],
+*[style*="background-color: #f8d7da"],
+*[style*="background-color: #e7f3ff"],
+*[style*="background-color: #d1ecf1"],
+*[style*="background-color: #d1ecf1"] { color: var(--tx-hi) !important; }
+
 /* ── All themes: medium-grey inline text → readable in both themes ── */
 /* Appears in HTML() blocks and R renderUI alongside light inner-div bgs */
 *[style*="color: #666"], *[style*="color:#666"],
@@ -989,3 +1024,79 @@ body.theme-light *[style*="color:var(--c-warn)"],
 body.theme-light *[style*="color: var(--c-warn)"]  { color: var(--c-warn) !important; }
 body.theme-light *[style*="color:var(--c-err)"],
 body.theme-light *[style*="color: var(--c-err)"]   { color: var(--c-err)  !important; }
+
+
+/* ================================================================
+   18.  CALLOUT CARD CLASSES
+   Themed replacements for Bootstrap's light-only callout patterns.
+   Use .callout + .callout-{type} instead of inline background-color.
+   Both background AND text adapt automatically to every theme.
+   ================================================================ */
+
+.callout {
+  padding:       14px 16px;
+  border-radius: var(--r);
+  margin:        10px 0;
+}
+
+/* All text inside a callout — forced to readable colours */
+.callout,
+.callout h4, .callout h5, .callout h6,
+.callout strong, .callout b, .callout em,
+.callout a { color: var(--tx-hi)  !important; }
+
+.callout p,
+.callout li,
+.callout small,
+.callout [style*="font-size:"] { color: var(--tx-med) !important; }
+
+/* Card variants */
+.callout-neutral {
+  background:  var(--s-raised)   !important;
+  border:      1px solid var(--bdr-norm) !important;
+}
+.callout-info {
+  background:  var(--c-info-bg)  !important;
+  border-left: 4px solid var(--c-info)   !important;
+}
+.callout-ok {
+  background:  var(--c-ok-bg)    !important;
+  border-left: 4px solid var(--c-ok)     !important;
+}
+.callout-warn {
+  background:  var(--c-warn-bg)  !important;
+  border-left: 4px solid var(--c-warn)   !important;
+}
+.callout-danger {
+  background:  var(--c-err-bg)   !important;
+  border-left: 4px solid var(--c-err)    !important;
+}
+.callout-accent {
+  background:  var(--accent-tint) !important;
+  border-left: 4px solid var(--accent)   !important;
+}
+
+/* Inner highlight wrapper around form inputs (primary lineup params) */
+.input-highlight {
+  background:    var(--s-raised)  !important;
+  border:        2px solid var(--accent) !important;
+  border-radius: 4px !important;
+  padding:       5px !important;
+}
+.input-highlight .control-label,
+.input-highlight label { color: var(--tx-hi) !important; }
+
+/* Plain code / formula block inside tab content */
+.code-block {
+  background:    var(--s-raised) !important;
+  border:        1px solid var(--bdr-norm) !important;
+  border-radius: var(--r-sm) !important;
+  padding:       10px !important;
+  font-family:   monospace !important;
+  color:         var(--tx-hi) !important;
+  display:       block;
+}
+
+/* Bootstrap table text fix — tables inside HTML() blocks */
+.content-wrapper table th,
+.content-wrapper table td { color: var(--tx-hi) !important; }
