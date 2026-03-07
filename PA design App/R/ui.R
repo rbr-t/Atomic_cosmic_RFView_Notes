@@ -1913,22 +1913,50 @@ ui <- dashboardPage(
       tabItem(tabName = "settings",
         h2("Application Settings"),
         fluidRow(
+          # ── Theme & Appearance ───────────────────────────────────────
           box(
-            title = "Theme Settings",
-            width = 6,
-            selectInput("theme_select", "Theme",
-              choices = c("Dark Mode" = "dark", "Light Mode" = "light", "Colorblind Mode" = "colorblind")),
-            selectInput("accent_color", "Accent Color",
-              choices = c("Orange" = "#ff7f11", "Blue" = "#1f77b4", "Green" = "#2ca02c"))
+            title = "Theme & Appearance", status = "primary", width = 6,
+            p(style = "color:#aaa; font-size:12px; margin-bottom:12px;",
+              "Changes apply instantly — no reload needed."),
+            selectInput("theme_select", "Colour Theme",
+              choices = c(
+                "Dark Mode (default)"   = "dark",
+                "Light Mode"            = "light",
+                "Colorblind-Friendly"   = "colorblind"
+              ),
+              selected = "dark"
+            ),
+            selectInput("accent_color", "Accent Colour",
+              choices = c(
+                "Orange (default)" = "#ff7f11",
+                "Blue"             = "#1f77b4",
+                "Green"            = "#2ca02c"
+              ),
+              selected = "#ff7f11"
+            ),
+            uiOutput("settings_active_theme"),
+            uiOutput("settings_theme_preview")
           ),
+          # ── RF Design Defaults ─────────────────────────────────────
           box(
-            title = "AI Agent Configuration",
-            width = 6,
-            checkboxInput("agents_enabled", "Enable AI Agents", value = TRUE),
-            selectInput("llm_model", "LLM Model",
-              choices = c("GPT-4", "GPT-3.5-turbo", "Claude-3-Opus")),
-            sliderInput("agent_confidence_threshold", "Confidence Threshold", 
-                       min = 0, max = 1, value = 0.7, step = 0.05)
+            title = "RF Design Defaults", status = "primary", width = 6,
+            p(style = "color:#aaa; font-size:12px; margin-bottom:12px;",
+              "Default values pre-populated in new design calculations."),
+            numericInput("default_freq_ghz", "Default Frequency (GHz)",
+                         value = 3.5, min = 0.1, max = 300, step = 0.1),
+            selectInput("default_technology", "Default Technology",
+              choices = c(
+                "GaN HEMT (SiC)"  = "GaN_SiC",
+                "GaN HEMT (Si)"   = "GaN_Si",
+                "Si LDMOS"        = "LDMOS",
+                "GaAs pHEMT"      = "GaAs_pHEMT",
+                "SiGe HBT"        = "SiGe_HBT",
+                "InP HEMT"        = "InP_HEMT"
+              ),
+              selected = "GaN_SiC"
+            ),
+            numericInput("default_vdd", "Default Supply Voltage (V)",
+                         value = 28, min = 1, max = 65, step = 1)
           )
         )
       )

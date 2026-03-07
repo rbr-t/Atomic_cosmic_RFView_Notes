@@ -1,0 +1,28 @@
+{
+  "id": "dev_GaNSi_3G5_43dBm_20260307102706",
+  "label": "GaNSi_3G5_43dBm",
+  "notes": "test",
+  "technology": "GaN_SiC",
+  "tech_label": "GaN HEMT (SiC)",
+  "freq_ghz": 3.5,
+  "gain_db": 15,
+  "pae_pct": 60,
+  "pout_dbm": 43,
+  "vdd": 28,
+  "p1db_dbm": 41,
+  "pout_density_w_per_mm": 4,
+  "validation_status": "ok",
+  "saved_at": "2026-03-07 10:27:06",
+  "canvas_component": {
+    "type": "transistor",
+    "label": "GaNSi_3G5_43dBm",
+    "technology": "GaN_SiC",
+    "gain": 15,
+    "pout": 43,
+    "p1db": 41,
+    "pae": 60,
+    "vdd": 28,
+    "freq": 3.5,
+    "biasClass": "AB"
+  }
+}

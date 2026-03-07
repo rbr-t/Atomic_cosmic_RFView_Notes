@@ -604,3 +604,244 @@ input::placeholder,
 textarea::placeholder {
   color: #666 !important;
 }
+
+/* ============================================================
+   DARK THEME BASELINE
+   Bootstrap sets body { color: #333 } which is near-invisible
+   on the dark #0b0b0b / #1b1b1b box backgrounds.
+   These rules restore readable text for all un-styled elements.
+   ============================================================ */
+body {
+  color: #e0e0e0;
+}
+h1, h2, h3, h4, h5, h6 {
+  color: #f0f0f0;
+}
+p, li {
+  color: inherit;
+}
+/* Any heading or paragraph directly inside a tab pane */
+.tab-pane h2, .tab-pane h3, .tab-pane h4,
+.tab-content h2, .tab-content h3, .tab-content h4 {
+  color: #f0f0f0;
+}
+/* Slider labels */
+.irs-single, .irs-from, .irs-to, .irs-min, .irs-max {
+  color: #ddd;
+  background: #333;
+}
+.irs-bar { background: #ff7f11; border-top-color: #ff7f11; border-bottom-color: #ff7f11; }
+/* infoBox / valueBox text */
+.info-box-text, .info-box-number { color: #fff; }
+/* sidebar labels */
+.sidebar-menu > li > a { color: #c8c8c8; }
+.sidebar-menu > li.active > a { color: #fff; }
+
+/* ============================================================
+   LIGHT THEME  (applied when: body.theme-light)
+   Sidebar stays dark, content area flips to light.
+   ============================================================ */
+body.theme-light {
+  color: #1a1a1a;
+}
+body.theme-light .content-wrapper {
+  background-color: #f0f2f5 !important;
+  color: #1a1a1a !important;
+}
+/* Keep header/sidebar dark for clear navigation contrast */
+body.theme-light.skin-black .main-header .logo,
+body.theme-light.skin-black .main-header .navbar {
+  background-color: #2c3e50 !important;
+}
+body.theme-light .box {
+  background-color: #ffffff !important;
+  border-top-color: #c05200 !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+body.theme-light .box .box-header {
+  background-color: #f7f7f7 !important;
+}
+body.theme-light .box .box-header h3,
+body.theme-light .box .box-header .box-title {
+  color: #222 !important;
+}
+body.theme-light h1, body.theme-light h2,
+body.theme-light h3, body.theme-light h4,
+body.theme-light h5, body.theme-light h6 {
+  color: #1a1a1a !important;
+}
+body.theme-light p,
+body.theme-light li,
+body.theme-light span,
+body.theme-light .tab-pane,
+body.theme-light .tab-content {
+  color: #1a1a1a !important;
+}
+body.theme-light .control-label,
+body.theme-light .shiny-input-container label {
+  color: #222 !important;
+}
+body.theme-light .form-control {
+  color: #1a1a1a !important;
+  background-color: #fff !important;
+  border-color: #bbb !important;
+}
+body.theme-light .form-control:focus {
+  color: #000 !important;
+  background-color: #fff !important;
+  border-color: #c05200 !important;
+}
+body.theme-light .selectize-input {
+  color: #1a1a1a !important;
+  background: #fff !important;
+  border-color: #bbb !important;
+}
+body.theme-light .selectize-dropdown,
+body.theme-light .selectize-dropdown-content {
+  color: #1a1a1a !important;
+  background: #fff !important;
+}
+body.theme-light .selectize-dropdown .option:hover,
+body.theme-light .selectize-dropdown .option.selected {
+  background: #eef4ff !important;
+  color: #000 !important;
+}
+body.theme-light .nav-tabs > li > a {
+  color: #555 !important;
+  background-color: #dde0e5 !important;
+  border-color: #bbb !important;
+}
+body.theme-light .nav-tabs > li.active > a,
+body.theme-light .nav-tabs > li.active > a:focus,
+body.theme-light .nav-tabs > li.active > a:hover {
+  color: #1a1a1a !important;
+  background-color: #fff !important;
+  border-top-color: #c05200 !important;
+}
+body.theme-light .nav-tabs > li > a:hover {
+  color: #111 !important;
+  background-color: #e8eaed !important;
+}
+body.theme-light .well {
+  background-color: #e8eaed !important;
+  border-color: #ccc !important;
+  color: #1a1a1a !important;
+}
+body.theme-light .box-body p,
+body.theme-light .box-body small,
+body.theme-light .box-body .text-muted {
+  color: #555 !important;
+}
+body.theme-light .checkbox-inline label,
+body.theme-light .radio-inline label,
+body.theme-light .shiny-input-container .checkbox label,
+body.theme-light .shiny-input-container .radio label {
+  color: #222 !important;
+}
+body.theme-light table.dataTable thead th,
+body.theme-light table.dataTable thead td {
+  background-color: #e4e7ec !important;
+  color: #1a1a1a !important;
+  border-bottom-color: #bbb !important;
+}
+body.theme-light table.dataTable tbody tr {
+  background-color: #fff !important;
+  color: #1a1a1a !important;
+}
+body.theme-light table.dataTable tbody tr:nth-child(even) {
+  background-color: #f4f6f9 !important;
+}
+body.theme-light table.dataTable tbody tr:hover {
+  background-color: #dceeff !important;
+  color: #000 !important;
+}
+body.theme-light .dataTables_wrapper,
+body.theme-light .dataTables_info,
+body.theme-light .dataTables_paginate,
+body.theme-light .dataTables_length label,
+body.theme-light .dataTables_filter label {
+  color: #333 !important;
+}
+body.theme-light .dataTables_paginate .paginate_button {
+  color: #555 !important;
+}
+body.theme-light .btn-primary {
+  background-color: #c05200 !important;
+  border-color: #c05200 !important;
+  color: #fff !important;
+}
+body.theme-light .btn-primary:hover {
+  background-color: #983f00 !important;
+  border-color: #983f00 !important;
+}
+body.theme-light .shiny-notification {
+  background-color: #fff;
+  color: #1a1a1a;
+  border-left-color: #c05200;
+}
+body.theme-light .irs-single,
+body.theme-light .irs-from,
+body.theme-light .irs-to,
+body.theme-light .irs-min,
+body.theme-light .irs-max {
+  color: #222;
+  background: #dde0e5;
+}
+body.theme-light .irs-bar {
+  background: #c05200;
+  border-top-color: #c05200;
+  border-bottom-color: #c05200;
+}
+
+/* ============================================================
+   COLORBLIND-FRIENDLY THEME  (body.theme-colorblind)
+   Keeps the dark base but replaces orange/red/green signals
+   with a blue–amber palette safe for deuteranopia/protanopia.
+   ============================================================ */
+body.theme-colorblind .box {
+  border-top-color: #0099cc !important;
+}
+body.theme-colorblind .btn-primary {
+  background-color: #0077bb !important;
+  border-color: #0077bb !important;
+}
+body.theme-colorblind .btn-primary:hover {
+  background-color: #005a8a !important;
+  border-color: #005a8a !important;
+}
+body.theme-colorblind .btn-success {
+  background-color: #009988 !important;
+  border-color: #009988 !important;
+}
+body.theme-colorblind .nav-tabs > li.active > a,
+body.theme-colorblind .nav-tabs > li.active > a:focus {
+  border-top-color: #0099cc !important;
+}
+body.theme-colorblind .irs-bar {
+  background: #0099cc;
+  border-top-color: #0099cc;
+  border-bottom-color: #0099cc;
+}
+body.theme-colorblind .shiny-notification {
+  border-left-color: #0099cc !important;
+}
+body.theme-colorblind .sidebar-section-title {
+  color: #0099cc !important;
+}
+body.theme-colorblind .canvas-sidebar {
+  border-left-color: #0099cc !important;
+}
+body.theme-colorblind .sidebar-toggle,
+body.theme-colorblind .top-sidebar-toggle {
+  background: #0099cc !important;
+}
+body.theme-colorblind .sidebar-toggle:hover,
+body.theme-colorblind .top-sidebar-toggle:hover {
+  background: #007aa3 !important;
+}
+/* Replace the orange star marker text in descriptions */
+body.theme-colorblind .stuck {
+  box-shadow: 0 4px 20px rgba(0, 153, 204, 0.3);
+  border-bottom: 2px solid rgba(0, 153, 204, 0.5);
+}
+

@@ -29,6 +29,7 @@ source("modules/server/server_spec_design.R")
 source("modules/server/server_file_ops.R")
 source("modules/server/server_rf_tools.R")
 source("modules/server/server_guardrails.R")
+source("modules/server/server_settings.R")
 
 # ── Server function ───────────────────────────────────────────────────────
 server <- function(input, output, session) {
@@ -49,6 +50,7 @@ server <- function(input, output, session) {
   serverFileOps(input, output, session, state)
   serverRfTools(input, output, session, state)
   serverGuardrails(input, output, session, state)
+  serverSettings(input, output, session, state)
 
   # ── Session cleanup ──────────────────────────────────────────────────────
   onStop(function() {
