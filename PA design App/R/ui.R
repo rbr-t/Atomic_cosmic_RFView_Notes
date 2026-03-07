@@ -854,7 +854,7 @@ ui <- dashboardPage(
                   box(
                     title = tagList(icon("check-circle"), "Sanity Check"),
                     width = 12, status = "warning", solidHeader = TRUE,
-                    p(style = "font-size:12px; color:#aaa;",
+                    p(style = "font-size:12px; color:var(--tx-med);",
                       "Enter your device parameters to validate against guardrails:"),
                     numericInput("grd_chk_freq",  "Frequency (GHz)",  value = 3.5,  min = 0.1,  max = 300,  step = 0.1),
                     numericInput("grd_chk_gain",  "Gain (dB)",        value = 15,   min = 1,    max = 35,   step = 0.5),
@@ -874,7 +874,7 @@ ui <- dashboardPage(
                     title = tagList(icon("save"), "Save to Device Library"),
                     width = 12, status = "success", solidHeader = TRUE,
                     collapsible = TRUE,
-                    p(style = "font-size:12px; color:#aaa; margin-bottom:8px;",
+                    p(style = "font-size:12px; color:var(--tx-med); margin-bottom:8px;",
                       "Save the current parameters as a reusable transistor component.",
                       " It will appear in the PA Lineup canvas palette under 'Device Library'."),
                     textInput("grd_save_label", "Device Label",
@@ -885,7 +885,7 @@ ui <- dashboardPage(
                       class = "btn-success btn-block", icon = icon("save")),
                     uiOutput("grd_save_result"),
                     br(),
-                    p(style = "font-size:11px; font-weight:bold; color:#aaa; text-transform:uppercase;",
+                    p(style = "font-size:11px; font-weight:bold; color:var(--tx-med); text-transform:uppercase;",
                       "Saved Devices:"),
                     uiOutput("grd_saved_devices_list")
                   )
@@ -902,10 +902,10 @@ ui <- dashboardPage(
                       value = "grd_design_space",
                       br(),
                       div(
-                        style = "background:#1e2d1e; border-left:4px solid #70AD47; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
-                        p(style = "margin:0; font-size:13px; color:#ccc;",
+                        style = "background:var(--s-raised); border-left:4px solid #70AD47; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
+                        p(style = "margin:0; font-size:13px; color:var(--tx-med);",
                           icon("info-circle"), " ",
-                          strong(style="color:#fff;", "How to read this chart:"),
+                          strong(style="color:var(--tx-hi);", "How to read this chart:"),
                           " Each bubble = one technology. X = frequency, Y = Pout density (W/mm). ",
                           "Bubble SIZE = typical PAE at P3dB. Bubble COLOR = technology. ",
                           "The shaded band = sweet-spot operating range. ",
@@ -933,10 +933,10 @@ ui <- dashboardPage(
                       value = "grd_gain_bw",
                       br(),
                       div(
-                        style = "background:#1e2428; border-left:4px solid #4472C4; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
-                        p(style = "margin:0; font-size:13px; color:#ccc;",
+                        style = "background:var(--s-raised); border-left:4px solid #4472C4; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
+                        p(style = "margin:0; font-size:13px; color:var(--tx-med);",
                           icon("info-circle"), " ",
-                          strong(style="color:#fff;", "Gain envelope from fT:"),
+                          strong(style="color:var(--tx-hi);", "Gain envelope from fT:"),
                           " Solid line = typical gain (20·log₁₀(fT/f) blended with fmax model). ",
                           "Shaded upper region = best-case (max fT process). ",
                           "Your ★ marker shows where your design point lands."
@@ -953,10 +953,10 @@ ui <- dashboardPage(
                       value = "grd_pae_bo",
                       br(),
                       div(
-                        style = "background:#2a1e1e; border-left:4px solid #FFC000; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
-                        p(style = "margin:0; font-size:13px; color:#ccc;",
+                        style = "background:var(--s-raised); border-left:4px solid #FFC000; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
+                        p(style = "margin:0; font-size:13px; color:var(--tx-med);",
                           icon("info-circle"), " ",
-                          strong(style="color:#fff;", "PAE backoff behaviour by PA class:"),
+                          strong(style="color:var(--tx-hi);", "PAE backoff behaviour by PA class:"),
                           " Shows how PAE degrades as you back off from P3dB. ",
                           "Class A collapses fastest; Doherty stays flat over the BO window. ",
                           "Your ★ marks your operating point (P3dB vs Pavg)."
@@ -975,7 +975,7 @@ ui <- dashboardPage(
                         column(4,
                           numericInput("grd_pae_pavg_bo", "Your operating backoff (dB)",
                             value = 8, min = 0, max = 20, step = 0.5),
-                          p(style="font-size:11px;color:#aaa;", "= PAR / system BO from P3dB")
+                          p(style="font-size:11px;color:var(--tx-med);", "= PAR / system BO from P3dB")
                         )
                       ),
                       plotlyOutput("grd_pae_bo_plot", height = "480px")
@@ -987,8 +987,8 @@ ui <- dashboardPage(
                       value = "grd_ref_table",
                       br(),
                       div(
-                        style = "background:#1e1e2a; border-left:4px solid #7030A0; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
-                        p(style = "margin:0; font-size:13px; color:#ccc;",
+                        style = "background:var(--s-raised); border-left:4px solid #7030A0; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
+                        p(style = "margin:0; font-size:13px; color:var(--tx-med);",
                           icon("info-circle"), " ",
                           "Physics-grounded limits per technology. ",
                           "All values derived from process data and first-principles models. ",
@@ -1913,7 +1913,7 @@ ui <- dashboardPage(
           # ── Theme & Appearance ───────────────────────────────────────
           box(
             title = "Theme & Appearance", status = "primary", width = 6,
-            p(style = "color:#aaa; font-size:12px; margin-bottom:12px;",
+            p(style = "color:var(--tx-med); font-size:12px; margin-bottom:12px;",
               "Changes apply instantly — no reload needed."),
             selectInput("theme_select", "Colour Theme",
               choices = c(
@@ -1937,7 +1937,7 @@ ui <- dashboardPage(
           # ── RF Design Defaults ─────────────────────────────────────
           box(
             title = "RF Design Defaults", status = "primary", width = 6,
-            p(style = "color:#aaa; font-size:12px; margin-bottom:12px;",
+            p(style = "color:var(--tx-med); font-size:12px; margin-bottom:12px;",
               "Default values pre-populated in new design calculations."),
             numericInput("default_freq_ghz", "Default Frequency (GHz)",
                          value = 3.5, min = 0.1, max = 300, step = 0.1),

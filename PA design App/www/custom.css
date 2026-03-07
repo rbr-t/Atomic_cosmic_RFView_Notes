@@ -350,6 +350,31 @@ code            { font-family: var(--font-mono); font-size: 0.9em;
 .tab-pane small,
 .tab-pane .text-muted           { color: var(--tx-med) !important; }
 
+/* AdminLTE forces background:#fff on .nav-tabs-custom > .tab-content —
+   override to keep our themed background and readable text in all modes. */
+.nav-tabs-custom {
+  background:    var(--s-card)   !important;
+  border:        1px solid var(--bdr-norm) !important;
+  border-radius: var(--r) !important;
+}
+.nav-tabs-custom > .nav-tabs {
+  background:    var(--s-raised) !important;
+  border-bottom: 1px solid var(--bdr-norm) !important;
+}
+.nav-tabs-custom > .tab-content {
+  background: var(--s-card) !important;
+  color:      var(--tx-hi)  !important;
+  padding:    10px 15px;
+}
+/* All form labels inside custom nav tabs inherit readable colour */
+.nav-tabs-custom .control-label,
+.nav-tabs-custom .shiny-input-container label,
+.nav-tabs-custom .checkbox label,
+.nav-tabs-custom .radio    label,
+.nav-tabs-custom .radio-inline label {
+  color: var(--tx-hi) !important;
+}
+
 
 /* ================================================================
    6.  FORM ELEMENTS

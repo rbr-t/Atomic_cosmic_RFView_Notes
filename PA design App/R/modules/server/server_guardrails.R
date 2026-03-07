@@ -70,7 +70,11 @@ serverGuardrails <- function(input, output, session, state) {
   user_tech  <- reactive({ input$grd_tech_select %||% "GaN_SiC" })
   user_pd    <- reactive({
     pd <- input$grd_chk_pdensity %||% 0
-    if (pd == 0) 10^(user_pout() / 10) / 1000 else pd
+    if (pd > 0) return(pd)
+    # Fallback: selected technology's typical Pout density (W/mm)
+    # Avoids the misleading dBm→W conflation that was used before
+    tech <- guardrails$technologies[[user_tech() %||% "GaN_SiC"]]
+    tech$pout_density_w_per_mm$typical %||% 5.0
   })
 
   # ═══════════════════════════════════════════════════════════════
@@ -454,7 +458,9 @@ serverGuardrails <- function(input, output, session, state) {
         input$grd_chk_pae, input$grd_chk_pout, input$grd_chk_vdd)
 
     pd <- input$grd_chk_pdensity
-    if (is.null(pd) || pd == 0) pd <- NULL
+    # When pd=0 (not explicitly set), use the same density the ★ marker shows
+    # so the validation result is always consistent with the design space plot
+    if (is.null(pd) || pd == 0) pd <- user_pd()
 
     result <- validateDeviceParams(
       tech_key    = input$grd_tech_select,
@@ -617,7 +623,7 @@ serverGuardrails <- function(input, output, session, state) {
     input$grd_save_device  # reactive dependency
     devices <- loadDevicePortfolio("device_portfolio")
     if (length(devices) == 0) {
-      return(div(style = "color:#888; font-size:12px; padding:6px;",
+      return(div(style = "color:var(--tx-med); font-size:12px; padding:6px;",
                  "No devices saved yet."))
     }
     status_colors <- c(ok = "#27ae60", warning = "#f39c12", error = "#e74c3c")
@@ -626,10 +632,10 @@ serverGuardrails <- function(input, output, session, state) {
       lapply(devices, function(d) {
         sc <- status_colors[[d$validation_status %||% "ok"]] %||% "#888"
         tags$li(
-          style = paste0("padding:5px 6px; margin-bottom:4px; background:#222;",
+          style = paste0("padding:5px 6px; margin-bottom:4px; background:var(--s-raised);",
                          " border-radius:3px; border-left:3px solid ", sc, ";"),
-          div(style = "color:#fff; font-size:12px; font-weight:bold;", d$label),
-          div(style = "color:#aaa; font-size:11px;",
+          div(style = "color:var(--tx-hi); font-size:12px; font-weight:bold;", d$label),
+          div(style = "color:var(--tx-med); font-size:11px;",
               d$tech_label, " · ", d$freq_ghz, " GHz · G=", d$gain_db,
               " dB · PAE=", d$pae_pct, "% · Pout=", d$pout_dbm, " dBm")
         )
