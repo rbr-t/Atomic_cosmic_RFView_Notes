@@ -7665,10 +7665,10 @@ function registerMessageHandlers() {
       console.log('=== RECEIVED updateDevicePortfolio MESSAGE FROM R ===');
       console.log('Devices:', devices.length);
 
-      // Find or create the device-portfolio section inside the templates container
-      let container = document.querySelector('.top-sidebar-templates');
+      // Find the dedicated Device Library column in the two-column top sidebar
+      let container = document.getElementById('top_sidebar_device_col');
       if (!container) {
-        console.warn('Templates container not found — device portfolio will not render.');
+        console.warn('Device Library column not found — device portfolio will not render.');
         return;
       }
 
@@ -7676,17 +7676,17 @@ function registerMessageHandlers() {
       const existingSection = document.getElementById('device-portfolio-section');
       if (existingSection) existingSection.remove();
 
-      if (!devices || devices.length === 0) return;
+      // Show/hide empty hint
+      const emptyHint = container.querySelector('.top-sidebar-empty-hint');
+      if (!devices || devices.length === 0) {
+        if (emptyHint) emptyHint.style.display = '';
+        return;
+      }
+      if (emptyHint) emptyHint.style.display = 'none';
 
-      // Build section wrapper
+      // Build section wrapper (no heading — column title already shows "Device Library")
       const section = document.createElement('div');
       section.id = 'device-portfolio-section';
-      section.style.cssText = 'border-top:2px solid #ff7f11; padding-top:8px; margin-top:10px;';
-
-      const heading = document.createElement('div');
-      heading.style.cssText = 'font-size:11px; text-transform:uppercase; color:#ff7f11; font-weight:bold; letter-spacing:0.05em; margin-bottom:6px; padding:0 4px;';
-      heading.textContent = '★ Device Library';
-      section.appendChild(heading);
 
       const statusColors = { ok: '#27ae60', warning: '#f39c12', error: '#e74c3c' };
 

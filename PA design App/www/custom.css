@@ -818,9 +818,37 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 .top-sidebar-toggle:hover { background: var(--accent-hi); }
 
 .top-sidebar-content {
-  padding: 15px 20px 10px;
-  padding-left: 10%;
+  padding: 12px 15px 10px;
 }
+
+/* Two-column layout for top sidebar */
+.top-sidebar-two-col {
+  display: flex;
+  gap: 0;
+  align-items: flex-start;
+}
+.top-sidebar-col {
+  flex: 1;
+  min-width: 0;
+  padding: 0 15px;
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+.top-sidebar-col:last-child {
+  border-right: none;
+}
+.top-sidebar-col-devices .top-sidebar-templates {
+  /* Device column: single-column grid so cards stack vertically */
+  grid-template-columns: 1fr;
+}
+.top-sidebar-empty-hint {
+  color: var(--tx-low);
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+  padding: 20px 10px;
+  margin: 0;
+}
+
 .top-sidebar-title {
   color: var(--accent);
   font-weight: 700;

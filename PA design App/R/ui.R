@@ -1105,57 +1105,76 @@ ui <- dashboardPage(
                         
                         # Top sidebar content
                         div(
-                          class = "top-sidebar-content",
-                          div(class = "top-sidebar-title", icon("layer-group"), " Architecture Templates"),
-                          div(class = "top-sidebar-templates",
-                            div(class = "preset-template", `data-preset` = "triple_stage",
-                              h5("3-Stage Cascade"),
-                              p("Pre-driver → Driver → Final PA")
-                            ),
-                            div(class = "preset-template", `data-preset` = "single_doherty",
-                              h5("Single Driver Doherty"),
-                              p("Driver → Splitter → Main/Aux PA")
-                            ),
-                            div(class = "preset-template", `data-preset` = "dual_doherty",
-                              h5("Dual Driver Doherty"),
-                              p("Dual drivers → Main/Aux paths")
-                            ),
-                            div(class = "preset-template", `data-preset` = "conventional_doherty",
-                              h5("Conventional Doherty"),
-                              p("Standard λ/4 impedance transformation")
-                            ),
-                            div(class = "preset-template", `data-preset` = "inverted_doherty",
-                              h5("Inverted Doherty"),
-                              p("Inverted phase configuration")
-                            ),
-                            div(class = "preset-template", `data-preset` = "symmetric_doherty",
-                              h5("Symmetric Doherty"),
-                              p("Equal power Main & Aux PAs")
-                            ),
-                            div(class = "preset-template", `data-preset` = "asymmetric_doherty",
-                              h5("Asymmetric Doherty"),
-                              p("2:1 power ratio for extended efficiency")
-                            ),
-                            div(class = "preset-template", `data-preset` = "envelope_tracking_doherty",
-                              h5("Envelope Tracking Doherty"),
-                              p("Main/Aux with VDD modulation")
-                            ),
-                            div(class = "preset-template", `data-preset` = "3way_symmetric_doherty",
-                              h5("3-Way Symmetric Doherty"),
-                              p("1 main + 2 equal peaking PAs")
-                            ),
-                            div(class = "preset-template", `data-preset` = "3way_asymmetric_doherty",
-                              h5("3-Way Asymmetric Doherty"),
-                              p("1 main (50%) + 2 peaking (25% each)")
-                            ),
-                            div(class = "preset-template", `data-preset` = "blank",
-                              h5("Blank Canvas"),
-                              p("Start from scratch")
-                            ),
-                            # User Saved Templates Section
-                            tags$div(class = "sidebar-section-label", style = "font-size: 10px; color: #999; margin: 15px 10px 5px 10px; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;", "USER SAVED TEMPLATES"),
-                            tags$div(id = "user_templates_top_sidebar",
-                              uiOutput("user_templates_top_display")
+                          class = "top-sidebar-content top-sidebar-two-col",
+
+                          # ── Left column: Architecture Templates ──────────
+                          div(
+                            class = "top-sidebar-col",
+                            div(class = "top-sidebar-title", icon("layer-group"), " Architecture Templates"),
+                            div(class = "top-sidebar-templates",
+                              div(class = "preset-template", `data-preset` = "triple_stage",
+                                h5("3-Stage Cascade"),
+                                p("Pre-driver → Driver → Final PA")
+                              ),
+                              div(class = "preset-template", `data-preset` = "single_doherty",
+                                h5("Single Driver Doherty"),
+                                p("Driver → Splitter → Main/Aux PA")
+                              ),
+                              div(class = "preset-template", `data-preset` = "dual_doherty",
+                                h5("Dual Driver Doherty"),
+                                p("Dual drivers → Main/Aux paths")
+                              ),
+                              div(class = "preset-template", `data-preset` = "conventional_doherty",
+                                h5("Conventional Doherty"),
+                                p("Standard λ/4 impedance transformation")
+                              ),
+                              div(class = "preset-template", `data-preset` = "inverted_doherty",
+                                h5("Inverted Doherty"),
+                                p("Inverted phase configuration")
+                              ),
+                              div(class = "preset-template", `data-preset` = "symmetric_doherty",
+                                h5("Symmetric Doherty"),
+                                p("Equal power Main & Aux PAs")
+                              ),
+                              div(class = "preset-template", `data-preset` = "asymmetric_doherty",
+                                h5("Asymmetric Doherty"),
+                                p("2:1 power ratio for extended efficiency")
+                              ),
+                              div(class = "preset-template", `data-preset` = "envelope_tracking_doherty",
+                                h5("Envelope Tracking Doherty"),
+                                p("Main/Aux with VDD modulation")
+                              ),
+                              div(class = "preset-template", `data-preset` = "3way_symmetric_doherty",
+                                h5("3-Way Symmetric Doherty"),
+                                p("1 main + 2 equal peaking PAs")
+                              ),
+                              div(class = "preset-template", `data-preset` = "3way_asymmetric_doherty",
+                                h5("3-Way Asymmetric Doherty"),
+                                p("1 main (50%) + 2 peaking (25% each)")
+                              ),
+                              div(class = "preset-template", `data-preset` = "blank",
+                                h5("Blank Canvas"),
+                                p("Start from scratch")
+                              ),
+                              # User Saved Templates Section
+                              tags$div(class = "sidebar-section-label", style = "font-size: 10px; color: var(--tx-low); margin: 15px 10px 5px 10px; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;", "USER SAVED TEMPLATES"),
+                              tags$div(id = "user_templates_top_sidebar",
+                                uiOutput("user_templates_top_display")
+                              )
+                            )
+                          ),
+
+                          # ── Right column: Device Library ─────────────────
+                          div(
+                            class = "top-sidebar-col top-sidebar-col-devices",
+                            div(class = "top-sidebar-title", icon("microchip"), " Device Library"),
+                            div(
+                              id = "top_sidebar_device_col",
+                              class = "top-sidebar-templates",
+                              p(class = "top-sidebar-empty-hint",
+                                icon("info-circle"), " Save devices from the ",
+                                tags$strong("Guardrails"), " tab to populate this panel."
+                              )
                             )
                           )
                         )
