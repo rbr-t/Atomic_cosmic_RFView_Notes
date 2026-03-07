@@ -49,10 +49,7 @@ ui <- dashboardPage(
       tags$script(src = "https://d3js.org/d3.v7.min.js"),
       tags$script(src = "js/pa_lineup_canvas.js"),
       tags$style(HTML("
-        .skin-black .main-header .logo { background-color: #1b1b1b; }
-        .skin-black .main-header .navbar { background-color: #1b1b1b; }
-        .content-wrapper { background-color: #0b0b0b; }
-        .box { background-color: #1b1b1b; border-top-color: #ff7f11; }
+        /* Hardcoded fallbacks removed — all theming now in custom.css */
       "))
     ),
     
