@@ -11,6 +11,10 @@
 # passed as a named list to every module.
 # ============================================================
 
+# ── Source calculation engines (needed by server modules) ────────────────
+source("modules/calculations/calc_pa_lineup.R")
+source("modules/calculations/calc_guardrails.R")
+
 # ── Source server modules ─────────────────────────────────────────────────
 source("modules/server/server_state.R")
 source("modules/server/server_dashboard.R")
@@ -24,6 +28,7 @@ source("modules/server/server_pa_lineup.R")
 source("modules/server/server_spec_design.R")
 source("modules/server/server_file_ops.R")
 source("modules/server/server_rf_tools.R")
+source("modules/server/server_guardrails.R")
 
 # ── Server function ───────────────────────────────────────────────────────
 server <- function(input, output, session) {
@@ -43,6 +48,7 @@ server <- function(input, output, session) {
   serverSpecDesign(input, output, session, state)
   serverFileOps(input, output, session, state)
   serverRfTools(input, output, session, state)
+  serverGuardrails(input, output, session, state)
 
   # ── Session cleanup ──────────────────────────────────────────────────────
   onStop(function() {

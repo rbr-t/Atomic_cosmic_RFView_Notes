@@ -1,0 +1,378 @@
+# ============================================================
+# technology_guardrails.yaml
+# Physics-grounded performance limits per transistor technology.
+#
+# Each technology node defines HARD limits derived from first-
+# principles physics and industry process characterisation.
+# These are used to:
+#   1. Validate component parameters in the lineup canvas
+#   2. Drive the Technology Design Space visualisation
+#   3. Seed the device portfolio with realistic starting points
+#
+# Derivation notes are inline.
+# ============================================================
+
+technologies:
+
+  # ────────────────────────────────────────────────────────────
+  # Si LDMOS  (Laterally Diffused Metal-Oxide Semiconductor)
+  # Ref: NXP/Ampleon/Wolfspeed LDMOS process data; Cripps Ch.2
+  # ────────────────────────────────────────────────────────────
+  LDMOS:
+    label: "Si LDMOS"
+    color: "#4472C4"       # display colour for plots
+    freq_range_ghz:
+      min: 0.1
+      max: 4.0             # practical gain rolls off badly above 4 GHz
+      sweet_spot_min: 0.7
+      sweet_spot_max: 3.8
+    vdd:
+      typical: 28          # V — standard macro-BTS rail
+      max_abs: 65          # V — Vbr/2 at most; typical Vbr ~70-80 V
+      min: 12
+      note: "Vdd derating: Vdd < Vbr × 0.4 for reliability"
+    pout_density_w_per_mm:
+      min: 0.5
+      typical: 1.0
+      max: 1.5             # Limited by Si thermal conductivity ~150 W/m·K
+    pout_dbm:
+      min_practical: 20
+      max_practical: 53    # ~200 W single-transistor
+    gain_db:
+      # Available gain ≈ 20·log10(fT/f); fT ~ 35-40 GHz for modern LDMOS
+      ft_ghz_typical: 35
+      ft_ghz_max: 42
+      fmax_ghz_typical: 55
+      fmax_ghz_max: 70
+      gain_at_1ghz_typical: 20
+      gain_at_2ghz_typical: 14
+      gain_at_3_5ghz_typical: 10
+      rule_20db_below_ft_mhz: 3500   # freq where gain ~ 20 dB
+    pae_pct:
+      max_theoretical: 78.5         # Class-B theoretical limit
+      max_practical_p3db: 55        # Typical saturated PAE (Class-AB)
+      typical_p3db: 45
+      min_acceptable: 30
+      at_10db_backoff: 20           # PAE collapses at deep backoff without ET/Doherty
+      note: "With Doherty, PAE at ~6 dB BO can approach P3dB PAE"
+    p1db_to_psat_dbm:
+      typical_delta: 2.0            # Psat - P1dB typical
+      max_delta: 3.5
+    compression_char: "soft"        # soft/hard — LDMOS is relatively soft
+    breakdown_voltage_v:
+      bvdss_min: 55
+      bvdss_typical: 65
+      bvdss_max: 80
+    thermal:
+      max_tj_c: 150
+      theta_jc_c_per_w_typical: 1.5
+      thermal_conductivity_si: 150  # W/m·K
+    reliability_note: "Hot carrier degradation limits; keep Vdd < 28 V for 10-year MTTF > 1e6 h"
+
+
+  # ────────────────────────────────────────────────────────────
+  # GaN HEMT on SiC  (Gallium Nitride High Electron Mobility Transistor)
+  # Ref: Cree/Wolfspeed CGH, MACOM, Qorvo; Pengelly et al. 2012
+  # ────────────────────────────────────────────────────────────
+  GaN_SiC:
+    label: "GaN HEMT (SiC)"
+    color: "#70AD47"
+    freq_range_ghz:
+      min: 0.5
+      max: 40.0
+      sweet_spot_min: 1.0
+      sweet_spot_max: 18.0
+    vdd:
+      typical: 28          # V — standard for most RF GaN
+      high_power: 48       # V — becoming more common for base stations
+      max_abs: 84          # V — Vbr ~ 120-150 V; Vdd < Vbr × 0.6
+      min: 10
+      note: "GaN allows higher Vdd than Si; Vbr 120-200 V in 0.25 um process"
+    pout_density_w_per_mm:
+      min: 2.0
+      typical: 5.0         # W/mm at 2-8 GHz
+      max: 12.0            # achieved in research; 6-8 W/mm is production limit
+      note: "SiC substrate: thermal conductivity 490 W/m·K enables high power density"
+    pout_dbm:
+      min_practical: 20
+      max_practical: 56    # ~400 W in paralleled die
+    gain_db:
+      # fT ~ 50-100 GHz (0.25 um node)
+      ft_ghz_typical: 70
+      ft_ghz_max: 100
+      fmax_ghz_typical: 180
+      fmax_ghz_max: 300
+      gain_at_2ghz_typical: 22
+      gain_at_10ghz_typical: 16
+      gain_at_28ghz_typical: 10
+      gain_at_40ghz_typical: 7
+      rule_20db_below_ft_mhz: 7000
+    pae_pct:
+      max_theoretical: 78.5
+      max_practical_p3db: 72        # Best reported; typical production ~60-65%
+      typical_p3db: 60
+      min_acceptable: 40
+      at_6db_backoff: 35
+      at_10db_backoff: 25
+      note: "Near-theoretical PAE achievable with Class-F/F-1 operation in GaN"
+    p1db_to_psat_dbm:
+      typical_delta: 2.5
+      max_delta: 4.0
+    compression_char: "hard"        # GaN is sharper compression vs LDMOS
+    breakdown_voltage_v:
+      bvdss_min: 80
+      bvdss_typical: 130
+      bvdss_max: 200
+    thermal:
+      max_tj_c: 225                 # GaN can handle higher channel temp
+      max_channel_temp_c: 175       # practical reliability limit
+      theta_jc_c_per_w_typical: 2.5
+      thermal_conductivity_sic: 490 # W/m·K — key asset
+    reliability_note: "Trapping and dispersion effects in GaN; avoid Vgs below pinch-off under RF drive"
+
+
+  # ────────────────────────────────────────────────────────────
+  # GaN HEMT on Si  (cost-reduced GaN for commercial apps)
+  # Ref: RFMD, NXP GaN-on-Si process data; Choi et al. 2006
+  # ────────────────────────────────────────────────────────────
+  GaN_Si:
+    label: "GaN HEMT (Si)"
+    color: "#A9D18E"
+    freq_range_ghz:
+      min: 0.5
+      max: 10.0
+      sweet_spot_min: 0.7
+      sweet_spot_max: 6.0
+    vdd:
+      typical: 20
+      max_abs: 50
+      min: 5
+    pout_density_w_per_mm:
+      min: 1.5
+      typical: 3.5
+      max: 6.0             # Si substrate limits heat dissipation; ~150 W/m·K
+    pout_dbm:
+      min_practical: 18
+      max_practical: 50
+    gain_db:
+      ft_ghz_typical: 60
+      ft_ghz_max: 80
+      fmax_ghz_typical: 130
+      fmax_ghz_max: 200
+      gain_at_2ghz_typical: 20
+      gain_at_6ghz_typical: 14
+      rule_20db_below_ft_mhz: 6000
+    pae_pct:
+      max_practical_p3db: 60
+      typical_p3db: 50
+      min_acceptable: 35
+      at_6db_backoff: 28
+    p1db_to_psat_dbm:
+      typical_delta: 2.5
+      max_delta: 4.0
+    compression_char: "hard"
+    breakdown_voltage_v:
+      bvdss_min: 40
+      bvdss_typical: 60
+      bvdss_max: 80
+    thermal:
+      max_tj_c: 175
+      max_channel_temp_c: 150
+      theta_jc_c_per_w_typical: 5.0  # Si substrate runs hotter; key weakness
+    reliability_note: "Buffer layer quality and thermal management critical; wafer bow issues at large die"
+
+
+  # ────────────────────────────────────────────────────────────
+  # GaAs pHEMT  (Pseudomorphic High Electron Mobility Transistor)
+  # Ref: TriQuint/Qorvo, WIN Semi; Golio 'Microwave MESFETs & HEMTs'
+  # ────────────────────────────────────────────────────────────
+  GaAs_pHEMT:
+    label: "GaAs pHEMT"
+    color: "#FF0000"
+    freq_range_ghz:
+      min: 1.0
+      max: 50.0
+      sweet_spot_min: 4.0
+      sweet_spot_max: 20.0
+    vdd:
+      typical: 5           # low Vdd — GaAs Vbr ~20-30 V
+      max_abs: 12
+      min: 3
+    pout_density_w_per_mm:
+      min: 0.3
+      typical: 0.6         # W/mm — much lower than GaN
+      max: 1.5
+    pout_dbm:
+      min_practical: 15
+      max_practical: 40    # ~10 W single-die at 10 GHz
+    gain_db:
+      ft_ghz_typical: 80
+      ft_ghz_max: 150
+      fmax_ghz_typical: 250
+      fmax_ghz_max: 400
+      gain_at_10ghz_typical: 18
+      gain_at_28ghz_typical: 12
+      gain_at_40ghz_typical: 8
+      rule_20db_below_ft_mhz: 8000
+    pae_pct:
+      max_practical_p3db: 55
+      typical_p3db: 40
+      min_acceptable: 25
+      at_6db_backoff: 20
+    p1db_to_psat_dbm:
+      typical_delta: 3.0
+      max_delta: 5.0
+    compression_char: "soft"
+    breakdown_voltage_v:
+      bvdss_min: 15
+      bvdss_typical: 22
+      bvdss_max: 30
+    thermal:
+      max_tj_c: 150
+      theta_jc_c_per_w_typical: 5.0  # GaAs thermal conductivity ~46 W/m·K — poor
+    reliability_note: "Low Vdd limits power; GaAs thermal conductivity 46 W/m·K is major constraint above 10 GHz"
+
+
+  # ────────────────────────────────────────────────────────────
+  # SiGe HBT  (Silicon-Germanium Heterojunction Bipolar Transistor)
+  # Ref: IBM/IHP/Infineon SiGe BiCMOS; Schröter & Chakravorty
+  # ────────────────────────────────────────────────────────────
+  SiGe_HBT:
+    label: "SiGe HBT"
+    color: "#FFC000"
+    freq_range_ghz:
+      min: 5.0
+      max: 100.0
+      sweet_spot_min: 20.0
+      sweet_spot_max: 60.0
+    vdd:
+      typical: 1.8         # V — BiCMOS Vcc
+      max_abs: 4.0
+      min: 1.0
+      note: "Very low Vcc limits Pout per device; typically used for driver stages at mmWave"
+    pout_density_w_per_mm:
+      min: 0.05
+      typical: 0.15
+      max: 0.3             # Very low; balanced with integration density
+    pout_dbm:
+      min_practical: 10
+      max_practical: 28    # mmWave driver; hard to reach >30 dBm at 60 GHz+
+    gain_db:
+      ft_ghz_typical: 300
+      ft_ghz_max: 500
+      fmax_ghz_typical: 400
+      fmax_ghz_max: 600
+      gain_at_28ghz_typical: 20
+      gain_at_60ghz_typical: 15
+      gain_at_100ghz_typical: 10
+      rule_20db_below_ft_mhz: 30000
+    pae_pct:
+      max_practical_p3db: 40        # Bipolar class-AB; lower than FET due to base current
+      typical_p3db: 25
+      min_acceptable: 15
+      at_6db_backoff: 12
+    p1db_to_psat_dbm:
+      typical_delta: 1.5
+      max_delta: 2.5
+    compression_char: "very_hard"   # Bipolar compression is very abrupt
+    breakdown_voltage_v:
+      bvceo_min: 1.5
+      bvceo_typical: 2.0
+      bvcbo_min: 4.0
+      bvcbo_typical: 5.5
+    thermal:
+      max_tj_c: 125                 # BiCMOS compatibility limits
+      theta_jc_c_per_w_typical: 30  # High thermal resistance per unit; requires parallel
+    reliability_note: "BVCEO is critical; RF overdrive can cause avalanche breakdown. Keep Vce < BVCEO × 0.7"
+
+
+  # ────────────────────────────────────────────────────────────
+  # InP HEMT  (Indium Phosphide — for sub-THz / research use)
+  # Ref: HRL, Teledyne; Bolognesi & Rodwell review
+  # ────────────────────────────────────────────────────────────
+  InP_HEMT:
+    label: "InP HEMT"
+    color: "#7030A0"
+    freq_range_ghz:
+      min: 30.0
+      max: 300.0
+      sweet_spot_min: 60.0
+      sweet_spot_max: 200.0
+    vdd:
+      typical: 1.5
+      max_abs: 3.0
+      min: 0.8
+    pout_density_w_per_mm:
+      min: 0.1
+      typical: 0.4
+      max: 1.0
+    pout_dbm:
+      min_practical: 5
+      max_practical: 22    # Low power; InP is about gain and NF, not power
+    gain_db:
+      ft_ghz_typical: 500
+      ft_ghz_max: 700
+      fmax_ghz_typical: 800
+      fmax_ghz_max: 1200
+      gain_at_60ghz_typical: 22
+      gain_at_100ghz_typical: 18
+      gain_at_200ghz_typical: 12
+      rule_20db_below_ft_mhz: 50000
+    pae_pct:
+      max_practical_p3db: 35
+      typical_p3db: 20
+      min_acceptable: 10
+      at_6db_backoff: 8
+    p1db_to_psat_dbm:
+      typical_delta: 2.0
+      max_delta: 3.5
+    compression_char: "hard"
+    breakdown_voltage_v:
+      bvdss_min: 3
+      bvdss_typical: 5
+      bvdss_max: 10
+    thermal:
+      max_tj_c: 150
+      theta_jc_c_per_w_typical: 10.0
+    reliability_note: "Fragile; handle with care. InP substrate brittle. Primary application is LNA/mmWave small-signal, not PA"
+
+
+# ============================================================
+# GUARDRAIL VALIDATION RULES
+# Applied during lineup sanity checks.
+# Each rule references technology parameters above.
+# ============================================================
+
+validation_rules:
+
+  gain_vs_freq:
+    description: "Gain must be achievable at operating frequency"
+    formula: "G_max = 20 * log10(fT / f_op)"
+    margin_db: 3           # Allow 3 dB above formula (for Class-F tricks etc.)
+    error_margin_db: 6     # Hard error if exceeded by this much
+
+  pae_sanity:
+    description: "PAE cannot exceed Class-B theoretical limit"
+    class_b_limit_pct: 78.5
+    class_a_limit_pct: 50
+    warning_threshold_pct: 70    # Warn if > 70% claimed for any class
+    error_threshold_pct: 80      # Hard error above 80%
+
+  vdd_derating:
+    description: "Operating Vdd must be derated below Vbr"
+    derating_factor: 0.60        # Vdd_max = Vbr × 0.60
+    reliability_factor: 0.40     # For 10+ year MTTF, use 0.40
+
+  pout_density:
+    description: "Pout per mm gate periphery must be within process limits"
+    warning_margin_pct: 10       # Warn if within 10% of max
+    error_margin_pct: 0          # Error at or above max
+
+  compression:
+    description: "Stage must not operate in compression by default"
+    max_allowed_compression_db: 3.0
+
+  thermal:
+    description: "Junction temperature must stay below process limit"
+    ambient_temp_c: 25
+    warning_margin_c: 20         # Warn if Tj > (Tj_max - 20)

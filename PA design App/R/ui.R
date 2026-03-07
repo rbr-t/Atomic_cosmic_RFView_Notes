@@ -815,7 +815,231 @@ ui <- dashboardPage(
             ),
             
             # ======================================
-            # Tab 4: PA Lineup Calculator (Enhanced Interactive)
+            # Tab 4: Performance Guardrails
+            # ======================================
+            tabPanel(
+              title = tagList(icon("shield-alt"), "Performance Guardrails"),
+              value = "perf_guardrails",
+
+              fluidRow(
+                # ── Left column: Technology selector & Sanity Check ──
+                column(3,
+                  box(
+                    title = tagList(icon("microchip"), "Technology"),
+                    width = 12, status = "primary", solidHeader = TRUE,
+                    selectInput("grd_tech_select", "Select Technology",
+                      choices = c(
+                        "GaN HEMT (SiC)"  = "GaN_SiC",
+                        "GaN HEMT (Si)"   = "GaN_Si",
+                        "Si LDMOS"        = "LDMOS",
+                        "GaAs pHEMT"      = "GaAs_pHEMT",
+                        "SiGe HBT"        = "SiGe_HBT",
+                        "InP HEMT"        = "InP_HEMT"
+                      ),
+                      selected = "GaN_SiC"
+                    ),
+                    hr(),
+                    h5(icon("sliders-h"), " Filter Design Space"),
+                    checkboxGroupInput("grd_tech_overlay",
+                      "Show technologies:",
+                      choices = c(
+                        "GaN HEMT (SiC)"  = "GaN_SiC",
+                        "GaN HEMT (Si)"   = "GaN_Si",
+                        "Si LDMOS"        = "LDMOS",
+                        "GaAs pHEMT"      = "GaAs_pHEMT",
+                        "SiGe HBT"        = "SiGe_HBT",
+                        "InP HEMT"        = "InP_HEMT"
+                      ),
+                      selected = c("GaN_SiC", "GaN_Si", "LDMOS", "GaAs_pHEMT")
+                    )
+                  ),
+
+                  box(
+                    title = tagList(icon("check-circle"), "Sanity Check"),
+                    width = 12, status = "warning", solidHeader = TRUE,
+                    p(style = "font-size:12px; color:#aaa;",
+                      "Enter your device parameters to validate against guardrails:"),
+                    numericInput("grd_chk_freq",  "Frequency (GHz)",  value = 3.5,  min = 0.1,  max = 300,  step = 0.1),
+                    numericInput("grd_chk_gain",  "Gain (dB)",        value = 15,   min = 1,    max = 35,   step = 0.5),
+                    numericInput("grd_chk_pae",   "PAE @ P3dB (%)",   value = 60,   min = 1,    max = 85,   step = 1),
+                    numericInput("grd_chk_pout",  "Pout (dBm)",       value = 43,   min = 0,    max = 60,   step = 0.5),
+                    numericInput("grd_chk_vdd",   "Vdd (V)",          value = 28,   min = 1,    max = 100,  step = 1),
+                    numericInput("grd_chk_pdensity", "Pout density (W/mm)\n(0 = skip)",
+                                 value = 0, min = 0, max = 20, step = 0.1),
+                    actionButton("grd_run_check", "Validate",
+                      class = "btn-warning btn-block", icon = icon("flask")),
+                    br(),
+                    uiOutput("grd_validation_result")
+                  )
+                ),
+
+                # ── Right column: Plots ──
+                column(9,
+                  tabsetPanel(
+                    id = "grd_plot_tabs",
+
+                    # ── Plot 1: Technology Design Space (4D bubble) ──
+                    tabPanel(
+                      title = tagList(icon("rocket"), "Design Space"),
+                      value = "grd_design_space",
+                      br(),
+                      div(
+                        style = "background:#1e2d1e; border-left:4px solid #70AD47; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
+                        p(style = "margin:0; font-size:13px; color:#ccc;",
+                          icon("info-circle"), " ",
+                          strong(style="color:#fff;", "How to read this chart:"),
+                          " Each bubble = one technology. X = frequency, Y = Pout density (W/mm). ",
+                          "Bubble SIZE = typical PAE at P3dB. Bubble COLOR = technology. ",
+                          "The shaded band = sweet-spot operating range. ",
+                          strong("Your device"), " appears as a ★ marker showing where it falls."
+                        )
+                      ),
+                      fluidRow(
+                        column(6,
+                          radioButtons("grd_yaxis_mode", "Y-axis:",
+                            choices = c("Pout density (W/mm)" = "density", "Pout (dBm)" = "pout_dbm"),
+                            selected = "density", inline = TRUE)
+                        ),
+                        column(6,
+                          radioButtons("grd_bubble_size", "Bubble size encodes:",
+                            choices = c("PAE (%)" = "pae", "Gain (dB)" = "gain"),
+                            selected = "pae", inline = TRUE)
+                        )
+                      ),
+                      plotlyOutput("grd_design_space_plot", height = "480px")
+                    ),
+
+                    # ── Plot 2: Gain vs Frequency ──
+                    tabPanel(
+                      title = tagList(icon("chart-line"), "Gain vs Frequency"),
+                      value = "grd_gain_bw",
+                      br(),
+                      div(
+                        style = "background:#1e2428; border-left:4px solid #4472C4; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
+                        p(style = "margin:0; font-size:13px; color:#ccc;",
+                          icon("info-circle"), " ",
+                          strong(style="color:#fff;", "Gain envelope from fT:"),
+                          " Solid line = typical gain (20·log₁₀(fT/f) blended with fmax model). ",
+                          "Shaded upper region = best-case (max fT process). ",
+                          "Your ★ marker shows where your design point lands."
+                        )
+                      ),
+                      checkboxInput("grd_gain_show_ft_rule",
+                        "Show pure 20 dB/decade fT/f reference line", value = TRUE),
+                      plotlyOutput("grd_gain_bw_plot", height = "480px")
+                    ),
+
+                    # ── Plot 3: PAE vs Backoff ──
+                    tabPanel(
+                      title = tagList(icon("battery-half"), "PAE vs Backoff"),
+                      value = "grd_pae_bo",
+                      br(),
+                      div(
+                        style = "background:#2a1e1e; border-left:4px solid #FFC000; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
+                        p(style = "margin:0; font-size:13px; color:#ccc;",
+                          icon("info-circle"), " ",
+                          strong(style="color:#fff;", "PAE backoff behaviour by PA class:"),
+                          " Shows how PAE degrades as you back off from P3dB. ",
+                          "Class A collapses fastest; Doherty stays flat over the BO window. ",
+                          "Your ★ marks your operating point (P3dB vs Pavg)."
+                        )
+                      ),
+                      fluidRow(
+                        column(4,
+                          checkboxGroupInput("grd_pae_classes",
+                            "PA classes to show:",
+                            choices = c("Class A" = "A", "Class AB" = "AB",
+                                        "Class B" = "B", "Doherty" = "Doherty",
+                                        "Class F" = "F"),
+                            selected = c("AB", "Doherty", "B")
+                          )
+                        ),
+                        column(4,
+                          numericInput("grd_pae_pavg_bo", "Your operating backoff (dB)",
+                            value = 8, min = 0, max = 20, step = 0.5),
+                          p(style="font-size:11px;color:#aaa;", "= PAR / system BO from P3dB")
+                        )
+                      ),
+                      plotlyOutput("grd_pae_bo_plot", height = "480px")
+                    ),
+
+                    # ── Tab 4: Guardrail Reference Table ──
+                    tabPanel(
+                      title = tagList(icon("table"), "Reference Table"),
+                      value = "grd_ref_table",
+                      br(),
+                      div(
+                        style = "background:#1e1e2a; border-left:4px solid #7030A0; padding:10px 15px; margin-bottom:12px; border-radius:3px;",
+                        p(style = "margin:0; font-size:13px; color:#ccc;",
+                          icon("info-circle"), " ",
+                          "Physics-grounded limits per technology. ",
+                          "All values derived from process data and first-principles models. ",
+                          "Use these as starting points for component portfolio entries."
+                        )
+                      ),
+                      DTOutput("grd_ref_table_dt"),
+                      br(),
+                      box(
+                        title = tagList(icon("book"), "Key Design Rules"),
+                        width = 12, status = "default", collapsible = TRUE, collapsed = FALSE,
+                        HTML("
+                          <table class='table table-sm table-bordered' style='font-size:13px;'>
+                            <thead><tr>
+                              <th>Rule</th><th>Formula / Limit</th><th>Derivation</th>
+                            </tr></thead>
+                            <tbody>
+                              <tr>
+                                <td><strong>Gain limit</strong></td>
+                                <td>G<sub>av</sub> ≈ 20·log<sub>10</sub>(f<sub>T</sub>/f<sub>op</sub>)</td>
+                                <td>Current gain h<sub>21</sub> rolls at 20 dB/decade from f<sub>T</sub></td>
+                              </tr>
+                              <tr>
+                                <td><strong>Technology selection</strong></td>
+                                <td>Choose tech where f<sub>T</sub> &gt; 5·f<sub>op</sub></td>
+                                <td>Ensures ≥14 dB available gain and stability margin</td>
+                              </tr>
+                              <tr>
+                                <td><strong>Max PAE (Class B)</strong></td>
+                                <td>PAE<sub>max</sub> = π/4 ≈ 78.5%</td>
+                                <td>Ideal Class-B, no knee voltage, no parasitics</td>
+                              </tr>
+                              <tr>
+                                <td><strong>Max PAE (Class A)</strong></td>
+                                <td>PAE<sub>max</sub> = 50%</td>
+                                <td>Constant DC bias regardless of output swing</td>
+                              </tr>
+                              <tr>
+                                <td><strong>PAE at backoff (Class AB)</strong></td>
+                                <td>PAE(BO) ≈ PAE<sub>P3dB</sub> · (P<sub>out</sub>/P<sub>3dB</sub>)<sup>0.6</sup></td>
+                                <td>Intermediate between Class A (exp=1) and B (exp=0.5)</td>
+                              </tr>
+                              <tr>
+                                <td><strong>Vdd reliability</strong></td>
+                                <td>V<sub>dd</sub> &lt; V<sub>br</sub> × 0.4</td>
+                                <td>Hot-carrier + electromigration lifetime &gt;10<sup>6</sup> h</td>
+                              </tr>
+                              <tr>
+                                <td><strong>Pout density</strong></td>
+                                <td>P<sub>den</sub> = V<sub>dd</sub>² / (8·R<sub>opt</sub>·f<sub>gate</sub>)</td>
+                                <td>Limited by V<sub>br</sub> swing, I<sub>max</sub>, and thermal conductivity</td>
+                              </tr>
+                              <tr>
+                                <td><strong>Thermal limit</strong></td>
+                                <td>T<sub>j</sub> = T<sub>a</sub> + P<sub>diss</sub>·θ<sub>JC</sub></td>
+                                <td>P<sub>diss</sub> = P<sub>DC</sub> − P<sub>out</sub>; keep T<sub>j</sub> &lt; T<sub>j,max</sub> − 20°C</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        ")
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+
+            # ======================================
+            # Tab 5: PA Lineup Calculator (Enhanced Interactive)
             # ======================================
             tabPanel(
               title = tagList(icon("project-diagram"), "PA Lineup"),

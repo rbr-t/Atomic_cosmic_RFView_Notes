@@ -22,6 +22,7 @@ source("modules/calculations/calc_loss_curves.R")
 source("modules/calculations/calc_link_budget.R")
 source("modules/calculations/calc_pa_lineup.R")
 source("modules/calculations/calc_rf_tools.R")
+source("modules/calculations/calc_guardrails.R")
 
 # ── UI definition ─────────────────────────────────────────────
 source("ui.R")
