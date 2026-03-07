@@ -927,3 +927,65 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
   pointer-events: none;
   z-index: 1000;
 }
+
+
+/* ================================================================
+   17.  CROSS-THEME INLINE COLOUR SAFETY NET
+   CSS attribute selectors target hardcoded inline style= values so
+   all colours adapt to the active theme.
+   CSS !important in an author stylesheet beats inline styles.
+   ================================================================ */
+
+/* ── Semantic card backgrounds → CSS-variable-aware surfaces ──── */
+/* Bootstrap-style light card backgrounds (e.g. from HTML() blocks) */
+*[style*="background-color: #f8f9fa"],
+*[style*="background-color:#f8f9fa"],
+*[style*="background: #f8f9fa"]              { background-color: var(--s-raised)  !important; }
+
+*[style*="background-color: #fffbf5"],
+*[style*="background-color:#fffbf5"]          { background-color: var(--s-raised)  !important; }
+
+*[style*="background-color: #d4edda"],
+*[style*="background-color:#d4edda"]          { background-color: var(--c-ok-bg)   !important; }
+
+*[style*="background-color: #fff3cd"],
+*[style*="background-color:#fff3cd"]          { background-color: var(--c-warn-bg) !important; }
+
+*[style*="background-color: #f8d7da"],
+*[style*="background-color:#f8d7da"]          { background-color: var(--c-err-bg)  !important; }
+
+*[style*="background-color: #e7f3ff"],
+*[style*="background-color:#e7f3ff"],
+*[style*="background-color: #d1ecf1"],
+*[style*="background-color:#d1ecf1"]          { background-color: var(--c-info-bg) !important; }
+
+/* ── All themes: medium-grey inline text → readable in both themes ── */
+/* Appears in HTML() blocks and R renderUI alongside light inner-div bgs */
+*[style*="color: #666"], *[style*="color:#666"],
+*[style*="color: #777"], *[style*="color:#777"],
+*[style*="color: #888"], *[style*="color:#888"],
+*[style*="color: #999"], *[style*="color:#999"] { color: var(--tx-med) !important; }
+
+/* ── Light theme: white / near-white inline text → dark readable ── */
+/* These colours are invisible on the white card backgrounds of light mode */
+body.theme-light *[style*="color: #fff"],
+body.theme-light *[style*="color:#fff"],
+body.theme-light *[style*="color: white"],
+body.theme-light *[style*="color:#eee"],  body.theme-light *[style*="color: #eee"],
+body.theme-light *[style*="color:#ddd"],  body.theme-light *[style*="color: #ddd"],
+body.theme-light *[style*="color:#ccc"],  body.theme-light *[style*="color: #ccc"],
+body.theme-light *[style*="color:#bbb"],  body.theme-light *[style*="color: #bbb"],
+body.theme-light *[style*="color:#aaa"],  body.theme-light *[style*="color: #aaa"],
+body.theme-light *[style*="color:#7fff7f"],
+body.theme-light *[style*="color: #7fff7f"],
+body.theme-light *[style*="color:#ecedf8"],
+body.theme-light *[style*="color:#9a9bac"],
+body.theme-light *[style*="color:#b8b9cc"]   { color: var(--tx-hi) !important; }
+
+/* Restore explicit CSS-variable status text (set via R renderUI sprintf) */
+body.theme-light *[style*="color:var(--c-ok)"],
+body.theme-light *[style*="color: var(--c-ok)"]   { color: var(--c-ok)   !important; }
+body.theme-light *[style*="color:var(--c-warn)"],
+body.theme-light *[style*="color: var(--c-warn)"]  { color: var(--c-warn) !important; }
+body.theme-light *[style*="color:var(--c-err)"],
+body.theme-light *[style*="color: var(--c-err)"]   { color: var(--c-err)  !important; }

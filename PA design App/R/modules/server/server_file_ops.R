@@ -215,7 +215,7 @@ serverFileOps <- function(input, output, session, state) {
     
     if(length(templates) == 0) {
       return(tags$p(
-        style = "text-align: center; color: #999; font-size: 11px; padding: 10px;",
+        style = "text-align: center; color: var(--tx-lo); font-size: 11px; padding: 10px;",
         "No saved templates"
       ))
     }
@@ -226,14 +226,14 @@ serverFileOps <- function(input, output, session, state) {
       filename <- sub("^user_", "", template_id)
       
       tags$div(
-        style = "margin-bottom: 8px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px;",
+        style = "margin-bottom: 8px; padding: 8px; background: var(--s-raised); border-radius: 4px;",
         tags$div(
           style = "display: flex; justify-content: space-between; align-items: center;",
           tags$div(
             style = "flex: 1;",
-            tags$strong(style = "color: #fff; font-size: 11px;", template_name),
+            tags$strong(style = "color: var(--tx-hi); font-size: 11px;", template_name),
             tags$br(),
-            tags$small(style = "color: #999;", sprintf("%d components", tmpl$components_count))
+            tags$small(style = "color: var(--tx-med);", sprintf("%d components", tmpl$components_count))
           ),
           tags$div(
             style = "display: flex; gap: 4px;",

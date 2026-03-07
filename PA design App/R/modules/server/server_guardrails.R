@@ -481,16 +481,16 @@ serverGuardrails <- function(input, output, session, state) {
         icon("question-circle")
       )
       bg_col <- switch(result$status,
-        "ok"      = "#1a3a1a",
-        "warning" = "#3a300a",
-        "error"   = "#3a0a0a",
-        "#1e1e2e"
+        "ok"      = "var(--c-ok-bg)",
+        "warning" = "var(--c-warn-bg)",
+        "error"   = "var(--c-err-bg)",
+        "var(--s-raised)"
       )
       brd_col <- switch(result$status,
-        "ok"      = "#27ae60",
-        "warning" = "#f39c12",
-        "error"   = "#e74c3c",
-        "#555"
+        "ok"      = "var(--c-ok)",
+        "warning" = "var(--c-warn)",
+        "error"   = "var(--c-err)",
+        "var(--bdr-norm)"
       )
       status_lbl <- switch(result$status,
         "ok"      = "PASS — Within Guardrails",
@@ -506,11 +506,11 @@ serverGuardrails <- function(input, output, session, state) {
           div(style = paste0("color:", brd_col, "; font-weight:bold; font-size:13px; margin-bottom:6px;"),
             icon_sym, " ", status_lbl
           ),
-          div(style = "font-size:12px; color:#bbb;",
+          div(style = "font-size:12px; color:var(--tx-med);",
             sprintf("Max gain available at %.1f GHz (%s): %.1f dB",
                     result$freq_ghz, result$tech, result$max_gain_available)
           ),
-          div(style = "font-size:12px; color:#bbb; margin-top:3px;",
+          div(style = "font-size:12px; color:var(--tx-med); margin-top:3px;",
             sprintf("Best-practice PAE limit (%s): %.1f%%",
                     result$tech, result$pae_max_practical)
           ),
@@ -603,13 +603,12 @@ serverGuardrails <- function(input, output, session, state) {
     sc <- status_colors[[device$validation_status]] %||% "#888"
 
     output$grd_save_result <- renderUI({
-      div(style = paste0("background:#1a3a1a; border-left:4px solid #27ae60;",
-                         " padding:8px 10px; border-radius:3px; margin-top:8px;"),
-          div(style = "color:#7fff7f; font-size:13px; font-weight:bold;",
+      div(style = "background:var(--c-ok-bg); border-left:4px solid var(--c-ok); padding:8px 10px; border-radius:3px; margin-top:8px;",
+          div(style = "color:var(--c-ok); font-size:13px; font-weight:bold;",
               icon("check-circle"), " Saved: ", device$label),
           div(style = paste0("color:", sc, "; font-size:12px; margin-top:3px;"),
               "Guardrails: ", toupper(device$validation_status)),
-          div(style = "color:#bbb; font-size:11px; margin-top:4px;",
+          div(style = "color:var(--tx-med); font-size:11px; margin-top:4px;",
               "Available in PA Lineup palette under 'Device Library'.")
       )
     })
