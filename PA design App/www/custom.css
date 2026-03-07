@@ -802,11 +802,12 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
   transform: rotate(180deg);
   transition: transform 0.3s;
 }
+/* Toggle tab — wider to fit "Templates & Devices" label */
 .top-sidebar-toggle {
   position: absolute;
   bottom: -40px; left: 50%;
   transform: translateX(-50%);
-  width: 120px; height: 40px;
+  width: 180px; height: 40px;
   background: var(--accent);
   border: none; border-radius: 0 0 8px 8px;
   color: #fff; font-size: 14px; cursor: pointer;

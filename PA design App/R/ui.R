@@ -1100,7 +1100,7 @@ ui <- dashboardPage(
                           class = "top-sidebar-toggle",
                           onclick = "toggleCanvasTopSidebar()",
                           icon("chevron-down"),
-                          " Templates"
+                          " Templates & Devices"
                         ),
                         
                         # Top sidebar content
