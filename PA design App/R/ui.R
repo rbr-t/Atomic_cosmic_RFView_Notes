@@ -212,7 +212,7 @@ $(document).ready(function() {
             solidHeader = TRUE,
             collapsible = TRUE,
             selectInput("calc_project_select", "Select Project", choices = NULL),
-            verbatimTextOutput("calc_project_specs")
+            textOutput("calc_project_specs")
           )
         ),
         fluidRow(

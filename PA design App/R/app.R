@@ -2018,17 +2018,19 @@ server <- function(input, output, session) {
   })
   
   # Theoretical Calc: Display Project Specs
-  output$calc_project_specs <- renderPrint({
+  output$calc_project_specs <- renderText({
     req(input$calc_project_select)
     
     project <- rv$projects[rv$projects$id == input$calc_project_select, ]
     
     if (nrow(project) > 0) {
-      cat("Project:", project$name, "\n")
-      cat("Architecture:", project$architecture_type, "\n")
-      cat("Frequency:", project$frequency, "GHz\n")
-      cat("Target Pout:", project$target_pout, "dBm\n")
-    }
+      paste0(
+        "Project: ", project$name, "\n",
+        "Architecture: ", project$architecture_type, "\n",
+        "Frequency: ", project$frequency, " GHz\n",
+        "Target Pout: ", project$target_pout, " dBm\n"
+      )
+    } else ""
   })
   
   # Theoretical Calc: Load-Pull Calculation

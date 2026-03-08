@@ -203,7 +203,10 @@ serverGuardrails <- function(input, output, session, state) {
   })
 
   # Click on Design Space → reposition ★ + sync input fields
-  observeEvent(event_data("plotly_click", source = "grd_ds"), {
+  observeEvent({
+    req(isTRUE(input$theoretical_calc_tabs == "perf_guardrails"))
+    event_data("plotly_click", source = "grd_ds")
+  }, {
     click <- event_data("plotly_click", source = "grd_ds")
     if (is.null(click)) return()
     f <- click$x;  y_v <- click$y
@@ -287,7 +290,10 @@ serverGuardrails <- function(input, output, session, state) {
       event_register("plotly_click")
   })
 
-  observeEvent(event_data("plotly_click", source = "grd_gn"), {
+  observeEvent({
+    req(isTRUE(input$theoretical_calc_tabs == "perf_guardrails"))
+    event_data("plotly_click", source = "grd_gn")
+  }, {
     click <- event_data("plotly_click", source = "grd_gn")
     if (is.null(click)) return()
     f <- click$x; g <- click$y
@@ -407,7 +413,10 @@ serverGuardrails <- function(input, output, session, state) {
   })
 
   # Click on PAE plot → update backoff + PAE inputs
-  observeEvent(event_data("plotly_click", source = "grd_pae"), {
+  observeEvent({
+    req(isTRUE(input$theoretical_calc_tabs == "perf_guardrails"))
+    event_data("plotly_click", source = "grd_pae")
+  }, {
     click <- event_data("plotly_click", source = "grd_pae")
     if (is.null(click)) return()
     bo_v <- click$x;  pae_v <- click$y
