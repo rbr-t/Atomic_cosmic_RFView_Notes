@@ -291,6 +291,8 @@ lineup_calculate_engine <- function(components,
         stage         = stage_name,  type          = "transistor",
         pin_dbm       = current_pin,  pout_dbm      = pout_dbm,
         gain_db       = gain,         pae_pct       = pae_full * 100,
+        gain_full_db  = pout_dbm - current_pin,
+        gain_bo_db    = pout_bo_dbm - current_pin_bo,
         pdc_w         = pdc_w,        pdiss_w       = pdiss_w,
         idc_a         = idc_a,        tj_c          = tj_c,
         compressed    = compressed,   technology    = safeProp(props, "technology", "GaN"),
@@ -328,6 +330,7 @@ lineup_calculate_engine <- function(components,
       stage_results[[length(stage_results) + 1]] <- list(
         stage = stage_name, type = "matching",
         pin_dbm = current_pin, pout_dbm = pout_dbm, loss_db = loss_db,
+        gain_full_db = -loss_db, gain_bo_db = -loss_db,
         pin_bo_dbm = current_pin_bo, pout_bo_dbm = pout_bo_dbm
       )
 
@@ -367,6 +370,8 @@ lineup_calculate_engine <- function(components,
         stage = stage_name, type = "splitter",
         pin_dbm = current_pin, pout_dbm = pout_dbm,
         loss_db = loss_db, split_loss_db = split_loss_db,
+        gain_full_db = -(split_loss_db + loss_db),
+        gain_bo_db   = -(split_loss_db + loss_db),
         n_outputs = n_outputs, split_ratio = split_ratio,
         pin_bo_dbm = current_pin_bo, pout_bo_dbm = pout_bo_dbm
       )
@@ -405,6 +410,8 @@ lineup_calculate_engine <- function(components,
         stage = stage_name, type = "combiner",
         pin_dbm = current_pin, pout_dbm = pout_dbm,
         loss_db = loss_db, n_inputs = n_inputs,
+        gain_full_db = pout_dbm    - current_pin,
+        gain_bo_db   = pout_bo_dbm - current_pin_bo,
         pin_bo_dbm = current_pin_bo, pout_bo_dbm = pout_bo_dbm
       )
 
@@ -449,8 +456,11 @@ lineup_calculate_engine <- function(components,
 
   final_pout_w    <- dbm2w(final_pout_dbm)
   final_pout_bo_w <- dbm2w(final_pout_bo_dbm)
-  system_pae      <- if (total_pdc    > 0) (final_pout_w    / total_pdc   ) * 100 else 0
-  system_pae_bo   <- if (total_pdc_bo > 0) (final_pout_bo_w / total_pdc_bo) * 100 else 0
+  input_power_w   <- dbm2w(input_power_dbm)
+  input_power_bo_w <- dbm2w(input_power_dbm - backoff_db)
+  # PAE = (Pout - Pin) / PDC * 100  (Power Added Efficiency, not Drain Efficiency)
+  system_pae    <- if (total_pdc    > 0) ((final_pout_w    - input_power_w   ) / total_pdc   ) * 100 else 0
+  system_pae_bo <- if (total_pdc_bo > 0) ((final_pout_bo_w - input_power_bo_w) / total_pdc_bo) * 100 else 0
 
   rationale <- c(rationale,
     "─── System Summary ───",

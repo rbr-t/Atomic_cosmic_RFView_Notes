@@ -6231,10 +6231,12 @@ function applySpecsToComponents(specs) {
   console.log('[Apply Specs] Power cascade at P3dB (Peak):', powerCascade_p3db);
   
   // Calculate power cascade at Pavg (backoff power)
-  // For Doherty: at backoff, only Main PA is active (Aux PA is off or very low power)
-  // Power split: assume Main PA handles most backoff power
+  // For Doherty: at backoff, ONLY Main PA is active (Aux is off).
+  // There is NO combining gain at backoff — Main PA must supply the full system Pavg
+  // alone, losing only the combiner insertion loss. Therefore do NOT subtract
+  // powerCombiningFactor here (that 3 dB only applies when both PAs are active).
   const pavg_pa_target = topology === 'doherty'
-    ? pavg_dbm - powerCombiningFactor + combinerLoss  // Per-PA power at backoff
+    ? pavg_dbm + combinerLoss  // Main PA only at backoff; no combining gain
     : pavg_dbm;
   let powerCascade_pavg = calculatePowerCascade(pavg_pa_target, gainDist.stages);
   console.log('[Apply Specs] Power cascade at Pavg (Backoff):', powerCascade_pavg);
@@ -6443,9 +6445,9 @@ function applySpecsToComponents(specs) {
       mainPA.properties.p1db = pa_p3db_target - 2.0;  // P1dB for compression check
       
       // ===== OPERATING POINT: Pavg (Backoff Power) =====
-      // At backoff, Main PA handles most power (Doherty principle)
-      // For balanced Doherty, Main PA produces ~pavg_dbm, Aux is minimal
-      const pa_pavg_target = pavg_dbm - powerCombiningFactor + combinerLoss;
+      // At backoff, Main PA handles ALL the power (Aux is off — Doherty principle).
+      // No combining gain at backoff, so Main PA pout = system_Pavg + combiner_loss.
+      const pa_pavg_target = pavg_dbm + combinerLoss;  // No -powerCombiningFactor at BO
       mainPA.properties.pout_pavg = pa_pavg_target;
       mainPA.properties.pin_pavg = pa_pavg_target - paStage_pavg.gain;
       mainPA.properties.pavg = pa_pavg_target;
@@ -6488,9 +6490,10 @@ function applySpecsToComponents(specs) {
       
       // ===== OPERATING POINT: Pavg (Backoff Power) =====
       // CRITICAL: At backoff, Aux PA is OFF or very low power (Doherty principle!)
-      // Aux PA turns on only as power increases beyond backoff point
-      // Recalculate pa_pavg_target here (was block-scoped in mainPA block)
-      const aux_pa_pavg_target = pavg_dbm - powerCombiningFactor + combinerLoss;
+      // Aux PA turns on only as power increases beyond backoff point.
+      // Reference target = Main PA Pavg target (same as pa_pavg_target above),
+      // then reduce by aux_backoff_reduction to model the near-off condition.
+      const aux_pa_pavg_target = pavg_dbm + combinerLoss;  // Same ref as Main PA Pavg target
       const aux_backoff_reduction = 10;  // dB reduction at backoff (Aux PA mostly off)
       auxPA.properties.pout_pavg = aux_pa_pavg_target - aux_backoff_reduction;  // Minimal output
       auxPA.properties.pin_pavg = auxPA.properties.pout_pavg - paStage_pavg.gain;
@@ -6615,8 +6618,8 @@ function applySpecsToComponents(specs) {
       mainPA.properties.p3db = pa_p3db_target;
       mainPA.properties.p1db = pa_p3db_target - 2.0;
       
-      // Pavg operating point
-      const pa_pavg_target = pavg_dbm - powerCombiningFactor + combinerLoss;
+      // Pavg operating point — only Main PA active at backoff, no combining gain
+      const pa_pavg_target = pavg_dbm + combinerLoss;  // No -powerCombiningFactor at BO
       mainPA.properties.pout_pavg = pa_pavg_target;
       mainPA.properties.pin_pavg = pa_pavg_target - paStage_pavg.gain;
       mainPA.properties.pavg = pa_pavg_target;

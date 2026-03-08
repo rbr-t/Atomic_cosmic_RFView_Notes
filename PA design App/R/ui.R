@@ -1818,6 +1818,12 @@ $(document).ready(function() {
                         numericInput("backoff_db", "Backoff (dB):", value = 6, min = 0, max = 20, step = 0.5, width = "100%")
                       )
                     ),
+                    actionButton("lineup_optimize",
+                      tagList(icon("magic"), " Optimize from Guardrails"),
+                      class = "btn-warning btn-block",
+                      style = "margin-bottom: 10px;",
+                      title = "Auto-select best technology, gain, PAE and Vdd for each transistor stage based on Performance Guardrails and current specifications"
+                    ),
                     # Multi-canvas comparison button (only show in multi-canvas mode)
                     conditionalPanel(
                       condition = "input.canvas_layout != '1x1'",
