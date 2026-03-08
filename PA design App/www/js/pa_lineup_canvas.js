@@ -301,87 +301,105 @@ class PALineupCanvas {
     }
   }
   
-  drawGuideLines() {
-    // Clear existing guide lines
-    this.centralLineLayer.selectAll('*').remove();
-    
-    // Use origin as center point
-    const centerY = this.originY;
-    const centerX = this.originX;
-    
-    // Grid spacing (in pixels) — matches 120px component spacing used in templates
-    const gridSpacing = 120;
+  // ── Shared helper: detect distinct rows / cols from component positions ──
+  _detectRows() {
+    const rows = [];
+    this.components.forEach(c => {
+      if (!rows.some(r => Math.abs(r - c.y) < 60)) rows.push(c.y);
+    });
+    return rows.sort((a, b) => a - b);
+  }
 
-    // Draw horizontal guide lines (rows)
-    if (this.showHorizontalLine) {
-      const numHorizontalLines = Math.ceil(this.height / gridSpacing);
-      
-      for (let i = 0; i <= numHorizontalLines; i++) {
-        const y = i * gridSpacing;
-        const isMainDivider = Math.abs(y - centerY) < gridSpacing / 2;
-        
-        this.centralLineLayer.append('line')
-          .attr('x1', 0)
-          .attr('y1', y)
-          .attr('x2', this.width)
-          .attr('y2', y)
-          .attr('stroke', isMainDivider ? '#00aaff' : '#444')
-          .attr('stroke-width', isMainDivider ? 2 : 1)
-          .attr('stroke-dasharray', isMainDivider ? '10,5' : '5,5')
-          .attr('opacity', isMainDivider ? 0.3 : 0.15);
-      }
-      
-      // Add main divider label
+  _detectCols() {
+    const cols = [];
+    this.components.forEach(c => {
+      if (!cols.some(cx => Math.abs(cx - c.x) < 60)) cols.push(c.x);
+    });
+    return cols.sort((a, b) => a - b);
+  }
+
+  drawGuideLines() {
+    this.centralLineLayer.selectAll('*').remove();
+    const W = this.width, H = this.height;
+    const HC = 60; // half cell (120 px grid)
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    const hLine = (y, mid) => {
+      this.centralLineLayer.append('line')
+        .attr('x1', 0).attr('y1', y).attr('x2', W).attr('y2', y)
+        .attr('stroke', mid ? '#00ddff' : '#00aaff')
+        .attr('stroke-width', mid ? 2.5 : 1)
+        .attr('stroke-dasharray', mid ? '12,4' : '6,4')
+        .attr('opacity', mid ? 0.45 : 0.22);
+    };
+    const vLine = (x) => {
+      this.centralLineLayer.append('line')
+        .attr('x1', x).attr('y1', 0).attr('x2', x).attr('y2', H)
+        .attr('stroke', '#00aaff')
+        .attr('stroke-width', 1)
+        .attr('stroke-dasharray', '6,4')
+        .attr('opacity', 0.22);
+    };
+
+    // ── No components: uniform reference grid ──────────────────────────────
+    if (this.components.length === 0) {
       if (this.showHorizontalLine) {
-        this.centralLineLayer.append('text')
-          .attr('x', this.width - 120)
-          .attr('y', centerY - 10)
-          .attr('fill', '#00aaff')
-          .attr('font-size', '12px')
-          .attr('opacity', 0.5)
-          .text('Main/Aux Divider');
+        for (let y = HC; y < H + HC; y += 2 * HC) {
+          hLine(y, Math.abs(y - H / 2) < 2);
+        }
       }
-    }
-    
-    // Draw vertical guide lines (columns)
-    if (this.showVerticalLine) {
-      const numVerticalLines = Math.ceil(this.width / gridSpacing);
-      
-      for (let i = 0; i <= numVerticalLines; i++) {
-        const x = i * gridSpacing;
-        const isOrigin = Math.abs(x - centerX) < gridSpacing / 2;
-        
-        this.centralLineLayer.append('line')
-          .attr('x1', x)
-          .attr('y1', 0)
-          .attr('x2', x)
-          .attr('y2', this.height)
-          .attr('stroke', isOrigin ? '#00aaff' : '#444')
-          .attr('stroke-width', isOrigin ? 2 : 1)
-          .attr('stroke-dasharray', isOrigin ? '10,5' : '5,5')
-          .attr('opacity', isOrigin ? 0.3 : 0.15);
-      }
-      
-      // Add origin label
       if (this.showVerticalLine) {
+        for (let x = HC; x < W + HC; x += 2 * HC) vLine(x);
+      }
+      return;
+    }
+
+    const rows = this._detectRows();
+    const cols = this._detectCols();
+
+    // ── Horizontal lines (N_rows + 1, plus explicit midline if needed) ─────
+    if (this.showHorizontalLine) {
+      // Compute all boundary Y values
+      const hYs = new Set();
+      hYs.add(rows[0] - HC);                              // top boundary
+      for (let i = 0; i < rows.length - 1; i++) {
+        hYs.add((rows[i] + rows[i + 1]) / 2);             // between rows
+      }
+      hYs.add(rows[rows.length - 1] + HC);                // bottom boundary
+
+      // Midline = midpoint between topmost and bottommost row
+      const midY = rows.length > 1
+        ? (rows[0] + rows[rows.length - 1]) / 2
+        : null;
+
+      // Add midline explicitly if it isn't already a boundary
+      if (midY !== null) hYs.add(midY);
+
+      [...hYs].sort((a, b) => a - b).forEach(y => {
+        hLine(y, midY !== null && Math.abs(y - midY) < 1);
+      });
+
+      // Label
+      if (midY !== null) {
         this.centralLineLayer.append('text')
-          .attr('x', centerX + 10)
-          .attr('y', 30)
-          .attr('fill', '#00aaff')
-          .attr('font-size', '12px')
-          .attr('opacity', 0.5)
-          .text('Origin');
+          .attr('x', W - 145).attr('y', midY - 8)
+          .attr('fill', '#00ddff').attr('font-size', '11px').attr('opacity', 0.6)
+          .text('── Main / Aux ──');
       }
     }
-   
-    // Add origin marker (circle at crosshair intersection)
-    if (this.showHorizontalLine && this.showVerticalLine) {
+
+    // ── Vertical lines (one per stage column at right boundary) ────────────
+    if (this.showVerticalLine) {
+      cols.forEach(cx => vLine(cx + HC)); // right edge of each stage
+    }
+
+    // Crosshair dot at midline × first-stage right boundary
+    if (this.showHorizontalLine && this.showVerticalLine
+        && rows.length > 1 && cols.length > 0) {
+      const midY = (rows[0] + rows[rows.length - 1]) / 2;
       this.centralLineLayer.append('circle')
-        .attr('cx', centerX)
-        .attr('cy', centerY)
-        .attr('r', 3)
-        .attr('fill', '#00aaff')
-        .attr('opacity', 0.5);
+        .attr('cx', cols[0] + HC).attr('cy', midY)
+        .attr('r', 4).attr('fill', '#00ddff').attr('opacity', 0.55);
     }
   }
   
@@ -4531,6 +4549,7 @@ class PALineupCanvas {
     
     if (this.showPowerDisplay) {
       this.drawPowerColumns();
+      if (this.showImpedanceDisplay) this.drawImpedanceColumns();
       console.log('Power display enabled');
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -4545,6 +4564,7 @@ class PALineupCanvas {
       if (this.powerLayer) {
         this.powerLayer.selectAll('*').remove();
       }
+      if (this.showImpedanceDisplay) this.drawImpedanceColumns();
       console.log('Power display disabled');
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -4568,6 +4588,7 @@ class PALineupCanvas {
     
     if (this.showImpedanceDisplay) {
       this.drawImpedanceColumns();
+      if (this.showPowerDisplay) this.drawPowerColumns();
       console.log('Impedance display enabled');
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -4582,6 +4603,7 @@ class PALineupCanvas {
       if (this.impedanceLayer) {
         this.impedanceLayer.selectAll('*').remove();
       }
+      if (this.showPowerDisplay) this.drawPowerColumns();
       console.log('Impedance display disabled');
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -4769,365 +4791,349 @@ class PALineupCanvas {
   
   drawImpedanceColumns() {
     if (!this.showImpedanceDisplay) return;
-    
-    // Clear existing impedance display
+
     this.impedanceLayer.selectAll('*').remove();
-    
     if (this.components.length === 0) return;
-    
-    // Get global backoff value (default 6 dB)
+
+    const W = this.width, H = this.height;
+    const HC = 60;
+    const PAD = 4;
     const backoffDb = window.getGlobalBackoff ? window.getGlobalBackoff() : 6;
-    
-    // Include all components that have impedance information
-    const componentsWithImpedance = this.components.filter(c => 
-      c.type === 'transistor' ||  c.type === 'matching' || 
-      c.type === 'splitter' || c.type === 'combiner' || c.type === 'termination'
+
+    // ── Component-aware rows & cols (same logic as drawGuideLines) ──────────
+    const rows = this._detectRows();
+    const cols = this._detectCols();
+    const midY = rows.length > 1 ? (rows[0] + rows[rows.length - 1]) / 2 : H / 2;
+
+    const rowZone = (targetRi) => {
+      if (targetRi < 0)            return { topY: 0, botY: rows[0] - HC };
+      if (targetRi >= rows.length) return { topY: rows[rows.length - 1] + HC, botY: H };
+      const topY = targetRi === 0
+        ? rows[0] - HC
+        : (rows[targetRi - 1] + rows[targetRi]) / 2;
+      const botY = targetRi === rows.length - 1
+        ? rows[rows.length - 1] + HC
+        : (rows[targetRi] + rows[targetRi + 1]) / 2;
+      return { topY, botY };
+    };
+
+    const occupied = new Set();
+    this.components.forEach(comp => {
+      const ri = rows.findIndex(r => Math.abs(r - comp.y) < 60);
+      const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
+      if (ri >= 0 && ci >= 0) occupied.add(`${ri},${ci}`);
+    });
+
+    const componentsWithImpedance = this.components.filter(c =>
+      c.type === 'transistor' || c.type === 'matching' ||
+      c.type === 'splitter'   || c.type === 'combiner' || c.type === 'termination'
     );
-    
+
     if (componentsWithImpedance.length === 0) return;
-    
-    componentsWithImpedance.forEach((comp, index) => {
-      const x = comp.x;
-      const y = comp.y;
-      
+
+    componentsWithImpedance.forEach((comp) => {
       let zFullPower, zBackoff, p1dbValue, backoffPower;
-      
-      // Calculate impedances based on component type
+
       if (comp.type === 'transistor') {
-        // Active device - impedance varies with power
-        p1dbValue = comp.properties.p1db || comp.properties.pout || 40;
+        p1dbValue    = comp.properties.p1db || comp.properties.pout || 40;
         backoffPower = p1dbValue - backoffDb;
-        zFullPower = this.calculateOptimalImpedance(comp, p1dbValue);
-        zBackoff = this.calculateOptimalImpedance(comp, backoffPower);
+        zFullPower   = this.calculateOptimalImpedance(comp, p1dbValue);
+        zBackoff     = this.calculateOptimalImpedance(comp, backoffPower);
+      } else if (comp.type === 'termination') {
+        zFullPower   = comp.properties.impedance || 50;
+        zBackoff     = zFullPower;
+        p1dbValue    = null;
+        backoffPower = null;
       } else {
-        // Passive device - fixed impedance values
-        // Show z_in and z_out (or just impedance for terminati ons)
-        if (comp.type === 'termination') {
-          zFullPower = comp.properties.impedance || 50;
-          zBackoff = zFullPower; // Same at all power levels
-        } else {
-          // For matching, splitters, combiners: show input/output impedance
-          zFullPower = comp.properties.z_in || comp.properties.impedance || 50;
-          zBackoff = comp.properties.z_out || zFullPower; // Output impedance at backoff
-        }
-        p1dbValue = null; // Passives don't have power rating to show
+        // matching / splitter / combiner
+        zFullPower   = comp.properties.z_in  || comp.properties.impedance || 50;
+        zBackoff     = comp.properties.z_out || zFullPower;
+        p1dbValue    = null;
         backoffPower = null;
       }
-      
-      // Create info box below component (now draggable)
+
+      // ── Target zone: main side → above component, aux side → below ────────
+      const ri = rows.findIndex(r => Math.abs(r - comp.y) < 60);
+      const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
+      const isMainSide = comp.y <= midY;
+      let targetRi;
+      if (isMainSide) {
+        const prefer = ri - 1;
+        if (prefer < 0 || !occupied.has(`${prefer},${ci}`)) {
+          targetRi = prefer;
+        } else {
+          const alt = ri + 1;
+          targetRi = (alt >= rows.length || !occupied.has(`${alt},${ci}`)) ? alt : prefer;
+        }
+      } else {
+        const prefer = ri + 1;
+        if (prefer >= rows.length || !occupied.has(`${prefer},${ci}`)) {
+          targetRi = prefer;
+        } else {
+          const alt = ri - 1;
+          targetRi = (alt < 0 || !occupied.has(`${alt},${ci}`)) ? alt : prefer;
+        }
+      }
+
+      // Zone — impedance takes bottom half when power display also active
+      const { topY: zTop, botY: zBot } = rowZone(targetRi);
+      const topY  = this.showPowerDisplay ? (zTop + zBot) / 2 : zTop;
+      const botY  = zBot;
+      const cellH = Math.max(30, botY - topY);
+
+      const BOX_W  = 2 * HC - 2 * PAD;  // 112 px — fills 120 px column
+      const lineH  = Math.max(9, Math.min(13, Math.floor(cellH / 8)));
+      const titleH = lineH + 2;
+      const nLines = 2 + (comp.type === 'transistor' ? 1 : 0);  // full/BO + ref
+      const contentH = titleH + lineH + nLines * lineH + PAD;
+      const BOX_H  = Math.min(cellH - 2 * PAD, Math.max(contentH, 40));
+
+      const boxX = comp.x - BOX_W / 2;
+      const boxY = topY + (cellH - BOX_H) / 2;
+
+      if (!comp.impedanceBoxOffset) comp.impedanceBoxOffset = { x: 0, y: 0 };
+
       const infoGroup = this.impedanceLayer.append('g')
-        .attr('transform', `translate(${x - 65}, ${y + 55})`)
-        .attr('class', 'impedance-info')
+        .attr('class', 'impedance-info-group')
         .attr('data-component-id', comp.id)
+        .attr('transform', `translate(${boxX + comp.impedanceBoxOffset.x}, ${boxY + comp.impedanceBoxOffset.y})`)
         .style('cursor', 'move')
-        .style('pointer-events', 'all'); // Ensure drag events are captured
-      
-      // Add drag behavior to impedance display
-      const impedanceDrag = d3.drag()
-        .on('start', function(event) {
-          event.sourceEvent.stopPropagation(); // Prevent canvas pan/zoom
-          d3.select(this).raise().style('opacity', 0.7);
-          console.log('Impedance box drag started');
+        .style('pointer-events', 'all');
+
+      const drag = d3.drag()
+        .on('start', (e) => { e.sourceEvent.stopPropagation(); infoGroup.raise().style('opacity', 0.7); })
+        .on('drag',  (e) => {
+          e.sourceEvent.stopPropagation();
+          comp.impedanceBoxOffset.x += e.dx;
+          comp.impedanceBoxOffset.y += e.dy;
+          infoGroup.attr('transform', `translate(${boxX + comp.impedanceBoxOffset.x}, ${boxY + comp.impedanceBoxOffset.y})`);
         })
-        .on('drag', function(event) {
-          event.sourceEvent.stopPropagation(); // Prevent canvas pan/zoom
-          const currentTransform = d3.select(this).attr('transform');
-          const match = currentTransform.match(/translate\\(([^,]+),([^)]+)\\)/);
-          if (match) {
-            const newX = parseFloat(match[1]) + event.dx;
-            const newY = parseFloat(match[2]) + event.dy;
-            d3.select(this).attr('transform', `translate(${newX}, ${newY})`);
-          }
-        })
-        .on('end', function(event) {
-          event.sourceEvent.stopPropagation(); // Prevent canvas pan/zoom
-          d3.select(this).style('opacity', 1);
-          console.log('Impedance box drag ended');
-        });
-      
-      infoGroup.call(impedanceDrag);
-      
-      // Background box
+        .on('end', () => { infoGroup.style('opacity', 1); this.saveHistory(); });
+      infoGroup.call(drag);
+
+      const titleText = comp.type === 'transistor' ? 'Z_opt' :
+                        comp.type === 'termination' ? 'Z_load' : 'Z_match';
+
+      // Background
       infoGroup.append('rect')
-        .attr('width', 130)
-        .attr('height', 75)
-        .attr('fill', '#2c3e50')
-        .attr('stroke', '#ff7f11')
-        .attr('stroke-width', 2)
-        .attr('rx', 5);
-      
-      // Title (adjust for component type)
-      const titleText = comp.type === 'transistor' ? 'Z_opt' : 
-                       comp.type === 'termination' ? 'Z_load' : 'Z_match';
+        .attr('x', 0).attr('y', 0)
+        .attr('width', BOX_W).attr('height', BOX_H)
+        .attr('fill', '#1a2838').attr('stroke', '#ff7f11')
+        .attr('stroke-width', 1).attr('rx', 3);
+
+      // Title
       infoGroup.append('text')
-        .attr('x', 65)
-        .attr('y', 18)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#fff')
-        .attr('font-size', '12px')
-        .attr('font-weight', 'bold')
+        .attr('x', BOX_W / 2).attr('y', titleH)
+        .attr('text-anchor', 'middle').attr('fill', '#fff')
+        .attr('font-size', `${titleH}px`).attr('font-weight', 'bold')
         .text(titleText);
-      
-      // First impedance line (Full power for transistor, Z_in for passive)
-      const firstLabel = comp.type === 'transistor' ? 'Full' : 
-                        comp.type === 'termination' ? 'Z' : 'Z_in';
-      infoGroup.append('text')
-        .attr('x', 65)
-        .attr('y', 38)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#00ff88')
-        .attr('font-size', '12px')
+
+      let yo = titleH + lineH;  // full line-height gap after title
+
+      const firstLabel = comp.type === 'transistor' ? 'Full' :
+                         comp.type === 'termination' ? 'Z' : 'Z_in';
+      infoGroup.append('text').attr('x', PAD).attr('y', yo)
+        .attr('fill', '#00ff88').attr('font-size', `${lineH}px`)
         .text(`${firstLabel}: ${zFullPower.toFixed(1)}Ω`);
-      
-      // Second impedance line (Backoff for transistor, Z_out for passive)
-      const secondLabel = comp.type === 'transistor' ? 'BO' : 
-                         comp.type === 'termination' ? '--' : 'Z_out';
-      const secondValue = comp.type === 'termination' ? '--' : `${zBackoff.toFixed(1)}Ω`;
-      infoGroup.append('text')
-        .attr('x', 65)
-        .attr('y', 55)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#ffaa00')
-        .attr('font-size', '12px')
+      yo += lineH;
+
+      const secondLabel = comp.type === 'transistor' ? 'BO' :
+                          comp.type === 'termination' ? '--' : 'Z_out';
+      const secondValue  = comp.type === 'termination' ? '--' : `${zBackoff.toFixed(1)}Ω`;
+      infoGroup.append('text').attr('x', PAD).attr('y', yo)
+        .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
         .text(`${secondLabel}: ${secondValue}`);
-      
-      // Power levels for reference (only for transistors)
+      yo += lineH;
+
       if (comp.type === 'transistor' && p1dbValue && backoffPower) {
-        infoGroup.append('text')
-          .attr('x', 65)
-          .attr('y', 70)
-          .attr('text-anchor', 'middle')
-          .attr('fill', '#aaa')
-          .attr('font-size', '10px')
+        infoGroup.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#aaa').attr('font-size', `${Math.max(8, lineH - 2)}px`)
           .text(`(${p1dbValue.toFixed(1)} / ${backoffPower.toFixed(1)} dBm)`);
       } else {
-        // For passives, show component type
-        infoGroup.append('text')
-          .attr('x', 65)
-          .attr('y', 70)
-          .attr('text-anchor', 'middle')
-          .attr('fill', '#aaa')
-          .attr('font-size', '10px')
+        infoGroup.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#aaa').attr('font-size', `${Math.max(8, lineH - 2)}px`)
           .text(`(${comp.properties.label || comp.type})`);
       }
     });
+
+    console.log('Impedance columns drawn for', componentsWithImpedance.length, 'components');
   }
   
   drawPowerColumns() {
     if (!this.showPowerDisplay) return;
-    
-    // Clear existing power display
+
     this.powerLayer.selectAll('*').remove();
-    
     if (this.components.length === 0) return;
-    
-    // Sort components by x position (signal flow left to right)
-    const sortedComponents = [...this.components].sort((a, b) => a.x - b.x);
 
-    // ── Horizontal row dividers ─────────────────────────────────────────────
-    // Collect distinct y-row groups (cluster within 60 px)
-    const distinctRows = [];
-    sortedComponents.forEach(comp => {
-      if (!distinctRows.some(ry => Math.abs(ry - comp.y) < 60)) {
-        distinctRows.push(comp.y);
-      }
+    const W = this.width, H = this.height;
+    const HC = 60;
+    const PAD = 4;
+
+    // ── Component-aware rows & cols ──────────────────────────────────────────
+    const rows = this._detectRows();   // sorted ascending Y
+    const cols = this._detectCols();   // sorted ascending X
+
+    const midY = rows.length > 1
+      ? (rows[0] + rows[rows.length - 1]) / 2
+      : (H / 2);
+
+    // ── Structural lines (match drawGuideLines exactly) ─────────────────────
+    const pLine = (x1, y1, x2, y2, mid) => {
+      this.powerLayer.append('line')
+        .attr('x1', x1).attr('y1', y1).attr('x2', x2).attr('y2', y2)
+        .attr('stroke', mid ? '#00ddff' : '#00aaff')
+        .attr('stroke-width', mid ? 2.5 : 1)
+        .attr('stroke-dasharray', mid ? '12,4' : '6,4')
+        .attr('opacity', mid ? 0.45 : 0.22);
+    };
+
+    // Horizontal boundaries + midline
+    const hYs = new Set();
+    hYs.add(rows[0] - HC);
+    for (let i = 0; i < rows.length - 1; i++) hYs.add((rows[i] + rows[i + 1]) / 2);
+    hYs.add(rows[rows.length - 1] + HC);
+    if (rows.length > 1) hYs.add(midY);
+
+    [...hYs].sort((a, b) => a - b).forEach(y => pLine(0, y, W, y, Math.abs(y - midY) < 1));
+
+    // Vertical right-edge of each col
+    cols.forEach(cx => pLine(cx + HC, 0, cx + HC, H, false));
+
+    // ── Per-component power info box (one per element) ────────────────────
+    // ── Helper: Y bounds for a row zone by index ────────────────────────────
+    // targetRi: -1 = above-top zone,  rows.length = below-bottom zone
+    const rowZone = (targetRi) => {
+      if (targetRi < 0)
+        return { topY: 0, botY: rows[0] - HC };
+      if (targetRi >= rows.length)
+        return { topY: rows[rows.length - 1] + HC, botY: H };
+      const topY = targetRi === 0
+        ? rows[0] - HC
+        : (rows[targetRi - 1] + rows[targetRi]) / 2;
+      const botY = targetRi === rows.length - 1
+        ? rows[rows.length - 1] + HC
+        : (rows[targetRi] + rows[targetRi + 1]) / 2;
+      return { topY, botY };
+    };
+
+    // ── Build occupied-cell set ──────────────────────────────────────────────
+    const occupied = new Set();
+    this.components.forEach(comp => {
+      const ri = rows.findIndex(r => Math.abs(r - comp.y) < 60);
+      const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
+      if (ri >= 0 && ci >= 0) occupied.add(`${ri},${ci}`);
     });
-    distinctRows.sort((a, b) => a - b);
 
-    // Draw horizontal divider between each pair of adjacent rows
-    for (let i = 0; i < distinctRows.length - 1; i++) {
-      const rowMid = (distinctRows[i] + distinctRows[i + 1]) / 2;
-      this.powerLayer.append('line')
-        .attr('x1', 0).attr('y1', rowMid)
-        .attr('x2', this.width).attr('y2', rowMid)
-        .attr('stroke', '#00aaff')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', '8,4')
-        .attr('opacity', 0.15);
-    }
+    // ── Per-component power info boxes ───────────────────────────────────────
+    const sorted = [...this.components].sort((a, b) => a.x - b.x);
+    let currentPower = 0;
 
-    // Right-edge vertical terminator after last component
-    const lastComp = sortedComponents[sortedComponents.length - 1];
-    if (lastComp) {
-      const cw = 150;
-      this.powerLayer.append('line')
-        .attr('x1', lastComp.x + cw / 2).attr('y1', 0)
-        .attr('x2', lastComp.x + cw / 2).attr('y2', this.height)
-        .attr('stroke', '#00aaff')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', '8,4')
-        .attr('opacity', 0.15);
-    }
-
-    // ── Per-component column lines & power info boxes ──────────────────────
-    // Calculate 20% padding from boundaries
-    const paddingTop = this.height * 0.2;
-    const paddingBottom = this.height * 0.8;
-    const centerY = this.height / 2;
-    
-    // Calculate power at each stage
-    let currentPower = 0; // Will be set from first component
-    
-    sortedComponents.forEach((comp, index) => {
-      const x = comp.x;
-      const columnWidth = 150;
-      
-      // Draw vertical divider line (transparent and dashed for better clarity)
-      this.powerLayer.append('line')
-        .attr('x1', x - columnWidth/2)
-        .attr('y1', 0)
-        .attr('x2', x - columnWidth/2)
-        .attr('y2', this.height)
-        .attr('stroke', '#00aaff')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', '8,4')
-        .attr('opacity', 0.15);
-      
-      // Calculate input and output power for this component
+    sorted.forEach((comp, index) => {
       const powerInfo = this.calculateComponentPower(comp, currentPower, index === 0);
+      currentPower = powerInfo.pout_dbm;
 
-      // Determine info-box Y so each row gets its own non-overlapping zone:
-      //   top third  → box floats just above the component
-      //   middle zone → box floats just above the component
-      //   bottom third → box floats just below the component
-      const boxHeight = powerInfo.power_bo_dbm ? 100 : 85;
-      let infoY;
-      if (comp.y > 2 * this.height / 3) {
-        // Bottom row: place info box below component
-        infoY = Math.min(this.height - boxHeight - 5, comp.y + 10);
+      const ri = rows.findIndex(r => Math.abs(r - comp.y) < 60);
+      const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
+
+      // Main PA side (≤ midY) → prefer empty cell ABOVE; Aux PA side → prefer BELOW
+      const isMainSide = comp.y <= midY;
+      let targetRi;
+      if (isMainSide) {
+        const prefer = ri - 1;   // < 0 → above-top zone (always empty)
+        if (prefer < 0 || !occupied.has(`${prefer},${ci}`)) {
+          targetRi = prefer;
+        } else {
+          const alt = ri + 1;
+          targetRi = (alt >= rows.length || !occupied.has(`${alt},${ci}`)) ? alt : prefer;
+        }
       } else {
-        // Top/middle rows: place info box above component
-        infoY = Math.max(5, comp.y - boxHeight - 10);
+        const prefer = ri + 1;   // ≥ rows.length → below-bottom zone (always empty)
+        if (prefer >= rows.length || !occupied.has(`${prefer},${ci}`)) {
+          targetRi = prefer;
+        } else {
+          const alt = ri - 1;
+          targetRi = (alt < 0 || !occupied.has(`${alt},${ci}`)) ? alt : prefer;
+        }
       }
-      
-      // Check if component has custom power box position
-      if (!comp.powerBoxOffset) {
-        comp.powerBoxOffset = { x: 0, y: 0 };
-      }
-      
-      // Draw power information box with drag behavior
+
+      // Cell bounds — power takes top half when impedance display also active
+      const { topY: zTop, botY: zBot } = rowZone(targetRi);
+      const topY = zTop;
+      const botY = this.showImpedanceDisplay ? (zTop + zBot) / 2 : zBot;
+      const cellH = Math.max(30, botY - topY);
+
+      // Box sized to fill the 120 px column cell
+      const BOX_W = 2 * HC - 2 * PAD;          // 112 px
+      const lineH  = Math.max(9, Math.min(13, Math.floor(cellH / 8)));
+      const titleH = lineH + 2;
+      const nLines = 2 + (powerInfo.p1db_dbm ? 1 : 0) + (powerInfo.power_bo_dbm ? 1 : 0);
+      const contentH = titleH + lineH + nLines * lineH + PAD;  // full line-gap after title
+      const BOX_H = Math.min(cellH - 2 * PAD, Math.max(contentH, 40));
+
+      // Centred in the target cell at the component's column
+      const boxX = comp.x - BOX_W / 2;
+      const boxY = topY + (cellH - BOX_H) / 2;
+
+      if (!comp.powerBoxOffset) comp.powerBoxOffset = { x: 0, y: 0 };
+
       const infoGroup = this.powerLayer.append('g')
         .attr('class', 'power-info-group')
         .attr('data-component-id', comp.id)
-        .attr('transform', `translate(${x - columnWidth/2 + 10 + comp.powerBoxOffset.x}, ${infoY + comp.powerBoxOffset.y})`)
+        .attr('transform', `translate(${boxX + comp.powerBoxOffset.x}, ${boxY + comp.powerBoxOffset.y})`)
         .style('cursor', 'move')
-        .style('pointer-events', 'all'); // Ensure drag events are captured
-      
-      // Add drag behavior to power info box
-      const powerBoxDrag = d3.drag()
-        .on('start', (event) => {
-          event.sourceEvent.stopPropagation(); // Prevent canvas pan/zoom
-          infoGroup.raise(); // Bring to front
-          infoGroup.style('opacity', 0.7);
-          console.log('Power box drag started');
+        .style('pointer-events', 'all');
+
+      const drag = d3.drag()
+        .on('start', (e) => { e.sourceEvent.stopPropagation(); infoGroup.raise().style('opacity', 0.7); })
+        .on('drag',  (e) => {
+          e.sourceEvent.stopPropagation();
+          comp.powerBoxOffset.x += e.dx;
+          comp.powerBoxOffset.y += e.dy;
+          infoGroup.attr('transform', `translate(${boxX + comp.powerBoxOffset.x}, ${boxY + comp.powerBoxOffset.y})`);
         })
-        .on('drag', (event) => {
-          event.sourceEvent.stopPropagation(); // Prevent canvas pan/zoom
-          comp.powerBoxOffset.x += event.dx;
-          comp.powerBoxOffset.y += event.dy;
-          infoGroup.attr('transform', `translate(${x - columnWidth/2 + 10 + comp.powerBoxOffset.x}, ${infoY + comp.powerBoxOffset.y})`);
-        })
-        .on('end', () => {
-          infoGroup.style('opacity', 1);
-          console.log('Power box drag ended');
-          this.saveHistory();
-        });
-      
-      infoGroup.call(powerBoxDrag);
-      
-      // Background box (height depends on content) — boxHeight already set above
+        .on('end', () => { infoGroup.style('opacity', 1); this.saveHistory(); });
+      infoGroup.call(drag);
+
+      // Background rect
       infoGroup.append('rect')
-        .attr('x', 0)
-        .attr('y', 0)
-        .attr('width', 130)
-        .attr('height', boxHeight)
-        .attr('fill', '#1a1a1a')
-        .attr('stroke', '#00aaff')
-        .attr('stroke-width', 1)
-        .attr('rx', 3);
-      
-      // Component label
+        .attr('x', 0).attr('y', 0)
+        .attr('width', BOX_W).attr('height', BOX_H)
+        .attr('fill', '#1a1a1a').attr('stroke', '#00aaff')
+        .attr('stroke-width', 1).attr('rx', 3);
+
+      // Title
       infoGroup.append('text')
-        .attr('x', 65)
-        .attr('y', 15)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#fff')
-        .attr('font-size', '11px')
-        .attr('font-weight', 'bold')
+        .attr('x', BOX_W / 2).attr('y', titleH)
+        .attr('text-anchor', 'middle').attr('fill', '#fff')
+        .attr('font-size', `${titleH}px`).attr('font-weight', 'bold')
         .text(comp.properties.label || comp.type);
-      
-      let yOffset = 32;
-      
-      // Input power
-      const pinText = this.formatPower(powerInfo.pin_dbm, this.powerUnit);
-      infoGroup.append('text')
-        .attr('x', 5)
-        .attr('y', yOffset)
-        .attr('fill', '#00ff88')
-        .attr('font-size', '10px')
-        .text(`Pin: ${pinText}`);
-      yOffset += 15;
-      
-      // Output power
-      const poutText = this.formatPower(powerInfo.pout_dbm, this.powerUnit);
-      infoGroup.append('text')
-        .attr('x', 5)
-        .attr('y', yOffset)
-        .attr('fill', '#ff7f11')
-        .attr('font-size', '10px')
-        .text(`Pout: ${poutText}`);
-      yOffset += 15;
-      
-      // P1dB (if available)
+
+      let yo = titleH + lineH;  // full line-height gap separates heading from data
+      infoGroup.append('text').attr('x', PAD).attr('y', yo)
+        .attr('fill', '#00ff88').attr('font-size', `${lineH}px`)
+        .text(`Pin: ${this.formatPower(powerInfo.pin_dbm, this.powerUnit)}`);
+      yo += lineH;
+
+      infoGroup.append('text').attr('x', PAD).attr('y', yo)
+        .attr('fill', '#ff7f11').attr('font-size', `${lineH}px`)
+        .text(`Pout: ${this.formatPower(powerInfo.pout_dbm, this.powerUnit)}`);
+      yo += lineH;
+
       if (powerInfo.p1db_dbm) {
-        const p1dbText = this.formatPower(powerInfo.p1db_dbm, this.powerUnit);
-        infoGroup.append('text')
-          .attr('x', 5)
-          .attr('y', yOffset)
-          .attr('fill', '#ffaa00')
-          .attr('font-size', '10px')
-          .text(`P1dB: ${p1dbText}`);
-        yOffset += 15;
+        infoGroup.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
+          .text(`P1dB: ${this.formatPower(powerInfo.p1db_dbm, this.powerUnit)}`);
+        yo += lineH;
       }
-      
-      // Power at back-off (if applicable)
+
       if (powerInfo.power_bo_dbm) {
-        const pboText = this.formatPower(powerInfo.power_bo_dbm, this.powerUnit);
-        infoGroup.append('text')
-          .attr('x', 5)
-          .attr('y', yOffset)
-          .attr('fill', '#ffaa00')
-          .attr('font-size', '10px')
-          .text(`P_BO: ${pboText}`);
-        yOffset += 15;
+        infoGroup.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
+          .text(`P_BO: ${this.formatPower(powerInfo.power_bo_dbm, this.powerUnit)}`);
       }
-      
-      // Forward arrow (signal flow direction) - now grouped with info box
-      if (index < sortedComponents.length - 1) {
-        const nextX = sortedComponents[index + 1].x;
-        const arrowMidX = x + (nextX - x) / 2;
-        const arrowY_abs = isAboveCenterLine ? paddingTop + 40 : paddingBottom - 60;
-        
-        // Calculate relative position from info box anchor
-        const boxAnchorX = x - columnWidth/2 + 10 + comp.powerBoxOffset.x;
-        const boxAnchorY = infoY + comp.powerBoxOffset.y;
-        const arrowX_rel = arrowMidX - boxAnchorX;
-        const arrowY_rel = arrowY_abs - boxAnchorY;
-        
-        // Append arrow to info group so it moves with the box
-        infoGroup.append('path')
-          .attr('d', `M ${arrowX_rel - 20},${arrowY_rel} L ${arrowX_rel + 10},${arrowY_rel} L ${arrowX_rel + 5},${arrowY_rel - 5} M ${arrowX_rel + 10},${arrowY_rel} L ${arrowX_rel + 5},${arrowY_rel + 5}`)
-          .attr('stroke', '#00aaff')
-          .attr('stroke-width', 2)
-          .attr('fill', 'none')
-          .attr('class', 'signal-flow-arrow');
-      }
-      
-      // Update current power for next stage
-      currentPower = powerInfo.pout_dbm;
     });
-    
-    console.log('Power columns drawn for', sortedComponents.length, 'components');
+
+    console.log('Power columns drawn for', sorted.length, 'components');
   }
   
   formatPower(power_dbm, unit) {

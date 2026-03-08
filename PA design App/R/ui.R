@@ -99,11 +99,23 @@ ui <- dashboardPage(
             solidHeader = TRUE,
             textInput("new_project_name", "Project Name"),
             selectInput("new_project_arch", "Architecture Type",
-              choices = c("Class-A", "Class-B", "Class-AB", "Class-C", 
+              choices = c("Class-A", "Class-B", "Class-AB", "Class-C",
                          "Class-D", "Class-E", "Class-F", "Doherty")),
             numericInput("new_project_freq", "Frequency (GHz)", value = 2.4, min = 0.1, max = 100),
             numericInput("new_project_pout", "Target Pout (dBm)", value = 30, min = 0, max = 60),
-            actionButton("create_project_btn", "Create Project", 
+            selectInput("new_project_technology", "Technology",
+              choices = c(
+                "GaN HEMT (SiC)" = "GaN_SiC",
+                "GaN HEMT (Si)"  = "GaN_Si",
+                "Si LDMOS"       = "LDMOS",
+                "GaAs pHEMT"     = "GaAs_pHEMT",
+                "SiGe HBT"       = "SiGe_HBT",
+                "InP HEMT"       = "InP_HEMT"
+              ),
+              selected = "GaN_SiC"
+            ),
+            numericInput("new_project_vdd", "Supply Voltage — Vdd (V)", value = 28, min = 1, max = 65, step = 1),
+            actionButton("create_project_btn", "Create Project",
                         class = "btn-primary", icon = icon("plus"))
           ),
           box(
@@ -1953,28 +1965,7 @@ ui <- dashboardPage(
             uiOutput("settings_active_theme"),
             uiOutput("settings_theme_preview")
           ),
-          # ── RF Design Defaults ─────────────────────────────────────
-          box(
-            title = "RF Design Defaults", status = "primary", width = 6,
-            p(style = "color:var(--tx-med); font-size:12px; margin-bottom:12px;",
-              "Default values pre-populated in new design calculations."),
-            numericInput("default_freq_ghz", "Default Frequency (GHz)",
-                         value = 3.5, min = 0.1, max = 300, step = 0.1),
-            selectInput("default_technology", "Default Technology",
-              choices = c(
-                "GaN HEMT (SiC)"  = "GaN_SiC",
-                "GaN HEMT (Si)"   = "GaN_Si",
-                "Si LDMOS"        = "LDMOS",
-                "GaAs pHEMT"      = "GaAs_pHEMT",
-                "SiGe HBT"        = "SiGe_HBT",
-                "InP HEMT"        = "InP_HEMT"
-              ),
-              selected = "GaN_SiC"
-            ),
-            numericInput("default_vdd", "Default Supply Voltage (V)",
-                         value = 28, min = 1, max = 65, step = 1)
-          )
-        )
+)
       )
     )
   )

@@ -8,9 +8,12 @@
 initServerState <- function(input, output, session) {
   # Reactive values
   rv <- reactiveValues(
-    current_project = NULL,
-    projects = data.frame(),
-    canvas_names = c("Canvas 1", "Canvas 2", "Canvas 3", "Canvas 4", 
+    current_project  = NULL,
+    projects         = data.frame(),
+    project_freq_ghz  = 2.4,
+    project_technology = "GaN_SiC",
+    project_vdd      = 28,
+    canvas_names = c("Canvas 1", "Canvas 2", "Canvas 3", "Canvas 4",
                      "Canvas 5", "Canvas 6", "Canvas 7", "Canvas 8", "Canvas 9")
   )
   

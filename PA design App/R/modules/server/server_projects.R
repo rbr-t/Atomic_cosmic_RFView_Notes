@@ -3,6 +3,8 @@
 # ============================================================
 
 serverProjects <- function(input, output, session, state) {
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+
   # Unpack shared state
   rv                  <- state$rv
   lineup_components   <- state$lineup_components
@@ -27,11 +29,15 @@ serverProjects <- function(input, output, session, state) {
   observeEvent(input$create_project_btn, {
     req(input$new_project_name)
     
+    freq_ghz <- input$new_project_freq %||% 2.4
+    tech     <- input$new_project_technology %||% "GaN_SiC"
+    vdd      <- input$new_project_vdd %||% 28
+    
     if (!demo_mode && !is.null(project_mgr)) {
       new_project <- project_mgr$create_project(
         name = input$new_project_name,
         architecture_type = input$new_project_arch,
-        frequency = input$new_project_freq,
+        frequency = freq_ghz,
         target_pout = input$new_project_pout
       )
       
@@ -51,7 +57,24 @@ serverProjects <- function(input, output, session, state) {
       )
     }
     
-    # Clear inputs
+    # ── Propagate project frequency to all downstream tabs ──────────────────
+    # PA Lineup
+    updateNumericInput(session, "global_frequency",  value = freq_ghz)
+    # Frequency Planning
+    updateNumericInput(session, "freq_target_freq",  value = freq_ghz)
+    # Performance Guardrails
+    updateNumericInput(session, "grd_chk_freq",      value = freq_ghz)
+    # Link Budget
+    updateNumericInput(session, "link_freq",          value = freq_ghz)
+    # Loss Curves
+    updateNumericInput(session, "loss_calc_freq",     value = freq_ghz)
+    
+    # Store project defaults in rv so other modules can read them reactively
+    rv$project_freq_ghz  <- freq_ghz
+    rv$project_technology <- tech
+    rv$project_vdd       <- vdd
+    
+    # Clear name input
     updateTextInput(session, "new_project_name", value = "")
   })
   
