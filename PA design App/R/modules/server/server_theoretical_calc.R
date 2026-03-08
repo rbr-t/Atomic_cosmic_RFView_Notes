@@ -15,17 +15,17 @@ serverTheoreticalCalc <- function(input, output, session, state) {
   userTemplates       <- state$userTemplates
 
   # Theoretical Calc: Display Project Specs
-  output$calc_project_specs <- renderPrint({
+  output$calc_project_specs <- renderText({
     req(input$calc_project_select)
-    
     project <- rv$projects[rv$projects$id == input$calc_project_select, ]
-    
     if (nrow(project) > 0) {
-      cat("Project:", project$name, "\n")
-      cat("Architecture:", project$architecture_type, "\n")
-      cat("Frequency:", project$frequency, "GHz\n")
-      cat("Target Pout:", project$target_pout, "dBm\n")
-    }
+      paste0(
+        "Project: ", project$name, "\n",
+        "Architecture: ", project$architecture_type, "\n",
+        "Frequency: ", project$frequency, " GHz\n",
+        "Target Pout: ", project$target_pout, " dBm\n"
+      )
+    } else ""
   })
   
   # Theoretical Calc: Load-Pull Calculation
@@ -37,11 +37,13 @@ serverTheoreticalCalc <- function(input, output, session, state) {
     pout_dbm <- 10 * log10(pout_watts * 1000)
     z_load <- (input$calc_vdd^2) / (2 * pout_watts)
     
-    output$calc_loadpull_results <- renderPrint({
-      cat("Optimal Load Impedance (Class-A):\n")
-      cat("  Zload =", round(z_load, 2), "Ω\n")
-      cat("  Pout (max) =", round(pout_watts, 2), "W (", round(pout_dbm, 1), "dBm)\n")
-      cat("  PAE (theoretical max) ≈ 50%\n")
+    output$calc_loadpull_results <- renderText({
+      paste0(
+        "Optimal Load Impedance (Class-A):\n",
+        "  Zload = ", round(z_load, 2), " \u03a9\n",
+        "  Pout (max) = ", round(pout_watts, 2), " W (", round(pout_dbm, 1), " dBm)\n",
+        "  PAE (theoretical max) \u2248 50%\n"
+      )
     })
     
     showNotification("Load-pull calculation completed", type = "message")
@@ -65,11 +67,13 @@ serverTheoreticalCalc <- function(input, output, session, state) {
       l_series <- x_series / (2 * pi * freq) * 1e9  # nH
       c_parallel <- b_parallel / (2 * pi * freq) * 1e12  # pF
       
-      output$calc_match_results <- renderPrint({
-        cat("L-Section Step-Down Network:\n")
-        cat("  Series Inductor:", round(l_series, 2), "nH\n")
-        cat("  Parallel Capacitor:", round(c_parallel, 2), "pF\n")
-        cat("  Q-factor:", round(q, 2), "\n")
+      output$calc_match_results <- renderText({
+        paste0(
+          "L-Section Step-Down Network:\n",
+          "  Series Inductor: ", round(l_series, 2), " nH\n",
+          "  Parallel Capacitor: ", round(c_parallel, 2), " pF\n",
+          "  Q-factor: ", round(q, 2), "\n"
+        )
       })
     } else {
       # Step-up network
@@ -80,11 +84,13 @@ serverTheoreticalCalc <- function(input, output, session, state) {
       c_series <- b_series / (2 * pi * freq) * 1e12  # pF
       l_parallel <- x_parallel / (2 * pi * freq) * 1e9  # nH
       
-      output$calc_match_results <- renderPrint({
-        cat("L-Section Step-Up Network:\n")
-        cat("  Series Capacitor:", round(c_series, 2), "pF\n")
-        cat("  Parallel Inductor:", round(l_parallel, 2), "nH\n")
-        cat("  Q-factor:", round(q, 2), "\n")
+      output$calc_match_results <- renderText({
+        paste0(
+          "L-Section Step-Up Network:\n",
+          "  Series Capacitor: ", round(c_series, 2), " pF\n",
+          "  Parallel Inductor: ", round(l_parallel, 2), " nH\n",
+          "  Q-factor: ", round(q, 2), "\n"
+        )
       })
     }
     
@@ -110,14 +116,16 @@ serverTheoreticalCalc <- function(input, output, session, state) {
         )
       )
       
-      output$calc_theory_response <- renderPrint({
-        cat("Theory Agent Response:\n\n")
-        cat(response$answer, "\n\n")
-        cat("Confidence:", response$confidence, "\n")
-        if (!is.null(response$references)) {
-          cat("\nReferences:\n")
-          cat(paste(response$references, collapse = "\n"))
-        }
+      output$calc_theory_response <- renderText({
+        refs <- if (!is.null(response$references))
+          paste0("\nReferences:\n", paste(response$references, collapse = "\n"))
+        else ""
+        paste0(
+          "Theory Agent Response:\n\n",
+          response$answer, "\n\n",
+          "Confidence: ", response$confidence, "\n",
+          refs
+        )
       })
       
       removeNotification("theory_notif")
@@ -127,13 +135,15 @@ serverTheoreticalCalc <- function(input, output, session, state) {
       removeNotification("theory_notif")
       showNotification(paste("Error:", e$message), type = "error", duration = 5)
       
-      output$calc_theory_response <- renderPrint({
-        cat("Theory Agent is not yet fully implemented.\n")
-        cat("Mock response for demo purposes:\n\n")
-        cat("Based on your specifications, the fundamental limits are:\n")
-        cat("- Bode-Fano limit constrains matching bandwidth\n")
-        cat("- Maximum theoretical PAE for Class-A: 50%\n")
-        cat("- For higher efficiency, consider Class-E or Class-F\n")
+      output$calc_theory_response <- renderText({
+        paste0(
+          "Theory Agent is not yet fully implemented.\n",
+          "Mock response for demo purposes:\n\n",
+          "Based on your specifications, the fundamental limits are:\n",
+          "- Bode-Fano limit constrains matching bandwidth\n",
+          "- Maximum theoretical PAE for Class-A: 50%\n",
+          "- For higher efficiency, consider Class-E or Class-F\n"
+        )
       })
     })
   })
