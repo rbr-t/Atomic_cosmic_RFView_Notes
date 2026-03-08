@@ -2390,6 +2390,19 @@ server <- function(input, output, session) {
     return(sprintf("%.1f dBm", pin_calc))
   })
   
+  # Derived spec outputs: Pavg and Pin (back-calculated, read-only in UI)
+  output$spec_pavg_display <- renderText({
+    req(input$spec_p3db, input$spec_par)
+    pavg <- input$spec_p3db - input$spec_par
+    sprintf("%.1f", pavg)
+  })
+
+  output$spec_pin_display <- renderText({
+    req(input$spec_p3db, input$spec_gain)
+    pin_calc <- input$spec_p3db - input$spec_gain
+    sprintf("%.1f", pin_calc)
+  })
+
   # Bandwidth Display in Specifications
   output$spec_bandwidth_display <- renderText({
     req(input$spec_frequency, input$spec_bw_lower, input$spec_bw_upper)
@@ -3471,57 +3484,80 @@ server <- function(input, output, session) {
         total_gain <- total_gain - loss_db
         
       } else if(comp_type == "combiner") {
-        # Combiner: combine + loss
-        loss_db <- as.numeric(safeProp(props, "loss", 0.3))
-        combiner_type <- safeProp(props, "type", "Wilkinson")
+        # Combiner: linear power addition of all N inputs minus combiner loss
+        # For Doherty / Wilkinson: P_out(W) = sum(P_in_n(W)) × 10^(-loss_dB/10)
+        loss_db      <- as.numeric(safeProp(props, "loss", 0.3))
+        combiner_ways <- as.integer(safeProp(props, "ways", 2))
         
-        # If Doherty with load modulation, efficiency boost
-        load_modulation <- isTRUE(safeProp(props, "load_modulation", FALSE))
-        if(combiner_type == "Doherty" && load_modulation) {
-          modulation_factor <- as.numeric(safeProp(props, "modulation_factor", 2.0))
-          rationale <- c(rationale, sprintf("    Doherty Combiner with Load Modulation (Factor: %.1f)", 
-            modulation_factor))
-          rationale <- c(rationale, "    Load modulation improves back-off efficiency")
+        # Convert current cascade power (per-path) to linear, scale by number of paths
+        pin_per_path_w    <- 10^(current_pin / 10) / 1000
+        pin_per_path_bo_w <- 10^(current_pin_bo / 10) / 1000
+        
+        # At P3dB all N paths contribute equally; at backoff Doherty main only (~0.5 paths)
+        is_doherty <- grepl("doherty", tolower(safeProp(props, "type", "")), fixed = FALSE)
+        if (is_doherty) {
+          # At backoff, Aux PA is off: effective paths = 1; at peak: N paths
+          paths_peak   <- combiner_ways
+          paths_backoff <- 1L  # Only main PA active at backoff in Doherty
+        } else {
+          paths_peak    <- combiner_ways
+          paths_backoff <- combiner_ways
         }
         
-        pout_dbm <- current_pin + 3 - loss_db  # 3dB from combining 2 paths
-        pout_bo_dbm <- current_pin_bo + 3 - loss_db  # Backoff combining
+        pout_w    <- pin_per_path_w    * paths_peak    * 10^(-loss_db / 10)
+        pout_bo_w <- pin_per_path_bo_w * paths_backoff * 10^(-loss_db / 10)
         
-        rationale <- c(rationale, sprintf("    Combining gain: +3 dB (2-way), Loss: %.2f dB", loss_db))
-        rationale <- c(rationale, sprintf("    Output: Full %.2f dBm | Backoff %.2f dBm", 
-          pout_dbm, pout_bo_dbm))
+        pout_dbm    <- 10 * log10(pout_w    * 1000)
+        pout_bo_dbm <- 10 * log10(pout_bo_w * 1000)
+        
+        combining_gain_db    <- 10 * log10(paths_peak)
+        combining_gain_bo_db <- 10 * log10(paths_backoff)
+        
+        rationale <- c(rationale, sprintf("    %s Combiner (%d-way), Loss: %.2f dB",
+          if(is_doherty) "Doherty" else "Wilkinson", combiner_ways, loss_db))
+        rationale <- c(rationale, sprintf("    Full: +%.1f dB combine − %.2f dB loss → Pout %.2f dBm",
+          combining_gain_db, loss_db, pout_dbm))
+        rationale <- c(rationale, sprintf("    Backoff: +%.1f dB combine (main PA only) → Pout %.2f dBm",
+          combining_gain_bo_db, pout_bo_dbm))
         
         stage_results[[length(stage_results) + 1]] <- list(
-          stage = stage_name,
-          type = "combiner",
-          pin_dbm = current_pin,
-          pout_dbm = pout_dbm,
-          loss_db = loss_db,
-          combining_gain = 3,
+          stage      = stage_name,
+          type       = "combiner",
+          pin_dbm    = current_pin,
+          pout_dbm   = pout_dbm,
+          loss_db    = loss_db,
+          combining_gain = combining_gain_db,
           pin_bo_dbm = current_pin_bo,
           pout_bo_dbm = pout_bo_dbm
         )
         
-        current_pin <- pout_dbm
+        current_pin    <- pout_dbm
         current_pin_bo <- pout_bo_dbm
-        total_gain <- total_gain + 3 - loss_db
+        total_gain     <- total_gain + combining_gain_db - loss_db
       }
       
       rationale <- c(rationale, "")
     }
     
     # System totals - Full Power
-    final_pout_dbm <- current_pin
-    final_pout_w <- 10^(final_pout_dbm/10) / 1000
-    system_pae <- if(total_pdc > 0) (final_pout_w / total_pdc) * 100 else 0
+    final_pout_dbm  <- current_pin
+    final_pout_w    <- 10^(final_pout_dbm / 10) / 1000
+    
+    # True system PAE = (Pout - Pin) / PDC_total   — Pin is back-calculated
+    input_power_w    <- 10^(input_power_dbm / 10) / 1000
+    system_pae <- if(total_pdc > 0 && final_pout_w > input_power_w)
+      ((final_pout_w - input_power_w) / total_pdc) * 100 else 0
     
     # System totals - Backoff
     final_pout_bo_dbm <- current_pin_bo
-    final_pout_bo_w <- 10^(final_pout_bo_dbm/10) / 1000
-    system_pae_bo <- if(total_pdc_bo > 0) (final_pout_bo_w / total_pdc_bo) * 100 else 0
+    final_pout_bo_w   <- 10^(final_pout_bo_dbm / 10) / 1000
+    input_power_bo_w  <- 10^((input_power_dbm - backoff_db) / 10) / 1000
+    system_pae_bo <- if(total_pdc_bo > 0 && final_pout_bo_w > input_power_bo_w)
+      ((final_pout_bo_w - input_power_bo_w) / total_pdc_bo) * 100 else 0
     
     rationale <- c(rationale, "─── System Summary ───")
     rationale <- c(rationale, sprintf("Total Gain: %.2f dB", total_gain))
+    rationale <- c(rationale, sprintf("Input Power (back-calc.): %.2f dBm", input_power_dbm))
     rationale <- c(rationale, "\n[FULL POWER]")
     rationale <- c(rationale, sprintf("  Output Power: %.2f dBm (%.3f W)", final_pout_dbm, final_pout_w))
     rationale <- c(rationale, sprintf("  Total DC Power: %.3f W", total_pdc))
@@ -3733,7 +3769,7 @@ server <- function(input, output, session) {
       
       # Secondary specifications
       supply_voltage = input$spec_supply_voltage,
-      efficiency_target = input$spec_efficiency,
+      efficiency_target = if(!is.null(input$spec_pae)) input$spec_pae else 47,
       am_pm_p3db = input$spec_am_pm_p3db,
       am_pm_dispersion = input$spec_am_pm_dispersion,
       group_delay = input$spec_group_delay,

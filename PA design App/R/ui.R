@@ -50,6 +50,79 @@ ui <- dashboardPage(
       tags$script(src = "js/pa_lineup_canvas.js"),
       tags$style(HTML("
         /* Hardcoded fallbacks removed — all theming now in custom.css */
+      ")),
+      tags$script(HTML("
+$(document).ready(function() {
+  // ── Right-panel accordion: expand on hover, collapse on leave ───────────
+  var hoverOpenedBox = null;
+  var leaveTimer = null;
+
+  function expandBox($box) {
+    if ($box.hasClass('collapsed-box')) {
+      $box.find('[data-widget=\"collapse\"]').trigger('click');
+    }
+  }
+
+  function collapseBox($box) {
+    if (!$box.hasClass('collapsed-box')) {
+      $box.find('[data-widget=\"collapse\"]').trigger('click');
+    }
+  }
+
+  // Hover enter: expand if collapsed
+  $(document).on('mouseenter', '#right-panel-col .box', function() {
+    var $box = $(this);
+    clearTimeout(leaveTimer);
+    if ($box.hasClass('collapsed-box')) {
+      hoverOpenedBox = $box[0];
+      expandBox($box);
+    }
+  });
+
+  // Hover leave: collapse after short delay if opened by hover (not pinned)
+  $(document).on('mouseleave', '#right-panel-col .box', function() {
+    var $box = $(this);
+    if ($box.data('rp-pinned')) return;
+    var boxEl = $box[0];
+    leaveTimer = setTimeout(function() {
+      if (boxEl === hoverOpenedBox) {
+        collapseBox($box);
+        hoverOpenedBox = null;
+      }
+    }, 200);
+  });
+
+  // Manual toggle click: pin the box so hover-leave won't collapse it
+  $(document).on('click', '#right-panel-col [data-widget=\"collapse\"]', function() {
+    var $box = $(this).closest('.box');
+    setTimeout(function() {
+      $box.data('rp-pinned', !$box.hasClass('collapsed-box'));
+      if (!$box.hasClass('collapsed-box')) hoverOpenedBox = null;
+    }, 50);
+  });
+
+  // ── Component selected: expand Component Properties, collapse others ────
+  $(document).on('shiny:inputchanged', function(e) {
+    if (e.name !== 'lineup_selected_component') return;
+    var $compProps = $('#panel_comp_props .box');
+    var $allBoxes  = $('#right-panel-col .box');
+
+    if (e.value) {
+      // Collapse & unpin all except Component Properties
+      $allBoxes.not($compProps).each(function() {
+        $(this).data('rp-pinned', false);
+        collapseBox($(this));
+      });
+      // Expand & pin Component Properties
+      $compProps.data('rp-pinned', true);
+      expandBox($compProps);
+      hoverOpenedBox = null;
+    } else {
+      // Deselected — unpin Component Properties so hover works again
+      $compProps.data('rp-pinned', false);
+    }
+  });
+});
       "))
     ),
     
@@ -1426,122 +1499,185 @@ ui <- dashboardPage(
                 ),
                 
                 # Right: Component Properties & Results
-                column(4,
-                  # Specifications Box (NEW)
+                column(4, id = "right-panel-col",
+                  # Line-up Specifications Box — tabset matrix layout
                   box(
-                    title = tagList(icon("clipboard-list"), "Specifications"),
+                    title = tagList(icon("clipboard-list"), "Line-up Specifications"),
                     width = 12,
                     status = "info",
                     solidHeader = TRUE,
                     collapsible = TRUE,
                     collapsed = TRUE,
-                    
-                    # PRIMARY LINEUP DRIVING PARAMETERS (highlighted)
-                    div(class = "callout callout-accent", style = "margin-bottom: 15px;",
-                      h5(icon("star"), " PRIMARY LINEUP DRIVERS", style = "color: var(--accent); margin-top: 0;"),
-                      fluidRow(
-                        column(6,
-                          div(class = "input-highlight",
-                            numericInput("spec_frequency", 
-                              tags$strong("⚡ Frequency (MHz)", style = "color: #ff851b;"), 
-                              value = 1805, min = 100, max = 10000, step = 1)
+
+                    # Inline legend
+                    div(style = "display:flex; gap:16px; margin-bottom:8px; font-size:11px;",
+                      tags$span(style = "color:#ff851b; font-weight:600;", "⚡ Primary"),
+                      tags$span(style = "color:var(--tx-med);", "○ Secondary"),
+                      tags$span(style = "color:#5bc0de; font-style:italic;", "← Derived (read-only)")
+                    ),
+
+                    tabsetPanel(
+                      id = "spec_tabs",
+
+                      # ── Tab 1: Power & Frequency ─────────────────────────
+                      tabPanel(
+                        title = tagList(icon("bolt"), "Power & Freq"),
+                        value = "tab_power_freq",
+                        br(),
+                        # PRIMARY
+                        tags$p(tags$strong("⚡ Primary", style = "color:#ff851b;"),
+                               style = "margin:0 0 4px; font-size:11px; text-transform:uppercase; letter-spacing:.05em;"),
+                        div(class = "input-highlight",
+                          numericInput("spec_frequency",
+                            tags$strong("⚡ Center Frequency (MHz)", style = "color:#ff851b;"),
+                            value = 1805, min = 100, max = 10000, step = 1)
+                        ),
+                        fluidRow(
+                          column(6,
+                            div(class = "input-highlight",
+                              numericInput("spec_p3db",
+                                tags$strong("⚡ P3dB (dBm)", style = "color:#ff851b;"),
+                                value = 55.3, min = 0, max = 80, step = 0.1)
+                            )
+                          ),
+                          column(6,
+                            div(class = "input-highlight",
+                              numericInput("spec_par",
+                                tags$strong("⚡ PAR / BO (dB)", style = "color:#ff851b;"),
+                                value = 8.0, min = 0, max = 20, step = 0.1)
+                            )
                           )
                         ),
-                        column(6,
-                          div(class = "input-highlight",
-                            numericInput("spec_p3db", 
-                              tags$strong("⚡ P3dB Output (dBm)", style = "color: #ff851b;"), 
-                              value = 55.3, min = 0, max = 80, step = 0.1)
+                        # Derived row
+                        fluidRow(
+                          column(6,
+                            div(style = "background:rgba(91,192,222,.08); border-left:3px solid #5bc0de; padding:6px 8px; border-radius:3px; margin-bottom:8px;",
+                              tags$label("← Pavg (dBm)", style = "font-size:10px; color:#5bc0de; display:block; margin:0;"),
+                              strong(textOutput("spec_pavg_display", inline = TRUE),
+                                     style = "color:#5bc0de; font-size:13px;"),
+                              tags$span(" = P3dB − PAR", style = "font-size:10px; color:var(--tx-med);")
+                            )
+                          ),
+                          column(6,
+                            div(style = "background:rgba(150,150,150,.08); border-left:3px solid #888; padding:6px 8px; border-radius:3px; margin-bottom:8px;",
+                              tags$label("← Pin (dBm, back-calc)", style = "font-size:10px; color:#888; display:block; margin:0;"),
+                              strong(textOutput("spec_pin_display", inline = TRUE),
+                                     style = "color:#aaa; font-size:13px;"),
+                              tags$span(" = P3dB − Gain", style = "font-size:10px; color:var(--tx-med);")
+                            )
                           )
                         ),
-                        column(6,
-                          div(class = "input-highlight",
-                            numericInput("spec_par", 
-                              tags$strong("⚡ PAR / BO (dB)", style = "color: #ff851b;"), 
-                              value = 8.0, min = 0, max = 20, step = 0.1),
-                            tags$small("Pavg = P3dB - PAR", style = "color: var(--tx-med);")
+                        hr(style = "margin:6px 0;"),
+                        # SECONDARY
+                        tags$p(tags$span("○ Secondary — Bandwidth & Supply", style = "color:var(--tx-med);"),
+                               style = "margin:0 0 4px; font-size:11px; text-transform:uppercase;"),
+                        fluidRow(
+                          column(6,
+                            numericInput("spec_bw_lower", "BW Lower (%)", value = 10, min = 0, max = 50, step = 1)
+                          ),
+                          column(6,
+                            numericInput("spec_bw_upper", "BW Upper (%)", value = 10, min = 0, max = 50, step = 1)
+                          )
+                        ),
+                        fluidRow(
+                          column(6,
+                            div(style = "background:rgba(91,192,222,.08); border-left:3px solid #5bc0de; padding:6px 8px; border-radius:3px; margin-bottom:8px;",
+                              tags$label("← Bandwidth (MHz)", style = "font-size:10px; color:#5bc0de; display:block; margin:0;"),
+                              strong(textOutput("spec_bandwidth_display", inline = TRUE),
+                                     style = "color:#5bc0de; font-size:13px;")
+                            )
+                          ),
+                          column(6,
+                            numericInput("spec_supply_voltage", "Vdd (V)", value = 30, min = 5, max = 50, step = 1)
                           )
                         )
-                      ),
-                      fluidRow(
-                        column(6,
-                          div(class = "input-highlight",
-                            numericInput("spec_gain", 
-                              tags$strong("⚡ Total Gain (dB)", style = "color: #ff851b;"), 
-                              value = 41.5, min = 0, max = 80, step = 0.1)
+                      ), # end tab Power & Freq
+
+                      # ── Tab 2: Gain & Efficiency ─────────────────────────
+                      tabPanel(
+                        title = tagList(icon("tachometer-alt"), "Gain & Eff"),
+                        value = "tab_gain_eff",
+                        br(),
+                        tags$p(tags$strong("⚡ Primary", style = "color:#ff851b;"),
+                               style = "margin:0 0 4px; font-size:11px; text-transform:uppercase;"),
+                        div(class = "input-highlight",
+                          numericInput("spec_gain",
+                            tags$strong("⚡ Total Gain (dB)", style = "color:#ff851b;"),
+                            value = 41.5, min = 0, max = 80, step = 0.1)
+                        ),
+                        div(class = "input-highlight",
+                          numericInput("spec_pae",
+                            tags$strong("⚡ System PAE Target (%)", style = "color:#ff851b;"),
+                            value = 47, min = 1, max = 100, step = 1)
+                        ),
+                        hr(style = "margin:6px 0;"),
+                        tags$p(tags$span("○ Secondary — Gain Flatness", style = "color:var(--tx-med);"),
+                               style = "margin:0 0 4px; font-size:11px; text-transform:uppercase;"),
+                        fluidRow(
+                          column(6,
+                            numericInput("spec_gain_ripple_inband",
+                              "Gain Ripple In-band (dB)", value = 1.0, min = 0, max = 10, step = 0.1)
+                          ),
+                          column(6,
+                            numericInput("spec_gain_ripple_3xband",
+                              "Gain Ripple 3× Band (dB)", value = 3.0, min = 0, max = 10, step = 0.1)
+                          )
+                        )
+                      ), # end tab Gain & Eff
+
+                      # ── Tab 3: Linearity ──────────────────────────────────
+                      tabPanel(
+                        title = tagList(icon("wave-square"), "Linearity"),
+                        value = "tab_linearity",
+                        br(),
+                        tags$p(tags$strong("⚡ Primary", style = "color:#ff851b;"),
+                               style = "margin:0 0 4px; font-size:11px; text-transform:uppercase;"),
+                        fluidRow(
+                          column(6,
+                            div(class = "input-highlight",
+                              numericInput("spec_am_pm_p3db",
+                                tags$strong("⚡ AM-PM @ P3dB (°)", style = "color:#ff851b;"),
+                                value = -25, min = -50, max = 50, step = 0.1)
+                            )
+                          ),
+                          column(6,
+                            div(class = "input-highlight",
+                              numericInput("spec_acp",
+                                tags$strong("⚡ ACP (dBc)", style = "color:#ff851b;"),
+                                value = -30, min = -80, max = 0, step = 0.1)
+                            )
                           )
                         ),
-                        column(6,
-                          numericInput("spec_supply_voltage", "Supply Voltage (V)", 
-                            value = 30, min = 5, max = 50, step = 1)
-                        )
-                      ),
-                      fluidRow(
-                        column(4,
-                          numericInput("spec_bw_lower", "BW Lower Margin (%)", 
-                            value = 10, min = 0, max = 50, step = 1)
+                        hr(style = "margin:6px 0;"),
+                        tags$p(tags$span("○ Secondary — Distortion detail", style = "color:var(--tx-med);"),
+                               style = "margin:0 0 4px; font-size:11px; text-transform:uppercase;"),
+                        fluidRow(
+                          column(6,
+                            numericInput("spec_am_pm_dispersion",
+                              "AM-PM Dispersion (°)", value = 8, min = 0, max = 50, step = 0.1)
+                          ),
+                          column(6,
+                            numericInput("spec_input_return_loss",
+                              "Input RL (dB)", value = -15, min = -50, max = 0, step = 0.1)
+                          )
                         ),
-                        column(4,
-                          numericInput("spec_bw_upper", "BW Upper Margin (%)", 
-                            value = 10, min = 0, max = 50, step = 1)
-                        ),
-                        column(4,
-                          div(style = "margin-top: 25px;",
-                            strong("Bandwidth:"),
-                            textOutput("spec_bandwidth_display", inline = TRUE),
-                            tags$span(" MHz", style = "color: var(--tx-med);")
+                        fluidRow(
+                          column(6,
+                            numericInput("spec_vbw",
+                              "VBW (MHz)", value = 225, min = 1, max = 1000, step = 1)
+                          ),
+                          column(6,
+                            numericInput("spec_group_delay",
+                              "Group Delay Flat. (ns)", value = 1, min = 0, max = 100, step = 0.1)
                           )
                         )
-                      )
-                    ),
-                    
-                    # SECONDARY SPECIFICATIONS
-                    h5(icon("sliders-h"), " Secondary Specifications", style = "margin-top: 5px;"),
-                    fluidRow(
-                      column(6,
-                        numericInput("spec_efficiency", "Efficiency (%)", value = 47, min = 0, max = 100, step = 1)
-                      ),
-                      column(6,
-                        numericInput("spec_vbw", "VBW (MHz)", value = 225, min = 1, max = 1000, step = 1)
-                      )
-                    ),
-                    fluidRow(
-                      column(6,
-                        numericInput("spec_am_pm_p3db", "AM-PM @ P3dB (deg)", value = -25, min = -50, max = 50, step = 0.1)
-                      ),
-                      column(6,
-                        numericInput("spec_am_pm_dispersion", "AM-PM Dispersion (deg)", value = 8, min = 0, max = 50, step = 0.1)
-                      )
-                    ),
-                    fluidRow(
-                      column(6,
-                        numericInput("spec_group_delay", "Group Delay Flatness (ns)", value = 1, min = 0, max = 100, step = 0.1)
-                      ),
-                      column(6,
-                        numericInput("spec_efficiency", "Efficiency (%)", value = 47, min = 0, max = 100, step = 1)
-                      )
-                    ),
-                    fluidRow(
-                      column(6,
-                        numericInput("spec_acp", "ACP (dBc)", value = -30, min = -80, max = 0, step = 0.1)
-                      ),
-                      column(6,
-                        numericInput("spec_gain_ripple_inband", "Gain Ripple In-band (dB)", value = 1.0, min = 0, max = 10, step = 0.1)
-                      )
-                    ),
-                    fluidRow(
-                      column(6,
-                        numericInput("spec_gain_ripple_3xband", "Gain Ripple 3x Band (dB)", value = 3.0, min = 0, max = 10, step = 0.1)
-                      ),
-                      column(6,
-                        numericInput("spec_input_return_loss", "Input Return Loss (dB)", value = -15, min = -50, max = 0, step = 0.1)
-                      )
-                    ),
-                    fluidRow(
-                      column(6,
-                        numericInput("spec_vbw", "VBW (MHz)", value = 225, min = 1, max = 1000, step = 1)
-                      ),
-                      column(6,
+                      ), # end tab Linearity
+
+                      # ── Tab 4: Conditions ────────────────────────────────
+                      tabPanel(
+                        title = tagList(icon("cog"), "Conditions"),
+                        value = "tab_conditions",
+                        br(),
                         selectInput("spec_test_conditions", "Test Conditions",
                           choices = c(
                             "DC" = "dc",
@@ -1551,24 +1687,26 @@ ui <- dashboardPage(
                             "Low Freq Resonance" = "low_freq_res"
                           ),
                           selected = "cw"
-                        )
-                      )
-                    ),
-                    helpText(icon("info-circle"), " Target specifications for the PA lineup design."),
+                        ),
+                        helpText(icon("info-circle"), " Test condition affects linearity and efficiency budgets.")
+                      ) # end tab Conditions
+
+                    ), # end tabsetPanel
+
                     hr(),
-                    div(style = "display: flex; gap: 10px; margin-top: 10px;",
-                      actionButton("apply_specs_to_lineup", 
-                                   "Apply Specs to Lineup ↓", 
-                                   class = "btn-primary btn-block", 
+                    div(style = "display: flex; gap: 10px; margin-top: 8px;",
+                      actionButton("apply_specs_to_lineup",
+                                   "Apply Specs to Lineup ↓",
+                                   class = "btn-primary btn-block",
                                    icon = icon("arrow-down"),
                                    style = "flex: 1;"),
-                      actionButton("apply_specs_to_global", 
-                                   "Update Global Params ↓", 
-                                   class = "btn-info", 
+                      actionButton("apply_specs_to_global",
+                                   "Update Global Params",
+                                   class = "btn-info",
                                    icon = icon("sync"),
                                    style = "flex: 1;")
                     ),
-                    helpText(icon("lightbulb"), " 'Apply to Lineup' adapts current template. 'Update Global' only updates frequency/power.")
+                    helpText(icon("lightbulb"), " 'Apply to Lineup' adapts all components to specs. 'Update Global' only syncs freq/power.")
                   ),
                   
                   # Global Lineup Parameters
@@ -1578,6 +1716,7 @@ ui <- dashboardPage(
                     status = "primary",
                     solidHeader = TRUE,
                     collapsible = TRUE,
+                    collapsed = TRUE,
                     fluidRow(
                       column(6,
                         numericInput("global_frequency", "Frequency (GHz)", 
@@ -1653,13 +1792,16 @@ ui <- dashboardPage(
                   ),
                   
                   # Component Property Editor
-                  box(
-                    title = "Component Properties",
-                    width = 12,
-                    collapsible = TRUE,
-                    status = "warning",
-                    solidHeader = TRUE,
-                    uiOutput("lineup_property_editor")
+                  div(id = "panel_comp_props",
+                    box(
+                      title = "Component Properties",
+                      width = 12,
+                      collapsible = TRUE,
+                      collapsed = TRUE,
+                      status = "warning",
+                      solidHeader = TRUE,
+                      uiOutput("lineup_property_editor")
+                    )
                   ),
                   
                   # Calculation Results

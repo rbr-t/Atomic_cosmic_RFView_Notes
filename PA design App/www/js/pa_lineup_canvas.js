@@ -2155,24 +2155,24 @@ class PALineupCanvas {
   }
   
   renderTermination(group, component) {
-    // ADS-style termination: vertical line + resistor box + ground symbol
+    // ADS-style termination: port at centre line (y=0), symbol body hangs below
     const termColor = '#888888';
     const impedance = component.properties.impedance || 50;
     
-    // Vertical line from connection point to resistor
+    // Short vertical line from port (y=0) down to resistor top (y=15)
     group.append('line')
-      .attr('x1', 0).attr('y1', -25)
-      .attr('x2', 0).attr('y2', -10)
+      .attr('x1', 0).attr('y1', 0)
+      .attr('x2', 0).attr('y2', 15)
       .attr('stroke', termColor)
       .attr('stroke-width', 3);
     
-    // Resistor box (rectangle with zigzag)
+    // Resistor box (y=15 to y=25)
     const resistorWidth = 20;
     const resistorHeight = 10;
     
     group.append('rect')
       .attr('x', -resistorWidth/2)
-      .attr('y', -10)
+      .attr('y', 15)
       .attr('width', resistorWidth)
       .attr('height', resistorHeight)
       .attr('fill', 'none')
@@ -2180,24 +2180,24 @@ class PALineupCanvas {
       .attr('stroke-width', 2)
       .attr('rx', 2);
     
-    // Zigzag inside resistor
+    // Zigzag inside resistor (centred at y=20, peaks at 18/22)
     group.append('path')
-      .attr('d', `M${-resistorWidth/2+3},-5 L${-resistorWidth/2+7},-7 L${-resistorWidth/2+10},-3 L${-resistorWidth/2+13},-7 L${-resistorWidth/2+17},-5`)
+      .attr('d', `M${-resistorWidth/2+3},20 L${-resistorWidth/2+7},18 L${-resistorWidth/2+10},22 L${-resistorWidth/2+13},18 L${-resistorWidth/2+17},20`)
       .attr('stroke', termColor)
       .attr('stroke-width', 1.5)
       .attr('fill', 'none');
     
-    // Vertical line from resistor to ground
+    // Vertical line from resistor bottom (y=25) to ground top (y=35)
     group.append('line')
-      .attr('x1', 0).attr('y1', 0)
-      .attr('x2', 0).attr('y2', 10)
+      .attr('x1', 0).attr('y1', 25)
+      .attr('x2', 0).attr('y2', 35)
       .attr('stroke', termColor)
       .attr('stroke-width', 3);
     
-    // Ground symbol (three horizontal lines)
+    // Ground symbol (three horizontal lines below y=35)
     for (let i = 0; i < 3; i++) {
       const width = 24 - i * 6;
-      const y = 10 + i * 4;
+      const y = 35 + i * 4;
       group.append('line')
         .attr('x1', -width/2)
         .attr('y1', y)
@@ -2207,12 +2207,12 @@ class PALineupCanvas {
         .attr('stroke-width', 2);
     }
     
-    // Connection port (positive end - top, where components connect)
+    // Connection port — at centre line (cy=0)
     const inputPort = group.append('circle')
       .attr('class', 'port port-input')
       .attr('data-port-id', 'input')
       .attr('cx', 0)
-      .attr('cy', -25)
+      .attr('cy', 0)
       .attr('r', 4)
       .attr('fill', '#00ff88')
       .attr('stroke', '#00ff88')
@@ -2228,7 +2228,7 @@ class PALineupCanvas {
     if (display.includes('label')) {
       group.append('text')
         .attr('x', 0)
-        .attr('y', -35)
+        .attr('y', -10)
         .attr('text-anchor', 'middle')
         .attr('fill', '#fff')
         .attr('font-size', '11px')
@@ -2236,10 +2236,10 @@ class PALineupCanvas {
         .text(component.properties.label || 'Term');
     }
     
-    // Impedance value (always show, centered on resistor)
+    // Impedance value inside resistor box
     group.append('text')
       .attr('x', 0)
-      .attr('y', -3)
+      .attr('y', 23)
       .attr('text-anchor', 'middle')
       .attr('fill', '#fff')
       .attr('font-size', '9px')
@@ -2364,6 +2364,10 @@ class PALineupCanvas {
     const baseY = component.y;
     
     switch (component.type) {
+      case 'termination':
+        // Port at centre line — same Y as all other components so wires are horizontal
+        return { x: baseX, y: baseY };
+      
       case 'transistor':
         return portId === 'input' || portId.startsWith('input')
           ? { x: baseX - 25, y: baseY }    // Input port at left
@@ -6308,7 +6312,46 @@ function applySpecsToComponents(specs) {
   components.filter(c => c.type === 'combiner').forEach(c => {
     c.properties.loss = combinerLoss;
   });
-  
+
+  // ═══ FIX: Override idealized gain distribution with ACTUAL component gains ═══
+  // This ensures the power cascade is consistent with the real transistor parameters
+  // in the template (e.g. Driver gain=15, PA gain=12) rather than the auto-distributed
+  // idealized values which can be very different from the component properties.
+  const actualGainStages = [];
+  if (preDriver) actualGainStages.push({
+    name: 'Pre-Driver',
+    // Driver sees splitter loss; pre-driver does not — account for interstage match only
+    gain: Number(preDriver.properties.gain) || 12,
+    type: 'predriver'
+  });
+  if (driver) actualGainStages.push({
+    name: 'Driver',
+    // Driver Pout must overcome splitter loss to deliver correct Pin to each PA
+    gain: (Number(driver.properties.gain) || 15) - splitterLoss,
+    type: 'driver'
+  });
+  if (mainPA || auxPA) actualGainStages.push({
+    name: 'PA',
+    gain: Number((mainPA || auxPA).properties.gain) || 12,
+    type: 'pa'
+  });
+
+  if (actualGainStages.length > 0) {
+    gainDist.stages = actualGainStages;
+    gainDist.num_stages = actualGainStages.length;
+    powerCascade_p3db = calculatePowerCascade(pa_target_power, actualGainStages);
+    powerCascade_pavg = calculatePowerCascade(pavg_pa_target, actualGainStages);
+    console.log('[Apply Specs] Actual-gain P3dB cascade:', powerCascade_p3db);
+    console.log('[Apply Specs] Actual-gain Pavg cascade:', powerCascade_pavg);
+  }
+
+  // Doherty backoff efficiency factor (used below for Main PA Pavg PAE)
+  // η_BO = η_peak / (2√α)  where α = 10^(-OBO_dB/10)
+  // Reference: Cripps, "RF Power Amplifiers for Wireless Communications", Ch.12
+  const alpha_bo = Math.pow(10, -par_db / 10);
+  const doherty_pae_bo_factor = 1.0 / (2.0 * Math.sqrt(alpha_bo));
+  console.log(`[Apply Specs] Doherty BO efficiency factor: ${doherty_pae_bo_factor.toFixed(3)} (PAR=${par_db}dB, α=${alpha_bo.toFixed(4)})`);
+
   // Update transistors based on cascade and topology
   console.log(`[Apply Specs] Applying to ${gainDist.num_stages}-stage configuration`);
   
@@ -6579,55 +6622,52 @@ function applySpecsToComponents(specs) {
       mainPA.properties.pavg = pa_pavg_target;
       
       mainPA.properties.biasClass = 'AB';
-      mainPA.properties.pae_p3db = estimatePAE('AB', 'doherty', specs.frequency_ghz);
-      mainPA.properties.pae_pavg = Math.round(estimatePAE('AB', 'doherty', specs.frequency_ghz) * 1.1);
+      mainPA.properties.pae_p3db  = estimatePAE('AB', 'doherty', specs.frequency_ghz);
+      mainPA.properties.pae_pavg  = Math.min(85, Math.round(
+        mainPA.properties.pae_p3db * doherty_pae_bo_factor
+      ));
       mainPA.properties.pae = mainPA.properties.pae_p3db;
       mainPA.properties.vdd = specs.supply_voltage;
-      
-      mainPA.properties.pout = pa_p3db_target;
-      mainPA.properties.pin = mainPA.properties.pin_p3db;
-      
-      console.log(`[Apply Specs] Updated Main PA (Doherty):`);
+
+      mainPA.properties.pout = mainPA.properties.pout_p3db;
+      mainPA.properties.pin  = mainPA.properties.pin_p3db;
+
+      console.log(`[Apply Specs] Updated Main PA (Doherty, 3-stage):`);
       console.log(`  At P3dB: Pin=${mainPA.properties.pin_p3db.toFixed(2)} dBm, Pout=${mainPA.properties.pout_p3db.toFixed(2)} dBm, PAE=${mainPA.properties.pae_p3db}%`);
       console.log(`  At Pavg: Pin=${mainPA.properties.pin_pavg.toFixed(2)} dBm, Pout=${mainPA.properties.pout_pavg.toFixed(2)} dBm, PAE=${mainPA.properties.pae_pavg}%`);
     }
-    
-    // Update Aux PA
+
+    // Update Aux PA (3-stage path)
     if (auxPA) {
       const paStage_p3db = powerCascade_p3db.find(s => s.stage === 'PA');
       const paStage_pavg = powerCascade_pavg.find(s => s.stage === 'PA');
-      
-      auxPA.properties.frequency = specs.frequency_ghz;
+
+      auxPA.properties.frequency  = specs.frequency_ghz;
       auxPA.properties.technology = techSelection.technology;
-      auxPA.properties.gain = paStage_p3db.gain;
-      
-      const powerCombiningFactor = 3.01;
-      
-      // P3dB operating point
-      const pa_p3db_target = specs.p3db - powerCombiningFactor + combinerLoss;
-      auxPA.properties.pout_p3db = pa_p3db_target;
-      auxPA.properties.pin_p3db = pa_p3db_target - paStage_p3db.gain;
-      auxPA.properties.p3db = pa_p3db_target;
-      auxPA.properties.p1db = pa_p3db_target - 2.0;
-      
-      // Pavg operating point (Aux PA mostly off at backoff)
-      // Recalculate pa_pavg_target here (was block-scoped in mainPA block above)
-      const aux_pa_pavg_target_3stage = pavg_dbm - powerCombiningFactor + combinerLoss;
-      const aux_backoff_reduction_3stage = 10;
-      auxPA.properties.pout_pavg = aux_pa_pavg_target_3stage - aux_backoff_reduction_3stage;
-      auxPA.properties.pin_pavg = auxPA.properties.pout_pavg - paStage_pavg.gain;
-      auxPA.properties.pavg = auxPA.properties.pout_pavg;
-      
+      auxPA.properties.gain       = paStage_p3db.gain;
+
+      // P3dB: both PAs active → per-PA target = pa_target_power
+      auxPA.properties.pout_p3db = pa_target_power;
+      auxPA.properties.pin_p3db  = pa_target_power - paStage_p3db.gain;
+      auxPA.properties.p3db      = pa_target_power;
+      auxPA.properties.p1db      = pa_target_power - 2.0;
+
+      // Pavg: Aux PA mostly off (Doherty)
+      const aux_pavg_pout_3s = pavg_pa_target - 10;
+      auxPA.properties.pout_pavg = aux_pavg_pout_3s;
+      auxPA.properties.pin_pavg  = aux_pavg_pout_3s - paStage_pavg.gain;
+      auxPA.properties.pavg      = aux_pavg_pout_3s;
+
       auxPA.properties.biasClass = 'C';
-      auxPA.properties.pae_p3db = estimatePAE('C', 'doherty', specs.frequency_ghz);
-      auxPA.properties.pae_pavg = 15;
-      auxPA.properties.pae = auxPA.properties.pae_p3db;
-      auxPA.properties.vdd = specs.supply_voltage;
-      
-      auxPA.properties.pout = pa_p3db_target;
-      auxPA.properties.pin = auxPA.properties.pin_p3db;
-      
-      console.log(`[Apply Specs] Updated Aux PA (Doherty):`);
+      auxPA.properties.pae_p3db  = estimatePAE('C', 'doherty', specs.frequency_ghz);
+      auxPA.properties.pae_pavg  = Math.round(auxPA.properties.pae_p3db * 0.25);
+      auxPA.properties.pae       = auxPA.properties.pae_p3db;
+      auxPA.properties.vdd       = specs.supply_voltage;
+
+      auxPA.properties.pout = auxPA.properties.pout_p3db;
+      auxPA.properties.pin  = auxPA.properties.pin_p3db;
+
+      console.log(`[Apply Specs] Updated Aux PA (Doherty, 3-stage):`);
       console.log(`  At P3dB: Pin=${auxPA.properties.pin_p3db.toFixed(2)} dBm, Pout=${auxPA.properties.pout_p3db.toFixed(2)} dBm, PAE=${auxPA.properties.pae_p3db}%`);
       console.log(`  At Pavg: Pin=${auxPA.properties.pin_pavg.toFixed(2)} dBm, Pout=${auxPA.properties.pout_pavg.toFixed(2)} dBm, PAE=${auxPA.properties.pae_pavg}%`);
     }
@@ -6639,14 +6679,27 @@ function applySpecsToComponents(specs) {
     console.log('[Apply Specs] Canvas redrawn');
   }
   
-  // ═══ CRITICAL FIX: Send updated components back to Shiny (with explicit JSON.stringify) ═══
+  // ═══ SYSTEM PAE: (Pout_system − Pin_system) / PDC_total × 100 ═══
+  const pout_sys_w = Math.pow(10, (specs.p3db - 30) / 10);
+  const pin_sys_w  = Math.pow(10, ((specs.p3db - specs.gain) - 30) / 10);
+  let total_pdc_est_w = 0;
+  components.filter(c => c.type === 'transistor').forEach(t => {
+    const p_out_t = Math.pow(10, ((t.properties.pout_p3db || t.properties.pout || 40) - 30) / 10);
+    const pae_t   = (t.properties.pae_p3db || t.properties.pae || 40) / 100;
+    if (pae_t > 0) total_pdc_est_w += p_out_t / pae_t;
+  });
+  const pae_system = total_pdc_est_w > 0
+    ? Math.max(0, ((pout_sys_w - pin_sys_w) / total_pdc_est_w) * 100)
+    : 0;
+  console.log(`[Apply Specs] System PAE: ${pae_system.toFixed(1)}% | Pout=${pout_sys_w.toFixed(2)}W | Pin=${pin_sys_w.toFixed(4)}W | PDC_est=${total_pdc_est_w.toFixed(2)}W`);
+
+  // ═══ Send updated components + system metrics back to Shiny ═══
   if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
-    // Must stringify to match other component update handlers
     Shiny.setInputValue('lineup_components', JSON.stringify(components), {priority: 'event'});
-    console.log('[Apply Specs] Sent updated components to Shiny (stringified)');
-    console.log('[Apply Specs] Sample component properties:', components[0]?.properties);
+    Shiny.setInputValue('spec_pae_system_calc', parseFloat(pae_system.toFixed(1)), {priority: 'event'});
+    console.log('[Apply Specs] Sent updated components & system PAE to Shiny');
   }
-  
+
   alert(`✓ Specifications applied!\n\nTechnology: ${techSelection.technology}\nFrequency: ${specs.frequency_ghz} GHz\nP3dB: ${specs.p3db} dBm\nGain: ${specs.gain} dB\n\nComponents updated. Click "Calculate Lineup" to see results.`);
 }
 
