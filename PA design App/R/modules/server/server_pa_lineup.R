@@ -29,14 +29,17 @@ serverPaLineup <- function(input, output, session, state) {
     freq_val <- if (!is.null(input$spec_frequency))    input$spec_frequency    else 2000
     gain_val <- if (!is.null(input$spec_gain))         input$spec_gain         else 30
     vdd_val  <- if (!is.null(input$spec_supply_voltage)) input$spec_supply_voltage else 28
+    comp_pt  <- if (!is.null(input$spec_compression_point))
+                  as.integer(input$spec_compression_point) else 3L
 
     session$sendCustomMessage("syncLineupSpecs", list(
-      par       = par_val,
-      p3db      = p3db_val,
-      pavg      = p3db_val - par_val,
-      frequency_ghz = freq_val / 1000,
-      gain      = gain_val,
-      supply_voltage = vdd_val
+      par              = par_val,
+      p3db             = p3db_val,
+      pavg             = p3db_val - par_val,
+      frequency_ghz    = freq_val / 1000,
+      gain             = gain_val,
+      supply_voltage   = vdd_val,
+      compression_point = comp_pt   # P(X)dB compression definition
     ))
   })
 
@@ -1467,83 +1470,190 @@ serverPaLineup <- function(input, output, session, state) {
   
   # Dynamic Equations UI - renders tabs for multi-canvas layouts  
   output$pa_lineup_equations_dynamic <- renderUI({
-    layout <- input$canvas_layout
-    
-    if(is.null(layout) || layout == "1x1") {
-      # Single canvas mode - show single equations view
-      return(tagList(
-        wellPanel(
-          h4("PA Lineup Equations"),
-          HTML("
-            <h5>Power Cascade:</h5>
-            <p><b>P<sub>out,i</sub> (dBm)</b> = P<sub>in,i</sub> + G<sub>i</sub></p>
-            <p><b>P<sub>in,i+1</sub></b> = P<sub>out,i</sub></p>
-            
-            <h5>Total Gain:</h5>
-            <p><b>G<sub>total</sub> (dB)</b> = Σ G<sub>i</sub></p>
-            
-            <h5>Power Dissipation (per stage):</h5>
-            <p><b>P<sub>diss,i</sub> (W)</b> = P<sub>out,i</sub>(W) · (1/PAE<sub>i</sub> - 1)</p>
-            
-            <h5>DC Power (per stage):</h5>
-            <p><b>P<sub>DC,i</sub> (W)</b> = P<sub>out,i</sub>(W) / PAE<sub>i</sub></p>
-            
-            <h5>Total System PAE:</h5>
-            <p><b>PAE<sub>total</sub></b> = P<sub>out,final</sub> / Σ P<sub>DC,i</sub></p>
-            
-            <h5>Compression Check:</h5>
-            <p>For each stage: <b>P<sub>out,i</sub> ≤ P1dB<sub>i</sub></b></p>
-            <p>If P<sub>out,i</sub> > P1dB<sub>i</sub>: <span style='color:red;'>⚠ Compression Warning</span></p>
-            
-            <h5>For Doherty Architecture:</h5>
-            <p><b>Load Modulation:</b> Main PA operates at higher impedance at backoff</p>
-            <p><b>Auxiliary Turn-on:</b> Typically at 6dB backoff from P1dB</p>
-            <p><b>Combining Efficiency:</b> Accounts for impedance transformation losses</p>
-            
-            <h5>Thermal Calculations:</h5>
-            <p><b>Junction Temp:</b> T<sub>j</sub> = T<sub>a</sub> + P<sub>diss</sub> · R<sub>θja</sub></p>
-          ")
+    layout  <- input$canvas_layout
+    results <- lineup_calc_results()
+    cpt     <- as.integer(input$spec_compression_point %||% 3)
+    cpt_lbl <- paste0("P", cpt, "dB")
+
+    # ── Helper: build per-stage table rows ──────────────────────────────────
+    make_power_rows <- function(res) {
+      if (is.null(res) || !res$success || length(res$stage_results) == 0) return(NULL)
+      rows <- lapply(res$stage_results, function(s) {
+        tags$tr(
+          tags$td(s$stage %||% s$type, style="padding:3px 6px;"),
+          tags$td(sprintf("%.1f", s$pin_dbm  %||% NA), style="text-align:right;padding:3px 6px;"),
+          tags$td(sprintf("%.1f", s$pout_dbm %||% NA), style="text-align:right;padding:3px 6px;"),
+          tags$td(sprintf("%.1f", (s$pout_dbm %||% 0) - (s$pin_dbm %||% 0)),
+                  style="text-align:right;padding:3px 6px;"),
+          tags$td(if (!is.null(s$compressed) && isTRUE(s$compressed))
+                    tags$span("⚠ compressed", style="color:red;") else "\u2713",
+                  style="text-align:center;padding:3px 6px;")
+        )
+      })
+      tags$table(style="width:100%; border-collapse:collapse; font-size:12px;",
+        tags$thead(tags$tr(
+          lapply(c("Stage","Pin (dBm)","Pout (dBm)","Stage G (dB)","Status"),
+                 function(h) tags$th(h, style="text-align:left; border-bottom:1px solid #ccc; padding:3px 6px;"))
+        )),
+        tags$tbody(rows)
+      )
+    }
+
+    make_gain_rows <- function(res) {
+      if (is.null(res) || !res$success || length(res$stage_results) == 0) return(NULL)
+      xstrs <- lapply(res$stage_results, function(s) {
+        if (!is.null(s$type) && s$type == "transistor")
+          tags$tr(
+            tags$td(s$stage %||% "Stage", style="padding:3px 6px;"),
+            tags$td(sprintf("%.2f dB", s$gain_db %||% 0), style="text-align:right;padding:3px 6px;"),
+            tags$td(sprintf("%.1f dBm", s$pin_dbm  %||% 0), style="text-align:right;padding:3px 6px;"),
+            tags$td(sprintf("%.1f dBm", s$pout_dbm %||% 0), style="text-align:right;padding:3px 6px;")
+          )
+      })
+      tags$table(style="width:100%; border-collapse:collapse; font-size:12px;",
+        tags$thead(tags$tr(
+          lapply(c("Stage","Gain","Pin","Pout"),
+                 function(h) tags$th(h, style="text-align:left; border-bottom:1px solid #ccc; padding:3px 6px;"))
+        )),
+        tags$tbody(xstrs)
+      )
+    }
+
+    make_pae_rows <- function(res) {
+      if (is.null(res) || !res$success || length(res$stage_results) == 0) return(NULL)
+      rows <- lapply(res$stage_results, function(s) {
+        if (!is.null(s$type) && s$type == "transistor") {
+          pout_w <- if (!is.null(s$pout_w)) s$pout_w else
+                    tryCatch(10^((s$pout_dbm - 30)/10), error=function(e) NA)
+          tags$tr(
+            tags$td(s$stage %||% "Stage", style="padding:3px 6px;"),
+            tags$td(sprintf("%.1f%%", s$pae_pct %||% 0), style="text-align:right;padding:3px 6px;color:#27ae60;"),
+            tags$td(sprintf("%.3f W", s$pdc_w   %||% 0), style="text-align:right;padding:3px 6px;"),
+            tags$td(sprintf("%.3f W", s$pdiss_w %||% 0), style="text-align:right;padding:3px 6px;color:#e74c3c;")
+          )
+        }
+      })
+      tags$table(style="width:100%; border-collapse:collapse; font-size:12px;",
+        tags$thead(tags$tr(
+          lapply(c("Stage","PAE","P_DC (W)","P_diss (W)"),
+                 function(h) tags$th(h, style="text-align:left; border-bottom:1px solid #ccc; padding:3px 6px;"))
+        )),
+        tags$tbody(rows)
+      )
+    }
+
+    # ── Build 3-tab rationale panel ─────────────────────────────────────────
+    build_rationale_tabs <- function(res) {
+      tabsetPanel(
+        id = "eq_rationale_tabs",
+
+        # ── Tab 1: Power Cascade ──────────────────────────────────────────
+        tabPanel(title = tagList(icon("bolt"), " Power"),
+          br(),
+          wellPanel(
+            h5(icon("calculator"), " Power Cascade Formulas", style="color:#2196F3;"),
+            HTML(paste0("
+              <p><b>Operating Point:</b> Pout = ", cpt_lbl, " (user-selected compression reference)</p>
+              <p><b>Pavg</b> = ", cpt_lbl, " &minus; PAR</p>
+              <p><b>P<sub>out,i</sub></b> (dBm) = P<sub>in,i</sub> + G<sub>i</sub></p>
+              <p><b>Backoff power:</b> P<sub>backoff</sub> = ", cpt_lbl, " &minus; BO (dB)</p>
+              <p><b>Z<sub>opt</sub></b> = V<sub>dd</sub>&sup2; / (2 &times; P<sub>out</sub>)</p>
+              <p style='color:#888; font-size:11px;'>dBm &rarr; W : P(W) = 10<sup>((dBm&minus;30)/10)</sup></p>
+            "))
+          ),
+          if (!is.null(res) && res$success) {
+            tagList(
+              h5(icon("table"), " Per-Stage Power Results", style="color:#2196F3; margin-top:10px;"),
+              make_power_rows(res)
+            )
+          } else tags$em("Run Calculate to see per-stage results.", style="color:#888;")
         ),
-        hr(),
-        h4("Calculation Rationale:"),
-        verbatimTextOutput("lineup_rationale"),
+
+        # ── Tab 2: Gain ───────────────────────────────────────────────────
+        tabPanel(title = tagList(icon("signal"), " Gain"),
+          br(),
+          wellPanel(
+            h5(icon("calculator"), " Gain Calculation Formulas", style="color:#27ae60;"),
+            HTML("
+              <p><b>Stage Gain:</b> G<sub>i</sub> (dB) = P<sub>out,i</sub> &minus; P<sub>in,i</sub></p>
+              <p><b>Cascaded Gain:</b> G<sub>total</sub> = &sum; G<sub>i</sub> (all stages in dB)</p>
+              <p><b>Friis formula (noise figure):</b> NF<sub>total</sub> = NF<sub>1</sub> + (NF<sub>2</sub>&minus;1)/G<sub>1</sub> + ...</p>
+              <p><b>Available Gain:</b> G<sub>A</sub> = |S<sub>21</sub>|&sup2; when conjugate-matched</p>
+              <p style='color:#888; font-size:11px;'>Note: Gain rolls off ~20 dB/decade of frequency (fT limit).</p>
+            ")
+          ),
+          if (!is.null(res) && res$success) {
+            tagList(
+              div(style="background:#f5fff5; padding:8px 12px; border-radius:4px; margin-bottom:8px;",
+                strong("System Total Gain: "),
+                span(sprintf("%.2f dB", res$total_gain), style="color:#27ae60; font-size:15px; font-weight:bold;")
+              ),
+              h5(icon("table"), " Per-Stage Gain", style="color:#27ae60; margin-top:10px;"),
+              make_gain_rows(res)
+            )
+          } else tags$em("Run Calculate to see per-stage results.", style="color:#888;")
+        ),
+
+        # ── Tab 3: PAE ────────────────────────────────────────────────────
+        tabPanel(title = tagList(icon("leaf"), " PAE / Efficiency"),
+          br(),
+          wellPanel(
+            h5(icon("calculator"), " PAE & Efficiency Formulas", style="color:#e67e22;"),
+            HTML("
+              <p><b>PAE (per stage):</b> PAE<sub>i</sub> = (P<sub>out,i</sub> &minus; P<sub>in,i</sub>) / P<sub>DC,i</sub> &times; 100%</p>
+              <p><b>Drain efficiency:</b> &eta;<sub>D</sub> = P<sub>out</sub> / P<sub>DC</sub></p>
+              <p><b>DC Power:</b> P<sub>DC,i</sub> = P<sub>out,i</sub>(W) / PAE<sub>i</sub></p>
+              <p><b>Dissipated Power:</b> P<sub>diss,i</sub> = P<sub>DC,i</sub> &minus; P<sub>out,i</sub>(W)</p>
+              <p><b>System PAE:</b> PAE<sub>sys</sub> = P<sub>out,final</sub>(W) / &sum; P<sub>DC,i</sub>(W)</p>
+              <p><b>Backoff PAE approx.:</b> PAE<sub>BO</sub> &asymp; PAE<sub>P3dB</sub> &times; (P<sub>out</sub>/P<sub>3dB</sub>)<sup>0.6</sup></p>
+              <p style='color:#888; font-size:11px;'>Class-B ceiling: &eta;<sub>D</sub> = 78.5% &times; &radic;(P<sub>out</sub>/P<sub>sat</sub>).</p>
+            ")
+          ),
+          if (!is.null(res) && res$success) {
+            tagList(
+              fluidRow(
+                column(4, div(style="background:#f5fff5; padding:6px 10px; border-radius:4px;",
+                  strong("System PAE @ P3dB: "),
+                  span(sprintf("%.1f%%", res$system_pae), style="color:#27ae60; font-weight:bold;")
+                )),
+                column(4, div(style="background:#fff8f0; padding:6px 10px; border-radius:4px;",
+                  strong("System PAE @ Pavg: "),
+                  span(sprintf("%.1f%%", res$system_pae_bo), style="color:#e67e22; font-weight:bold;")
+                )),
+                column(4, div(style="background:#fff0f0; padding:6px 10px; border-radius:4px;",
+                  strong("Total P_diss: "),
+                  span(sprintf("%.2f W", res$total_pdiss), style="color:#e74c3c; font-weight:bold;")
+                ))
+              ),
+              br(),
+              h5(icon("table"), " Per-Stage PAE", style="color:#e67e22; margin-top:6px;"),
+              make_pae_rows(res)
+            )
+          } else tags$em("Run Calculate to see per-stage results.", style="color:#888;")
+        )
+      )
+    }
+
+    if (is.null(layout) || layout == "1x1") {
+      return(tagList(
+        build_rationale_tabs(results),
         hr(),
         textAreaInput("lineup_custom_notes", "Design Notes:", 
           placeholder = "Add your notes, justifications, or remarks here...",
           rows = 4)
       ))
     }
-    
-    # Multi-canvas mode - create tabs
+
+    # Multi-canvas mode
     canvas_count <- getCanvasCount(layout)
-    
     tab_panels <- lapply(1:canvas_count, function(i) {
-      tabPanel(
-        title = rv$canvas_names[i],
-        wellPanel(
-          h4(sprintf("%s - PA Lineup Equations", rv$canvas_names[i])),
-          HTML("
-            <h5>Power Cascade:</h5>
-            <p><b>P<sub>out,i</sub> (dBm)</b> = P<sub>in,i</sub> + G<sub>i</sub></p>
-            <p><b>P<sub>in,i+1</sub></b> = P<sub>out,i</sub></p>
-            
-            <h5>Total Gain:</h5>
-            <p><b>G<sub>total</sub> (dB)</b> = Σ G<sub>i</sub></p>
-            
-            <h5>DC Power (per stage):</h5>
-            <p><b>P<sub>DC,i</sub> (W)</b> = P<sub>out,i</sub>(W) / PAE<sub>i</sub></p>
-            
-            <h5>Total System PAE:</h5>
-            <p><b>PAE<sub>total</sub></b> = P<sub>out,final</sub> / Σ P<sub>DC,i</sub></p>
-          ")
-        ),
-        hr(),
-        h4("Calculation Rationale:"),
-        verbatimTextOutput(paste0("lineup_rationale_", i))
+      canvas_key <- paste0("canvas_", i - 1)
+      cv_res     <- canvas_data[[canvas_key]]$results
+      tabPanel(title = rv$canvas_names[i],
+        build_rationale_tabs(cv_res)
       )
     })
-    
-    do.call(tabsetPanel, c(list(id = "equations_tabs"), tab_panels))
+    do.call(tabsetPanel, c(list(id = "equations_canvas_tabs"), tab_panels))
   })
   
   # Dynamic render outputs for multi-canvas tables and rationale

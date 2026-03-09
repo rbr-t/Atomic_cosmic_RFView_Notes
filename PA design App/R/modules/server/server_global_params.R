@@ -82,21 +82,24 @@ serverGlobalParams <- function(input, output, session, state) {
   output$spec_pavg_display <- renderText({
     p3db <- input$spec_p3db %||% 46
     par  <- input$spec_par  %||% 8
-    sprintf("%.1f dBm", p3db - par)
+    cpt  <- as.integer(input$spec_compression_point %||% 3)
+    sprintf("%.1f dBm   [= P%ddB \u2212 PAR]", p3db - par, cpt)
   })
 
   # Pin display inside Lineup Specifications panel
   output$spec_pin_display <- renderText({
     p3db <- input$spec_p3db  %||% 46
     gain <- input$spec_gain  %||% 40
-    sprintf("%.1f dBm", p3db - gain)
+    cpt  <- as.integer(input$spec_compression_point %||% 3)
+    sprintf("%.1f dBm   [= P%ddB \u2212 Gain]", p3db - gain, cpt)
   })
 
   # ── Keep Global Lineup Parameters in sync with Lineup Specifications ─────────
   # When spec_p3db / spec_par / spec_gain / spec_frequency change, mirror the
   # values into the Global Lineup Parameters panel so both panels are consistent.
   observeEvent(
-    list(input$spec_p3db, input$spec_par, input$spec_gain, input$spec_frequency),
+    list(input$spec_p3db, input$spec_par, input$spec_gain, input$spec_frequency,
+         input$spec_compression_point),
     {
       req(input$spec_p3db, input$spec_par)
       updateNumericInput(session, "global_pout_p3db", value = input$spec_p3db)
@@ -105,6 +108,9 @@ serverGlobalParams <- function(input, output, session, state) {
       if (!is.null(input$spec_frequency))
         updateNumericInput(session, "global_frequency",
                            value = round(input$spec_frequency / 1000, 4))
+      if (!is.null(input$spec_compression_point))
+        updateSelectInput(session, "global_compression_point",
+                          selected = input$spec_compression_point)
     },
     ignoreInit = TRUE
   )

@@ -4785,8 +4785,8 @@ class PALineupCanvas {
       { label: '', formula: '' },
       { label: 'Optimal Impedance:', formula: 'Z_opt = V_dd² / (2 · P_out)' },
       { label: '', formula: '' },
-      { label: 'Backoff Power:', formula: 'P_backoff = P_1dB - BO(dB)' },
-      { label: '', formula: 'BO(dB) = 10·log₁₀(P_1dB / P_backoff)' },
+      { label: 'Backoff Power:', formula: 'P_backoff (dBm) = P_3dB (dBm) − BO (dB)' },
+      { label: '', formula: 'BO (dB) = P_3dB − P_backoff   [linear subtraction]' },
       { label: '', formula: '' },
       { label: 'Power Added Efficiency:', formula: 'PAE = (P_out - P_in) / P_DC × 100%' },
       { label: '', formula: 'P_DC = V_dd · I_dd' },
@@ -5267,18 +5267,25 @@ class PALineupCanvas {
   }
   
   formatPower(power_dbm, unit) {
-    // Convert dBm to Watts
-    const power_w = Math.pow(10, power_dbm / 10) / 1000;
-    
+    // Guard against null / undefined / NaN
+    const v = parseFloat(power_dbm);
+    if (!isFinite(v)) return '—';
+
+    // dBm → Watts:  P(W) = 10^((P(dBm)−30)/10)
+    const power_w = Math.pow(10, (v - 30) / 10);
+
+    // Smart W/mW/µW scaling
+    const fmtW = (w) => {
+      if (w >= 1)       return `${w.toFixed(2)} W`;
+      if (w >= 0.001)   return `${(w * 1000).toFixed(1)} mW`;
+      return `${(w * 1e6).toFixed(0)} µW`;
+    };
+
     switch (unit) {
-      case 'dBm':
-        return `${power_dbm.toFixed(1)} dBm`;
-      case 'W':
-        return `${power_w.toFixed(3)} W`;
-      case 'both':
-        return `${power_dbm.toFixed(1)} dBm (${power_w.toFixed(3)} W)`;
-      default:
-        return `${power_dbm.toFixed(1)} dBm`;
+      case 'dBm': return `${v.toFixed(1)} dBm`;
+      case 'W':   return fmtW(power_w);
+      case 'both': return `${v.toFixed(1)} dBm (${fmtW(power_w)})`;
+      default:    return `${v.toFixed(1)} dBm`;
     }
   }
   
@@ -5298,14 +5305,17 @@ class PALineupCanvas {
     }
     
     // If R has already computed and synced pout_p3db, use it directly (source of truth)
-    if (props.pout_p3db !== undefined && props.pout_p3db !== null) {
-      pout_dbm = parseFloat(props.pout_p3db);
+    // Guard: skip R-synced value if it parsed to NaN (e.g., R returned "NaN" string)
+    const rPout = parseFloat(props.pout_p3db);
+    if (props.pout_p3db !== undefined && props.pout_p3db !== null && isFinite(rPout)) {
+      pout_dbm = rPout;
       // For P1dB: must be AT MOST equal to pout (P1dB ≤ Pout — compression point is at or below operating Pout)
       const rawP1dB = props.p1db ?? props.pout ?? 40;
       p1db_dbm = Math.min(parseFloat(rawP1dB), pout_dbm);
       // Backoff from R-synced values
-      if (props.pout_pavg !== undefined && props.pout_pavg !== null) {
-        power_bo_dbm = parseFloat(props.pout_pavg);
+      const rPavg = parseFloat(props.pout_pavg);
+      if (props.pout_pavg !== undefined && props.pout_pavg !== null && isFinite(rPavg)) {
+        power_bo_dbm = rPavg;
         backoff_db   = pout_dbm - power_bo_dbm;
       } else {
         const par = window.currentLineupSpecs ? (window.currentLineupSpecs.par || 8) : 8;

@@ -972,7 +972,17 @@ $(document).ready(function() {
                     br(),
                     p(style = "font-size:11px; font-weight:bold; color:var(--tx-med); text-transform:uppercase;",
                       "Saved Devices:"),
-                    uiOutput("grd_saved_devices_list")
+                    uiOutput("grd_saved_devices_list"),
+                    br(),
+                    div(style = "border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;",
+                      p(style = "font-size:11px; font-weight:bold; color:#00ccff; text-transform:uppercase; margin-bottom:4px;",
+                        icon("chart-line"), " Overlay on Plots:"),
+                      uiOutput("grd_device_lib_select_ui"),
+                      fluidRow(
+                        column(6, actionLink("grd_lib_select_all", "Select all", style = "font-size:11px;")),
+                        column(6, actionLink("grd_lib_select_none", "Clear", style = "font-size:11px; float:right;"))
+                      )
+                    )
                   )
                 ),
 
@@ -1554,18 +1564,31 @@ $(document).ready(function() {
                           column(6,
                             div(class = "input-highlight",
                               numericInput("spec_p3db",
-                                tags$strong("⚡ P3dB (dBm)", style = "color:#ff851b;"),
+                                tags$strong("⚡ Pout (dBm)", style = "color:#ff851b;"),
                                 value = 55.3, min = 0, max = 80, step = 0.1)
                             )
                           ),
+                          column(6,
+                            div(class = "input-highlight",
+                              selectInput("spec_compression_point",
+                                tags$strong("⚡ Pout = P(X)dB", style = "color:#ff851b;"),
+                                choices = c("P1dB" = 1, "P2dB" = 2, "P3dB" = 3, "P5dB" = 5),
+                                selected = 3, width = "100%")
+                            )
+                          )
+                        ),
+                        div(style = "background:rgba(255,183,77,.10); border-left:3px solid #ff851b; padding:5px 8px; border-radius:3px; margin-bottom:8px; font-size:11px; color:var(--tx-med);",
+                          icon("info-circle"), " Pout is the output power at the selected compression point. ",
+                          tags$em("All cascade calculations use this as the operating Pout.")
+                        ),
+                        fluidRow(
                           column(6,
                             div(class = "input-highlight",
                               numericInput("spec_par",
                                 tags$strong("⚡ PAR / BO (dB)", style = "color:#ff851b;"),
                                 value = 8.0, min = 0, max = 20, step = 0.1)
                             )
-                          )
-                        ),
+                          ),
                         # Derived row
                         fluidRow(
                           column(6,
@@ -1741,15 +1764,22 @@ $(document).ready(function() {
                           value = 2.6, min = 0.1, max = 100, step = 0.1)
                       ),
                       column(6,
-                        numericInput("global_pout_p3db", tags$strong("Pout (P3dB) (dBm)"), 
+                        numericInput("global_pout_p3db", tags$strong("Pout (dBm)"), 
                           value = 55.3, min = 0, max = 80, step = 0.1)
                       )
                     ),
                     fluidRow(
                       column(6,
+                        selectInput("global_compression_point", "Pout = P(X)dB",
+                          choices = c("P1dB" = 1, "P2dB" = 2, "P3dB" = 3, "P5dB" = 5),
+                          selected = 3, width = "100%")
+                      ),
+                      column(6,
                         numericInput("global_backoff", "Back-off (dB)", 
                           value = 6, min = 0, max = 20, step = 0.5)
-                      ),
+                      )
+                    ),
+                    fluidRow(
                       column(6,
                         numericInput("global_PAR", "PAR (dB)", 
                           value = 8, min = 0, max = 15, step = 0.5)

@@ -35,6 +35,57 @@ serverGuardrails <- function(input, output, session, state) {
     }
   })
 
+  # ── Reactive: all saved devices (re-fetched on save) ────────────
+  all_lib_devices <- reactive({
+    input$grd_save_device  # invalidate after a save
+    loadDevicePortfolio("device_portfolio")
+  })
+
+  # ── Device names vector ─────────────────────────────────────────
+  lib_device_names <- reactive({
+    devs <- all_lib_devices()
+    sapply(devs, function(d) d$name %||% d$label %||% "Saved")
+  })
+
+  # ── Render the multi-select dropdown ──────────────────────────────
+  output$grd_device_lib_select_ui <- renderUI({
+    nms <- lib_device_names()
+    if (length(nms) == 0) {
+      return(tags$p(style = "font-size:11px; color:#888; font-style:italic;",
+                    "No saved devices yet."))
+    }
+    choices <- setNames(seq_along(nms), nms)
+    selectInput("grd_lib_overlay_sel",
+      label    = NULL,
+      choices  = choices,
+      selected = NULL,      # none selected by default
+      multiple = TRUE,
+      selectize = TRUE,
+      width    = "100%"
+    )
+  })
+
+  # Select-all / clear observers
+  observeEvent(input$grd_lib_select_all, {
+    nms <- lib_device_names()
+    if (length(nms) == 0) return()
+    updateSelectInput(session, "grd_lib_overlay_sel",
+                      selected = as.character(seq_along(nms)))
+  })
+  observeEvent(input$grd_lib_select_none, {
+    updateSelectInput(session, "grd_lib_overlay_sel", selected = character(0))
+  })
+
+  # ── Helper: return only selected devices ─────────────────────────
+  selected_lib_devices <- reactive({
+    devs <- all_lib_devices()
+    sel  <- input$grd_lib_overlay_sel
+    if (is.null(sel) || length(sel) == 0) return(list())
+    idx  <- as.integer(sel)
+    idx  <- idx[idx >= 1 & idx <= length(devs)]
+    devs[idx]
+  })
+
   # ── Load guardrails once at module init ──────────────────────
   guardrails <- tryCatch(
     loadGuardrails("../config/technology_guardrails.yaml"),
@@ -170,8 +221,8 @@ serverGuardrails <- function(input, output, session, state) {
                     line = list(color = "white", width = 1.5))
     )
 
-    # ── Device Library overlay (saved devices shown as ◆ markers) ───────────
-    lib_devices <- loadDevicePortfolio("device_portfolio")
+    # ── Device Library overlay (only selected devices shown as ◆ markers) ───
+    lib_devices <- selected_lib_devices()
     for (dev in lib_devices) {
       d_freq  <- dev$frequency_ghz %||% dev$frequency %||% dev$freq_ghz %||% 3.5
       d_pout  <- dev$pout_dbm  %||% dev$pout   %||% 43
@@ -304,7 +355,7 @@ serverGuardrails <- function(input, output, session, state) {
       hoverinfo = "text")
 
     # ── Device Library overlay ───────────────────────────────────────────────
-    lib_devices <- loadDevicePortfolio("device_portfolio")
+    lib_devices <- selected_lib_devices()
     for (dev in lib_devices) {
       d_freq  <- dev$frequency_ghz %||% dev$frequency %||% dev$freq_ghz %||% 3.5
       d_gain  <- dev$gain_db  %||% dev$gain  %||% 15
@@ -430,7 +481,7 @@ serverGuardrails <- function(input, output, session, state) {
       )
 
     # ── Device Library overlay ───────────────────────────────────────────────
-    lib_devices <- loadDevicePortfolio("device_portfolio")
+    lib_devices <- selected_lib_devices()
     for (dev in lib_devices) {
       d_pae   <- dev$pae_pct    %||% dev$pae      %||% 50
       d_bo    <- dev$backoff_db %||% dev$bo_db     %||% dev$par_db %||% 8
