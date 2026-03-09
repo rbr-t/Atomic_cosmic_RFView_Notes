@@ -1474,6 +1474,9 @@ serverPaLineup <- function(input, output, session, state) {
       formatStyle(9:13, backgroundColor = '#fff8f0') %>%     # Light orange for backoff
       formatStyle(14:15, backgroundColor = '#f0fff0')        # Light green for gain columns
   })
+
+  # Ensure table is rendered even when hidden inside a tab
+  outputOptions(output, "pa_lineup_table", suspendWhenHidden = FALSE)
   
   # Dynamic Tables UI - renders tabs for multi-canvas layouts
   output$pa_lineup_tables_dynamic <- renderUI({
