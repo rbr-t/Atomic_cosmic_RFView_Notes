@@ -165,7 +165,13 @@ class PALineupCanvas {
     this.impedanceColumns = [];
     this.impedanceUnit = 'rectangular'; // 'rectangular' (50+j10), 'polar' (51∠11°), or 'vswr'
     this.impedanceMode = 'full'; // 'full' or 'backoff' - NEW: show full power or backoff impedance
-    
+
+    // Gain display
+    this.showGainDisplay = false;
+
+    // PAE display
+    this.showPAEDisplay = false;
+
     // Calculation rationale display
     this.showCalculationRationale = false;
     
@@ -215,16 +221,20 @@ class PALineupCanvas {
     this.centralLineLayer = this.svg.append('g').attr('class', 'central-line-layer');
     this.powerLayer = this.svg.append('g').attr('class', 'power-layer');
     this.impedanceLayer = this.svg.append('g').attr('class', 'impedance-layer');
+    this.gainLayer = this.svg.append('g').attr('class', 'gain-layer');
+    this.paeLayer  = this.svg.append('g').attr('class', 'pae-layer');
     this.calculationRationaleLayer = this.svg.append('g').attr('class', 'calculation-rationale-layer');
     this.connectionsLayer = this.svg.append('g').attr('class', 'connections-layer');
     this.componentsLayer = this.svg.append('g').attr('class', 'components-layer');
-    
+
     // Create zoom group that contains all drawable layers
     this.zoomGroup = this.svg.insert('g', ':first-child').attr('class', 'zoom-group');
     this.zoomGroup.node().appendChild(this.gridLayer.node());
     this.zoomGroup.node().appendChild(this.centralLineLayer.node());
     this.zoomGroup.node().appendChild(this.powerLayer.node());
     this.zoomGroup.node().appendChild(this.impedanceLayer.node());
+    this.zoomGroup.node().appendChild(this.gainLayer.node());
+    this.zoomGroup.node().appendChild(this.paeLayer.node());
     this.zoomGroup.node().appendChild(this.calculationRationaleLayer.node());
     this.zoomGroup.node().appendChild(this.connectionsLayer.node());
     this.zoomGroup.node().appendChild(this.componentsLayer.node());
@@ -4554,6 +4564,8 @@ class PALineupCanvas {
     if (this.showPowerDisplay) {
       this.drawPowerColumns();
       if (this.showImpedanceDisplay) this.drawImpedanceColumns();
+      if (this.showGainDisplay)      this.drawGainColumns();
+      if (this.showPAEDisplay)       this.drawPAEColumns();
       console.log('Power display enabled');
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -4569,6 +4581,8 @@ class PALineupCanvas {
         this.powerLayer.selectAll('*').remove();
       }
       if (this.showImpedanceDisplay) this.drawImpedanceColumns();
+      if (this.showGainDisplay)      this.drawGainColumns();
+      if (this.showPAEDisplay)       this.drawPAEColumns();
       console.log('Power display disabled');
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -4618,6 +4632,42 @@ class PALineupCanvas {
         });
       }
     }
+  }
+
+  toggleGainDisplay() {
+    this.showGainDisplay = !this.showGainDisplay;
+    const btn = document.getElementById('gain_display_toggle');
+    if (btn) {
+      btn.style.backgroundColor = this.showGainDisplay ? '#28a745' : '';
+      btn.style.color = this.showGainDisplay ? '#fff' : '';
+    }
+    if (this.showGainDisplay) {
+      this.drawGainColumns();
+    } else {
+      if (this.gainLayer) this.gainLayer.selectAll('*').remove();
+    }
+    // Redraw co-active layers so slots re-pack correctly
+    if (this.showPowerDisplay)     this.drawPowerColumns();
+    if (this.showImpedanceDisplay) this.drawImpedanceColumns();
+    if (this.showPAEDisplay)       this.drawPAEColumns();
+  }
+
+  togglePAEDisplay() {
+    this.showPAEDisplay = !this.showPAEDisplay;
+    const btn = document.getElementById('pae_display_toggle');
+    if (btn) {
+      btn.style.backgroundColor = this.showPAEDisplay ? '#28a745' : '';
+      btn.style.color = this.showPAEDisplay ? '#fff' : '';
+    }
+    if (this.showPAEDisplay) {
+      this.drawPAEColumns();
+    } else {
+      if (this.paeLayer) this.paeLayer.selectAll('*').remove();
+    }
+    // Redraw co-active layers so slots re-pack correctly
+    if (this.showPowerDisplay)     this.drawPowerColumns();
+    if (this.showImpedanceDisplay) this.drawImpedanceColumns();
+    if (this.showGainDisplay)      this.drawGainColumns();
   }
   
   calculateOptimalImpedance(component, powerLevelDbm) {
@@ -4856,7 +4906,9 @@ class PALineupCanvas {
         backoffPower = null;
       }
 
-      // ── Target zone: main side → above component, aux side → below ────────
+      // Point 12: flag when both ports are at reference 50Ω (matched assumption)
+      const isMatched = Math.abs(zFullPower - 50) < 0.5 &&
+                        (comp.type === 'transistor' || Math.abs(zBackoff - 50) < 0.5);
       const ri = rows.findIndex(r => Math.abs(r - comp.y) < 60);
       const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
       const isMainSide = comp.y <= midY;
@@ -4879,10 +4931,9 @@ class PALineupCanvas {
         }
       }
 
-      // Zone — impedance takes bottom half when power display also active
+      // Zone — impedance uses its dedicated slot (slot 3 = bottom position)
       const { topY: zTop, botY: zBot } = rowZone(targetRi);
-      const topY  = this.showPowerDisplay ? (zTop + zBot) / 2 : zTop;
-      const botY  = zBot;
+      const { topY, botY } = this._getDisplaySlotBounds(zTop, zBot, 3);  // slot 3 = Impedance
       const cellH = Math.max(30, botY - topY);
 
       const BOX_W  = 2 * HC - 2 * PAD;  // 112 px — fills 120 px column
@@ -4917,12 +4968,13 @@ class PALineupCanvas {
 
       const titleText = comp.type === 'transistor' ? 'Z_opt' :
                         comp.type === 'termination' ? 'Z_load' : 'Z_match';
+      const titleColor = isMatched ? '#00e5ff' : '#ff7f11';
 
-      // Background
+      // Background — border turns cyan when matched (50Ω assumption confirmed)
       infoGroup.append('rect')
         .attr('x', 0).attr('y', 0)
         .attr('width', BOX_W).attr('height', BOX_H)
-        .attr('fill', '#1a2838').attr('stroke', '#ff7f11')
+        .attr('fill', '#1a2838').attr('stroke', titleColor)
         .attr('stroke-width', 1).attr('rx', 3);
 
       // Title
@@ -4930,7 +4982,7 @@ class PALineupCanvas {
         .attr('x', BOX_W / 2).attr('y', titleH)
         .attr('text-anchor', 'middle').attr('fill', '#fff')
         .attr('font-size', `${titleH}px`).attr('font-weight', 'bold')
-        .text(titleText);
+        .text(isMatched ? `${titleText} ✓` : titleText);
 
       let yo = titleH + lineH;  // full line-height gap after title
 
@@ -4953,6 +5005,11 @@ class PALineupCanvas {
         infoGroup.append('text').attr('x', PAD).attr('y', yo)
           .attr('fill', '#aaa').attr('font-size', `${Math.max(8, lineH - 2)}px`)
           .text(`(${p1dbValue.toFixed(1)} / ${backoffPower.toFixed(1)} dBm)`);
+      } else if (isMatched) {
+        // Point 12: explicit confirmation that port matching assumption holds
+        infoGroup.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#00e5ff').attr('font-size', `${Math.max(8, lineH - 2)}px`)
+          .text('matched (50\u03a9)');
       } else {
         infoGroup.append('text').attr('x', PAD).attr('y', yo)
           .attr('fill', '#aaa').attr('font-size', `${Math.max(8, lineH - 2)}px`)
@@ -4962,7 +5019,75 @@ class PALineupCanvas {
 
     console.log('Impedance columns drawn for', componentsWithImpedance.length, 'components');
   }
-  
+
+  /**
+   * Topology-aware component ordering using Kahn's BFS topological sort.
+   * Falls back to left-to-right X-position sort when no connections exist.
+   * This enables blank-canvas builds (point 14): components connected manually
+   * by the user are traversed in signal-flow order, not visual position order.
+   */
+  _topoSortComponents() {
+    const comps = this.components;
+    if (!comps.length) return [];
+    if (!this.connections || !this.connections.length) {
+      // No wires drawn yet — fall back to X-position order
+      return [...comps].sort((a, b) => a.x - b.x);
+    }
+
+    // Build adjacency: edges go from comp.id → successor comp.id
+    const inDegree = new Map();
+    const outEdges = new Map();
+    comps.forEach(c => { inDegree.set(c.id, 0); outEdges.set(c.id, []); });
+
+    this.connections.forEach(conn => {
+      const fromId = String(conn.from);
+      const toId   = String(conn.to);
+      if (outEdges.has(fromId) && inDegree.has(toId)) {
+        outEdges.get(fromId).push(toId);
+        inDegree.set(toId, inDegree.get(toId) + 1);
+      }
+    });
+
+    // Kahn's BFS — stable (X-sorted) when in-degree ties exist
+    const compById = new Map(comps.map(c => [String(c.id), c]));
+    const queue = comps
+      .filter(c => inDegree.get(c.id) === 0)
+      .sort((a, b) => a.x - b.x)
+      .map(c => String(c.id));
+
+    const result = [];
+    while (queue.length) {
+      const id = queue.shift();
+      const comp = compById.get(id);
+      if (comp) result.push(comp);
+      (outEdges.get(id) || []).forEach(nextId => {
+        inDegree.set(nextId, inDegree.get(nextId) - 1);
+        if (inDegree.get(nextId) === 0) {
+          // Insert into queue in X-sorted position
+          const nextComp = compById.get(nextId);
+          let inserted = false;
+          for (let i = 0; i < queue.length; i++) {
+            if ((compById.get(queue[i])?.x || 0) > (nextComp?.x || 0)) {
+              queue.splice(i, 0, nextId);
+              inserted = true;
+              break;
+            }
+          }
+          if (!inserted) queue.push(nextId);
+        }
+      });
+    }
+
+    // Append any remaining (disconnected) components in X order
+    const resultIds = new Set(result.map(c => String(c.id)));
+    comps
+      .filter(c => !resultIds.has(String(c.id)))
+      .sort((a, b) => a.x - b.x)
+      .forEach(c => result.push(c));
+
+    return result;
+  }
+
   drawPowerColumns() {
     if (!this.showPowerDisplay) return;
 
@@ -5029,7 +5154,9 @@ class PALineupCanvas {
     });
 
     // ── Per-component power info boxes ───────────────────────────────────────
-    const sorted = [...this.components].sort((a, b) => a.x - b.x);
+    // Use topology-aware ordering: connection-traversal order when wires exist,
+    // otherwise fall back to X-position order (supports blank-canvas builds)
+    const sorted = this._topoSortComponents();
     let currentPower = 0;
 
     sorted.forEach((comp, index) => {
@@ -5060,10 +5187,9 @@ class PALineupCanvas {
         }
       }
 
-      // Cell bounds — power takes top half when impedance display also active
+      // Cell bounds — power box occupies its dedicated slot within the zone
       const { topY: zTop, botY: zBot } = rowZone(targetRi);
-      const topY = zTop;
-      const botY = this.showImpedanceDisplay ? (zTop + zBot) / 2 : zBot;
+      const { topY, botY } = this._getDisplaySlotBounds(zTop, zBot, 0);  // slot 0 = Power
       const cellH = Math.max(30, botY - topY);
 
       // Box sized to fill the 120 px column cell
@@ -5160,33 +5286,55 @@ class PALineupCanvas {
     const props = component.properties;
     let pin_dbm, pout_dbm, p1db_dbm, backoff_db, power_bo_dbm;
     
-    // Get input power
+    // Get input power — prefer R-synced values when available
     if (isFirst) {
-      // First component: use specified input power or default
-      pin_dbm = props.pin || 0;
+      // First component: use R-synced pin_p3db if set, else spec pin, else 0
+      pin_dbm = props.pin_p3db ?? props.pin ?? (window.currentLineupSpecs
+        ? (window.currentLineupSpecs.p3db - (window.currentLineupSpecs.gain || 30))
+        : 0);
     } else {
-      // Subsequent components: input is previous output
-      pin_dbm = previousPout;
+      // Subsequent components: use R-synced input if set, else carry previous output
+      pin_dbm = props.pin_p3db ?? previousPout;
     }
     
-    // Calculate output power based on component type
+    // If R has already computed and synced pout_p3db, use it directly (source of truth)
+    if (props.pout_p3db !== undefined && props.pout_p3db !== null) {
+      pout_dbm = parseFloat(props.pout_p3db);
+      // For P1dB: must be AT LEAST equal to pout (P1dB ≥ Pout at operating point)
+      const rawP1dB = props.p1db ?? props.pout ?? 40;
+      p1db_dbm = Math.max(parseFloat(rawP1dB), pout_dbm);
+      // Backoff from R-synced values
+      if (props.pout_pavg !== undefined && props.pout_pavg !== null) {
+        power_bo_dbm = parseFloat(props.pout_pavg);
+        backoff_db   = pout_dbm - power_bo_dbm;
+      } else {
+        const par = window.currentLineupSpecs ? (window.currentLineupSpecs.par || 8) : 8;
+        backoff_db   = par;
+        power_bo_dbm = pout_dbm - backoff_db;
+      }
+      return { pin_dbm, pout_dbm, p1db_dbm, backoff_db, power_bo_dbm };
+    }
+    
+    // Calculate output power based on component type (fallback when R hasn't synced yet)
     switch (component.type) {
       case 'transistor':
         const gain = props.gain || 10;
         pout_dbm = pin_dbm + gain;
-        p1db_dbm = props.pout || 40; // P1dB from properties
+        // P1dB: must be >= operating Pout (device headroom).  Use explicit p1db property
+        // if set; fall back to pout + 2 (2 dB headroom above operating point)
+        const rawP1dB = props.p1db ?? (pout_dbm + 2);
+        p1db_dbm = Math.max(parseFloat(rawP1dB), pout_dbm);
         
-        // Get back-off value from properties or calculate from PAPR
+        // Back-off power
+        const par = window.currentLineupSpecs ? (window.currentLineupSpecs.par || 8) : 8;
         if (props.backoff_db !== undefined) {
           backoff_db = props.backoff_db;
         } else if (props.papr_db !== undefined) {
-          backoff_db = props.papr_db; // PAPR = back-off for this calculation
+          backoff_db = props.papr_db;
         } else {
-          backoff_db = p1db_dbm - pout_dbm; // Default: back-off from P1dB
+          backoff_db = par;
         }
-        
-        // Calculate power at back-off
-        power_bo_dbm = p1db_dbm - backoff_db;
+        power_bo_dbm = pout_dbm - backoff_db;
         break;
         
       case 'matching':
@@ -5199,55 +5347,74 @@ class PALineupCanvas {
         pout_dbm = pin_dbm - split_loss;
         break;
         
-      case 'combiner':
-        const combine_loss = props.loss || 0.5;
-        
-        /// Check if this is a Doherty combiner with two separate inputs
-        if (props.type === 'doherty' || props.label?.toLowerCase().includes('doherty')) {
-          // For Doherty, we need to combine powers from Main and Aux PAs
-          // Find the input connections
-          const inputConns = this.connections.filter(conn => conn.to === component.id);
-          
-          if (inputConns.length === 2) {
-            // Get both input components (Main and Aux PAs)
-            const input1Comp = this.components.find(c => c.id === inputConns[0].from);
-            const input2Comp = this.components.find(c => c.id === inputConns[1].from);
-            
-            if (input1Comp && input2Comp) {
-              // Get output powers from both input components
-              const p1_dbm = input1Comp.properties.pout || input1Comp.properties.p3db || 40;
-              const p2_dbm = input2Comp.properties.pout || input2Comp.properties.p3db || 40;
-              
-              // Convert dBm to watts
-              const p1_watts = Math.pow(10, (p1_dbm - 30) / 10);
-              const p2_watts = Math.pow(10, (p2_dbm - 30) / 10);
-              
-              // Combine in watts domain
-              const combined_watts = p1_watts + p2_watts;
-              
-              // Convert back to dBm
-              const combined_dbm = 10 * Math.log10(combined_watts) + 30;
-              
-              // Subtract combiner loss
-              pout_dbm = combined_dbm - combine_loss;
-              
-              console.log(`[Doherty Combiner] Main=${p1_dbm.toFixed(1)}dBm (${p1_watts.toFixed(1)}W) + Aux=${p2_dbm.toFixed(1)}dBm (${p2_watts.toFixed(1)}W) = ${combined_dbm.toFixed(1)}dBm (${combined_watts.toFixed(1)}W) - Loss ${combine_loss}dB = ${pout_dbm.toFixed(1)}dBm`);
-            } else {
-              // Fallback to standard combining if components not found
-              const ways = props.ways || 2;
-              pout_dbm = pin_dbm + 10 * Math.log10(ways) - combine_loss;
-            }
-          } else {
-            // Fallback to standard combining if not 2 inputs
-            const ways = props.ways || 2;
-            pout_dbm = pin_dbm + 10 * Math.log10(ways) - combine_loss;
+      case 'combiner': {
+        const combine_loss = props.loss || 0.3;
+
+        // ── Recursive helper: follow connections backwards through passives ──
+        // Returns the true RF output power (dBm) at the output port of `comp`,
+        // propagating losses through matching/splitter stages until a transistor
+        // (or source node) is reached.
+        const traceOutputPower = (comp, _visited = new Set()) => {
+          if (!comp || _visited.has(comp.id)) return 40; // cycle guard / missing
+          _visited.add(comp.id);
+
+          if (comp.type === 'transistor') {
+            // Prefer JS dual-op values set by applySpecsToComponents; else legacy fields
+            return comp.properties.pout_p3db
+              ?? comp.properties.pout
+              ?? comp.properties.p1db
+              ?? 40;
           }
+
+          // Passive component — find its single predecessor and subtract its loss
+          const predConn = this.connections.find(c => c.to === comp.id);
+          if (!predConn) {
+            // Source-node passive (unusual) — use stored pout if any, else chain value
+            return comp.properties.pout ?? comp.properties.p3db ?? pin_dbm;
+          }
+          const pred = this.components.find(c => c.id === predConn.from);
+          const predPout = traceOutputPower(pred, _visited);
+
+          if (comp.type === 'matching') {
+            return predPout - (comp.properties.loss ?? 0.5);
+          }
+          if (comp.type === 'splitter') {
+            const nWays = Math.max(this.connections.filter(c => c.from === comp.id).length, 2);
+            return predPout - 10 * Math.log10(nWays) - (comp.properties.loss ?? 0.3);
+          }
+          // Unknown passive — pass through
+          return predPout - (comp.properties.loss ?? 0);
+        };
+
+        // ── Find all wires connected into this combiner ───────────────────
+        const inputConns = this.connections.filter(c => c.to === component.id);
+
+        if (inputConns.length >= 2) {
+          // Sum all predecessor outputs (traced back through passives) in watts
+          let totalWatts = 0;
+          inputConns.forEach(conn => {
+            const predComp = this.components.find(c => c.id === conn.from);
+            const p_dbm = traceOutputPower(predComp);
+            totalWatts += Math.pow(10, (p_dbm - 30) / 10);
+            console.log(`[Combiner] input from ${predComp?.properties?.label ?? conn.from}: ${p_dbm.toFixed(2)} dBm`);
+          });
+          pin_dbm  = totalWatts > 0 ? 10 * Math.log10(totalWatts) + 30 : pin_dbm;
+          pout_dbm = pin_dbm - combine_loss;
+          console.log(`[Combiner] ${inputConns.length}-way sum → combined_in=${pin_dbm.toFixed(2)} dBm, pout=${pout_dbm.toFixed(2)} dBm`);
+
+        } else if (inputConns.length === 1) {
+          // Single-wire input (degenerate combiner) — just trace and subtract loss
+          const predComp = this.components.find(c => c.id === inputConns[0].from);
+          pin_dbm  = traceOutputPower(predComp);
+          pout_dbm = pin_dbm - combine_loss;
+
         } else {
-          // Standard combiner: adds power (assuming N-way combiner)
+          // No connections — assume N equal inputs from the linear chain value
           const ways = props.ways || 2;
           pout_dbm = pin_dbm + 10 * Math.log10(ways) - combine_loss;
         }
         break;
+      }
         
       default:
         pout_dbm = pin_dbm;
@@ -5261,7 +5428,257 @@ class PALineupCanvas {
       power_bo_dbm
     };
   }
-  
+
+  // ── Slot-aware zone helper ───────────────────────────────────────────────
+  // Divides each row-zone cell into 4 vertical slots when multiple displays
+  // are active simultaneously, preventing overlap.
+  // Slot layout (top → bottom within the cell):
+  //   0 = Power   (top quarter)
+  //   1 = Gain    (second quarter)
+  //   2 = PAE     (third quarter)
+  //   3 = Impedance (bottom quarter)
+  _getDisplaySlotBounds(topY, botY, slotIndex) {
+    const nActiveSlots = [
+      this.showPowerDisplay,
+      this.showGainDisplay,
+      this.showPAEDisplay,
+      this.showImpedanceDisplay
+    ].filter(Boolean).length || 1;
+    const slotH = (botY - topY) / nActiveSlots;
+    // Determine which position this slot takes among active ones
+    const activeOrder = [];
+    if (this.showPowerDisplay)     activeOrder.push(0);
+    if (this.showGainDisplay)      activeOrder.push(1);
+    if (this.showPAEDisplay)       activeOrder.push(2);
+    if (this.showImpedanceDisplay) activeOrder.push(3);
+    const pos = activeOrder.indexOf(slotIndex);
+    if (pos < 0) return { topY, botY };   // not active — shouldn't happen
+    return {
+      topY: topY + pos * slotH,
+      botY: topY + (pos + 1) * slotH
+    };
+  }
+
+  // ── Draw Gain per-stage info boxes ─────────────────────────────────────────
+  drawGainColumns() {
+    if (!this.showGainDisplay) return;
+    this.gainLayer.selectAll('*').remove();
+    if (this.components.length === 0) return;
+
+    const HC = 60, PAD = 4;
+    const rows = this._detectRows();
+    const cols = this._detectCols();
+    const midY = rows.length > 1 ? (rows[0] + rows[rows.length - 1]) / 2 : this.height / 2;
+
+    const rowZone = (targetRi) => {
+      if (targetRi < 0)            return { topY: 0, botY: rows[0] - HC };
+      if (targetRi >= rows.length) return { topY: rows[rows.length - 1] + HC, botY: this.height };
+      const topY = targetRi === 0 ? rows[0] - HC : (rows[targetRi-1] + rows[targetRi]) / 2;
+      const botY = targetRi === rows.length - 1 ? rows[rows.length-1] + HC : (rows[targetRi] + rows[targetRi+1]) / 2;
+      return { topY, botY };
+    };
+
+    const occupied = new Set();
+    this.components.forEach(comp => {
+      const ri = rows.findIndex(r => Math.abs(r - comp.y) < 60);
+      const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
+      if (ri >= 0 && ci >= 0) occupied.add(`${ri},${ci}`);
+    });
+
+    this.components.forEach(comp => {
+      const ri = rows.findIndex(r => Math.abs(r - comp.y) < 60);
+      const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
+      const isMainSide = comp.y <= midY;
+      let targetRi;
+      if (isMainSide) {
+        const prefer = ri - 1;
+        targetRi = (prefer < 0 || !occupied.has(`${prefer},${ci}`)) ? prefer
+          : (!occupied.has(`${ri+1},${ci}`) ? ri + 1 : prefer);
+      } else {
+        const prefer = ri + 1;
+        targetRi = (prefer >= rows.length || !occupied.has(`${prefer},${ci}`)) ? prefer
+          : (ri - 1 < 0 || !occupied.has(`${ri-1},${ci}`) ? ri - 1 : prefer);
+      }
+
+      const { topY: zTop, botY: zBot } = rowZone(targetRi);
+      const { topY, botY } = this._getDisplaySlotBounds(zTop, zBot, 1);  // slot 1 = Gain
+      const cellH = Math.max(24, botY - topY);
+
+      const BOX_W = 2 * HC - 2 * PAD;
+      const lineH  = Math.max(8, Math.min(12, Math.floor(cellH / 6)));
+      const titleH = lineH + 2;
+      const BOX_H  = Math.min(cellH - 2 * PAD, Math.max(titleH + 3 * lineH + PAD, 32));
+      const boxX = comp.x - BOX_W / 2;
+      const boxY = topY + (cellH - BOX_H) / 2;
+
+      if (!comp.gainBoxOffset) comp.gainBoxOffset = { x: 0, y: 0 };
+
+      const g = this.gainLayer.append('g')
+        .attr('class', 'gain-info-group')
+        .attr('data-component-id', comp.id)
+        .attr('transform', `translate(${boxX + comp.gainBoxOffset.x}, ${boxY + comp.gainBoxOffset.y})`)
+        .style('cursor', 'move').style('pointer-events', 'all');
+
+      g.call(d3.drag()
+        .on('start', (e) => { e.sourceEvent.stopPropagation(); g.raise().style('opacity', 0.7); })
+        .on('drag',  (e) => { e.sourceEvent.stopPropagation();
+          comp.gainBoxOffset.x += e.dx; comp.gainBoxOffset.y += e.dy;
+          g.attr('transform', `translate(${boxX + comp.gainBoxOffset.x}, ${boxY + comp.gainBoxOffset.y})`); })
+        .on('end', () => { g.style('opacity', 1); this.saveHistory(); }));
+
+      g.append('rect').attr('x', 0).attr('y', 0)
+        .attr('width', BOX_W).attr('height', BOX_H)
+        .attr('fill', '#1a2010').attr('stroke', '#4CAF50')
+        .attr('stroke-width', 1).attr('rx', 3);
+
+      g.append('text').attr('x', BOX_W/2).attr('y', titleH)
+        .attr('text-anchor', 'middle').attr('fill', '#fff')
+        .attr('font-size', `${titleH}px`).attr('font-weight', 'bold')
+        .text('Gain');
+
+      let yo = titleH + lineH;
+      const props = comp.properties;
+
+      // Prefer R-synced values; fall back to component property inputs
+      const gainP3dB = props.gain_full_db ?? props.gain_p3db ?? props.gain ?? null;
+      const gainBO   = props.gain_bo_db   ?? props.gain_bo   ?? gainP3dB;
+
+      if (gainP3dB !== null) {
+        g.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#00ff88').attr('font-size', `${lineH}px`)
+          .text(`@P3dB: ${parseFloat(gainP3dB).toFixed(1)} dB`);
+        yo += lineH;
+      }
+      if (gainBO !== null) {
+        g.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
+          .text(`@BO:   ${parseFloat(gainBO).toFixed(1)} dB`);
+        yo += lineH;
+      }
+      if (comp.type === 'matching' || comp.type === 'splitter' || comp.type === 'combiner') {
+        const lossVal = props.loss ?? 0.5;
+        g.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#ff7777').attr('font-size', `${lineH}px`)
+          .text(`Loss: ${parseFloat(lossVal).toFixed(2)} dB`);
+      }
+    });
+    console.log('Gain columns drawn for', this.components.length, 'components');
+  }
+
+  // ── Draw PAE per-stage info boxes ─────────────────────────────────────────
+  drawPAEColumns() {
+    if (!this.showPAEDisplay) return;
+    this.paeLayer.selectAll('*').remove();
+    if (this.components.length === 0) return;
+
+    const HC = 60, PAD = 4;
+    const rows = this._detectRows();
+    const cols = this._detectCols();
+    const midY = rows.length > 1 ? (rows[0] + rows[rows.length - 1]) / 2 : this.height / 2;
+
+    const rowZone = (targetRi) => {
+      if (targetRi < 0)            return { topY: 0, botY: rows[0] - HC };
+      if (targetRi >= rows.length) return { topY: rows[rows.length - 1] + HC, botY: this.height };
+      const topY = targetRi === 0 ? rows[0] - HC : (rows[targetRi-1] + rows[targetRi]) / 2;
+      const botY = targetRi === rows.length - 1 ? rows[rows.length-1] + HC : (rows[targetRi] + rows[targetRi+1]) / 2;
+      return { topY, botY };
+    };
+
+    const occupied = new Set();
+    this.components.forEach(comp => {
+      const ri = rows.findIndex(r => Math.abs(r - comp.y) < 60);
+      const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
+      if (ri >= 0 && ci >= 0) occupied.add(`${ri},${ci}`);
+    });
+
+    this.components.forEach(comp => {
+      if (comp.type !== 'transistor') return;  // PAE only meaningful for transistors
+      const ri = rows.findIndex(r => Math.abs(r - comp.y) < 60);
+      const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
+      const isMainSide = comp.y <= midY;
+      let targetRi;
+      if (isMainSide) {
+        const prefer = ri - 1;
+        targetRi = (prefer < 0 || !occupied.has(`${prefer},${ci}`)) ? prefer
+          : (!occupied.has(`${ri+1},${ci}`) ? ri + 1 : prefer);
+      } else {
+        const prefer = ri + 1;
+        targetRi = (prefer >= rows.length || !occupied.has(`${prefer},${ci}`)) ? prefer
+          : (ri - 1 < 0 || !occupied.has(`${ri-1},${ci}`) ? ri - 1 : prefer);
+      }
+
+      const { topY: zTop, botY: zBot } = rowZone(targetRi);
+      const { topY, botY } = this._getDisplaySlotBounds(zTop, zBot, 2);  // slot 2 = PAE
+      const cellH = Math.max(24, botY - topY);
+
+      const BOX_W = 2 * HC - 2 * PAD;
+      const lineH  = Math.max(8, Math.min(12, Math.floor(cellH / 6)));
+      const titleH = lineH + 2;
+      const BOX_H  = Math.min(cellH - 2 * PAD, Math.max(titleH + 4 * lineH + PAD, 36));
+      const boxX = comp.x - BOX_W / 2;
+      const boxY = topY + (cellH - BOX_H) / 2;
+
+      if (!comp.paeBoxOffset) comp.paeBoxOffset = { x: 0, y: 0 };
+
+      const g = this.paeLayer.append('g')
+        .attr('class', 'pae-info-group')
+        .attr('data-component-id', comp.id)
+        .attr('transform', `translate(${boxX + comp.paeBoxOffset.x}, ${boxY + comp.paeBoxOffset.y})`)
+        .style('cursor', 'move').style('pointer-events', 'all');
+
+      g.call(d3.drag()
+        .on('start', (e) => { e.sourceEvent.stopPropagation(); g.raise().style('opacity', 0.7); })
+        .on('drag',  (e) => { e.sourceEvent.stopPropagation();
+          comp.paeBoxOffset.x += e.dx; comp.paeBoxOffset.y += e.dy;
+          g.attr('transform', `translate(${boxX + comp.paeBoxOffset.x}, ${boxY + comp.paeBoxOffset.y})`); })
+        .on('end', () => { g.style('opacity', 1); this.saveHistory(); }));
+
+      g.append('rect').attr('x', 0).attr('y', 0)
+        .attr('width', BOX_W).attr('height', BOX_H)
+        .attr('fill', '#1a1020').attr('stroke', '#9c27b0')
+        .attr('stroke-width', 1).attr('rx', 3);
+
+      g.append('text').attr('x', BOX_W/2).attr('y', titleH)
+        .attr('text-anchor', 'middle').attr('fill', '#fff')
+        .attr('font-size', `${titleH}px`).attr('font-weight', 'bold')
+        .text('PAE / DE');
+
+      let yo = titleH + lineH;
+      const props = comp.properties;
+
+      // Prefer R-synced values
+      const paeP3dB = props.pae_p3db ?? props.pae ?? null;
+      const paeBO   = props.pae_pavg ?? props.pae_bo ?? paeP3dB;
+      const deP3dB  = props.de_p3db  ?? null;
+      const deBO    = props.de_pavg  ?? null;
+
+      if (paeP3dB !== null) {
+        g.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#00ff88').attr('font-size', `${lineH}px`)
+          .text(`PAE@P3dB: ${parseFloat(paeP3dB).toFixed(0)}%`);
+        yo += lineH;
+      }
+      if (paeBO !== null) {
+        g.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
+          .text(`PAE@BO:   ${parseFloat(paeBO).toFixed(0)}%`);
+        yo += lineH;
+      }
+      if (deP3dB !== null) {
+        g.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#cc88ff').attr('font-size', `${lineH}px`)
+          .text(`DE@P3dB:  ${parseFloat(deP3dB).toFixed(0)}%`);
+        yo += lineH;
+      }
+      if (deBO !== null) {
+        g.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#ff88aa').attr('font-size', `${lineH}px`)
+          .text(`DE@BO:    ${parseFloat(deBO).toFixed(0)}%`);
+      }
+    });
+    console.log('PAE columns drawn for', this.components.filter(c => c.type === 'transistor').length, 'transistors');
+  }
+
   exportConfiguration() {
     return {
       components: this.components,
@@ -6380,7 +6797,7 @@ function applySpecsToComponents(specs) {
         driver.properties.pout_p3db = driverStage_p3db.pout;
         driver.properties.pin_p3db = driverStage_p3db.pin;
         driver.properties.p3db = driverStage_p3db.pout;  // P3dB equals Pout at peak
-        driver.properties.p1db = driverStage_p3db.pout - 2;  // P1dB for compression check
+        driver.properties.p1db = driverStage_p3db.pout + 2;  // P1dB >= Pout (headroom above operating point)
         
         // ===== OPERATING POINT: Pavg (Backoff Power) =====
         driver.properties.pout_pavg = driverStage_pavg.pout;
@@ -6442,7 +6859,7 @@ function applySpecsToComponents(specs) {
       mainPA.properties.pout_p3db = pa_p3db_target;  // Each PA contributes ~52.8 dBm
       mainPA.properties.pin_p3db = pa_p3db_target - paStage_p3db.gain;
       mainPA.properties.p3db = pa_p3db_target;
-      mainPA.properties.p1db = pa_p3db_target - 2.0;  // P1dB for compression check
+      mainPA.properties.p1db = pa_p3db_target + 2.0;  // P1dB >= Pout (headroom above operating point)
       
       // ===== OPERATING POINT: Pavg (Backoff Power) =====
       // At backoff, Main PA handles ALL the power (Aux is off — Doherty principle).
@@ -6486,7 +6903,7 @@ function applySpecsToComponents(specs) {
       auxPA.properties.pout_p3db = pa_p3db_target;  // Same as Main PA
       auxPA.properties.pin_p3db = pa_p3db_target - paStage_p3db.gain;
       auxPA.properties.p3db = pa_p3db_target;
-      auxPA.properties.p1db = pa_p3db_target - 2.0;
+      auxPA.properties.p1db = pa_p3db_target + 2.0;
       
       // ===== OPERATING POINT: Pavg (Backoff Power) =====
       // CRITICAL: At backoff, Aux PA is OFF or very low power (Doherty principle!)
@@ -6531,7 +6948,7 @@ function applySpecsToComponents(specs) {
       preDriver.properties.pout_p3db = preDriverStage_p3db.pout;
       preDriver.properties.pin_p3db = preDriverStage_p3db.pin;
       preDriver.properties.p3db = preDriverStage_p3db.pout;
-      preDriver.properties.p1db = preDriverStage_p3db.pout - 2;
+      preDriver.properties.p1db = preDriverStage_p3db.pout + 2;
       
       preDriver.properties.pout_pavg = preDriverStage_pavg.pout;
       preDriver.properties.pin_pavg = preDriverStage_pavg.pin;
@@ -6567,7 +6984,7 @@ function applySpecsToComponents(specs) {
       driver.properties.pout_p3db = driverStage_p3db.pout;
       driver.properties.pin_p3db = driverStage_p3db.pin;
       driver.properties.p3db = driverStage_p3db.pout;
-      driver.properties.p1db = driverStage_p3db.pout - 2;
+      driver.properties.p1db = driverStage_p3db.pout + 2;
       
       driver.properties.pout_pavg = driverStage_pavg.pout;
       driver.properties.pin_pavg = driverStage_pavg.pin;
@@ -6616,7 +7033,7 @@ function applySpecsToComponents(specs) {
       mainPA.properties.pout_p3db = pa_p3db_target;
       mainPA.properties.pin_p3db = pa_p3db_target - paStage_p3db.gain;
       mainPA.properties.p3db = pa_p3db_target;
-      mainPA.properties.p1db = pa_p3db_target - 2.0;
+      mainPA.properties.p1db = pa_p3db_target + 2.0;
       
       // Pavg operating point — only Main PA active at backoff, no combining gain
       const pa_pavg_target = pavg_dbm + combinerLoss;  // No -powerCombiningFactor at BO
@@ -6653,7 +7070,7 @@ function applySpecsToComponents(specs) {
       auxPA.properties.pout_p3db = pa_target_power;
       auxPA.properties.pin_p3db  = pa_target_power - paStage_p3db.gain;
       auxPA.properties.p3db      = pa_target_power;
-      auxPA.properties.p1db      = pa_target_power - 2.0;
+      auxPA.properties.p1db      = pa_target_power + 2.0;
 
       // Pavg: Aux PA mostly off (Doherty)
       const aux_pavg_pout_3s = pavg_pa_target - 10;
@@ -6968,7 +7385,31 @@ function registerMessageHandlers() {
       console.log('✓ Specifications applied to lineup');
     });
 
-    // Handler 8: Update Device Portfolio (saved single-transistor devices from Guardrails tab)
+    // Handler 8: Sync Lineup Specs — PAR/P3dB/frequency changes from R Specifications panel
+    ShinyObj.addCustomMessageHandler('syncLineupSpecs', function(specs) {
+      console.log('[Sync Lineup Specs] Received:', specs);
+      window.currentLineupSpecs = Object.assign(window.currentLineupSpecs || {}, specs);
+      // Redraw active display overlays so Pavg values (driven by PAR) refresh immediately
+      if (window.paCanvas) {
+        if (window.paCanvas.showPowerDisplay)     window.paCanvas.drawPowerColumns();
+        if (window.paCanvas.showGainDisplay)      window.paCanvas.drawGainColumns();
+        if (window.paCanvas.showPAEDisplay)       window.paCanvas.drawPAEColumns();
+        if (window.paCanvas.showImpedanceDisplay) window.paCanvas.drawImpedanceColumns();
+      }
+    });
+
+    // Handler 9: Redraw Canvas Display — called after R Calculate/Optimize pushes new values
+    ShinyObj.addCustomMessageHandler('redrawCanvasDisplay', function(msg) {
+      if (!window.paCanvas) return;
+      if (window.paCanvas.showPowerDisplay)     window.paCanvas.drawPowerColumns();
+      if (window.paCanvas.showGainDisplay)      window.paCanvas.drawGainColumns();
+      if (window.paCanvas.showPAEDisplay)       window.paCanvas.drawPAEColumns();
+      if (window.paCanvas.showImpedanceDisplay) window.paCanvas.drawImpedanceColumns();
+      window.paCanvas.render();
+      console.log('[Redraw Canvas] All active display layers refreshed');
+    });
+
+    // Handler 10: Update Device Portfolio (saved single-transistor devices from Guardrails tab)
     ShinyObj.addCustomMessageHandler('updateDevicePortfolio', function(devices) {
       console.log('=== RECEIVED updateDevicePortfolio MESSAGE FROM R ===');
       console.log('Devices:', devices.length);

@@ -20,6 +20,26 @@ serverPaLineup <- function(input, output, session, state) {
   # PA Lineup Calculator (Interactive D3.js Canvas Version)
   # ============================================================
   
+  # ── Push spec changes (PAR / P3dB / frequency) to JavaScript immediately ──
+  # This keeps canvas Pavg targets in sync without requiring a button click.
+  observe({
+    req(input$spec_p3db)
+    par_val  <- if (!is.null(input$spec_par))          input$spec_par          else 8.0
+    p3db_val <- input$spec_p3db
+    freq_val <- if (!is.null(input$spec_frequency))    input$spec_frequency    else 2000
+    gain_val <- if (!is.null(input$spec_gain))         input$spec_gain         else 30
+    vdd_val  <- if (!is.null(input$spec_supply_voltage)) input$spec_supply_voltage else 28
+
+    session$sendCustomMessage("syncLineupSpecs", list(
+      par       = par_val,
+      p3db      = p3db_val,
+      pavg      = p3db_val - par_val,
+      frequency_ghz = freq_val / 1000,
+      gain      = gain_val,
+      supply_voltage = vdd_val
+    ))
+  })
+
   # Track active canvas changes
   observeEvent(input$active_canvas, {
     if(!is.null(input$active_canvas)) {
@@ -280,13 +300,23 @@ serverPaLineup <- function(input, output, session, state) {
             selected = getProp("biasClass", "AB")),
           hr(),
           h5("Performance Parameters"),
-          numericInput(paste0("prop_", selected, "_pout"), "Pout (dBm)", 
+          numericInput(paste0("prop_", selected, "_pout"), "Pout @ P3dB (dBm)", 
             value = as.numeric(getProp("pout", 43)), step = 0.5),
-          numericInput(paste0("prop_", selected, "_p1db"), "P1dB (dBm)", 
-            value = as.numeric(getProp("p1db", 43)), step = 0.5),
-          numericInput(paste0("prop_", selected, "_gain"), "Gain (dB)", 
+          numericInput(paste0("prop_", selected, "_p1db"), "P1dB (dBm) — must be ≥ Pout", 
+            value = as.numeric(getProp("p1db", 45)), step = 0.5),
+          fluidRow(
+            column(6,
+              numericInput(paste0("prop_", selected, "_gain_p3db"), "Gain @ P3dB (dB)", 
+                value = as.numeric(getProp("gain_p3db", getProp("gain", 15))), step = 0.1)
+            ),
+            column(6,
+              numericInput(paste0("prop_", selected, "_gain_bo"), "Gain @ BO (dB)", 
+                value = as.numeric(getProp("gain_bo", getProp("gain", 15))), step = 0.1)
+            )
+          ),
+          numericInput(paste0("prop_", selected, "_gain"), "Gain (dB) — linear region", 
             value = as.numeric(getProp("gain", 15)), step = 0.1),
-          numericInput(paste0("prop_", selected, "_pae"), "PAE (%)", 
+          numericInput(paste0("prop_", selected, "_pae"), "PAE @ P3dB (%)", 
             value = as.numeric(getProp("pae", 50)), min = 0, max = 100, step = 1),
           hr(),
           h5("Electrical"),
@@ -306,6 +336,8 @@ serverPaLineup <- function(input, output, session, state) {
                 "Technology" = "technology",
                 "Bias Class" = "biasClass",
                 "Gain (dB)" = "gain",
+                "Gain@P3dB" = "gain_p3db",
+                "Gain@BO" = "gain_bo",
                 "PAE (%)" = "pae",
                 "Pout (dBm)" = "pout",
                 "P1dB (dBm)" = "p1db",
@@ -545,7 +577,45 @@ serverPaLineup <- function(input, output, session, state) {
     canvas_key <- paste0("canvas_", canvas_idx)
     canvas_data[[canvas_key]]$results <- result
     cat(sprintf("[Calculate] Stored results for canvas %d\n", canvas_idx))
-    
+
+    # ── Push R-computed stage values back to JS canvas (single source of truth) ──
+    # After this, canvas display reads R-computed pin/pout/pae/gain rather than
+    # re-computing from gain cascade which depends on a linear chain assumption.
+    if (result$success && length(result$stage_results) > 0) {
+      comps <- lineup_components()
+      for (stage in result$stage_results) {
+        # Match by label to the component on canvas
+        matched <- Filter(function(c) {
+          lbl <- if (!is.null(c$properties$label)) c$properties$label else ""
+          lbl == stage$stage
+        }, comps)
+        if (length(matched) > 0) {
+          cid <- as.character(matched[[1]]$id)
+          props_update <- list(
+            pin_p3db  = stage$pin_dbm,
+            pout_p3db = stage$pout_dbm,
+            pin_pavg  = if (!is.null(stage$pin_bo_dbm))  stage$pin_bo_dbm  else stage$pin_dbm  - backoff_value,
+            pout_pavg = if (!is.null(stage$pout_bo_dbm)) stage$pout_bo_dbm else stage$pout_dbm - backoff_value,
+            # Point 12: Assume matched impedance (50 Ω) at all ports.
+            # z_in / z_out default to 50 unless the user has explicitly overridden them.
+            z_in      = if (!is.null(matched[[1]]$properties$z_in))  matched[[1]]$properties$z_in  else 50,
+            z_out     = if (!is.null(matched[[1]]$properties$z_out)) matched[[1]]$properties$z_out else 50
+          )
+          if (stage$type == "transistor") {
+            props_update$pae_p3db     <- stage$pae_pct
+            props_update$pae_pavg     <- stage$pae_bo_pct
+            props_update$de_p3db      <- stage$de_pct
+            props_update$de_pavg      <- stage$de_bo_pct
+            props_update$gain_full_db <- stage$gain_full_db
+            props_update$gain_bo_db   <- stage$gain_bo_db
+          }
+          session$sendCustomMessage("updateComponent", list(id = cid, properties = props_update))
+        }
+      }
+      # Signal JS to redraw all display overlays with fresh data
+      session$sendCustomMessage("redrawCanvasDisplay", list())
+    }
+
     showNotification(
       if(result$success) "Calculation complete" else "Calculation failed",
       type = if(result$success) "message" else "error"
@@ -624,6 +694,9 @@ serverPaLineup <- function(input, output, session, state) {
   # ── Optimize Lineup button ─────────────────────────────────────────────────
   # Selects the best technology and realistic gain/PAE/VDD for each transistor
   # stage based on the Performance Guardrails YAML, then triggers recalculation.
+  #
+  # Version control: saves the pre-optimization state to rv$pre_optimize_snapshot
+  # so it can be compared / restored.
   observeEvent(input$lineup_optimize, {
     components <- lineup_components()
 
@@ -638,8 +711,12 @@ serverPaLineup <- function(input, output, session, state) {
       return()
     }
 
+    # ── Save pre-optimization snapshot for version control ─────────────────
+    rv$pre_optimize_snapshot <- components
+    cat(sprintf("[Optimize] Saved pre-optimize snapshot (%d components)\n", length(components)))
+
     # Collect active specs
-    freq_ghz <- if (!is.null(input$spec_frequency)) input$spec_frequency else 2.0
+    freq_ghz <- if (!is.null(input$spec_frequency)) input$spec_frequency / 1000 else 2.0
     p3db_dbm <- if (!is.null(input$spec_p3db))      input$spec_p3db     else 46.0
     par_db   <- if (!is.null(input$spec_par))        input$spec_par      else 8.0
     vdd_spec <- if (!is.null(input$spec_supply_voltage)) input$spec_supply_voltage else 28.0
@@ -679,10 +756,24 @@ serverPaLineup <- function(input, output, session, state) {
       viable[[which.max(sapply(viable, `[[`, "pae"))]]
     }
 
-    # For Doherty: each PA needs ~p3db - 3 dB + combiner_loss at peak
-    pa_pout_req    <- p3db_dbm - 3.01 + 0.5
-    # Drivers need enough to drive PAs through splitter (~10-15 dB below PA pout)
-    driver_pout_req <- pa_pout_req - 12.0
+    # Count PA stages (main + aux) vs driver stages
+    n_pa_stages <- sum(sapply(transistors, function(t) {
+      lbl <- tolower(if (!is.null(t$properties$label)) t$properties$label else "")
+      grepl("main|aux|\\bpa\\b|power amp", lbl)
+    }))
+    n_driver_stages <- length(transistors) - n_pa_stages
+    if (n_pa_stages == 0) n_pa_stages <- 1  # treat all as PA if not labelled
+
+    # Power budget: system P3dB = sum of PA outputs through combiner
+    # Each PA needs: p3db - 10*log10(n_pa_stages) + combiner_loss
+    combiner_loss <- 0.3
+    pa_pout_req    <- p3db_dbm - 10 * log10(n_pa_stages) + combiner_loss
+    # Pavg target for each PA at backoff
+    pa_pavg_req    <- p3db_dbm - par_db + combiner_loss   # main only at backoff
+
+    # Drivers need ~10-15 dB less than PA output (to drive through splitter)
+    split_loss     <- 0.3
+    driver_pout_req <- pa_pout_req - 12.0 + split_loss
 
     tech_keys_used <- c()
     n_updated      <- 0
@@ -704,15 +795,29 @@ serverPaLineup <- function(input, output, session, state) {
       prac_gain    <- min(avail_gain * 0.80, if (is_pa_stage) 14 else 18)
       prac_gain    <- max(prac_gain, if (is_pa_stage) 8 else 12)   # floor
 
+      # P1dB must be ABOVE operating Pout (device needs headroom)
+      # P1dB ≈ Pout + 2 dB: device can deliver 2 dB more before hitting 1-dB compression
+      p1db_val <- round(pout_req + 2.0, 1)
+
+      # Pavg PAE estimate (typically 5-10% better than P3dB for Doherty)
+      pae_bo_val <- round(best$pae * 1.08, 0)
+
       # Respect supplied Vdd where possible
       use_vdd <- if (!is.null(vdd_spec) && vdd_spec > 0) vdd_spec else best$vdd
 
       updated_props <- c(props, list(
-        technology = best$key,
-        gain       = round(prac_gain, 1),
-        pae        = best$pae,
-        vdd        = use_vdd,
-        p1db       = round(pout_req - 2.0, 1)
+        technology    = best$key,
+        gain          = round(prac_gain, 1),
+        gain_p3db     = round(prac_gain, 1),
+        gain_bo       = round(prac_gain - 0.5, 1),  # typical ~0.5 dB less at BO
+        pae           = best$pae,
+        pae_p3db      = best$pae,
+        pae_pavg      = pae_bo_val,
+        vdd           = use_vdd,
+        pout          = round(pout_req, 1),
+        pout_p3db     = round(pout_req, 1),
+        pout_pavg     = round(pa_pavg_req, 1),
+        p1db          = p1db_val
       ))
 
       session$sendCustomMessage("updateComponent", list(
@@ -720,17 +825,20 @@ serverPaLineup <- function(input, output, session, state) {
         properties = updated_props
       ))
 
-      cat(sprintf("[Optimize] %s → tech=%s, Gain=%.1fdB, PAE=%d%%, Vdd=%.0fV, P1dB=%.1fdBm\n",
-                  label, best$key, prac_gain, best$pae, use_vdd, pout_req - 2.0))
+      cat(sprintf("[Optimize] %s → tech=%s, Gain=%.1fdB, PAE=%d%%, Vdd=%.0fV, Pout=%.1f dBm, P1dB=%.1f dBm\n",
+                  label, best$key, prac_gain, best$pae, use_vdd, pout_req, p1db_val))
       n_updated <- n_updated + 1
     }
 
     unique_techs <- paste(unique(tech_keys_used), collapse = ", ")
     showNotification(
-      sprintf("Optimized %d stage(s) using guardrails. Technology: %s", n_updated, unique_techs),
-      type = "message", duration = 5
+      sprintf("Optimized %d stage(s) using guardrails. Technology: %s. Old design saved for comparison.", n_updated, unique_techs),
+      type = "message", duration = 6
     )
     cat(sprintf("[Optimize] Complete: %d transistor(s) updated (%s)\n", n_updated, unique_techs))
+
+    # Redraw canvas overlays and re-trigger calculation with optimized values
+    session$sendCustomMessage("redrawCanvasDisplay", list())
   })
 
 
@@ -775,6 +883,8 @@ serverPaLineup <- function(input, output, session, state) {
         properties$technology <- input[[paste0("prop_", selected, "_technology")]]
         properties$biasClass <- input[[paste0("prop_", selected, "_biasClass")]]
         properties$gain <- input[[paste0("prop_", selected, "_gain")]]
+        properties$gain_p3db <- input[[paste0("prop_", selected, "_gain_p3db")]]
+        properties$gain_bo <- input[[paste0("prop_", selected, "_gain_bo")]]
         properties$pout <- input[[paste0("prop_", selected, "_pout")]]
         properties$p1db <- input[[paste0("prop_", selected, "_p1db")]]
         properties$pae <- input[[paste0("prop_", selected, "_pae")]]
@@ -782,6 +892,16 @@ serverPaLineup <- function(input, output, session, state) {
         properties$rth <- input[[paste0("prop_", selected, "_rth")]]
         properties$freq <- input[[paste0("prop_", selected, "_freq")]]
         properties$display <- input[[paste0("prop_", selected, "_display")]]
+        # Validate: P1dB must be >= Pout
+        if (!is.null(properties$p1db) && !is.null(properties$pout) &&
+            as.numeric(properties$p1db) < as.numeric(properties$pout)) {
+          showNotification(
+            sprintf("⚠ P1dB (%.1f dBm) must be ≥ Pout (%.1f dBm). Setting P1dB = Pout + 2 dB.",
+                    as.numeric(properties$p1db), as.numeric(properties$pout)),
+            type = "warning", duration = 5
+          )
+          properties$p1db <- as.numeric(properties$pout) + 2
+        }
       } else if(comp_type == "matching") {
         properties$label <- input[[paste0("prop_", selected, "_label")]]
         properties$type <- input[[paste0("prop_", selected, "_type")]]
@@ -1161,18 +1281,23 @@ serverPaLineup <- function(input, output, session, state) {
     # Build table from stage results with backoff columns
     rows <- lapply(results$stage_results, function(stage) {
       if(stage$type == "transistor") {
+        de_full <- if (!is.null(stage$de_pct)) sprintf("%.1f", stage$de_pct) else "—"
+        de_bo   <- if (!is.null(stage$de_bo_pct)) sprintf("%.1f", stage$de_bo_pct) else "—"
         data.frame(
           Stage = stage$stage,
           Type = "Transistor",
+          Loss_dB = "—",
           # Full power columns
           Pin_Full = sprintf("%.2f", stage$pin_dbm),
           Pout_Full = sprintf("%.2f", stage$pout_dbm),
           PAE_Full = sprintf("%.1f", stage$pae_pct),
+          DE_Full  = de_full,
           PDC_Full = sprintf("%.3f", stage$pdc_w),
           # Backoff columns
           Pin_BO = sprintf("%.2f", stage$pin_bo_dbm),
           Pout_BO = sprintf("%.2f", stage$pout_bo_dbm),
           PAE_BO = sprintf("%.1f", stage$pae_bo_pct),
+          DE_BO  = de_bo,
           PDC_BO = sprintf("%.3f", stage$pdc_bo_w),
           # Separate gain columns (actual computed, not device property)
           Gain_P3dB = sprintf("%.2f", stage$gain_full_db),
@@ -1184,15 +1309,16 @@ serverPaLineup <- function(input, output, session, state) {
         data.frame(
           Stage = stage$stage,
           Type = "Matching",
+          Loss_dB = sprintf("%.2f", if(!is.null(stage$loss_db)) stage$loss_db else 0.5),
           # Full power columns
           Pin_Full = sprintf("%.2f", stage$pin_dbm),
           Pout_Full = sprintf("%.2f", stage$pout_dbm),
-          PAE_Full = "—",
+          PAE_Full = "—", DE_Full = "—",
           PDC_Full = "—",
           # Backoff columns (pin_bo_dbm stored directly in engine)
           Pin_BO = sprintf("%.2f", stage$pin_bo_dbm),
           Pout_BO = sprintf("%.2f", stage$pout_bo_dbm),
-          PAE_BO = "—",
+          PAE_BO = "—", DE_BO = "—",
           PDC_BO = "—",
           # Gain columns
           Gain_P3dB = sprintf("%.2f", stage$gain_full_db),
@@ -1202,18 +1328,20 @@ serverPaLineup <- function(input, output, session, state) {
         )
       } else {
         # Splitters and combiners — use actual computed gains from engine
+        loss_val <- if(!is.null(stage$loss_db)) stage$loss_db else 0.3
         data.frame(
           Stage = stage$stage,
           Type = tools::toTitleCase(stage$type),
+          Loss_dB = sprintf("%.2f", loss_val),
           # Full power columns
           Pin_Full = sprintf("%.2f", stage$pin_dbm),
           Pout_Full = sprintf("%.2f", stage$pout_dbm),
-          PAE_Full = "—",
+          PAE_Full = "—", DE_Full = "—",
           PDC_Full = "—",
           # Backoff columns
           Pin_BO = if(!is.null(stage$pin_bo_dbm)) sprintf("%.2f", stage$pin_bo_dbm) else "—",
           Pout_BO = if(!is.null(stage$pout_bo_dbm)) sprintf("%.2f", stage$pout_bo_dbm) else "—",
-          PAE_BO = "—",
+          PAE_BO = "—", DE_BO = "—",
           PDC_BO = "—",
           # Gain columns: combiner gain at BO will reflect Doherty physics (≈−loss at BO)
           Gain_P3dB = if(!is.null(stage$gain_full_db)) sprintf("%.2f", stage$gain_full_db) else "—",
@@ -1242,18 +1370,23 @@ serverPaLineup <- function(input, output, session, state) {
     # Summary row with backoff data
     system_gain_full <- results$final_pout_dbm - results$input_power_dbm
     system_gain_bo   <- results$final_pout_bo_dbm - (results$input_power_dbm - backoff_value)
+    sys_de    <- if (!is.null(results$system_de))    sprintf("%.1f", results$system_de)    else "—"
+    sys_de_bo <- if (!is.null(results$system_de_bo)) sprintf("%.1f", results$system_de_bo) else "—"
     summary_row <- data.frame(
       Stage = "SYSTEM TOTAL",
       Type = "—",
+      Loss_dB = "—",
       # Full power totals
       Pin_Full = sprintf("%.2f", results$input_power_dbm),
       Pout_Full = sprintf("%.2f", results$final_pout_dbm),
       PAE_Full = sprintf("%.1f", results$system_pae),
+      DE_Full  = sys_de,
       PDC_Full = sprintf("%.3f", results$total_pdc),
       # Backoff totals
       Pin_BO = sprintf("%.2f", results$input_power_dbm - backoff_value),
       Pout_BO = sprintf("%.2f", results$final_pout_bo_dbm),
       PAE_BO = sprintf("%.1f", results$system_pae_bo),
+      DE_BO  = sys_de_bo,
       PDC_BO = sprintf("%.3f", results$total_pdc_bo),
       # Gain totals (actual end-to-end computed)
       Gain_P3dB = sprintf("%.2f", system_gain_full),
@@ -1266,9 +1399,9 @@ serverPaLineup <- function(input, output, session, state) {
     
     # Create column names with grouped headers
     colnames(data) <- c(
-      "Stage", "Type",
-      "Pin (dBm)", "Pout (dBm)", "PAE (%)", "PDC (W)",
-      "Pin (dBm) ", "Pout (dBm) ", "PAE (%) ", "PDC (W) ",
+      "Stage", "Type", "Loss(dB)",
+      "Pin (dBm)", "Pout (dBm)", "PAE (%)", "DE (%)", "PDC (W)",
+      "Pin (dBm) ", "Pout (dBm) ", "PAE (%) ", "DE (%) ", "PDC (W) ",
       "Gain@P3dB", "Gain@BO", "Status"
     )
     
@@ -1277,7 +1410,7 @@ serverPaLineup <- function(input, output, session, state) {
         pageLength = 20, 
         dom = 't',
         columnDefs = list(
-          list(className = 'dt-center', targets = 2:11)
+          list(className = 'dt-center', targets = 2:15)
         )
       ), 
       rownames = FALSE,
@@ -1287,14 +1420,15 @@ serverPaLineup <- function(input, output, session, state) {
           tr(
             th(rowspan = 2, 'Stage'),
             th(rowspan = 2, 'Type'),
-            th(colspan = 4, style = 'text-align:center; background-color:#e8f4f8; border-bottom: 2px solid #2196F3;', 'Full Power (P3dB)'),
-            th(colspan = 4, style = 'text-align:center; background-color:#fff3e0; border-bottom: 2px solid #FF9800;', sprintf('Backoff / Pavg (%.1f dB)', backoff_value)),
+            th(rowspan = 2, 'Loss (dB)', style = 'background-color:#f8f0ff; border-bottom: 2px solid #9c27b0;'),
+            th(colspan = 5, style = 'text-align:center; background-color:#e8f4f8; border-bottom: 2px solid #2196F3;', 'Full Power (P3dB)'),
+            th(colspan = 5, style = 'text-align:center; background-color:#fff3e0; border-bottom: 2px solid #FF9800;', sprintf('Backoff / Pavg (%.1f dB)', backoff_value)),
             th(colspan = 2, style = 'text-align:center; background-color:#f0ffe0; border-bottom: 2px solid #4CAF50;', 'Stage Gain (dB)'),
             th(rowspan = 2, 'Status')
           ),
           tr(
-            lapply(c('Pin (dBm)', 'Pout (dBm)', 'PAE (%)', 'PDC (W)'), th),
-            lapply(c('Pin (dBm)', 'Pout (dBm)', 'PAE (%)', 'PDC (W)'), th),
+            lapply(c('Pin (dBm)', 'Pout (dBm)', 'PAE (%)', 'DE (%)', 'PDC (W)'), th),
+            lapply(c('Pin (dBm)', 'Pout (dBm)', 'PAE (%)', 'DE (%)', 'PDC (W)'), th),
             lapply(c('@P3dB', '@Pavg'), th)
           )
         )
@@ -1307,9 +1441,10 @@ serverPaLineup <- function(input, output, session, state) {
             'rgba(255,165,0,0.3)', 'rgba(200,200,200,0.2)')
         )
       ) %>%
-      formatStyle(3:6, backgroundColor = '#f0f8ff') %>%   # Light blue for full power
-      formatStyle(7:10, backgroundColor = '#fff8f0') %>%  # Light orange for backoff
-      formatStyle(11:12, backgroundColor = '#f0fff0')     # Light green for gain columns
+      formatStyle(3, backgroundColor = '#f8f0ff') %>%        # purple for Loss
+      formatStyle(4:8, backgroundColor = '#f0f8ff') %>%      # Light blue for full power
+      formatStyle(9:13, backgroundColor = '#fff8f0') %>%     # Light orange for backoff
+      formatStyle(14:15, backgroundColor = '#f0fff0')        # Light green for gain columns
   })
   
   # Dynamic Tables UI - renders tabs for multi-canvas layouts

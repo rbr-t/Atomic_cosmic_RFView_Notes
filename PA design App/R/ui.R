@@ -1477,6 +1477,24 @@ $(document).ready(function() {
                         ),
                         
                         tags$button(
+                          onclick = "if(window.paCanvas) paCanvas.toggleGainDisplay();",
+                          id = "gain_display_toggle",
+                          class = "btn btn-default btn-sm",
+                          style = "min-width: 140px;",
+                          icon("chart-line"),
+                          " Gain Display"
+                        ),
+                        
+                        tags$button(
+                          onclick = "if(window.paCanvas) paCanvas.togglePAEDisplay();",
+                          id = "pae_display_toggle",
+                          class = "btn btn-default btn-sm",
+                          style = "min-width: 140px;",
+                          icon("percentage"),
+                          " PAE Display"
+                        ),
+                        
+                        tags$button(
                           onclick = "if(window.paCanvas) paCanvas.toggleCalculationRationale();",
                           id = "calculation_rationale_toggle",
                           class = "btn btn-default btn-sm",

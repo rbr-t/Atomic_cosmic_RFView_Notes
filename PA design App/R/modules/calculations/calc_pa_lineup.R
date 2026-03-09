@@ -57,6 +57,8 @@ lineup_calculate_engine <- function(components,
     "═══════════════════════════════════════",
     "  PA LINEUP CALCULATION RATIONALE",
     "═══════════════════════════════════════\n",
+    "Assumption: port matching (50 Ω) at all interfaces.",
+    "  Gain = transducer gain; no mismatch-loss correction applied.\n",
     sprintf("Input Power: %.2f dBm (%.4f W)",
             input_power_dbm, 10^(input_power_dbm / 10) / 1000),
     sprintf("Backoff Analysis: %.1f dB below full power\n", backoff_db)
@@ -287,17 +289,23 @@ lineup_calculate_engine <- function(components,
                 pout_bo_dbm, pae_bo*100, pdc_bo_w, pdiss_bo_w)
       )
 
+      # Drain Efficiency: DE = Pout / PDC (no Pin subtraction)
+      de_full <- if (pdc_w    > 0) (pout_w    / pdc_w   ) * 100 else 0
+      de_bo   <- if (pdc_bo_w > 0) (pout_bo_w / pdc_bo_w) * 100 else 0
+
       stage_results[[length(stage_results) + 1]] <- list(
         stage         = stage_name,  type          = "transistor",
         pin_dbm       = current_pin,  pout_dbm      = pout_dbm,
         gain_db       = gain,         pae_pct       = pae_full * 100,
+        de_pct        = de_full,
         gain_full_db  = pout_dbm - current_pin,
         gain_bo_db    = pout_bo_dbm - current_pin_bo,
         pdc_w         = pdc_w,        pdiss_w       = pdiss_w,
         idc_a         = idc_a,        tj_c          = tj_c,
         compressed    = compressed,   technology    = safeProp(props, "technology", "GaN"),
         pin_bo_dbm    = current_pin_bo, pout_bo_dbm = pout_bo_dbm,
-        pae_bo_pct    = pae_bo * 100, pdc_bo_w      = pdc_bo_w,
+        pae_bo_pct    = pae_bo * 100, de_bo_pct     = de_bo,
+        pdc_bo_w      = pdc_bo_w,
         pdiss_bo_w    = pdiss_bo_w,   tj_bo_c       = tj_bo_c,
         compressed_bo = compressed_bo
       )
@@ -461,6 +469,9 @@ lineup_calculate_engine <- function(components,
   # PAE = (Pout - Pin) / PDC * 100  (Power Added Efficiency, not Drain Efficiency)
   system_pae    <- if (total_pdc    > 0) ((final_pout_w    - input_power_w   ) / total_pdc   ) * 100 else 0
   system_pae_bo <- if (total_pdc_bo > 0) ((final_pout_bo_w - input_power_bo_w) / total_pdc_bo) * 100 else 0
+  # DE = Pout / PDC * 100  (Drain Efficiency, no Pin)
+  system_de     <- if (total_pdc    > 0) (final_pout_w    / total_pdc   ) * 100 else 0
+  system_de_bo  <- if (total_pdc_bo > 0) (final_pout_bo_w / total_pdc_bo) * 100 else 0
 
   rationale <- c(rationale,
     "─── System Summary ───",
@@ -469,11 +480,13 @@ lineup_calculate_engine <- function(components,
     sprintf("  Output Power: %.2f dBm (%.3f W)",  final_pout_dbm, final_pout_w),
     sprintf("  Total DC Power: %.3f W",            total_pdc),
     sprintf("  System PAE: %.1f%%",                system_pae),
+    sprintf("  System DE:  %.1f%%",                system_de),
     sprintf("  Heat Dissipation: %.3f W",          total_pdc - final_pout_w),
     sprintf("\n[BACKOFF (%.1f dB)]",               backoff_db),
     sprintf("  Output Power: %.2f dBm (%.3f W)",  final_pout_bo_dbm, final_pout_bo_w),
     sprintf("  Total DC Power: %.3f W",            total_pdc_bo),
     sprintf("  System PAE: %.1f%%",                system_pae_bo),
+    sprintf("  System DE:  %.1f%%",                system_de_bo),
     sprintf("  Heat Dissipation: %.3f W",          total_pdc_bo - final_pout_bo_w)
   )
 
@@ -494,11 +507,13 @@ lineup_calculate_engine <- function(components,
     total_gain        = total_gain,
     total_pdc         = total_pdc,
     system_pae        = system_pae,
+    system_de         = system_de,
     total_pdiss       = total_pdc - final_pout_w,
     final_pout_bo_dbm = final_pout_bo_dbm,
     final_pout_bo_w   = final_pout_bo_w,
     total_pdc_bo      = total_pdc_bo,
     system_pae_bo     = system_pae_bo,
+    system_de_bo      = system_de_bo,
     total_pdiss_bo    = total_pdc_bo - final_pout_bo_w,
     stage_results     = stage_results,
     warnings          = warnings,
