@@ -68,6 +68,18 @@ serverProjects <- function(input, output, session, state) {
     updateNumericInput(session, "link_freq",          value = freq_ghz)
     # Loss Curves
     updateNumericInput(session, "loss_calc_freq",     value = freq_ghz)
+
+    # ── Wire project params to PA Lineup Specifications panel ────────────────
+    pout_dbm <- input$new_project_pout %||% 46.0
+    par_db   <- input$new_project_par  %||% 8.0
+    gain_db  <- input$new_project_gain %||% 40.0
+    updateNumericInput(session, "spec_frequency", value = round(freq_ghz * 1000, 1))  # GHz → MHz
+    updateNumericInput(session, "spec_p3db",      value = pout_dbm)
+    updateNumericInput(session, "spec_par",       value = par_db)
+    updateNumericInput(session, "spec_gain",      value = gain_db)
+    updateNumericInput(session, "global_pout_p3db", value = pout_dbm)
+    updateNumericInput(session, "global_PAR",     value = par_db)
+    updateNumericInput(session, "global_backoff", value = par_db)
     
     # Store project defaults in rv so other modules can read them reactively
     rv$project_freq_ghz  <- freq_ghz

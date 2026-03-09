@@ -5300,9 +5300,9 @@ class PALineupCanvas {
     // If R has already computed and synced pout_p3db, use it directly (source of truth)
     if (props.pout_p3db !== undefined && props.pout_p3db !== null) {
       pout_dbm = parseFloat(props.pout_p3db);
-      // For P1dB: must be AT LEAST equal to pout (P1dB ≥ Pout at operating point)
+      // For P1dB: must be AT MOST equal to pout (P1dB ≤ Pout — compression point is at or below operating Pout)
       const rawP1dB = props.p1db ?? props.pout ?? 40;
-      p1db_dbm = Math.max(parseFloat(rawP1dB), pout_dbm);
+      p1db_dbm = Math.min(parseFloat(rawP1dB), pout_dbm);
       // Backoff from R-synced values
       if (props.pout_pavg !== undefined && props.pout_pavg !== null) {
         power_bo_dbm = parseFloat(props.pout_pavg);
@@ -5320,10 +5320,10 @@ class PALineupCanvas {
       case 'transistor':
         const gain = props.gain || 10;
         pout_dbm = pin_dbm + gain;
-        // P1dB: must be >= operating Pout (device headroom).  Use explicit p1db property
-        // if set; fall back to pout + 2 (2 dB headroom above operating point)
-        const rawP1dB = props.p1db ?? (pout_dbm + 2);
-        p1db_dbm = Math.max(parseFloat(rawP1dB), pout_dbm);
+        // P1dB: compression point is at or below Pout.  Use explicit p1db property
+        // if set; fall back to pout - 2 (2 dB below operating point — typical 1dB compression offset)
+        const rawP1dB = props.p1db ?? (pout_dbm - 2);
+        p1db_dbm = Math.min(parseFloat(rawP1dB), pout_dbm);
         
         // Back-off power
         const par = window.currentLineupSpecs ? (window.currentLineupSpecs.par || 8) : 8;
@@ -5367,19 +5367,19 @@ class PALineupCanvas {
           }
 
           // Passive component — find its single predecessor and subtract its loss
-          const predConn = this.connections.find(c => c.to === comp.id);
+          const predConn = this.connections.find(c => c.to == comp.id);
           if (!predConn) {
             // Source-node passive (unusual) — use stored pout if any, else chain value
             return comp.properties.pout ?? comp.properties.p3db ?? pin_dbm;
           }
-          const pred = this.components.find(c => c.id === predConn.from);
+          const pred = this.components.find(c => c.id == predConn.from);
           const predPout = traceOutputPower(pred, _visited);
 
           if (comp.type === 'matching') {
             return predPout - (comp.properties.loss ?? 0.5);
           }
           if (comp.type === 'splitter') {
-            const nWays = Math.max(this.connections.filter(c => c.from === comp.id).length, 2);
+            const nWays = Math.max(this.connections.filter(c => c.from == comp.id).length, 2);
             return predPout - 10 * Math.log10(nWays) - (comp.properties.loss ?? 0.3);
           }
           // Unknown passive — pass through
@@ -5387,13 +5387,13 @@ class PALineupCanvas {
         };
 
         // ── Find all wires connected into this combiner ───────────────────
-        const inputConns = this.connections.filter(c => c.to === component.id);
+        const inputConns = this.connections.filter(c => c.to == component.id);
 
         if (inputConns.length >= 2) {
           // Sum all predecessor outputs (traced back through passives) in watts
           let totalWatts = 0;
           inputConns.forEach(conn => {
-            const predComp = this.components.find(c => c.id === conn.from);
+            const predComp = this.components.find(c => c.id == conn.from);
             const p_dbm = traceOutputPower(predComp);
             totalWatts += Math.pow(10, (p_dbm - 30) / 10);
             console.log(`[Combiner] input from ${predComp?.properties?.label ?? conn.from}: ${p_dbm.toFixed(2)} dBm`);
@@ -5404,7 +5404,7 @@ class PALineupCanvas {
 
         } else if (inputConns.length === 1) {
           // Single-wire input (degenerate combiner) — just trace and subtract loss
-          const predComp = this.components.find(c => c.id === inputConns[0].from);
+          const predComp = this.components.find(c => c.id == inputConns[0].from);
           pin_dbm  = traceOutputPower(predComp);
           pout_dbm = pin_dbm - combine_loss;
 
@@ -6797,7 +6797,7 @@ function applySpecsToComponents(specs) {
         driver.properties.pout_p3db = driverStage_p3db.pout;
         driver.properties.pin_p3db = driverStage_p3db.pin;
         driver.properties.p3db = driverStage_p3db.pout;  // P3dB equals Pout at peak
-        driver.properties.p1db = driverStage_p3db.pout + 2;  // P1dB >= Pout (headroom above operating point)
+        driver.properties.p1db = driverStage_p3db.pout - 2;  // P1dB ≤ Pout (1dB compression point)
         
         // ===== OPERATING POINT: Pavg (Backoff Power) =====
         driver.properties.pout_pavg = driverStage_pavg.pout;
@@ -6859,7 +6859,7 @@ function applySpecsToComponents(specs) {
       mainPA.properties.pout_p3db = pa_p3db_target;  // Each PA contributes ~52.8 dBm
       mainPA.properties.pin_p3db = pa_p3db_target - paStage_p3db.gain;
       mainPA.properties.p3db = pa_p3db_target;
-      mainPA.properties.p1db = pa_p3db_target + 2.0;  // P1dB >= Pout (headroom above operating point)
+      mainPA.properties.p1db = pa_p3db_target - 2.0;  // P1dB ≤ Pout
       
       // ===== OPERATING POINT: Pavg (Backoff Power) =====
       // At backoff, Main PA handles ALL the power (Aux is off — Doherty principle).
@@ -6903,7 +6903,7 @@ function applySpecsToComponents(specs) {
       auxPA.properties.pout_p3db = pa_p3db_target;  // Same as Main PA
       auxPA.properties.pin_p3db = pa_p3db_target - paStage_p3db.gain;
       auxPA.properties.p3db = pa_p3db_target;
-      auxPA.properties.p1db = pa_p3db_target + 2.0;
+      auxPA.properties.p1db = pa_p3db_target - 2.0;
       
       // ===== OPERATING POINT: Pavg (Backoff Power) =====
       // CRITICAL: At backoff, Aux PA is OFF or very low power (Doherty principle!)
@@ -6948,7 +6948,7 @@ function applySpecsToComponents(specs) {
       preDriver.properties.pout_p3db = preDriverStage_p3db.pout;
       preDriver.properties.pin_p3db = preDriverStage_p3db.pin;
       preDriver.properties.p3db = preDriverStage_p3db.pout;
-      preDriver.properties.p1db = preDriverStage_p3db.pout + 2;
+      preDriver.properties.p1db = preDriverStage_p3db.pout - 2;
       
       preDriver.properties.pout_pavg = preDriverStage_pavg.pout;
       preDriver.properties.pin_pavg = preDriverStage_pavg.pin;
@@ -6984,7 +6984,7 @@ function applySpecsToComponents(specs) {
       driver.properties.pout_p3db = driverStage_p3db.pout;
       driver.properties.pin_p3db = driverStage_p3db.pin;
       driver.properties.p3db = driverStage_p3db.pout;
-      driver.properties.p1db = driverStage_p3db.pout + 2;
+      driver.properties.p1db = driverStage_p3db.pout - 2;
       
       driver.properties.pout_pavg = driverStage_pavg.pout;
       driver.properties.pin_pavg = driverStage_pavg.pin;
@@ -7033,7 +7033,7 @@ function applySpecsToComponents(specs) {
       mainPA.properties.pout_p3db = pa_p3db_target;
       mainPA.properties.pin_p3db = pa_p3db_target - paStage_p3db.gain;
       mainPA.properties.p3db = pa_p3db_target;
-      mainPA.properties.p1db = pa_p3db_target + 2.0;
+      mainPA.properties.p1db = pa_p3db_target - 2.0;
       
       // Pavg operating point — only Main PA active at backoff, no combining gain
       const pa_pavg_target = pavg_dbm + combinerLoss;  // No -powerCombiningFactor at BO
@@ -7070,7 +7070,7 @@ function applySpecsToComponents(specs) {
       auxPA.properties.pout_p3db = pa_target_power;
       auxPA.properties.pin_p3db  = pa_target_power - paStage_p3db.gain;
       auxPA.properties.p3db      = pa_target_power;
-      auxPA.properties.p1db      = pa_target_power + 2.0;
+      auxPA.properties.p1db      = pa_target_power - 2.0;
 
       // Pavg: Aux PA mostly off (Doherty)
       const aux_pavg_pout_3s = pavg_pa_target - 10;

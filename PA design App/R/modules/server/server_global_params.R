@@ -76,6 +76,37 @@ serverGlobalParams <- function(input, output, session, state) {
     
     return(sprintf("%.0f", bw_total))
   })
-  
+
+  # ── Spec panel derived displays ──────────────────────────────────────────────
+  # Pavg display inside Lineup Specifications panel
+  output$spec_pavg_display <- renderText({
+    p3db <- input$spec_p3db %||% 46
+    par  <- input$spec_par  %||% 8
+    sprintf("%.1f dBm", p3db - par)
+  })
+
+  # Pin display inside Lineup Specifications panel
+  output$spec_pin_display <- renderText({
+    p3db <- input$spec_p3db  %||% 46
+    gain <- input$spec_gain  %||% 40
+    sprintf("%.1f dBm", p3db - gain)
+  })
+
+  # ── Keep Global Lineup Parameters in sync with Lineup Specifications ─────────
+  # When spec_p3db / spec_par / spec_gain / spec_frequency change, mirror the
+  # values into the Global Lineup Parameters panel so both panels are consistent.
+  observeEvent(
+    list(input$spec_p3db, input$spec_par, input$spec_gain, input$spec_frequency),
+    {
+      req(input$spec_p3db, input$spec_par)
+      updateNumericInput(session, "global_pout_p3db", value = input$spec_p3db)
+      updateNumericInput(session, "global_PAR",       value = input$spec_par)
+      updateNumericInput(session, "global_backoff",   value = input$spec_par)
+      if (!is.null(input$spec_frequency))
+        updateNumericInput(session, "global_frequency",
+                           value = round(input$spec_frequency / 1000, 4))
+    },
+    ignoreInit = TRUE
+  )
 
 }

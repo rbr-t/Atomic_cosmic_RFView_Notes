@@ -170,6 +170,36 @@ serverGuardrails <- function(input, output, session, state) {
                     line = list(color = "white", width = 1.5))
     )
 
+    # ── Device Library overlay (saved devices shown as ◆ markers) ───────────
+    lib_devices <- loadDevicePortfolio("device_portfolio")
+    for (dev in lib_devices) {
+      d_freq  <- dev$frequency_ghz %||% dev$frequency %||% dev$freq_ghz %||% 3.5
+      d_pout  <- dev$pout_dbm  %||% dev$pout   %||% 43
+      d_pd    <- dev$pout_density_w_per_mm %||% dev$pout_density %||% dev$pd_w_mm %||%
+                   (if (d_pout > 20) round(10^((as.numeric(d_pout) - 30) / 10) / 2, 2) else 5)
+      d_pae   <- dev$pae_pct   %||% dev$pae    %||% 50
+      d_gain  <- dev$gain_db   %||% dev$gain   %||% 15
+      d_label <- dev$name      %||% dev$label  %||% "Saved"
+      d_y     <- if (y_mode == "density") as.numeric(d_pd) else as.numeric(d_pout)
+      fig <- fig %>% add_trace(
+        type = "scatter", mode = "markers+text",
+        x = as.numeric(d_freq), y = d_y,
+        name = paste0("◆ ", d_label),
+        text = "◆", textfont = list(size = 11, color = "#00ccff"),
+        textposition = "top center",
+        hovertext = paste0(
+          "<b>◆ ", d_label, "</b> [Library]<br>",
+          "f = ", d_freq, " GHz<br>",
+          if (y_mode == "density") paste0("Pd = ", round(d_pd, 2), " W/mm<br>")
+          else paste0("Pout = ", d_pout, " dBm<br>"),
+          "PAE = ", d_pae, "%   Gain = ", d_gain, " dB"
+        ),
+        hoverinfo = "text",
+        marker = list(symbol = "diamond", size = 14, color = "#00ccff",
+                      line = list(color = "white", width = 1.5))
+      )
+    }
+
     fig %>%
       layout(
         title = list(
@@ -272,6 +302,28 @@ serverGuardrails <- function(input, output, session, state) {
                     line = list(color = "white", width = 1.5)),
       hovertext = paste0("★ f=", u_freq, " GHz, G=", u_gain, " dB"),
       hoverinfo = "text")
+
+    # ── Device Library overlay ───────────────────────────────────────────────
+    lib_devices <- loadDevicePortfolio("device_portfolio")
+    for (dev in lib_devices) {
+      d_freq  <- dev$frequency_ghz %||% dev$frequency %||% dev$freq_ghz %||% 3.5
+      d_gain  <- dev$gain_db  %||% dev$gain  %||% 15
+      d_label <- dev$name     %||% dev$label %||% "Saved"
+      fig <- fig %>% add_trace(
+        type = "scatter", mode = "markers+text",
+        x = as.numeric(d_freq), y = as.numeric(d_gain),
+        name = paste0("◆ ", d_label),
+        text = "◆", textfont = list(size = 11, color = "#00ccff"),
+        textposition = "top center",
+        hovertext = paste0(
+          "<b>◆ ", d_label, "</b> [Library]<br>",
+          "f = ", d_freq, " GHz<br>Gain = ", d_gain, " dB"
+        ),
+        hoverinfo = "text",
+        marker = list(symbol = "diamond", size = 14, color = "#00ccff",
+                      line = list(color = "white", width = 1.5))
+      )
+    }
 
     fig %>% layout(
       title = list(
@@ -376,6 +428,28 @@ serverGuardrails <- function(input, output, session, state) {
         hovertext = paste0("★ Your Device<br>BO=", op_bo, " dB, PAE=", u_pae, "%"),
         hoverinfo = "text"
       )
+
+    # ── Device Library overlay ───────────────────────────────────────────────
+    lib_devices <- loadDevicePortfolio("device_portfolio")
+    for (dev in lib_devices) {
+      d_pae   <- dev$pae_pct    %||% dev$pae      %||% 50
+      d_bo    <- dev$backoff_db %||% dev$bo_db     %||% dev$par_db %||% 8
+      d_label <- dev$name       %||% dev$label     %||% "Saved"
+      fig <- fig %>% add_trace(
+        type = "scatter", mode = "markers+text",
+        x = as.numeric(d_bo), y = as.numeric(d_pae),
+        name = paste0("◆ ", d_label),
+        text = "◆", textfont = list(size = 11, color = "#00ccff"),
+        textposition = "top center",
+        hovertext = paste0(
+          "<b>◆ ", d_label, "</b> [Library]<br>",
+          "BO = ", d_bo, " dB<br>PAE = ", d_pae, "%"
+        ),
+        hoverinfo = "text",
+        marker = list(symbol = "diamond", size = 14, color = "#00ccff",
+                      line = list(color = "white", width = 1.5))
+      )
+    }
 
     # Theoretical Class-B ceiling line
     bo_seq <- seq(0, 16, by = 0.25)

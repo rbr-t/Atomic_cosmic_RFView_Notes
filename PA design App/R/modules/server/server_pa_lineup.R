@@ -302,7 +302,7 @@ serverPaLineup <- function(input, output, session, state) {
           h5("Performance Parameters"),
           numericInput(paste0("prop_", selected, "_pout"), "Pout @ P3dB (dBm)", 
             value = as.numeric(getProp("pout", 43)), step = 0.5),
-          numericInput(paste0("prop_", selected, "_p1db"), "P1dB (dBm) — must be ≥ Pout", 
+          numericInput(paste0("prop_", selected, "_p1db"), "P1dB (dBm) — must be ≤ Pout (compression point always below operating output)", 
             value = as.numeric(getProp("p1db", 45)), step = 0.5),
           fluidRow(
             column(6,
@@ -691,13 +691,10 @@ serverPaLineup <- function(input, output, session, state) {
   })
 
 
-  # ── Optimize Lineup button ─────────────────────────────────────────────────
-  # Selects the best technology and realistic gain/PAE/VDD for each transistor
-  # stage based on the Performance Guardrails YAML, then triggers recalculation.
-  #
-  # Version control: saves the pre-optimization state to rv$pre_optimize_snapshot
-  # so it can be compared / restored.
-  observeEvent(input$lineup_optimize, {
+  # ── Optimize Lineup button (REMOVED from UI — observer kept for compatibility) ──────
+  # Button removed from PA Lineup tab UI.
+  # observeEvent(input$lineup_optimize, {  # DISABLED
+  if (FALSE) { observeEvent(input$lineup_optimize, {
     components <- lineup_components()
 
     if (is.null(components) || length(components) == 0) {
@@ -795,9 +792,8 @@ serverPaLineup <- function(input, output, session, state) {
       prac_gain    <- min(avail_gain * 0.80, if (is_pa_stage) 14 else 18)
       prac_gain    <- max(prac_gain, if (is_pa_stage) 8 else 12)   # floor
 
-      # P1dB must be ABOVE operating Pout (device needs headroom)
-      # P1dB ≈ Pout + 2 dB: device can deliver 2 dB more before hitting 1-dB compression
-      p1db_val <- round(pout_req + 2.0, 1)
+      # P1dB ≤ Pout: 1dB compression point is typically 2-3 dB below operating Pout (P3dB)
+      p1db_val <- round(pout_req - 2.0, 1)
 
       # Pavg PAE estimate (typically 5-10% better than P3dB for Doherty)
       pae_bo_val <- round(best$pae * 1.08, 0)
@@ -839,7 +835,7 @@ serverPaLineup <- function(input, output, session, state) {
 
     # Redraw canvas overlays and re-trigger calculation with optimized values
     session$sendCustomMessage("redrawCanvasDisplay", list())
-  })
+  }) } # end disabled optimize observer
 
 
   # Property apply button observer - uses reactive approach for dynamic buttons
@@ -892,15 +888,15 @@ serverPaLineup <- function(input, output, session, state) {
         properties$rth <- input[[paste0("prop_", selected, "_rth")]]
         properties$freq <- input[[paste0("prop_", selected, "_freq")]]
         properties$display <- input[[paste0("prop_", selected, "_display")]]
-        # Validate: P1dB must be >= Pout
+        # Validate: P1dB must be <= Pout (compression point is always at or below operating output)
         if (!is.null(properties$p1db) && !is.null(properties$pout) &&
-            as.numeric(properties$p1db) < as.numeric(properties$pout)) {
+            as.numeric(properties$p1db) > as.numeric(properties$pout)) {
           showNotification(
-            sprintf("⚠ P1dB (%.1f dBm) must be ≥ Pout (%.1f dBm). Setting P1dB = Pout + 2 dB.",
+            sprintf("⚠ P1dB (%.1f dBm) must be ≤ Pout (%.1f dBm). Setting P1dB = Pout − 2 dB.",
                     as.numeric(properties$p1db), as.numeric(properties$pout)),
             type = "warning", duration = 5
           )
-          properties$p1db <- as.numeric(properties$pout) + 2
+          properties$p1db <- as.numeric(properties$pout) - 2
         }
       } else if(comp_type == "matching") {
         properties$label <- input[[paste0("prop_", selected, "_label")]]
