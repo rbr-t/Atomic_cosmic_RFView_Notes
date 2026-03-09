@@ -238,7 +238,19 @@ $(document).ready(function() {
                   fluidRow(
                     column(4,
                       numericInput("freq_target_freq", "Target Frequency (GHz)", value = 28, min = 0.1, max = 300),
-                      numericInput("freq_target_power", "Target Power (W)", value = 20, min = 0.1, max = 1000)
+                      div(
+                        fluidRow(
+                          column(6,
+                            numericInput("freq_target_power", "Target Power", value = 43, min = -30, max = 100)
+                          ),
+                          column(6,
+                            selectInput("freq_target_power_unit", "Unit",
+                              choices = c("dBm" = "dbm", "W" = "w"),
+                              selected = "dbm", width = "100%")
+                          )
+                        ),
+                        uiOutput("freq_target_power_display")
+                      )
                     ),
                     column(8,
                       checkboxInput("freq_show_eff", "PA Efficiency Curves", TRUE),
@@ -1588,7 +1600,8 @@ $(document).ready(function() {
                                 tags$strong("⚡ PAR / BO (dB)", style = "color:#ff851b;"),
                                 value = 8.0, min = 0, max = 20, step = 0.1)
                             )
-                          ),
+                          )
+                        ),
                         # Derived row
                         fluidRow(
                           column(6,
@@ -1933,7 +1946,7 @@ $(document).ready(function() {
             )
           )
         )
-      ),
+      ),  # closes tabItem(theoretical_calc)
       
       # Placeholder tabs (to be implemented)
       tabItem(tabName = "first_principles",
@@ -2155,10 +2168,10 @@ $(document).ready(function() {
             ),
             uiOutput("settings_active_theme"),
             uiOutput("settings_theme_preview")
-          ),
-)
+          )
+        )
       )
     )
   )
-)
+) # dashboardBody
 

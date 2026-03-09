@@ -140,11 +140,44 @@ serverFreqPlanning <- function(input, output, session, state) {
     datatable(data, options = list(pageLength = 10, dom = 't'), rownames = FALSE)
   })
   
+  # Target power display (unit conversion helper)
+  output$freq_target_power_display <- renderUI({
+    val  <- input$freq_target_power
+    unit <- input$freq_target_power_unit
+    if (is.null(val) || is.null(unit)) return(NULL)
+    if (unit == "dbm") {
+      w_val <- round(10^((val - 30) / 10), 4)
+      tags$small(style = "color:#aaa; margin-top:4px; display:block;",
+                 sprintf("= %.4f W", w_val))
+    } else {
+      if (val <= 0) return(tags$small(style="color:#e55;", "W must be > 0"))
+      dbm_val <- round(10 * log10(val * 1000), 1)
+      tags$small(style = "color:#aaa; margin-top:4px; display:block;",
+                 sprintf("= %.1f dBm", dbm_val))
+    }
+  })
+
   # Technology Recommendation
   output$freq_recommendation <- renderUI({
     
-    f <- input$freq_target_freq
-    
+    f        <- input$freq_target_freq
+    pwr_val  <- input$freq_target_power
+    pwr_unit <- input$freq_target_power_unit
+    if (is.null(pwr_unit)) pwr_unit <- "dbm"
+    if (is.null(pwr_val))  pwr_val  <- 43
+
+    if (pwr_unit == "dbm") {
+      pwr_w   <- round(10^((pwr_val - 30) / 10), 3)
+      pwr_str <- sprintf("%.1f dBm (= %.3f W)", pwr_val, pwr_w)
+    } else {
+      if (pwr_val > 0) {
+        pwr_dbm <- round(10 * log10(pwr_val * 1000), 1)
+        pwr_str <- sprintf("%.1f W (= %.1f dBm)", pwr_val, pwr_dbm)
+      } else {
+        pwr_str <- sprintf("%.1f W", pwr_val)
+      }
+    }
+
     tech <- if(f < 4) {
       "LDMOS (High power, macro base stations)"
     } else if(f < 100) {
@@ -156,7 +189,7 @@ serverFreqPlanning <- function(input, output, session, state) {
     HTML(paste0(
       "<h4>Recommended Technology</h4>",
       "<b>Frequency:</b> ", f, " GHz<br>",
-      "<b>Output Power:</b> ", input$freq_target_power, " W<br><br>",
+      "<b>Output Power:</b> ", pwr_str, "<br><br>",
       "<b>Suggested Device:</b> ", tech
     ))
   })
