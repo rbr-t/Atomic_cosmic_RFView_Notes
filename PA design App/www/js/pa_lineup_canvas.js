@@ -172,6 +172,9 @@ class PALineupCanvas {
     // PAE display
     this.showPAEDisplay = false;
 
+    // Phase display
+    this.showPhaseDisplay = false;
+
     // Calculation rationale display
     this.showCalculationRationale = false;
     
@@ -222,7 +225,8 @@ class PALineupCanvas {
     this.powerLayer = this.svg.append('g').attr('class', 'power-layer');
     this.impedanceLayer = this.svg.append('g').attr('class', 'impedance-layer');
     this.gainLayer = this.svg.append('g').attr('class', 'gain-layer');
-    this.paeLayer  = this.svg.append('g').attr('class', 'pae-layer');
+    this.paeLayer   = this.svg.append('g').attr('class', 'pae-layer');
+    this.phaseLayer = this.svg.append('g').attr('class', 'phase-layer');
     this.calculationRationaleLayer = this.svg.append('g').attr('class', 'calculation-rationale-layer');
     this.connectionsLayer = this.svg.append('g').attr('class', 'connections-layer');
     this.componentsLayer = this.svg.append('g').attr('class', 'components-layer');
@@ -235,6 +239,7 @@ class PALineupCanvas {
     this.zoomGroup.node().appendChild(this.impedanceLayer.node());
     this.zoomGroup.node().appendChild(this.gainLayer.node());
     this.zoomGroup.node().appendChild(this.paeLayer.node());
+    this.zoomGroup.node().appendChild(this.phaseLayer.node());
     this.zoomGroup.node().appendChild(this.calculationRationaleLayer.node());
     this.zoomGroup.node().appendChild(this.connectionsLayer.node());
     this.zoomGroup.node().appendChild(this.componentsLayer.node());
@@ -3523,6 +3528,11 @@ class PALineupCanvas {
     this.selectedComponent = null;
     this.componentsLayer.selectAll('*').remove();
     this.connectionsLayer.selectAll('*').remove();
+    if (this.powerLayer)     this.powerLayer.selectAll('*').remove();
+    if (this.gainLayer)      this.gainLayer.selectAll('*').remove();
+    if (this.paeLayer)       this.paeLayer.selectAll('*').remove();
+    if (this.phaseLayer)     this.phaseLayer.selectAll('*').remove();
+    if (this.impedanceLayer) this.impedanceLayer.selectAll('*').remove();
     
     // Show instruction text again
     if (this.instructionText) {
@@ -4586,6 +4596,7 @@ class PALineupCanvas {
       if (this.showImpedanceDisplay) this.drawImpedanceColumns();
       if (this.showGainDisplay)      this.drawGainColumns();
       if (this.showPAEDisplay)       this.drawPAEColumns();
+      if (this.showPhaseDisplay)     this.drawPhaseColumns();
       console.log('Power display enabled');
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -4603,6 +4614,7 @@ class PALineupCanvas {
       if (this.showImpedanceDisplay) this.drawImpedanceColumns();
       if (this.showGainDisplay)      this.drawGainColumns();
       if (this.showPAEDisplay)       this.drawPAEColumns();
+      if (this.showPhaseDisplay)     this.drawPhaseColumns();
       console.log('Power display disabled');
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -4627,6 +4639,7 @@ class PALineupCanvas {
     if (this.showImpedanceDisplay) {
       this.drawImpedanceColumns();
       if (this.showPowerDisplay) this.drawPowerColumns();
+      if (this.showPhaseDisplay) this.drawPhaseColumns();
       console.log('Impedance display enabled');
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -4642,6 +4655,7 @@ class PALineupCanvas {
         this.impedanceLayer.selectAll('*').remove();
       }
       if (this.showPowerDisplay) this.drawPowerColumns();
+      if (this.showPhaseDisplay) this.drawPhaseColumns();
       console.log('Impedance display disabled');
       
       if (window.Shiny && window.Shiny.notifications) {
@@ -4670,6 +4684,7 @@ class PALineupCanvas {
     if (this.showPowerDisplay)     this.drawPowerColumns();
     if (this.showImpedanceDisplay) this.drawImpedanceColumns();
     if (this.showPAEDisplay)       this.drawPAEColumns();
+    if (this.showPhaseDisplay)     this.drawPhaseColumns();
   }
 
   togglePAEDisplay() {
@@ -4688,6 +4703,26 @@ class PALineupCanvas {
     if (this.showPowerDisplay)     this.drawPowerColumns();
     if (this.showImpedanceDisplay) this.drawImpedanceColumns();
     if (this.showGainDisplay)      this.drawGainColumns();
+    if (this.showPhaseDisplay)     this.drawPhaseColumns();
+  }
+
+  togglePhaseDisplay() {
+    this.showPhaseDisplay = !this.showPhaseDisplay;
+    const btn = document.getElementById('phase_display_toggle');
+    if (btn) {
+      btn.style.backgroundColor = this.showPhaseDisplay ? '#28a745' : '';
+      btn.style.color = this.showPhaseDisplay ? '#fff' : '';
+    }
+    if (this.showPhaseDisplay) {
+      this.drawPhaseColumns();
+    } else {
+      if (this.phaseLayer) this.phaseLayer.selectAll('*').remove();
+    }
+    // Redraw co-active layers so slots re-pack correctly
+    if (this.showPowerDisplay)     this.drawPowerColumns();
+    if (this.showImpedanceDisplay) this.drawImpedanceColumns();
+    if (this.showGainDisplay)      this.drawGainColumns();
+    if (this.showPAEDisplay)       this.drawPAEColumns();
   }
   
   calculateOptimalImpedance(component, powerLevelDbm) {
@@ -5553,24 +5588,32 @@ class PALineupCanvas {
   //   2 = PAE     (third quarter)
   //   3 = Impedance (bottom quarter)
   _getDisplaySlotBounds(topY, botY, slotIndex) {
-    const nActiveSlots = [
-      this.showPowerDisplay,
-      this.showGainDisplay,
-      this.showPAEDisplay,
-      this.showImpedanceDisplay
-    ].filter(Boolean).length || 1;
-    const slotH = (botY - topY) / nActiveSlots;
-    // Determine which position this slot takes among active ones
-    const activeOrder = [];
-    if (this.showPowerDisplay)     activeOrder.push(0);
-    if (this.showGainDisplay)      activeOrder.push(1);
-    if (this.showPAEDisplay)       activeOrder.push(2);
-    if (this.showImpedanceDisplay) activeOrder.push(3);
-    const pos = activeOrder.indexOf(slotIndex);
-    if (pos < 0) return { topY, botY };   // not active — shouldn't happen
+    // Displays are split into two NON-OVERLAPPING groups so they never compete
+    // for the same vertical space:
+    //   Group A (top half of zone)  — Power (0), Gain (1)
+    //   Group B (bottom half of zone) — PAE (2), Impedance (3), Phase (4)
+    const isTopGroup = slotIndex <= 1;
+    const midY = (topY + botY) / 2;
+    const zoneTop = isTopGroup ? topY  : midY;
+    const zoneBot = isTopGroup ? midY  : botY;
+
+    const topGroupOrder = [];
+    if (this.showPowerDisplay) topGroupOrder.push(0);
+    if (this.showGainDisplay)  topGroupOrder.push(1);
+
+    const botGroupOrder = [];
+    if (this.showPAEDisplay)       botGroupOrder.push(2);
+    if (this.showImpedanceDisplay) botGroupOrder.push(3);
+    if (this.showPhaseDisplay)     botGroupOrder.push(4);
+
+    const order = isTopGroup ? topGroupOrder : botGroupOrder;
+    const nSlots = order.length || 1;
+    const slotH  = (zoneBot - zoneTop) / nSlots;
+    const pos    = order.indexOf(slotIndex);
+    if (pos < 0) return { topY, botY };  // not active — shouldn't happen
     return {
-      topY: topY + pos * slotH,
-      botY: topY + (pos + 1) * slotH
+      topY: zoneTop + pos * slotH,
+      botY: zoneTop + (pos + 1) * slotH
     };
   }
 
@@ -5792,6 +5835,232 @@ class PALineupCanvas {
       }
     });
     console.log('PAE columns drawn for', this.components.filter(c => c.type === 'transistor').length, 'transistors');
+  }
+
+  // ── Phase shift per component (default rules) ─────────────────────────────
+  _getComponentPhaseShift(comp, fromPort) {
+    // Explicit override takes priority
+    if (comp.properties.phase_shift !== undefined) return comp.properties.phase_shift;
+    switch (comp.type) {
+      case 'transistor':  return 0;
+      case 'termination': return 0;
+      case 'combiner':    return 0;
+      case 'dc_supply':   return 0;
+      case 'splitter':
+        // 90° hybrid: output2 gets an extra 90° applied at the edge level
+        return 0;
+      case 'matching': {
+        const mt = comp.properties.matchType || 'generic';
+        if (mt === 'Transformer' || mt === 'TL-stub') return 90;
+        return 0;
+      }
+      default: return 0;
+    }
+  }
+
+  // ── Compute running phase for every component (BFS signal-flow) ──────────
+  _computeSignalPaths() {
+    // Returns Map<String(comp.id), {phaseIn, phaseShift, phaseOut, portPhases}>
+    // portPhases: {portName: phase} — for combiners shows both inputs
+    const phaseAtPort = new Map(); // key: "compId:port" → phase (degrees)
+
+    // Seed sources (components with no incoming connections)
+    const incomingIds = new Set(this.connections.map(c => String(c.to)));
+    this.components
+      .filter(c => !incomingIds.has(String(c.id)))
+      .forEach(src => {
+        phaseAtPort.set(`${src.id}:input`,  0);
+        phaseAtPort.set(`${src.id}:input1`, 0);
+        phaseAtPort.set(`${src.id}:input2`, 0);
+      });
+
+    // Walk in topological order
+    const sorted = this._topoSortComponents();
+    const info = new Map();
+
+    sorted.forEach(comp => {
+      const cid = String(comp.id);
+      // Gather all input port phases for this component
+      const portPhases = {};
+      this.connections
+        .filter(c => String(c.to) === cid)
+        .forEach(c => {
+          const key = `${c.from}:${c.fromPort}`;
+          const srcPhase = phaseAtPort.get(key) ?? 0;
+          portPhases[c.toPort] = srcPhase;
+        });
+
+      // Dominant input = first port found, or 0
+      const phaseIn = Object.values(portPhases)[0] ?? 0;
+      const phaseShift = this._getComponentPhaseShift(comp);
+      const phaseOut   = phaseIn + phaseShift;
+
+      info.set(cid, { phaseIn, phaseShift, phaseOut, portPhases });
+
+      // Propagate outgoing
+      this.connections
+        .filter(c => String(c.from) === cid)
+        .forEach(c => {
+          let propagated = phaseOut;
+          // 90° hybrid splitter: second output gets +90° relative to first
+          if (comp.type === 'splitter' &&
+              (comp.properties.type === 'Hybrid' || comp.properties.type === '90° Hybrid') &&
+              c.fromPort === 'output2') {
+            propagated = phaseIn + 90;
+          }
+          phaseAtPort.set(`${c.from}:${c.fromPort}`, propagated);
+          // Store at destination port too
+          phaseAtPort.set(`${c.to}:${c.toPort}`, propagated);
+        });
+    });
+
+    return info;
+  }
+
+  // ── Normalise angle to [0, 360) ───────────────────────────────────────────
+  _normPhase(deg) { return ((deg % 360) + 360) % 360; }
+
+  // ── Draw Phase per-stage info boxes ───────────────────────────────────────
+  drawPhaseColumns() {
+    if (!this.showPhaseDisplay) return;
+    this.phaseLayer.selectAll('*').remove();
+    if (this.components.length === 0) return;
+
+    const phaseInfo  = this._computeSignalPaths();
+    const HC = 60, PAD = 4;
+    const rows = this._detectRows();
+    const cols = this._detectCols();
+    const midY = rows.length > 1 ? (rows[0] + rows[rows.length - 1]) / 2 : this.height / 2;
+
+    const rowZone = (targetRi) => {
+      if (targetRi < 0)            return { topY: 0, botY: rows[0] - HC };
+      if (targetRi >= rows.length) return { topY: rows[rows.length - 1] + HC, botY: this.height };
+      const topY = targetRi === 0 ? rows[0] - HC : (rows[targetRi - 1] + rows[targetRi]) / 2;
+      const botY = targetRi === rows.length - 1
+        ? rows[rows.length - 1] + HC
+        : (rows[targetRi] + rows[targetRi + 1]) / 2;
+      return { topY, botY };
+    };
+
+    const occupied = new Set();
+    this.components.forEach(comp => {
+      const ri = rows.findIndex(r => Math.abs(r - comp.y) < 60);
+      const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
+      if (ri >= 0 && ci >= 0) occupied.add(`${ri},${ci}`);
+    });
+
+    this.components.forEach(comp => {
+      const cid   = String(comp.id);
+      const pInfo = phaseInfo.get(cid);
+      if (!pInfo) return;
+
+      const ri = rows.findIndex(r => Math.abs(r - comp.y) < 60);
+      const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
+      const isMainSide = comp.y <= midY;
+
+      // Phase (slot 4) is in Group B → prefer BELOW for main, ABOVE for aux
+      let targetRi;
+      if (isMainSide) {
+        const prefer = ri + 1;  // below
+        targetRi = (prefer < rows.length && !occupied.has(`${prefer},${ci}`)) ? prefer
+          : (ri - 1 >= 0 && !occupied.has(`${ri - 1},${ci}`) ? ri - 1 : prefer);
+      } else {
+        const prefer = ri - 1;  // above
+        targetRi = (prefer >= 0 && !occupied.has(`${prefer},${ci}`)) ? prefer
+          : (ri + 1 < rows.length && !occupied.has(`${ri + 1},${ci}`) ? ri + 1 : prefer);
+      }
+
+      const { topY: zTop, botY: zBot } = rowZone(targetRi);
+      const { topY, botY } = this._getDisplaySlotBounds(zTop, zBot, 4); // slot 4 = Phase
+      const slotH = Math.max(20, botY - topY);
+
+      const BOX_W   = 2 * HC - 2 * PAD;
+      const lineH   = Math.max(7, Math.min(11, Math.floor((slotH - 12 - PAD) / 3)));
+      const titleH  = lineH + 2;
+      // Combiner gets extra lines for multi-port phase display
+      const isCombiner = comp.type === 'combiner';
+      const nLines  = isCombiner
+        ? Math.max(Object.keys(pInfo.portPhases).length + 1, 2)
+        : 2;
+      const BOX_H   = Math.min(slotH - 2 * PAD, titleH + nLines * lineH + PAD);
+      const boxX    = comp.x - BOX_W / 2;
+      const boxY    = topY + (slotH - BOX_H) / 2;
+
+      if (!comp.phaseBoxOffset) comp.phaseBoxOffset = { x: 0, y: 0 };
+
+      const g = this.phaseLayer.append('g')
+        .attr('class', 'phase-info-group')
+        .attr('data-component-id', cid)
+        .attr('transform', `translate(${boxX + comp.phaseBoxOffset.x}, ${boxY + comp.phaseBoxOffset.y})`)
+        .style('cursor', 'move').style('pointer-events', 'all');
+
+      g.call(d3.drag()
+        .on('start', (e) => { e.sourceEvent.stopPropagation(); g.raise().style('opacity', 0.7); })
+        .on('drag',  (e) => {
+          e.sourceEvent.stopPropagation();
+          comp.phaseBoxOffset.x += e.dx;
+          comp.phaseBoxOffset.y += e.dy;
+          g.attr('transform', `translate(${boxX + comp.phaseBoxOffset.x}, ${boxY + comp.phaseBoxOffset.y})`);
+        })
+        .on('end', () => { g.style('opacity', 1); this.saveHistory(); }));
+
+      // Combiner: check if inputs are in-phase (within ±10°)
+      let borderColor = '#e040fb'; // default magenta
+      if (isCombiner && Object.keys(pInfo.portPhases).length >= 2) {
+        const vals = Object.values(pInfo.portPhases).map(p => this._normPhase(p));
+        const spread = Math.max(...vals) - Math.min(...vals);
+        const balanced = spread <= 10 || spread >= 350;
+        borderColor = balanced ? '#00e676' : '#ff1744';
+      }
+
+      g.append('rect').attr('x', 0).attr('y', 0)
+        .attr('width', BOX_W).attr('height', BOX_H)
+        .attr('fill', '#120a1e').attr('stroke', borderColor)
+        .attr('stroke-width', isCombiner ? 2 : 1).attr('rx', 3);
+
+      g.append('text').attr('x', BOX_W / 2).attr('y', titleH)
+        .attr('text-anchor', 'middle').attr('fill', '#fff')
+        .attr('font-size', `${titleH}px`).attr('font-weight', 'bold')
+        .text('Phase');
+
+      let yo = titleH + lineH;
+
+      if (isCombiner) {
+        // Show each input port's incoming phase
+        const ports = Object.entries(pInfo.portPhases);
+        ports.forEach(([port, ph]) => {
+          const norm = this._normPhase(ph);
+          const label = port.replace('input', 'In');
+          g.append('text').attr('x', PAD).attr('y', yo)
+            .attr('fill', '#e040fb').attr('font-size', `${lineH}px`)
+            .text(`${label}: ${norm.toFixed(0)}\u00b0`);
+          yo += lineH;
+        });
+        if (ports.length >= 2) {
+          const vals   = ports.map(([, p]) => this._normPhase(p));
+          const spread = Math.abs(vals[0] - vals[1]);
+          const diff   = Math.min(spread, 360 - spread);
+          const ok     = diff <= 10;
+          g.append('text').attr('x', PAD).attr('y', yo)
+            .attr('fill', ok ? '#00e676' : '#ff1744')
+            .attr('font-size', `${lineH}px`).attr('font-weight', 'bold')
+            .text(ok ? `\u2206=${diff.toFixed(0)}\u00b0 \u2714 In-phase` : `\u2206=${diff.toFixed(0)}\u00b0 \u26a0 OOphase`);
+        }
+      } else {
+        // Regular component: show Δφ and running phase out
+        const dPhase = pInfo.phaseShift;
+        const phOut  = this._normPhase(pInfo.phaseOut);
+        g.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#e040fb').attr('font-size', `${lineH}px`)
+          .text(`\u0394\u03c6: ${dPhase >= 0 ? '+' : ''}${dPhase}\u00b0`);
+        yo += lineH;
+        g.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#ce93d8').attr('font-size', `${lineH}px`)
+          .text(`\u03c6out: ${phOut.toFixed(0)}\u00b0`);
+      }
+    });
+
+    console.log('Phase columns drawn for', this.components.length, 'components');
   }
 
   exportConfiguration() {
@@ -7510,6 +7779,7 @@ function registerMessageHandlers() {
         if (window.paCanvas.showGainDisplay)      window.paCanvas.drawGainColumns();
         if (window.paCanvas.showPAEDisplay)       window.paCanvas.drawPAEColumns();
         if (window.paCanvas.showImpedanceDisplay) window.paCanvas.drawImpedanceColumns();
+        if (window.paCanvas.showPhaseDisplay)     window.paCanvas.drawPhaseColumns();
         window.paCanvas.drawPaGroupBoxes();
       }
     });
@@ -7521,6 +7791,7 @@ function registerMessageHandlers() {
       if (window.paCanvas.showGainDisplay)      window.paCanvas.drawGainColumns();
       if (window.paCanvas.showPAEDisplay)       window.paCanvas.drawPAEColumns();
       if (window.paCanvas.showImpedanceDisplay) window.paCanvas.drawImpedanceColumns();
+      if (window.paCanvas.showPhaseDisplay)     window.paCanvas.drawPhaseColumns();
       window.paCanvas.drawPaGroupBoxes();
       window.paCanvas.render();
       console.log('[Redraw Canvas] All active display layers refreshed');

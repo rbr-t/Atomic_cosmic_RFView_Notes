@@ -1517,6 +1517,15 @@ $(document).ready(function() {
                         ),
                         
                         tags$button(
+                          onclick = "if(window.paCanvas) paCanvas.togglePhaseDisplay();",
+                          id = "phase_display_toggle",
+                          class = "btn btn-default btn-sm",
+                          style = "min-width: 150px;",
+                          icon("rotate"),
+                          " Phase Display"
+                        ),
+                        
+                        tags$button(
                           onclick = "if(window.paCanvas) paCanvas.toggleCalculationRationale();",
                           id = "calculation_rationale_toggle",
                           class = "btn btn-default btn-sm",
