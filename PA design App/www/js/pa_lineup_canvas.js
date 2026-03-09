@@ -4986,9 +4986,8 @@ class PALineupCanvas {
         }
       }
 
-      // Zone — impedance uses its dedicated slot (slot 3 = bottom position)
-      const { topY: zTop, botY: zBot } = rowZone(targetRi);
-      const { topY, botY } = this._getDisplaySlotBounds(zTop, zBot, 3);  // slot 3 = Impedance
+      // Canonical absolute slot — slot 3 = Impedance (just below component)
+      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 3, comp.y);
       const cellH = Math.max(30, botY - topY);
 
       const BOX_W  = 2 * HC - 2 * PAD;  // 112 px — fills 120 px column
@@ -4996,10 +4995,10 @@ class PALineupCanvas {
       const titleH = lineH + 2;
       const nLines = 2 + (comp.type === 'transistor' ? 1 : 0);  // full/BO + ref
       const contentH = titleH + lineH + nLines * lineH + PAD;
-      const BOX_H  = Math.min(cellH - 2 * PAD, Math.max(contentH, 40));
+      const BOX_H  = Math.max(contentH, 40);  // auto-size; never crop lines
 
       const boxX = comp.x - BOX_W / 2;
-      const boxY = topY + (cellH - BOX_H) / 2;
+      const boxY = topY + Math.max(0, (cellH - BOX_H) / 2);
 
       if (!comp.impedanceBoxOffset) comp.impedanceBoxOffset = { x: 0, y: 0 };
 
@@ -5342,9 +5341,8 @@ class PALineupCanvas {
         }
       }
 
-      // Cell bounds — power box occupies its dedicated slot within the zone
-      const { topY: zTop, botY: zBot } = rowZone(targetRi);
-      const { topY, botY } = this._getDisplaySlotBounds(zTop, zBot, 0);  // slot 0 = Power
+      // Canonical absolute slot — slot 0 = Power (farthest above component)
+      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 0, comp.y);
       const cellH = Math.max(30, botY - topY);
 
       // Box sized to fill the 120 px column cell
@@ -5353,11 +5351,11 @@ class PALineupCanvas {
       const titleH = lineH + 2;
       const nLines = 2 + (powerInfo.p1db_dbm ? 1 : 0) + (powerInfo.power_bo_dbm ? 1 : 0);
       const contentH = titleH + lineH + nLines * lineH + PAD;  // full line-gap after title
-      const BOX_H = Math.min(cellH - 2 * PAD, Math.max(contentH, 40));
+      const BOX_H = Math.max(contentH, 40);  // auto-size to content; never crop lines
 
       // Centred in the target cell at the component's column
       const boxX = comp.x - BOX_W / 2;
-      const boxY = topY + (cellH - BOX_H) / 2;
+      const boxY = topY + Math.max(0, (cellH - BOX_H) / 2);
 
       if (!comp.powerBoxOffset) comp.powerBoxOffset = { x: 0, y: 0 };
 
@@ -5597,34 +5595,49 @@ class PALineupCanvas {
   // ── Slot-aware zone helper ───────────────────────────────────────────────
   // Divides each row-zone cell into 4 vertical slots when multiple displays
   // are active simultaneously, preventing overlap.
-  // Slot layout (top → bottom within the cell):
-  //   0 = Power   (top quarter)
-  //   1 = Gain    (second quarter)
-  //   2 = PAE     (third quarter)
-  //   3 = Impedance (bottom quarter)
-  _getDisplaySlotBounds(topY, botY, slotIndex) {
-    // All active displays are stacked vertically with a fixed slot height,
-    // centred on the zone midpoint.  Slots extend beyond the zone limits
-    // when many displays are active — that is fine on a zoomable canvas.
-    const SLOT_H = 44; // px per display slot (fixed — no shrinking)
+  // ── Canonical display-slot layout ─────────────────────────────────────────
+  // Each display type occupies a FIXED vertical band relative to the
+  // component's y-centre (compY), anchored outside the component body.
+  // This guarantees that display boxes for the *same* component never overlap
+  // each other regardless of which combination of displays is active.
+  //
+  //  Slot 0 = Power      → farthest above comp  (comp.y  – CH – 3×SH)
+  //  Slot 1 = Gain       →           above comp  (comp.y  – CH – 2×SH)
+  //  Slot 2 = PAE        → just above comp        (comp.y  – CH – 1×SH)
+  //  Slot 3 = Impedance  → just below comp        (comp.y  + CH + 0×SH)
+  //  Slot 4 = Phase      →           below comp  (comp.y  + CH + 1×SH)
+  //
+  // CH = component half-height (38 px), SH = slot height (62 px).
+  // Boxes may extend above/below adjacent component rows on a crowded canvas
+  // — that is acceptable on a pan/zoom canvas.
+  _getDisplaySlotBounds(topY, botY, slotIndex, compY) {
+    const SLOT_H    = 62;  // px per slot — enough for ~5 text lines
+    const COMP_HALF = 38;  // half-height of the rendered component body
 
-    const activeOrder = [];
-    if (this.showPowerDisplay)     activeOrder.push(0);
-    if (this.showGainDisplay)      activeOrder.push(1);
-    if (this.showPAEDisplay)       activeOrder.push(2);
-    if (this.showImpedanceDisplay) activeOrder.push(3);
-    if (this.showPhaseDisplay)     activeOrder.push(4);
+    // Canonical position table indexed by slot number
+    const slotCfg = [
+      { dir: 'above', dist: 3 },  // slot 0 = Power
+      { dir: 'above', dist: 2 },  // slot 1 = Gain
+      { dir: 'above', dist: 1 },  // slot 2 = PAE
+      { dir: 'below', dist: 1 },  // slot 3 = Impedance
+      { dir: 'below', dist: 2 },  // slot 4 = Phase
+    ];
 
-    const pos = activeOrder.indexOf(slotIndex);
-    if (pos < 0) return { topY, botY }; // display not active — should not happen
+    const cfg    = slotCfg[slotIndex];
+    const anchor = (compY !== undefined) ? compY : (topY + botY) / 2;
+    if (!cfg) return { topY, botY };
 
-    const zoneCenter = (topY + botY) / 2;
-    const totalH     = activeOrder.length * SLOT_H;
-    const startY     = zoneCenter - totalH / 2;
-    return {
-      topY: startY + pos * SLOT_H,
-      botY: startY + (pos + 1) * SLOT_H
-    };
+    if (cfg.dir === 'above') {
+      return {
+        topY: anchor - COMP_HALF - cfg.dist * SLOT_H,
+        botY: anchor - COMP_HALF - (cfg.dist - 1) * SLOT_H,
+      };
+    } else {
+      return {
+        topY: anchor + COMP_HALF + (cfg.dist - 1) * SLOT_H,
+        botY: anchor + COMP_HALF + cfg.dist * SLOT_H,
+      };
+    }
   }
 
   // ── Draw Gain per-stage info boxes ─────────────────────────────────────────
@@ -5668,16 +5681,15 @@ class PALineupCanvas {
           : (ri - 1 < 0 || !occupied.has(`${ri-1},${ci}`) ? ri - 1 : prefer);
       }
 
-      const { topY: zTop, botY: zBot } = rowZone(targetRi);
-      const { topY, botY } = this._getDisplaySlotBounds(zTop, zBot, 1);  // slot 1 = Gain
+      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 1, comp.y);
       const cellH = Math.max(24, botY - topY);
 
       const BOX_W = 2 * HC - 2 * PAD;
       const lineH  = Math.max(8, Math.min(12, Math.floor(cellH / 6)));
       const titleH = lineH + 2;
-      const BOX_H  = Math.min(cellH - 2 * PAD, Math.max(titleH + 3 * lineH + PAD, 32));
+      const BOX_H  = Math.max(titleH + 3 * lineH + PAD, 32);  // auto-size; never crop
       const boxX = comp.x - BOX_W / 2;
-      const boxY = topY + (cellH - BOX_H) / 2;
+      const boxY = topY + Math.max(0, (cellH - BOX_H) / 2);
 
       if (!comp.gainBoxOffset) comp.gainBoxOffset = { x: 0, y: 0 };
 
@@ -5775,16 +5787,15 @@ class PALineupCanvas {
           : (ri - 1 < 0 || !occupied.has(`${ri-1},${ci}`) ? ri - 1 : prefer);
       }
 
-      const { topY: zTop, botY: zBot } = rowZone(targetRi);
-      const { topY, botY } = this._getDisplaySlotBounds(zTop, zBot, 2);  // slot 2 = PAE
+      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 2, comp.y);
       const cellH = Math.max(24, botY - topY);
 
       const BOX_W = 2 * HC - 2 * PAD;
       const lineH  = Math.max(8, Math.min(12, Math.floor(cellH / 6)));
       const titleH = lineH + 2;
-      const BOX_H  = Math.min(cellH - 2 * PAD, Math.max(titleH + 2 * lineH + PAD, 28));
+      const BOX_H  = Math.max(titleH + 2 * lineH + PAD, 28);  // auto-size; never crop
       const boxX = comp.x - BOX_W / 2;
-      const boxY = topY + (cellH - BOX_H) / 2;
+      const boxY = topY + Math.max(0, (cellH - BOX_H) / 2);
 
       if (!comp.paeBoxOffset) comp.paeBoxOffset = { x: 0, y: 0 };
 
@@ -6000,21 +6011,31 @@ class PALineupCanvas {
           : (ri + 1 < rows.length && !occupied.has(`${ri + 1},${ci}`) ? ri + 1 : prefer);
       }
 
-      const { topY: zTop, botY: zBot } = rowZone(targetRi);
-      const { topY, botY } = this._getDisplaySlotBounds(zTop, zBot, 4); // slot 4 = Phase
-      const slotH = Math.max(20, botY - topY);
-
-      const BOX_W   = 2 * HC - 2 * PAD;
-      const lineH   = Math.max(7, Math.min(11, Math.floor((slotH - 12 - PAD) / 3)));
-      const titleH  = lineH + 2;
-      // Combiner gets extra lines for multi-port phase display
+      // ── Count content lines first so BOX_H auto-sizes to content ──────────
       const isCombiner = comp.type === 'combiner';
-      const nLines  = isCombiner
-        ? Math.max(Object.keys(pInfo.portPhases).length + 1, 2)
-        : 2;
-      const BOX_H   = Math.min(slotH - 2 * PAD, titleH + nLines * lineH + PAD);
-      const boxX    = comp.x - BOX_W / 2;
-      const boxY    = topY + (slotH - BOX_H) / 2;
+      const lineH  = 10;
+      const titleH = 12;
+      let nContentLines;
+      if (isCombiner) {
+        nContentLines = 1; // balance line at the end
+        Object.entries(pInfo.portPhases).forEach(([, ph]) => {
+          const phObj = (ph && ph.num != null) ? ph : { num: ph || 0, syms: [] };
+          nContentLines += 1 + (phObj.syms || []).length; // port label + one line per symbol
+        });
+      } else {
+        const phOut = pInfo.phaseOut || { num: 0, syms: [] };
+        nContentLines = 2 + (phOut.syms || []).length; // Δφ + φout numeric + one line per sym
+      }
+
+      // Canonical slot position — slot 4 = Phase (below component)
+      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 4, comp.y);
+      const slotH = botY - topY; // = 62 px (SLOT_H)
+
+      const BOX_W = 2 * HC - 2 * PAD;
+      const BOX_H = Math.max(32, titleH + lineH + nContentLines * lineH + PAD);
+      const boxX  = comp.x - BOX_W / 2;
+      // Centre in slot if box fits; otherwise anchor to slot top
+      const boxY  = topY + Math.max(0, (slotH - BOX_H) / 2);
 
       if (!comp.phaseBoxOffset) comp.phaseBoxOffset = { x: 0, y: 0 };
 
@@ -6056,48 +6077,61 @@ class PALineupCanvas {
       let yo = titleH + lineH;
 
       if (isCombiner) {
-        // Show each input port's incoming phase expression
+        // Each input port: numeric phase line + one line per symbolic term
         const ports = Object.entries(pInfo.portPhases);
         ports.forEach(([port, ph]) => {
-          const phObj  = (ph && ph.num != null) ? ph : { num: ph || 0, syms: [] };
-          const norm   = this._normPhase(phObj.num);
-          const label  = port.replace('input', 'In');
-          const allSym = phObj.syms.length > 0;
-          const txt    = allSym
-            ? `${label}: ${this._formatPhaseExpr(phObj)}`
-            : `${label}: ${norm.toFixed(0)}\u00b0`;
+          const phObj = (ph && ph.num != null) ? ph : { num: ph || 0, syms: [] };
+          const norm  = this._normPhase(phObj.num);
+          const label = port.replace('input', 'In');
           g.append('text').attr('x', PAD).attr('y', yo)
             .attr('fill', '#e040fb').attr('font-size', `${lineH}px`)
-            .text(txt);
+            .text(`${label}: ${norm.toFixed(0)}\u00b0`);
           yo += lineH;
+          (phObj.syms || []).forEach(s => {
+            g.append('text').attr('x', PAD + 6).attr('y', yo)
+              .attr('fill', '#b39ddb').attr('font-size', `${Math.max(7, lineH - 1)}px`)
+              .text('+' + s);
+            yo += lineH;
+          });
         });
         if (ports.length >= 2) {
-          const vals   = ports.map(([, p]) => this._normPhase((p && p.num != null) ? p.num : (p || 0)));
-          const spread = Math.abs(vals[0] - vals[1]);
-          const diff   = Math.min(spread, 360 - spread);
-          const ok     = diff <= 10;
+          const vals = ports.map(([, p]) => this._normPhase((p && p.num != null) ? p.num : (p || 0)));
+          const diff = Math.min(Math.abs(vals[0] - vals[1]), 360 - Math.abs(vals[0] - vals[1]));
+          const ok   = diff <= 10;
           g.append('text').attr('x', PAD).attr('y', yo)
             .attr('fill', ok ? '#00e676' : '#ff1744')
             .attr('font-size', `${lineH}px`).attr('font-weight', 'bold')
-            .text(ok ? `\u2206=${diff.toFixed(0)}\u00b0 \u2714 In-phase` : `\u2206=${diff.toFixed(0)}\u00b0 \u26a0 OOphase`);
+            .text(ok ? `\u2206=${diff.toFixed(0)}\u00b0 \u2714` : `\u2206=${diff.toFixed(0)}\u00b0 \u26a0`);
         }
       } else {
-        // Regular component: show Δφ (symbolic if unknown) and running φout expression
-        const shift  = pInfo.phaseShift; // {val, sym}
-        const phOut  = pInfo.phaseOut;   // {num, syms}
-        // Δφ line: use symbol when phase is unknown, else numeric
-        const dTxt   = shift.sym
+        // Δφ line (single): numeric or symbolic
+        const shift = pInfo.phaseShift;
+        const phOut = pInfo.phaseOut || { num: 0, syms: [] };
+        const dTxt  = shift.sym
           ? `\u0394\u03c6: +${shift.sym}`
           : `\u0394\u03c6: ${shift.val >= 0 ? '+' : ''}${shift.val}\u00b0`;
         g.append('text').attr('x', PAD).attr('y', yo)
           .attr('fill', '#e040fb').attr('font-size', `${lineH}px`)
           .text(dTxt);
         yo += lineH;
-        // φout line: full symbolic expression
-        const outTxt = `\u03c6out: ${this._formatPhaseExpr(phOut)}`;
+
+        // φout: numeric part on its own line
+        const normNum = this._normPhase(phOut.num || 0);
+        const numLine = (phOut.syms && phOut.syms.length)
+          ? `\u03c6out: ${normNum.toFixed(0)}\u00b0`
+          : `\u03c6out: ${normNum.toFixed(0)}\u00b0`;
         g.append('text').attr('x', PAD).attr('y', yo)
           .attr('fill', '#ce93d8').attr('font-size', `${lineH}px`)
-          .text(outTxt);
+          .text(numLine);
+        yo += lineH;
+
+        // One line per accumulated symbolic term: "+θ_name"
+        (phOut.syms || []).forEach(s => {
+          g.append('text').attr('x', PAD + 6).attr('y', yo)
+            .attr('fill', '#b39ddb').attr('font-size', `${Math.max(7, lineH - 1)}px`)
+            .text('+' + s);
+          yo += lineH;
+        });
       }
     });
 

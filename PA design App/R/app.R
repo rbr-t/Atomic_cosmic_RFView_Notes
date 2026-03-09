@@ -4897,6 +4897,9 @@ server <- function(input, output, session) {
       formatStyle(3:6, backgroundColor = '#f0f8ff') %>%  # Light blue for full power
       formatStyle(7:10, backgroundColor = '#fff8f0')     # Light orange for backoff
   })
+
+  # Ensure the table renders even when the Table View tab is not visible
+  outputOptions(output, "pa_lineup_table", suspendWhenHidden = FALSE)
   
   # Dynamic Tables UI - renders tabs for multi-canvas layouts
   output$pa_lineup_tables_dynamic <- renderUI({
