@@ -1209,6 +1209,24 @@ class PALineupCanvas {
         .text(`f: ${component.properties.freq || 2.6} GHz`);
       yOffset += 10;
     }
+    
+    // Zin / Zout impedance annotations (shown when properties are explicitly set)
+    const zIn  = component.properties.z_in;
+    const zOut = component.properties.z_out;
+    if (zIn !== undefined && zIn !== null) {
+      group.append('text')
+        .attr('x', -8).attr('y', -38)
+        .attr('text-anchor', 'end')
+        .attr('fill', 'rgba(100,220,255,0.9)').attr('font-size', '8px')
+        .text('Zin:' + zIn + '\u03a9');
+    }
+    if (zOut !== undefined && zOut !== null) {
+      group.append('text')
+        .attr('x', 55).attr('y', -38)
+        .attr('text-anchor', 'start')
+        .attr('fill', 'rgba(255,160,100,0.9)').attr('font-size', '8px')
+        .text('Zout:' + zOut + '\u03a9');
+    }
   }
   
   renderMatching(group, component) {
@@ -2472,6 +2490,7 @@ class PALineupCanvas {
     
     console.log('=== loadPreset complete ===');
     console.log('Total components after preset:', this.components.length);
+    if (this.svg) this.drawPaGroupBoxes();
   }
   
   createSingleDriverDoherty() {
@@ -2484,15 +2503,15 @@ class PALineupCanvas {
     
     // Component positions aligned to 120px grid; rows: main=180, center=300, aux=420
     const source       = this.addComponent('termination', 60,  300, { label: 'Source',     impedance: 50 });
-    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     technology: 'GaN', biasClass: 'A',  gain: 15, pae: 40, p1db: 35, pout: 35 });
-    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'Pi',          loss: 0.5 });
+    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     technology: 'GaN', biasClass: 'A',  gain: 15, pae: 40, p1db: 35, pout: 35, z_in: 8,  z_out: 20 });
+    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'Pi',          loss: 0.5, z_in: 20, z_out: 50 });
     const splitter     = this.addComponent('splitter',    420, 300, { label: 'Splitter',   type: 'Wilkinson' });
-    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main Match', matchType: 'Pi',          loss: 0.3 });
-    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'TL-stub',     loss: 0.3 });
-    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 46, pout: 46 });
-    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 43, pout: 43 });
-    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'Main λ/4',   matchType: 'Transformer', loss: 0.2 });
-    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'Aux Offset', matchType: 'TL-stub',     loss: 0.2 });
+    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main Match', matchType: 'Pi',          loss: 0.3, z_in: 50, z_out: 4 });
+    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'TL-stub',     loss: 0.3, z_in: 50, z_out: 4 });
+    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 46, pout: 46, z_in: 4,  z_out: 8 });
+    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 43, pout: 43, z_in: 4,  z_out: 8 });
+    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'Main λ/4',   matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 25 });
+    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'Aux Offset', matchType: 'TL-stub',     loss: 0.2, z_in: 8,  z_out: 25 });
     const combiner     = this.addComponent('combiner',    900, 300, { label: 'Doherty',    type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
     const load         = this.addComponent('termination', 1020, 300, { label: 'Load',      impedance: 50 });
 
@@ -2527,14 +2546,14 @@ class PALineupCanvas {
     
     // Component positions aligned to 120px grid; rows: main=180, center=300, aux=420
     const source         = this.addComponent('termination', 60,  300, { label: 'Source',     impedance: 50 });
-    const mainDriver     = this.addComponent('transistor',  180, 180, { label: 'Main Driver', technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35 });
-    const auxDriver      = this.addComponent('transistor',  180, 420, { label: 'Aux Driver',  technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35 });
-    const mainInterstage = this.addComponent('matching',    300, 180, { label: 'Main Match',  matchType: 'Pi',          loss: 0.3 });
-    const auxInterstage  = this.addComponent('matching',    300, 420, { label: 'Aux Match',   matchType: 'TL-stub',     loss: 0.3 });
-    const mainPA         = this.addComponent('transistor',  420, 180, { label: 'Main PA',     technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, pout: 46 });
-    const auxPA          = this.addComponent('transistor',  420, 420, { label: 'Aux PA',      technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, pout: 43 });
-    const mainOutMatch   = this.addComponent('matching',    540, 180, { label: 'Main λ/4',    matchType: 'Transformer', loss: 0.2 });
-    const auxOutMatch    = this.addComponent('matching',    540, 420, { label: 'Aux Offset',  matchType: 'TL-stub',     loss: 0.2 });
+    const mainDriver     = this.addComponent('transistor',  180, 180, { label: 'Main Driver', technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35, z_in: 8,  z_out: 20 });
+    const auxDriver      = this.addComponent('transistor',  180, 420, { label: 'Aux Driver',  technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35, z_in: 8,  z_out: 20 });
+    const mainInterstage = this.addComponent('matching',    300, 180, { label: 'Main Match',  matchType: 'Pi',          loss: 0.3, z_in: 20, z_out: 4 });
+    const auxInterstage  = this.addComponent('matching',    300, 420, { label: 'Aux Match',   matchType: 'TL-stub',     loss: 0.3, z_in: 20, z_out: 4 });
+    const mainPA         = this.addComponent('transistor',  420, 180, { label: 'Main PA',     technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, pout: 46, z_in: 4,  z_out: 8 });
+    const auxPA          = this.addComponent('transistor',  420, 420, { label: 'Aux PA',      technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, pout: 43, z_in: 4,  z_out: 8 });
+    const mainOutMatch   = this.addComponent('matching',    540, 180, { label: 'Main λ/4',    matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 25 });
+    const auxOutMatch    = this.addComponent('matching',    540, 420, { label: 'Aux Offset',  matchType: 'TL-stub',     loss: 0.2, z_in: 8,  z_out: 25 });
     const combiner       = this.addComponent('combiner',    660, 300, { label: 'Doherty',     type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
     const load           = this.addComponent('termination', 780, 300, { label: 'Load',        impedance: 50 });
 
@@ -2568,12 +2587,12 @@ class PALineupCanvas {
     
     // Component positions aligned to 120px cell grid (cell centres at 180,300,...1020)
     const source    = this.addComponent('termination', 180, 300, { label: 'Source',     impedance: 50 });
-    const predriver = this.addComponent('transistor',  300, 300, { label: 'Pre-driver', technology: 'GaN', biasClass: 'A',  gain: 12, pae: 40, pout: 30 });
-    const match1    = this.addComponent('matching',    420, 300, { label: 'Match 1',    matchType: 'Pi',          loss: 0.3 });
-    const driver    = this.addComponent('transistor',  540, 300, { label: 'Driver',     technology: 'GaN', biasClass: 'A',  gain: 15, pae: 45, pout: 35 });
-    const match2    = this.addComponent('matching',    660, 300, { label: 'Match 2',    matchType: 'Pi',          loss: 0.3 });
-    const finalPA   = this.addComponent('transistor',  780, 300, { label: 'Final PA',   technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, pout: 46 });
-    const outMatch  = this.addComponent('matching',    900, 300, { label: 'Output',     matchType: 'Transformer', loss: 0.2 });
+    const predriver = this.addComponent('transistor',  300, 300, { label: 'Pre-driver', technology: 'GaN', biasClass: 'A',  gain: 12, pae: 40, pout: 30, z_in: 12, z_out: 30 });
+    const match1    = this.addComponent('matching',    420, 300, { label: 'Match 1',    matchType: 'Pi',          loss: 0.3, z_in: 30, z_out: 8 });
+    const driver    = this.addComponent('transistor',  540, 300, { label: 'Driver',     technology: 'GaN', biasClass: 'A',  gain: 15, pae: 45, pout: 35, z_in: 8,  z_out: 20 });
+    const match2    = this.addComponent('matching',    660, 300, { label: 'Match 2',    matchType: 'Pi',          loss: 0.3, z_in: 20, z_out: 4 });
+    const finalPA   = this.addComponent('transistor',  780, 300, { label: 'Final PA',   technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, pout: 46, z_in: 4,  z_out: 8 });
+    const outMatch  = this.addComponent('matching',    900, 300, { label: 'Output',     matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 50 });
     const load      = this.addComponent('termination', 1020, 300, { label: 'Load',      impedance: 50 });
 
     // Create pre-connected wires (while loading flag is still set)
@@ -2602,15 +2621,15 @@ class PALineupCanvas {
     
     // Component positions aligned to 120px grid; rows: main=180, center=300, aux=420
     const source       = this.addComponent('termination', 60,  300, { label: 'Source',     impedance: 50 });
-    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     biasClass: 'A',  gain: 15, pout: 35 });
-    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'L',          loss: 0.5 });
+    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     biasClass: 'A',  gain: 15, pout: 35, z_in: 8,  z_out: 20 });
+    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'L',          loss: 0.5, z_in: 20, z_out: 50 });
     const splitter     = this.addComponent('splitter',    420, 300, { label: '90° Splitter', type: 'Hybrid' });
-    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main Match', matchType: 'Pi',          loss: 0.3 });
-    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'TL-stub',     loss: 0.3 });
-    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46, pae: 55 });
-    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43, pae: 50 });
-    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'λ/4',        matchType: 'Transformer', loss: 0.2 });
-    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'Offset',     matchType: 'TL-stub',     loss: 0.2 });
+    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main Match', matchType: 'Pi',          loss: 0.3, z_in: 50, z_out: 4 });
+    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'TL-stub',     loss: 0.3, z_in: 50, z_out: 4 });
+    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46, pae: 55, z_in: 4,  z_out: 8 });
+    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43, pae: 50, z_in: 4,  z_out: 8 });
+    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'λ/4',        matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 25 });
+    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'Offset',     matchType: 'TL-stub',     loss: 0.2, z_in: 8,  z_out: 25 });
     const combiner     = this.addComponent('combiner',    900, 300, { label: 'Doherty',    type: 'doherty', subtype: 'Load-Modulation',   ways: 2 });
     const load         = this.addComponent('termination', 1020, 300, { label: 'Load',      impedance: 50 });
 
@@ -2645,15 +2664,15 @@ class PALineupCanvas {
     
     // Component positions aligned to 120px grid; rows: main=180, center=300, aux=420
     const source       = this.addComponent('termination', 60,  300, { label: 'Source',     impedance: 50 });
-    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     biasClass: 'A',  gain: 15, pout: 35 });
-    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'Pi',          loss: 0.5 });
+    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     biasClass: 'A',  gain: 15, pout: 35, z_in: 8,  z_out: 20 });
+    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'Pi',          loss: 0.5, z_in: 20, z_out: 50 });
     const splitter     = this.addComponent('splitter',    420, 300, { label: 'Splitter',   type: 'Wilkinson' });
-    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main λ/4',   matchType: 'TL-stub',     loss: 0.3 });
-    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'Pi',          loss: 0.3 });
-    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46 });
-    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43 });
-    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'Out Match',  matchType: 'L',           loss: 0.2 });
-    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'λ/4',        matchType: 'Transformer', loss: 0.2 });
+    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main λ/4',   matchType: 'TL-stub',     loss: 0.3, z_in: 50, z_out: 4 });
+    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'Pi',          loss: 0.3, z_in: 50, z_out: 4 });
+    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46, z_in: 4,  z_out: 8 });
+    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43, z_in: 4,  z_out: 8 });
+    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'Out Match',  matchType: 'L',           loss: 0.2, z_in: 8,  z_out: 50 });
+    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'λ/4',        matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 25 });
     const combiner     = this.addComponent('combiner',    900, 300, { label: 'Inverted',   type: 'doherty', subtype: 'Inverted-Doherty',  ways: 2 });
     const load         = this.addComponent('termination', 1020, 300, { label: 'Load',      impedance: 50 });
 
@@ -2688,15 +2707,15 @@ class PALineupCanvas {
     
     // Component positions aligned to 120px grid; rows: main=180, center=300, aux=420
     const source       = this.addComponent('termination', 60,  300, { label: 'Source',     impedance: 50 });
-    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     biasClass: 'A',  gain: 15, pout: 36 });
-    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'T',           loss: 0.5 });
+    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     biasClass: 'A',  gain: 15, pout: 36, z_in: 8,  z_out: 20 });
+    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'T',           loss: 0.5, z_in: 20, z_out: 50 });
     const splitter     = this.addComponent('splitter',    420, 300, { label: 'Splitter',   type: 'Wilkinson' });
-    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main Match', matchType: 'Pi',          loss: 0.3 });
-    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'Pi',          loss: 0.3 });
-    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46, pae: 55 });
-    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pout: 46, pae: 55 });
-    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'λ/4',        matchType: 'Transformer', loss: 0.2 });
-    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'λ/4',        matchType: 'Transformer', loss: 0.2 });
+    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main Match', matchType: 'Pi',          loss: 0.3, z_in: 50, z_out: 4 });
+    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'Pi',          loss: 0.3, z_in: 50, z_out: 4 });
+    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46, pae: 55, z_in: 4,  z_out: 8 });
+    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pout: 46, pae: 55, z_in: 4,  z_out: 8 });
+    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'λ/4',        matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 25 });
+    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'λ/4',        matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 25 });
     const combiner     = this.addComponent('combiner',    900, 300, { label: 'Symmetric',  type: 'doherty', subtype: 'Symmetric-Doherty',  ways: 2 });
     const load         = this.addComponent('termination', 1020, 300, { label: 'Load',      impedance: 50 });
 
@@ -2731,15 +2750,15 @@ class PALineupCanvas {
     
     // Component positions aligned to 120px grid; rows: main=180, center=300, aux=420
     const source       = this.addComponent('termination', 60,  300, { label: 'Source',     impedance: 50 });
-    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     biasClass: 'A',  gain: 15, pout: 36 });
-    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'L',           loss: 0.5 });
+    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     biasClass: 'A',  gain: 15, pout: 36, z_in: 8,  z_out: 20 });
+    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'L',           loss: 0.5, z_in: 20, z_out: 50 });
     const splitter     = this.addComponent('splitter',    420, 300, { label: '2:1 Splitter', type: 'Asymmetric' });
-    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main Match', matchType: 'Pi',          loss: 0.3 });
-    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'L',           loss: 0.3 });
-    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pout: 49, pae: 55 });
-    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43, pae: 50 });
-    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'λ/4 (25Ω)', matchType: 'Transformer', loss: 0.2 });
-    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'λ/4 (50Ω)', matchType: 'Transformer', loss: 0.2 });
+    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main Match', matchType: 'Pi',          loss: 0.3, z_in: 50, z_out: 4 });
+    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'L',           loss: 0.3, z_in: 50, z_out: 4 });
+    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pout: 49, pae: 55, z_in: 4,  z_out: 6 });
+    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43, pae: 50, z_in: 4,  z_out: 8 });
+    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'λ/4 (25Ω)', matchType: 'Transformer', loss: 0.2, z_in: 6,  z_out: 25 });
+    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'λ/4 (50Ω)', matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 50 });
     const combiner     = this.addComponent('combiner',    900, 300, { label: 'Asymmetric 2:1', type: 'doherty', subtype: 'Asymmetric-Doherty', ways: 2 });
     const load         = this.addComponent('termination', 1020, 300, { label: 'Load',      impedance: 50 });
 
@@ -2775,17 +2794,17 @@ class PALineupCanvas {
     // Component positions aligned to 120px grid; rows: main=180, center=300, aux=420
     // DC supply nodes sit one row above/below their respective PAs (rows 60 / 540)
     const source       = this.addComponent('termination', 60,  300, { label: 'RF Source',  impedance: 50 });
-    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35 });
-    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'Pi',          loss: 0.5 });
+    const driver       = this.addComponent('transistor',  180, 300, { label: 'Driver',     technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35, z_in: 8,  z_out: 20 });
+    const match        = this.addComponent('matching',    300, 300, { label: 'Interstage', matchType: 'Pi',          loss: 0.5, z_in: 20, z_out: 50 });
     const splitter     = this.addComponent('splitter',    420, 300, { label: 'Splitter',   type: 'Wilkinson' });
-    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main Match', matchType: 'Pi',          loss: 0.3 });
-    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 46, pout: 46 });
+    const mainMatch    = this.addComponent('matching',    540, 180, { label: 'Main Match', matchType: 'Pi',          loss: 0.3, z_in: 50, z_out: 4 });
+    const mainPA       = this.addComponent('transistor',  660, 180, { label: 'Main PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 46, pout: 46, z_in: 4,  z_out: 8 });
     const mainDC       = this.addComponent('dc_supply',   660,  60, { label: 'VDD Main (ET)', vdd: 28, maxCurrent: 5 });
-    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'TL-stub',     loss: 0.3 });
-    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 43, pout: 43 });
+    const auxMatch     = this.addComponent('matching',    540, 420, { label: 'Aux Match',  matchType: 'TL-stub',     loss: 0.3, z_in: 50, z_out: 4 });
+    const auxPA        = this.addComponent('transistor',  660, 420, { label: 'Aux PA',     technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 43, pout: 43, z_in: 4,  z_out: 8 });
     const auxDC        = this.addComponent('dc_supply',   660, 540, { label: 'VDD Aux (ET)',  vdd: 28, maxCurrent: 3 });
-    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'Main λ/4',   matchType: 'Transformer', loss: 0.2 });
-    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'Aux Offset', matchType: 'TL-stub',     loss: 0.2 });
+    const mainOutMatch = this.addComponent('matching',    780, 180, { label: 'Main λ/4',   matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 25 });
+    const auxOutMatch  = this.addComponent('matching',    780, 420, { label: 'Aux Offset', matchType: 'TL-stub',     loss: 0.2, z_in: 8,  z_out: 25 });
     const combiner     = this.addComponent('combiner',    900, 300, { label: 'Doherty',    type: 'doherty', subtype: 'Load-Modulation',  ways: 2 });
     const load         = this.addComponent('termination', 1020, 300, { label: 'Load',      impedance: 50 });
 
@@ -2824,18 +2843,18 @@ class PALineupCanvas {
     
     // Component positions aligned to 120px grid; 3 rows: top=180, mid=300, bot=420
     const source        = this.addComponent('termination', 60,  300, { label: 'Source',       impedance: 50 });
-    const driver        = this.addComponent('transistor',  180, 300, { label: 'Driver',       technology: 'GaN', biasClass: 'A',  gain: 16, pout: 38 });
-    const match         = this.addComponent('matching',    300, 300, { label: 'Interstage',   matchType: 'Pi',          loss: 0.4 });
+    const driver        = this.addComponent('transistor',  180, 300, { label: 'Driver',       technology: 'GaN', biasClass: 'A',  gain: 16, pout: 38, z_in: 8,  z_out: 20 });
+    const match         = this.addComponent('matching',    300, 300, { label: 'Interstage',   matchType: 'Pi',          loss: 0.4, z_in: 20, z_out: 50 });
     const splitter      = this.addComponent('splitter',    420, 300, { label: '3-Way Equal',  type: 'Corporate', portCount: 3 });
-    const mainMatch     = this.addComponent('matching',    540, 180, { label: 'Main Match',   matchType: 'Pi',          loss: 0.3 });
-    const peak1Match    = this.addComponent('matching',    540, 300, { label: 'Peak1 Match',  matchType: 'TL-stub',     loss: 0.3 });
-    const peak2Match    = this.addComponent('matching',    540, 420, { label: 'Peak2 Match',  matchType: 'TL-stub',     loss: 0.3 });
-    const mainPA        = this.addComponent('transistor',  660, 180, { label: 'Main PA',      technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 45, pout: 45 });
-    const peak1PA       = this.addComponent('transistor',  660, 300, { label: 'Peak PA 1',    technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 45, pout: 45 });
-    const peak2PA       = this.addComponent('transistor',  660, 420, { label: 'Peak PA 2',    technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 45, pout: 45 });
-    const mainOutMatch  = this.addComponent('matching',    780, 180, { label: 'λ/4 Main',     matchType: 'Transformer', loss: 0.2 });
-    const peak1OutMatch = this.addComponent('matching',    780, 300, { label: 'λ/4 Peak1',    matchType: 'Transformer', loss: 0.2 });
-    const peak2OutMatch = this.addComponent('matching',    780, 420, { label: 'λ/4 Peak2',    matchType: 'Transformer', loss: 0.2 });
+    const mainMatch     = this.addComponent('matching',    540, 180, { label: 'Main Match',   matchType: 'Pi',          loss: 0.3, z_in: 50, z_out: 4 });
+    const peak1Match    = this.addComponent('matching',    540, 300, { label: 'Peak1 Match',  matchType: 'TL-stub',     loss: 0.3, z_in: 50, z_out: 4 });
+    const peak2Match    = this.addComponent('matching',    540, 420, { label: 'Peak2 Match',  matchType: 'TL-stub',     loss: 0.3, z_in: 50, z_out: 4 });
+    const mainPA        = this.addComponent('transistor',  660, 180, { label: 'Main PA',      technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 45, pout: 45, z_in: 4,  z_out: 8 });
+    const peak1PA       = this.addComponent('transistor',  660, 300, { label: 'Peak PA 1',    technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 45, pout: 45, z_in: 4,  z_out: 8 });
+    const peak2PA       = this.addComponent('transistor',  660, 420, { label: 'Peak PA 2',    technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 45, pout: 45, z_in: 4,  z_out: 8 });
+    const mainOutMatch  = this.addComponent('matching',    780, 180, { label: 'λ/4 Main',     matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 25 });
+    const peak1OutMatch = this.addComponent('matching',    780, 300, { label: 'λ/4 Peak1',    matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 25 });
+    const peak2OutMatch = this.addComponent('matching',    780, 420, { label: 'λ/4 Peak2',    matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 25 });
     const combiner      = this.addComponent('combiner',    900, 300, { label: '3-Way Doherty', type: 'doherty', subtype: '3-Way',           portCount: 3, ways: 3 });
     const load          = this.addComponent('termination', 1020, 300, { label: 'Load',        impedance: 50 });
 
@@ -2874,18 +2893,18 @@ class PALineupCanvas {
     
     // Component positions aligned to 120px grid; 3 rows: top=180, mid=300, bot=420
     const source        = this.addComponent('termination', 60,  300, { label: 'Source',           impedance: 50 });
-    const driver        = this.addComponent('transistor',  180, 300, { label: 'Driver',           technology: 'GaN', biasClass: 'A',  gain: 17, pout: 39 });
-    const match         = this.addComponent('matching',    300, 300, { label: 'Interstage',       matchType: 'Pi',          loss: 0.4 });
+    const driver        = this.addComponent('transistor',  180, 300, { label: 'Driver',           technology: 'GaN', biasClass: 'A',  gain: 17, pout: 39, z_in: 8,  z_out: 20 });
+    const match         = this.addComponent('matching',    300, 300, { label: 'Interstage',       matchType: 'Pi',          loss: 0.4, z_in: 20, z_out: 50 });
     const splitter      = this.addComponent('splitter',    420, 300, { label: '3-Way 2:1:1',      type: 'Asymmetric', portCount: 3 });
-    const mainMatch     = this.addComponent('matching',    540, 180, { label: 'Main Match',       matchType: 'Pi',          loss: 0.3 });
-    const peak1Match    = this.addComponent('matching',    540, 300, { label: 'Peak1 Match',      matchType: 'TL-stub',     loss: 0.3 });
-    const peak2Match    = this.addComponent('matching',    540, 420, { label: 'Peak2 Match',      matchType: 'TL-stub',     loss: 0.3 });
-    const mainPA        = this.addComponent('transistor',  660, 180, { label: 'Main PA (50%)',    technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 48, pout: 48 });
-    const peak1PA       = this.addComponent('transistor',  660, 300, { label: 'Peak PA 1 (25%)', technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 42, pout: 42 });
-    const peak2PA       = this.addComponent('transistor',  660, 420, { label: 'Peak PA 2 (25%)', technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 42, pout: 42 });
-    const mainOutMatch  = this.addComponent('matching',    780, 180, { label: 'λ/4 (25Ω)',       matchType: 'Transformer', loss: 0.2 });
-    const peak1OutMatch = this.addComponent('matching',    780, 300, { label: 'λ/4 (50Ω)',       matchType: 'Transformer', loss: 0.2 });
-    const peak2OutMatch = this.addComponent('matching',    780, 420, { label: 'λ/4 (50Ω)',       matchType: 'Transformer', loss: 0.2 });
+    const mainMatch     = this.addComponent('matching',    540, 180, { label: 'Main Match',       matchType: 'Pi',          loss: 0.3, z_in: 50, z_out: 4 });
+    const peak1Match    = this.addComponent('matching',    540, 300, { label: 'Peak1 Match',      matchType: 'TL-stub',     loss: 0.3, z_in: 50, z_out: 4 });
+    const peak2Match    = this.addComponent('matching',    540, 420, { label: 'Peak2 Match',      matchType: 'TL-stub',     loss: 0.3, z_in: 50, z_out: 4 });
+    const mainPA        = this.addComponent('transistor',  660, 180, { label: 'Main PA (50%)',    technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 48, pout: 48, z_in: 4,  z_out: 6 });
+    const peak1PA       = this.addComponent('transistor',  660, 300, { label: 'Peak PA 1 (25%)', technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 42, pout: 42, z_in: 4,  z_out: 8 });
+    const peak2PA       = this.addComponent('transistor',  660, 420, { label: 'Peak PA 2 (25%)', technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 42, pout: 42, z_in: 4,  z_out: 8 });
+    const mainOutMatch  = this.addComponent('matching',    780, 180, { label: 'λ/4 (25Ω)',       matchType: 'Transformer', loss: 0.2, z_in: 6,  z_out: 25 });
+    const peak1OutMatch = this.addComponent('matching',    780, 300, { label: 'λ/4 (50Ω)',       matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 50 });
+    const peak2OutMatch = this.addComponent('matching',    780, 420, { label: 'λ/4 (50Ω)',       matchType: 'Transformer', loss: 0.2, z_in: 8,  z_out: 50 });
     const combiner      = this.addComponent('combiner',    900, 300, { label: '3-Way Asym 2:1:1', type: 'doherty', subtype: '3-Way-Asymmetric', portCount: 3, ways: 3 });
     const load          = this.addComponent('termination', 1020, 300, { label: 'Load',            impedance: 50 });
 
@@ -3852,6 +3871,7 @@ class PALineupCanvas {
     });
     
     this.renderConnections();
+    this.drawPaGroupBoxes();
   }
   
   updateUndoRedoButtons() {
@@ -5018,6 +5038,91 @@ class PALineupCanvas {
     });
 
     console.log('Impedance columns drawn for', componentsWithImpedance.length, 'components');
+  }
+
+  /**
+   * Draw dashed PA group boxes that visually encompass each transistor together
+   * with its input matching network (IMN) and output matching network (OMN).
+   * Also labels IMN/OMN with their z_in→z_out impedance transformation.
+   */
+  drawPaGroupBoxes() {
+    // Remove previous group box overlays before redrawing
+    this.componentsLayer.selectAll('.pa-group-box').remove();
+
+    const transistors = this.components.filter(c => c.type === 'transistor');
+    transistors.forEach(tx => {
+      // IMN: matching net whose output port connects to transistor input
+      const inputMatches = this.connections
+        .filter(conn => String(conn.to) === String(tx.id) && conn.toPort === 'input')
+        .map(conn => this.components.find(c => String(c.id) === String(conn.from)))
+        .filter(c => c && c.type === 'matching');
+
+      // OMN: matching net whose input port is connected from transistor output
+      const outputMatches = this.connections
+        .filter(conn => String(conn.from) === String(tx.id) && conn.fromPort === 'output')
+        .map(conn => this.components.find(c => String(c.id) === String(conn.to)))
+        .filter(c => c && c.type === 'matching');
+
+      if (inputMatches.length === 0 && outputMatches.length === 0) return;
+
+      const groupComps = [...inputMatches, tx, ...outputMatches];
+      const xs = groupComps.map(c => c.x);
+      const ys = groupComps.map(c => c.y);
+      const pad = 38;
+      const x1 = Math.min(...xs) - pad;
+      const y1 = Math.min(...ys) - pad - 12;
+      const x2 = Math.max(...xs) + pad + 42;
+      const y2 = Math.max(...ys) + pad + 12;
+
+      // Dashed bounding rectangle (inserted behind existing elements)
+      this.componentsLayer.insert('rect', ':first-child')
+        .attr('class', 'pa-group-box')
+        .attr('x', x1).attr('y', y1)
+        .attr('width', x2 - x1).attr('height', y2 - y1)
+        .attr('rx', 8)
+        .attr('fill', 'rgba(0,180,255,0.04)')
+        .attr('stroke', 'rgba(0,180,255,0.40)')
+        .attr('stroke-width', 1.5)
+        .attr('stroke-dasharray', '6,4')
+        .style('pointer-events', 'none');
+
+      // Group label (top-left corner of the box)
+      this.componentsLayer.append('text')
+        .attr('class', 'pa-group-box')
+        .attr('x', x1 + 6).attr('y', y1 + 12)
+        .attr('fill', 'rgba(0,200,255,0.75)').attr('font-size', '9px')
+        .attr('font-style', 'italic')
+        .style('pointer-events', 'none')
+        .text('PA: ' + (tx.properties.label || 'Transistor'));
+
+      // IMN impedance label (above the input matching network)
+      if (inputMatches.length > 0) {
+        const imn  = inputMatches[0];
+        const zIn  = (imn.properties.z_in  !== undefined) ? imn.properties.z_in  : 50;
+        const zOut = (imn.properties.z_out !== undefined) ? imn.properties.z_out : 4;
+        this.componentsLayer.append('text')
+          .attr('class', 'pa-group-box')
+          .attr('x', imn.x).attr('y', imn.y - 48)
+          .attr('text-anchor', 'middle')
+          .attr('fill', 'rgba(100,220,255,0.9)').attr('font-size', '8px')
+          .style('pointer-events', 'none')
+          .text('IMN: ' + zIn + '\u2192' + zOut + '\u03a9');
+      }
+
+      // OMN impedance label (above the output matching network)
+      if (outputMatches.length > 0) {
+        const omn  = outputMatches[0];
+        const zIn  = (omn.properties.z_in  !== undefined) ? omn.properties.z_in  : 8;
+        const zOut = (omn.properties.z_out !== undefined) ? omn.properties.z_out : 50;
+        this.componentsLayer.append('text')
+          .attr('class', 'pa-group-box')
+          .attr('x', omn.x).attr('y', omn.y - 48)
+          .attr('text-anchor', 'middle')
+          .attr('fill', 'rgba(255,160,100,0.9)').attr('font-size', '8px')
+          .style('pointer-events', 'none')
+          .text('OMN: ' + zIn + '\u2192' + zOut + '\u03a9');
+      }
+    });
   }
 
   /**
@@ -7405,6 +7510,7 @@ function registerMessageHandlers() {
         if (window.paCanvas.showGainDisplay)      window.paCanvas.drawGainColumns();
         if (window.paCanvas.showPAEDisplay)       window.paCanvas.drawPAEColumns();
         if (window.paCanvas.showImpedanceDisplay) window.paCanvas.drawImpedanceColumns();
+        window.paCanvas.drawPaGroupBoxes();
       }
     });
 
@@ -7415,6 +7521,7 @@ function registerMessageHandlers() {
       if (window.paCanvas.showGainDisplay)      window.paCanvas.drawGainColumns();
       if (window.paCanvas.showPAEDisplay)       window.paCanvas.drawPAEColumns();
       if (window.paCanvas.showImpedanceDisplay) window.paCanvas.drawImpedanceColumns();
+      window.paCanvas.drawPaGroupBoxes();
       window.paCanvas.render();
       console.log('[Redraw Canvas] All active display layers refreshed');
     });

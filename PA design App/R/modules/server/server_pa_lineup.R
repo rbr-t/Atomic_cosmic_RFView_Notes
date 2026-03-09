@@ -587,13 +587,18 @@ serverPaLineup <- function(input, output, session, state) {
     if (result$success && length(result$stage_results) > 0) {
       comps <- lineup_components()
       for (stage in result$stage_results) {
-        # Match by label to the component on canvas
-        matched <- Filter(function(c) {
-          lbl <- if (!is.null(c$properties$label)) c$properties$label else ""
-          lbl == stage$stage
-        }, comps)
+        # Match by component ID (reliable) — fall back to label for legacy
+        if (!is.null(stage$id)) {
+          cid     <- as.character(stage$id)
+          matched <- Filter(function(c) !is.null(c$id) && as.character(c$id) == cid, comps)
+        } else {
+          matched <- Filter(function(c) {
+            lbl <- if (!is.null(c$properties$label)) c$properties$label else ""
+            lbl == stage$stage
+          }, comps)
+          if (length(matched) > 0) cid <- as.character(matched[[1]]$id)
+        }
         if (length(matched) > 0) {
-          cid <- as.character(matched[[1]]$id)
           props_update <- list(
             pin_p3db  = stage$pin_dbm,
             pout_p3db = stage$pout_dbm,
@@ -841,108 +846,100 @@ serverPaLineup <- function(input, output, session, state) {
   }) } # end disabled optimize observer
 
 
-  # Property apply button observer - uses reactive approach for dynamic buttons
-  observeEvent(input$lineup_selected_component, {
+  # Property apply — single stable observer (avoids accumulating observers on
+  # repeated component selection). Depends on: current selection + apply button.
+  observe({
     selected <- input$lineup_selected_component
-    
-    if(is.null(selected) || length(selected) == 0) return()
-    
+    if (is.null(selected) || length(selected) == 0) return()
+
     btn_id <- paste0("apply_props_", selected)
-    
-    cat(sprintf("[Property Observer] Component %s selected, setting up observer for button: %s\n", 
-                selected, btn_id))
-    
-    # Create a NEW observer for this specific button
-    observeEvent(input[[btn_id]], {
-      cat(sprintf("[Property Observer] Button %s clicked! Value: %s\n", 
-                  btn_id, input[[btn_id]]))
-      
+    clicks  <- input[[btn_id]]
+    # Only fire on real button clicks (value > 0), NOT on initialization (0/NULL)
+    if (is.null(clicks) || clicks == 0) return()
+
+    cat(sprintf("[Property Observer] Apply clicked for %s (clicks=%s)\n",
+                selected, clicks))
+
+    isolate({
       components <- lineup_components()
-      
-      # Find the component
+
       comp_idx <- which(sapply(components, function(c) {
-        if(is.list(c) && !is.null(c$id)) c$id == selected else FALSE
+        if (is.list(c) && !is.null(c$id)) c$id == selected else FALSE
       }))
-      
-      if(length(comp_idx) == 0) {
+
+      if (length(comp_idx) == 0) {
         showNotification("Component not found", type = "error")
         return()
       }
-      
-      comp <- components[[comp_idx]]
-      comp_type <- if(is.list(comp) && !is.null(comp$type)) comp$type else "transistor"
-      
+
+      comp      <- components[[comp_idx]]
+      comp_type <- if (is.list(comp) && !is.null(comp$type)) comp$type else "transistor"
+
       cat(sprintf("[Property Observer] Component type: %s\n", comp_type))
-      
-      # Collect properties based on component type (NOTE: IDs are prop_{id}_{field})
+
       properties <- list()
-      
-      if(comp_type == "transistor") {
-        properties$label <- input[[paste0("prop_", selected, "_label")]]
+
+      if (comp_type == "transistor") {
+        properties$label      <- input[[paste0("prop_", selected, "_label")]]
         properties$technology <- input[[paste0("prop_", selected, "_technology")]]
-        properties$biasClass <- input[[paste0("prop_", selected, "_biasClass")]]
-        properties$gain <- input[[paste0("prop_", selected, "_gain")]]
-        properties$gain_p3db <- input[[paste0("prop_", selected, "_gain_p3db")]]
-        properties$gain_bo <- input[[paste0("prop_", selected, "_gain_bo")]]
-        properties$pout <- input[[paste0("prop_", selected, "_pout")]]
-        properties$p1db <- input[[paste0("prop_", selected, "_p1db")]]
-        properties$pae <- input[[paste0("prop_", selected, "_pae")]]
-        properties$vdd <- input[[paste0("prop_", selected, "_vdd")]]
-        properties$rth <- input[[paste0("prop_", selected, "_rth")]]
-        properties$freq <- input[[paste0("prop_", selected, "_freq")]]
-        properties$display <- input[[paste0("prop_", selected, "_display")]]
-        # Validate: P1dB must be <= Pout (compression point is always at or below operating output)
+        properties$biasClass  <- input[[paste0("prop_", selected, "_biasClass")]]
+        properties$gain       <- input[[paste0("prop_", selected, "_gain")]]
+        properties$gain_p3db  <- input[[paste0("prop_", selected, "_gain_p3db")]]
+        properties$gain_bo    <- input[[paste0("prop_", selected, "_gain_bo")]]
+        properties$pout       <- input[[paste0("prop_", selected, "_pout")]]
+        properties$p1db       <- input[[paste0("prop_", selected, "_p1db")]]
+        properties$pae        <- input[[paste0("prop_", selected, "_pae")]]
+        properties$vdd        <- input[[paste0("prop_", selected, "_vdd")]]
+        properties$rth        <- input[[paste0("prop_", selected, "_rth")]]
+        properties$freq       <- input[[paste0("prop_", selected, "_freq")]]
+        properties$z_in       <- input[[paste0("prop_", selected, "_z_in")]]
+        properties$z_out      <- input[[paste0("prop_", selected, "_z_out")]]
+        properties$display    <- input[[paste0("prop_", selected, "_display")]]
+        # Validate: P1dB must be <= Pout
         if (!is.null(properties$p1db) && !is.null(properties$pout) &&
             as.numeric(properties$p1db) > as.numeric(properties$pout)) {
           showNotification(
-            sprintf("⚠ P1dB (%.1f dBm) must be ≤ Pout (%.1f dBm). Setting P1dB = Pout − 2 dB.",
+            sprintf("⚠ P1dB (%.1f dBm) must be \u2264 Pout (%.1f dBm). Setting P1dB = Pout \u2212 2 dB.",
                     as.numeric(properties$p1db), as.numeric(properties$pout)),
             type = "warning", duration = 5
           )
           properties$p1db <- as.numeric(properties$pout) - 2
         }
-      } else if(comp_type == "matching") {
-        properties$label <- input[[paste0("prop_", selected, "_label")]]
-        properties$type <- input[[paste0("prop_", selected, "_type")]]
-        properties$loss <- input[[paste0("prop_", selected, "_loss")]]
-        properties$z_in <- input[[paste0("prop_", selected, "_z_in")]]
-        properties$z_out <- input[[paste0("prop_", selected, "_z_out")]]
+      } else if (comp_type == "matching") {
+        properties$label     <- input[[paste0("prop_", selected, "_label")]]
+        properties$type      <- input[[paste0("prop_", selected, "_type")]]
+        properties$loss      <- input[[paste0("prop_", selected, "_loss")]]
+        properties$z_in      <- input[[paste0("prop_", selected, "_z_in")]]
+        properties$z_out     <- input[[paste0("prop_", selected, "_z_out")]]
         properties$bandwidth <- input[[paste0("prop_", selected, "_bandwidth")]]
-        properties$display <- input[[paste0("prop_", selected, "_display")]]
-      } else if(comp_type == "splitter") {
-        properties$label <- input[[paste0("prop_", selected, "_label")]]
-        properties$type <- input[[paste0("prop_", selected, "_type")]]
+        properties$display   <- input[[paste0("prop_", selected, "_display")]]
+      } else if (comp_type == "splitter") {
+        properties$label       <- input[[paste0("prop_", selected, "_label")]]
+        properties$type        <- input[[paste0("prop_", selected, "_type")]]
         properties$split_ratio <- input[[paste0("prop_", selected, "_split_ratio")]]
-        properties$isolation <- input[[paste0("prop_", selected, "_isolation")]]
-        properties$loss <- input[[paste0("prop_", selected, "_loss")]]
-        properties$display <- input[[paste0("prop_", selected, "_display")]]
-      } else if(comp_type == "combiner") {
-        properties$label <- input[[paste0("prop_", selected, "_label")]]
-        properties$type <- input[[paste0("prop_", selected, "_type")]]
-        properties$isolation <- input[[paste0("prop_", selected, "_isolation")]]
-        properties$loss <- input[[paste0("prop_", selected, "_loss")]]
-        properties$load_modulation <- input[[paste0("prop_", selected, "_load_modulation")]]
+        properties$isolation   <- input[[paste0("prop_", selected, "_isolation")]]
+        properties$loss        <- input[[paste0("prop_", selected, "_loss")]]
+        properties$display     <- input[[paste0("prop_", selected, "_display")]]
+      } else if (comp_type == "combiner") {
+        properties$label            <- input[[paste0("prop_", selected, "_label")]]
+        properties$type             <- input[[paste0("prop_", selected, "_type")]]
+        properties$isolation        <- input[[paste0("prop_", selected, "_isolation")]]
+        properties$loss             <- input[[paste0("prop_", selected, "_loss")]]
+        properties$load_modulation  <- input[[paste0("prop_", selected, "_load_modulation")]]
         properties$modulation_factor <- input[[paste0("prop_", selected, "_modulation_factor")]]
-        properties$display <- input[[paste0("prop_", selected, "_display")]]
-      } else if(comp_type == "termination") {
-        properties$label <- input[[paste0("prop_", selected, "_label")]]
+        properties$display          <- input[[paste0("prop_", selected, "_display")]]
+      } else if (comp_type == "termination") {
+        properties$label     <- input[[paste0("prop_", selected, "_label")]]
         properties$impedance <- input[[paste0("prop_", selected, "_impedance")]]
-        properties$type <- input[[paste0("prop_", selected, "_type")]]
-        properties$display <- input[[paste0("prop_", selected, "_display")]]
+        properties$type      <- input[[paste0("prop_", selected, "_type")]]
+        properties$display   <- input[[paste0("prop_", selected, "_display")]]
       }
-      
-      cat(sprintf("[Property Observer] Collected %d properties\n", length(properties)))
-      cat(sprintf("[Property Observer] Sending updateComponent message to JavaScript...\n"))
-      
-      # Send to JavaScript
-      session$sendCustomMessage("updateComponent", list(
-        id = selected,
-        properties = properties
-      ))
-      
+
+      cat(sprintf("[Property Observer] Sending %d properties to JS\n", length(properties)))
+      session$sendCustomMessage("updateComponent", list(id = selected, properties = properties))
       showNotification("Component properties updated", type = "message")
-    }, ignoreNULL = TRUE, ignoreInit = TRUE)
-  }, ignoreNULL = TRUE, ignoreInit = FALSE)
+    })
+  })
   
 
   # Calculation results output
@@ -1404,10 +1401,30 @@ serverPaLineup <- function(input, output, session, state) {
       "Gain@P3dB", "Gain@BO", "Status"
     )
     
+    # ── Spec values for red-highlight comparison ──────────────────────────────
+    spec_pout <- if (!is.null(input$spec_p3db)) as.numeric(input$spec_p3db) else NA_real_
+    spec_gain <- if (!is.null(input$spec_gain)) as.numeric(input$spec_gain)  else NA_real_
+    spec_pae  <- if (!is.null(input$spec_pae))  as.numeric(input$spec_pae)   else NA_real_
+
+    # rowCallback: colour SYSTEM TOTAL cells red when they fall below spec
+    row_cb <- JS(paste0(
+      "function(row,data){",
+      "  if(data[0]!=='SYSTEM TOTAL')return;",
+      "  var sp=", if (!is.na(spec_pout)) spec_pout else "null", ";",
+      "  var sg=", if (!is.na(spec_gain)) spec_gain else "null", ";",
+      "  var se=", if (!is.na(spec_pae))  spec_pae  else "null", ";",
+      "  var r='rgba(220,53,69,0.35)',t='#ffaaaa',b='bold';",
+      "  if(sp!==null&&parseFloat(data[4])<sp)$('td:eq(4)',row).css({'background-color':r,'color':t,'font-weight':b});",
+      "  if(se!==null&&parseFloat(data[5])<se)$('td:eq(5)',row).css({'background-color':r,'color':t,'font-weight':b});",
+      "  if(sg!==null&&parseFloat(data[13])<sg)$('td:eq(13)',row).css({'background-color':r,'color':t,'font-weight':b});",
+      "}"
+    ))
+
     datatable(data, 
       options = list(
         pageLength = 20, 
         dom = 't',
+        rowCallback = row_cb,
         columnDefs = list(
           list(className = 'dt-center', targets = 2:15)
         )

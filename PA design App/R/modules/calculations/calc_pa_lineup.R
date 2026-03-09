@@ -294,7 +294,7 @@ lineup_calculate_engine <- function(components,
       de_bo   <- if (pdc_bo_w > 0) (pout_bo_w / pdc_bo_w) * 100 else 0
 
       stage_results[[length(stage_results) + 1]] <- list(
-        stage         = stage_name,  type          = "transistor",
+        stage         = stage_name,  type          = "transistor",  id = cid,
         pin_dbm       = current_pin,  pout_dbm      = pout_dbm,
         gain_db       = gain,         pae_pct       = pae_full * 100,
         de_pct        = de_full,
@@ -336,7 +336,7 @@ lineup_calculate_engine <- function(components,
       )
 
       stage_results[[length(stage_results) + 1]] <- list(
-        stage = stage_name, type = "matching",
+        stage = stage_name, type = "matching",  id = cid,
         pin_dbm = current_pin, pout_dbm = pout_dbm, loss_db = loss_db,
         gain_full_db = -loss_db, gain_bo_db = -loss_db,
         pin_bo_dbm = current_pin_bo, pout_bo_dbm = pout_bo_dbm
@@ -375,7 +375,7 @@ lineup_calculate_engine <- function(components,
       )
 
       stage_results[[length(stage_results) + 1]] <- list(
-        stage = stage_name, type = "splitter",
+        stage = stage_name, type = "splitter",  id = cid,
         pin_dbm = current_pin, pout_dbm = pout_dbm,
         loss_db = loss_db, split_loss_db = split_loss_db,
         gain_full_db = -(split_loss_db + loss_db),
@@ -415,7 +415,7 @@ lineup_calculate_engine <- function(components,
       )
 
       stage_results[[length(stage_results) + 1]] <- list(
-        stage = stage_name, type = "combiner",
+        stage = stage_name, type = "combiner",  id = cid,
         pin_dbm = current_pin, pout_dbm = pout_dbm,
         loss_db = loss_db, n_inputs = n_inputs,
         gain_full_db = pout_dbm    - current_pin,
