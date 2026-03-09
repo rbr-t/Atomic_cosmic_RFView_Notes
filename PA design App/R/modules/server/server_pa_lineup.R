@@ -1268,8 +1268,20 @@ serverPaLineup <- function(input, output, session, state) {
   output$pa_lineup_table <- renderDT({
     results <- lineup_calc_results()
     
-    if(is.null(results) || !results$success || length(results$stage_results) == 0) {
-      return(datatable(data.frame(Message = "No calculation data available")))
+    # Do not render a placeholder — wait until real results exist.
+    # This prevents a 1-column "No data" DataTable being initialised first
+    # and then failing to update when 16-column data arrives.
+    req(results)
+    
+    if(!results$success || length(results$stage_results) == 0) {
+      msg <- if (!isTRUE(results$success))
+               paste("Calculation failed:", results$message %||% "unknown error")
+             else "No calculation stages to display. Add components and recalculate."
+      return(datatable(
+        data.frame(Message = msg),
+        options = list(dom = 't', pageLength = 5),
+        rownames = FALSE
+      ))
     }
     
     backoff_value <- if(!is.null(results$backoff_db)) results$backoff_db else 6

@@ -5588,32 +5588,27 @@ class PALineupCanvas {
   //   2 = PAE     (third quarter)
   //   3 = Impedance (bottom quarter)
   _getDisplaySlotBounds(topY, botY, slotIndex) {
-    // Displays are split into two NON-OVERLAPPING groups so they never compete
-    // for the same vertical space:
-    //   Group A (top half of zone)  — Power (0), Gain (1)
-    //   Group B (bottom half of zone) — PAE (2), Impedance (3), Phase (4)
-    const isTopGroup = slotIndex <= 1;
-    const midY = (topY + botY) / 2;
-    const zoneTop = isTopGroup ? topY  : midY;
-    const zoneBot = isTopGroup ? midY  : botY;
+    // All active displays are stacked vertically with a fixed slot height,
+    // centred on the zone midpoint.  Slots extend beyond the zone limits
+    // when many displays are active — that is fine on a zoomable canvas.
+    const SLOT_H = 44; // px per display slot (fixed — no shrinking)
 
-    const topGroupOrder = [];
-    if (this.showPowerDisplay) topGroupOrder.push(0);
-    if (this.showGainDisplay)  topGroupOrder.push(1);
+    const activeOrder = [];
+    if (this.showPowerDisplay)     activeOrder.push(0);
+    if (this.showGainDisplay)      activeOrder.push(1);
+    if (this.showPAEDisplay)       activeOrder.push(2);
+    if (this.showImpedanceDisplay) activeOrder.push(3);
+    if (this.showPhaseDisplay)     activeOrder.push(4);
 
-    const botGroupOrder = [];
-    if (this.showPAEDisplay)       botGroupOrder.push(2);
-    if (this.showImpedanceDisplay) botGroupOrder.push(3);
-    if (this.showPhaseDisplay)     botGroupOrder.push(4);
+    const pos = activeOrder.indexOf(slotIndex);
+    if (pos < 0) return { topY, botY }; // display not active — should not happen
 
-    const order = isTopGroup ? topGroupOrder : botGroupOrder;
-    const nSlots = order.length || 1;
-    const slotH  = (zoneBot - zoneTop) / nSlots;
-    const pos    = order.indexOf(slotIndex);
-    if (pos < 0) return { topY, botY };  // not active — shouldn't happen
+    const zoneCenter = (topY + botY) / 2;
+    const totalH     = activeOrder.length * SLOT_H;
+    const startY     = zoneCenter - totalH / 2;
     return {
-      topY: zoneTop + pos * slotH,
-      botY: zoneTop + (pos + 1) * slotH
+      topY: startY + pos * SLOT_H,
+      botY: startY + (pos + 1) * SLOT_H
     };
   }
 
@@ -5772,7 +5767,7 @@ class PALineupCanvas {
       const BOX_W = 2 * HC - 2 * PAD;
       const lineH  = Math.max(8, Math.min(12, Math.floor(cellH / 6)));
       const titleH = lineH + 2;
-      const BOX_H  = Math.min(cellH - 2 * PAD, Math.max(titleH + 4 * lineH + PAD, 36));
+      const BOX_H  = Math.min(cellH - 2 * PAD, Math.max(titleH + 2 * lineH + PAD, 28));
       const boxX = comp.x - BOX_W / 2;
       const boxY = topY + (cellH - BOX_H) / 2;
 
@@ -5799,7 +5794,7 @@ class PALineupCanvas {
       g.append('text').attr('x', BOX_W/2).attr('y', titleH)
         .attr('text-anchor', 'middle').attr('fill', '#fff')
         .attr('font-size', `${titleH}px`).attr('font-weight', 'bold')
-        .text('PAE / DE');
+        .text('PAE');
 
       let yo = titleH + lineH;
       const props = comp.properties;
@@ -5807,8 +5802,6 @@ class PALineupCanvas {
       // Prefer R-synced values
       const paeP3dB = props.pae_p3db ?? props.pae ?? null;
       const paeBO   = props.pae_pavg ?? props.pae_bo ?? paeP3dB;
-      const deP3dB  = props.de_p3db  ?? null;
-      const deBO    = props.de_pavg  ?? null;
 
       if (paeP3dB !== null) {
         g.append('text').attr('x', PAD).attr('y', yo)
@@ -5820,18 +5813,6 @@ class PALineupCanvas {
         g.append('text').attr('x', PAD).attr('y', yo)
           .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
           .text(`PAE@BO:   ${parseFloat(paeBO).toFixed(0)}%`);
-        yo += lineH;
-      }
-      if (deP3dB !== null) {
-        g.append('text').attr('x', PAD).attr('y', yo)
-          .attr('fill', '#cc88ff').attr('font-size', `${lineH}px`)
-          .text(`DE@P3dB:  ${parseFloat(deP3dB).toFixed(0)}%`);
-        yo += lineH;
-      }
-      if (deBO !== null) {
-        g.append('text').attr('x', PAD).attr('y', yo)
-          .attr('fill', '#ff88aa').attr('font-size', `${lineH}px`)
-          .text(`DE@BO:    ${parseFloat(deBO).toFixed(0)}%`);
       }
     });
     console.log('PAE columns drawn for', this.components.filter(c => c.type === 'transistor').length, 'transistors');
