@@ -3188,6 +3188,44 @@ server <- function(input, output, session) {
             class = "btn-primary btn-block",
             onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
         )
+      } else if(comp_type == "offset_line") {
+        tagList(
+          h4(paste0("\u03bb/4 Line: ", getProp("label", "\u03bb/4 Line"))),
+          textInput(paste0("prop_", selected, "_label"), "Label",
+            value = getProp("label", "\u03bb/4 Line")),
+          selectInput(paste0("prop_", selected, "_offset_role"), "Role",
+            choices = c(
+              "Phase Offset (Input)" = "phase",
+              "Impedance Inverter (Output)" = "inverter",
+              "Transformer" = "transformer"
+            ),
+            selected = getProp("offset_role", "phase")),
+          numericInput(paste0("prop_", selected, "_phase_shift_deg"), "Phase Shift (\u00b0)",
+            value = as.numeric(getProp("phase_shift_deg", 90)),
+            min = 0, max = 360, step = 1),
+          numericInput(paste0("prop_", selected, "_impedance"), "Z\u2080 (\u03a9)",
+            value = as.numeric(getProp("impedance", 50)),
+            min = 1, step = 0.5),
+          numericInput(paste0("prop_", selected, "_loss"), "Insertion Loss (dB)",
+            value = as.numeric(getProp("loss", 0.2)),
+            min = 0, step = 0.05),
+          hr(),
+          h5("Display on Canvas"),
+          checkboxGroupInput(paste0("prop_", selected, "_display"), label = NULL,
+            choices = c(
+              "Label" = "label",
+              "Phase (\u00b0)" = "phase",
+              "Loss (dB)" = "loss",
+              "Z\u2080 (\u03a9)" = "impedance"
+            ),
+            selected = c("label", "phase"),
+            inline = FALSE
+          ),
+          hr(),
+          actionButton(paste0("apply_props_", selected), "Apply Changes",
+            class = "btn-primary btn-block",
+            onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
+        )
       } else {
         tagList(
           h4("Unknown Component Type"),
@@ -3253,6 +3291,8 @@ server <- function(input, output, session) {
     total_pdc <- 0
     total_pdc_bo <- 0  # Backoff DC power
     stage_results <- list()
+    phase_results <- list()
+    cumulative_phase <- 0
     warnings <- c()
     
     rationale <- c(rationale, "─── Stage-by-Stage Analysis ───")
@@ -3536,8 +3576,42 @@ server <- function(input, output, session) {
         current_pin    <- pout_dbm
         current_pin_bo <- pout_bo_dbm
         total_gain     <- total_gain + combining_gain_db - loss_db
+      } else if(comp_type == "offset_line") {
+        loss_db   <- as.numeric(safeProp(props, "loss", 0.2))
+        phase_deg <- as.numeric(safeProp(props, "phase_shift_deg", 90))
+        role      <- safeProp(props, "offset_role", "phase")
+        imp_ohm   <- as.numeric(safeProp(props, "impedance", 50))
+        pout_dbm    <- current_pin    - loss_db
+        pout_bo_dbm <- current_pin_bo - loss_db
+        rationale <- c(rationale, sprintf("    \u03bb/4 Line (%s): Z\u2080=%.1f\u03a9, loss=%.2f dB, \u03c6=%d\u00b0",
+          role, imp_ohm, loss_db, as.integer(phase_deg)))
+        rationale <- c(rationale, sprintf("    Full: %.2f dBm \u2192 %.2f dBm | Backoff: %.2f dBm \u2192 %.2f dBm",
+          current_pin, pout_dbm, current_pin_bo, pout_bo_dbm))
+        stage_results[[length(stage_results) + 1]] <- list(
+          stage      = stage_name, type = "offset_line", id = comp$id,
+          pin_dbm    = current_pin, pout_dbm = pout_dbm, loss_db = loss_db,
+          phase_deg  = phase_deg, impedance = imp_ohm, role = role,
+          pin_bo_dbm = current_pin_bo, pout_bo_dbm = pout_bo_dbm
+        )
+        current_pin    <- pout_dbm
+        current_pin_bo <- pout_bo_dbm
+        total_gain     <- total_gain - loss_db
       }
       
+      # Universal phase tracking (every stage — contributes 0 unless it's an offset_line)
+      phase_contrib    <- if(comp_type == "offset_line") as.numeric(safeProp(props, "phase_shift_deg", 90)) else 0
+      cumulative_phase <- cumulative_phase + phase_contrib
+      phase_results[[length(phase_results) + 1]] <- list(
+        stage            = stage_name,
+        type             = comp_type,
+        phase_contrib    = phase_contrib,
+        cumulative_phase = cumulative_phase,
+        notes = if(comp_type == "offset_line")
+          paste0(safeProp(props, "offset_role", "phase"), " \u03bb/4 (Z\u2080=",
+                 safeProp(props, "impedance", 50), "\u03a9)")
+        else ""
+      )
+
       rationale <- c(rationale, "")
     }
     
@@ -3599,6 +3673,7 @@ server <- function(input, output, session) {
       system_pae_bo = system_pae_bo,
       total_pdiss_bo = total_pdc_bo - final_pout_bo_w,
       stage_results = stage_results,
+      phase_results = phase_results,
       warnings = warnings,
       rationale = paste(rationale, collapse = "\n")
     )
@@ -4402,6 +4477,13 @@ server <- function(input, output, session) {
         properties$impedance <- input[[paste0("prop_", selected, "_impedance")]]
         properties$type <- input[[paste0("prop_", selected, "_type")]]
         properties$display <- input[[paste0("prop_", selected, "_display")]]
+      } else if(comp_type == "offset_line") {
+        properties$label <- input[[paste0("prop_", selected, "_label")]]
+        properties$offset_role <- input[[paste0("prop_", selected, "_offset_role")]]
+        properties$phase_shift_deg <- input[[paste0("prop_", selected, "_phase_shift_deg")]]
+        properties$impedance <- input[[paste0("prop_", selected, "_impedance")]]
+        properties$loss <- input[[paste0("prop_", selected, "_loss")]]
+        properties$display <- input[[paste0("prop_", selected, "_display")]]
       }
       
       cat(sprintf("[Property Observer] Collected %d properties\n", length(properties)))
@@ -4789,6 +4871,26 @@ server <- function(input, output, session) {
           Status = "Passive",
           stringsAsFactors = FALSE
         )
+      } else if(stage$type == "offset_line") {
+        loss_val <- if(!is.null(stage$loss_db)) stage$loss_db else 0.2
+        phase_label <- if(!is.null(stage$phase_deg))
+          sprintf("\u03bb/4 (%d\u00b0)", as.integer(stage$phase_deg))
+        else "\u03bb/4 (90\u00b0)"
+        data.frame(
+          Stage = stage$stage,
+          Type = phase_label,
+          Pin_Full = sprintf("%.2f", stage$pin_dbm),
+          Pout_Full = sprintf("%.2f", stage$pout_dbm),
+          PAE_Full = "—",
+          PDC_Full = "—",
+          Pin_BO = if(!is.null(stage$pin_bo_dbm)) sprintf("%.2f", stage$pin_bo_dbm) else "—",
+          Pout_BO = if(!is.null(stage$pout_bo_dbm)) sprintf("%.2f", stage$pout_bo_dbm) else "—",
+          PAE_BO = "—",
+          PDC_BO = "—",
+          Gain_dB = sprintf("%.2f", -loss_val),
+          Status = "Passive",
+          stringsAsFactors = FALSE
+        )
       } else {
         # Splitters and combiners
         loss_val <- if(!is.null(stage$loss_db)) stage$loss_db else 0.3
@@ -4881,8 +4983,8 @@ server <- function(input, output, session) {
             th(rowspan = 2, 'Status')
           ),
           tr(
-            lapply(c('Pin (dBm)', 'Pout (dBm)', 'PAE (%)', 'PDC (W)'), th),
-            lapply(c('Pin (dBm)', 'Pout (dBm)', 'PAE (%)', 'PDC (W)'), th)
+            th('Pin (dBm)'), th('Pout (dBm)'), th('PAE (%)'), th('PDC (W)'),
+            th('Pin (dBm)'), th('Pout (dBm)'), th('PAE (%)'), th('PDC (W)')
           )
         )
       ))
@@ -4900,6 +5002,81 @@ server <- function(input, output, session) {
 
   # Ensure the table renders even when the Table View tab is not visible
   outputOptions(output, "pa_lineup_table", suspendWhenHidden = FALSE)
+
+  # Phase Analysis output
+  output$pa_lineup_phase <- renderUI({
+    results <- lineup_calc_results()
+
+    if(is.null(results) || !results$success) {
+      return(tags$div(style = "padding: 20px; text-align: center; color: #888;",
+        "Click Calculate to see phase analysis."))
+    }
+
+    phase_data <- if(!is.null(results$phase_results)) results$phase_results else list()
+
+    if(length(phase_data) == 0) {
+      return(tags$div(style = "padding: 20px; text-align: center; color: #888;",
+        "No phase data available."))
+    }
+
+    # Build HTML table rows
+    has_phase <- any(sapply(phase_data, function(p) p$phase_contrib != 0))
+
+    table_rows <- lapply(phase_data, function(p) {
+      is_active <- p$phase_contrib != 0
+      row_style <- if(is_active) "background-color: #e8f5e9; font-weight: bold;" else ""
+      tags$tr(style = row_style,
+        tags$td(p$stage),
+        tags$td(tools::toTitleCase(gsub("_", " ", p$type))),
+        tags$td(style = "text-align:center;",
+          if(is_active)
+            tags$span(style = "color: #2e7d32;", sprintf("+%.1f\u00b0", p$phase_contrib))
+          else
+            tags$span(style = "color: #aaa;", "0\u00b0")
+        ),
+        tags$td(style = "text-align:center; font-weight: bold;",
+          sprintf("%.1f\u00b0", p$cumulative_phase)),
+        tags$td(p$notes)
+      )
+    })
+
+    tags$div(
+      if(!has_phase) tags$div(class = "alert alert-info",
+        tags$strong("\u2139 No \u03bb/4 offset lines in this lineup."),
+        " Add an offset line component to see phase contributions."
+      ),
+      tags$p(style = "color: #555; font-size: 12px; margin-bottom: 8px;",
+        "Phase contributions from \u03bb/4 offset lines (inverters and transformers). ",
+        "Other components are treated as zero-phase-shift in this model."
+      ),
+      tags$table(class = "table table-bordered table-condensed",
+        style = "font-size: 13px;",
+        tags$thead(
+          tags$tr(style = "background-color: #455a64; color: white;",
+            tags$th("Stage"),
+            tags$th("Type"),
+            tags$th(style = "text-align:center;", "Phase Contribution"),
+            tags$th(style = "text-align:center;", "Cumulative Phase"),
+            tags$th("Notes")
+          )
+        ),
+        tags$tbody(table_rows),
+        tags$tfoot(
+          tags$tr(style = "background-color: #eceff1; font-weight: bold;",
+            tags$td("TOTAL"),
+            tags$td("—"),
+            tags$td(style = "text-align:center;",
+              sprintf("%.1f\u00b0", sum(sapply(phase_data, function(p) p$phase_contrib)))),
+            tags$td(style = "text-align:center;",
+              if(length(phase_data) > 0) sprintf("%.1f\u00b0", phase_data[[length(phase_data)]]$cumulative_phase) else "0\u00b0"),
+            tags$td("\u03a3 phase from offset lines")
+          )
+        )
+      )
+    )
+  })
+
+  outputOptions(output, "pa_lineup_phase", suspendWhenHidden = FALSE)
   
   # Dynamic Tables UI - renders tabs for multi-canvas layouts
   output$pa_lineup_tables_dynamic <- renderUI({

@@ -1945,6 +1945,13 @@ $(document).ready(function() {
                     uiOutput("pa_lineup_tables_dynamic")
                   ),
                   
+                  # Phase Analysis
+                  tabPanel(
+                    title = tagList(icon("wave-square"), "Phase Analysis"),
+                    br(),
+                    uiOutput("pa_lineup_phase")
+                  ),
+                  
                   # Equations View
                   tabPanel(
                     title = tagList(icon("calculator"), "Equations & Rationale"),

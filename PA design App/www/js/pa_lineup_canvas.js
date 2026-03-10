@@ -3632,6 +3632,10 @@ class PALineupCanvas {
       this.renderSplitter(g, comp);
     } else if (comp.type === 'combiner') {
       this.renderCombiner(g, comp);
+    } else if (comp.type === 'offset_line') {
+      this.renderOffsetLine(g, comp);
+    } else if (comp.type === 'termination') {
+      this.renderTermination(g, comp);
     }
     
     console.log('Rendered component of type:', comp.type);
@@ -4380,6 +4384,17 @@ class PALineupCanvas {
     }
   }
   
+  // Full canvas re-render: clears layers and re-draws all components + connections
+  render() {
+    // Clear all rendered elements
+    this.componentsLayer.selectAll('*').remove();
+    this.connectionsLayer.selectAll('*').remove();
+    // Re-render all components
+    this.components.forEach(comp => this.renderComponent(comp));
+    this.renderConnections();
+    this.drawPaGroupBoxes();
+  }
+
   deleteSelectedMultiple() {
     if (this.selectedComponents.length === 0) return;
     
@@ -5709,6 +5724,12 @@ class PALineupCanvas {
         power_bo_dbm = pout_dbm - backoff_db;
         break;
         
+      case 'offset_line': {
+        const ol_loss = props.loss ?? 0.2;
+        pout_dbm = pin_dbm - ol_loss;
+        break;
+      }
+
       case 'matching':
         const loss = props.loss || 0.5;
         pout_dbm = pin_dbm - loss;
@@ -5749,6 +5770,9 @@ class PALineupCanvas {
 
           if (comp.type === 'matching') {
             return predPout - (comp.properties.loss ?? 0.5);
+          }
+          if (comp.type === 'offset_line') {
+            return predPout - (comp.properties.loss ?? 0.2);
           }
           if (comp.type === 'splitter') {
             const nWays = Math.max(this.connections.filter(c => c.from == comp.id).length, 2);
@@ -6082,6 +6106,12 @@ class PALineupCanvas {
         if (mt === 'Transformer' || mt === 'TL-stub') return { val: 90, sym: null };
         // All other topologies (Pi, L, T, generic, …) add unknown phase
         return { val: 0, sym: '\u03b8_' + shortName };
+      }
+
+      case 'offset_line': {
+        // Explicit λ/4 offset or inverter — always 90° by design
+        const ph = parseFloat(comp.properties.phase_shift_deg ?? 90);
+        return { val: isFinite(ph) ? ph : 90, sym: null };
       }
 
       default: return { val: 0, sym: null };
