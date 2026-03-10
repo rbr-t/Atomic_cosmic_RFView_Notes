@@ -1942,7 +1942,18 @@ $(document).ready(function() {
                   # Table View
                   tabPanel(
                     title = tagList(icon("table"), "Table View"),
-                    uiOutput("pa_lineup_tables_dynamic")
+                    # Single-canvas: DTOutput is always in the DOM (conditionalPanel
+                    # uses CSS show/hide, not DOM insertion) so DataTables can
+                    # initialise correctly regardless of layout switches.
+                    conditionalPanel(
+                      condition = "input.canvas_layout == null || input.canvas_layout == '1x1'",
+                      DTOutput("pa_lineup_table")
+                    ),
+                    # Multi-canvas: server builds one tab per canvas
+                    conditionalPanel(
+                      condition = "input.canvas_layout != null && input.canvas_layout != '1x1'",
+                      uiOutput("pa_lineup_tables_dynamic")
+                    )
                   ),
                   
                   # Equations View

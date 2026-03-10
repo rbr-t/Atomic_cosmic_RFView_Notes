@@ -182,6 +182,21 @@ code            { font-family: var(--font-mono); font-size: 0.9em;
   margin-left: 218px !important;
 }
 
+/* ── When main nav-sidebar is collapsed (icon-only), let content fill the freed space ── */
+body.sidebar-collapse .content-wrapper,
+body.sidebar-collapse .main-footer {
+  margin-left: 50px !important;
+}
+body.sidebar-collapse .main-header .navbar {
+  margin-left: 50px !important;
+}
+
+/* AdminLTE .wrapper default has overflow-x:hidden which breaks position:sticky.
+   Override so the sticky canvas box can function correctly. */
+.wrapper {
+  overflow: visible !important;
+}
+
 /* All sidebar links */
 .skin-black .sidebar-menu > li > a,
 .skin-black .sidebar-menu > li.header,
@@ -651,6 +666,40 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 
 
 /* ================================================================
+   9b. DARK-MODE — THEME-AGNOSTIC INLINE BACKGROUNDS
+   Override server-rendered elements that embed hard-coded light
+   colours inline.  CSS !important beats non-!important inline.
+   RGBA tints are transparent, so they read on dark AND light bgs.
+   ================================================================ */
+
+/* Calc-summary boxes (Full Power / Backoff / Total) */
+[style*="background-color: #f0f8ff"] {
+  background-color: rgba(33, 150, 243, 0.15) !important;
+}
+[style*="background-color: #fff8f0"] {
+  background-color: rgba(255, 152, 0, 0.15) !important;
+}
+[style*="background-color: #f5f5f5"] {
+  background-color: rgba(128, 128, 128, 0.12) !important;
+}
+
+/* PAE / equations section summary mini-cards */
+[style*="background:#f5fff5"] {
+  background-color: rgba(76, 175, 80, 0.15) !important;
+}
+[style*="background:#fff8f0"] {
+  background-color: rgba(255, 152, 0, 0.15) !important;
+}
+[style*="background:#fff0f0"] {
+  background-color: rgba(244, 67, 54, 0.15) !important;
+}
+
+/* Alert boxes: ensure readable */
+.alert-warning { color: var(--tx-hi) !important; }
+.alert-info    { color: var(--tx-hi) !important; }
+
+
+/* ================================================================
    10. NOTIFICATIONS
    ================================================================ */
 .shiny-notification {
@@ -701,8 +750,7 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
   margin-bottom: 20px;
   display: block;
   width: 100%;
-  max-height: calc(100vh - 55px);
-  overflow-y: auto;
+  /* Do NOT set overflow or max-height here — they break position:sticky */
 }
 #sticky_canvas_box.stuck {
   box-shadow: 0 4px 20px var(--accent-glow);

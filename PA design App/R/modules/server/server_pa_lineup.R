@@ -1520,10 +1520,10 @@ serverPaLineup <- function(input, output, session, state) {
             'rgba(255,165,0,0.3)', 'rgba(200,200,200,0.2)')
         )
       ) %>%
-      formatStyle(3, backgroundColor = '#f8f0ff') %>%        # purple for Loss
-      formatStyle(4:8, backgroundColor = '#f0f8ff') %>%      # Light blue for full power
-      formatStyle(9:13, backgroundColor = '#fff8f0') %>%     # Light orange for backoff
-      formatStyle(14:15, backgroundColor = '#f0fff0')        # Light green for gain columns
+      formatStyle(3, backgroundColor = 'rgba(156,39,176,0.18)') %>%   # purple tint - Loss
+      formatStyle(4:8, backgroundColor = 'rgba(33,150,243,0.15)') %>% # blue tint - full power
+      formatStyle(9:13, backgroundColor = 'rgba(255,152,0,0.15)') %>% # orange tint - backoff
+      formatStyle(14:15, backgroundColor = 'rgba(76,175,80,0.15)')    # green tint - gain
   })
 
   # Ensure table is rendered even when hidden inside a tab
@@ -1534,19 +1534,7 @@ serverPaLineup <- function(input, output, session, state) {
     layout <- input$canvas_layout
     
     if(is.null(layout) || layout == "1x1") {
-      # Single canvas mode - show single table.
-      # Include a rebind script so DataTables initialises correctly
-      # when this uiOutput is (re-)created after a layout switch.
-      return(tagList(
-        DTOutput("pa_lineup_table"),
-        tags$script(HTML(
-          "setTimeout(function(){",
-          "  if(typeof Shiny !== 'undefined'){",
-          "    Shiny.bindAll(document.getElementById('pa_lineup_tables_dynamic'));",
-          "  }",
-          "}, 150);"
-        ))
-      ))
+      return(NULL)  # DTOutput lives in the static UI inside a conditionalPanel
     }
     
     # Multi-canvas mode - create tabs
@@ -1943,8 +1931,8 @@ serverPaLineup <- function(input, output, session, state) {
                     'rgba(255,165,0,0.3)', 'rgba(200,200,200,0.2)')
                 )
               ) %>%
-              formatStyle(3:6, backgroundColor = '#f0f8ff') %>%
-              formatStyle(7:10, backgroundColor = '#fff8f0')
+              formatStyle(3:6, backgroundColor = 'rgba(33,150,243,0.15)') %>%
+              formatStyle(7:10, backgroundColor = 'rgba(255,152,0,0.15)')
           })
           
           # Rationale output
