@@ -854,6 +854,14 @@ class PALineupCanvas {
         power_rating: 10,
         vswr: 1.0,
         display: ['label', 'impedance']
+      },
+      offset_line: {
+        label: 'λ/4',
+        phase_shift_deg: 90,
+        impedance: overrides.impedance || 50,
+        loss: 0.2,
+        offset_role: overrides.offset_role || 'phase',  // 'phase' (input offset) or 'inverter' (output λ/4 inverter)
+        display: ['label', 'phase']
       }
     };
     
@@ -900,6 +908,9 @@ class PALineupCanvas {
         break;
       case 'termination':
         this.renderTermination(group, component);
+        break;
+      case 'offset_line':
+        this.renderOffsetLine(group, component);
         break;
       default:
         console.warn('Unknown component type:', component.type);
@@ -2286,6 +2297,118 @@ class PALineupCanvas {
       .text(`${impedance}Ω`);
   }
   
+  renderOffsetLine(group, component) {
+    // λ/4 transmission line — cyan/teal box with dashed border and phase annotation
+    const olColor = '#00ddff';
+    const role = (component.properties.offset_role || 'phase');
+    const isInverter = role === 'inverter';
+
+    // Outer box
+    group.append('rect')
+      .attr('x', -22)
+      .attr('y', -12)
+      .attr('width', 44)
+      .attr('height', 24)
+      .attr('fill', isInverter ? 'rgba(0,180,180,0.15)' : 'rgba(0,200,255,0.10)')
+      .attr('stroke', olColor)
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', isInverter ? '6,3' : '4,3')
+      .attr('rx', 3);
+
+    // λ/4 text centered
+    group.append('text')
+      .attr('x', 0)
+      .attr('y', 5)
+      .attr('text-anchor', 'middle')
+      .attr('fill', olColor)
+      .attr('font-size', '11px')
+      .attr('font-weight', 'bold')
+      .text('λ/4');
+
+    // Role indicator (small superscript)
+    group.append('text')
+      .attr('x', 18)
+      .attr('y', -2)
+      .attr('text-anchor', 'middle')
+      .attr('fill', olColor)
+      .attr('font-size', '7px')
+      .text(isInverter ? 'INV' : 'φ');
+
+    // Input port
+    const olInputPort = group.append('circle')
+      .attr('class', 'port port-input')
+      .attr('cx', -22)
+      .attr('cy', 0)
+      .attr('r', 4)
+      .attr('fill', '#00ff88')
+      .attr('stroke', '#00ff88')
+      .attr('stroke-width', 1)
+      .style('cursor', 'pointer')
+      .on('click', (event) => this.handlePortClick(event, component, 'input'))
+      .on('mouseenter', () => this.onPortHover(olInputPort.node(), true))
+      .on('mouseleave', () => this.onPortHover(olInputPort.node(), false));
+
+    // Output port
+    const olOutputPort = group.append('circle')
+      .attr('class', 'port port-output')
+      .attr('cx', 22)
+      .attr('cy', 0)
+      .attr('r', 4)
+      .attr('fill', '#ff7f11')
+      .attr('stroke', '#ff7f11')
+      .attr('stroke-width', 1)
+      .style('cursor', 'pointer')
+      .on('click', (event) => this.handlePortClick(event, component, 'output'))
+      .on('mouseenter', () => this.onPortHover(olOutputPort.node(), true))
+      .on('mouseleave', () => this.onPortHover(olOutputPort.node(), false));
+
+    // Labels
+    const display = component.properties.display || ['label', 'phase'];
+
+    if (display.includes('label')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', -22)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#fff')
+        .attr('font-size', '11px')
+        .attr('font-weight', 'bold')
+        .text(component.properties.label || 'λ/4');
+    }
+
+    let yOff = 20;
+    if (display.includes('phase')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOff)
+        .attr('text-anchor', 'middle')
+        .attr('fill', olColor)
+        .attr('font-size', '9px')
+        .text(`${component.properties.phase_shift_deg || 90}°`);
+      yOff += 10;
+    }
+    if (display.includes('loss')) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOff)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#88eeff')
+        .attr('font-size', '9px')
+        .text(`${component.properties.loss || 0.2}dB`);
+      yOff += 10;
+    }
+    const z0 = component.properties.impedance;
+    if (z0 !== undefined && z0 !== null) {
+      group.append('text')
+        .attr('x', 0)
+        .attr('y', yOff)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#aaddff')
+        .attr('font-size', '8px')
+        .text(`Z₀=${z0}Ω`);
+    }
+  }
+
   onDragStart(event, component) {
     // Check if canvas is locked
     if (this.locked) {
@@ -2441,6 +2564,11 @@ class PALineupCanvas {
           return { x: baseX + 20, y: baseY };    // Single output
         }
       
+      case 'offset_line':
+        return portId === 'input' || portId.startsWith('input')
+          ? { x: baseX - 22, y: baseY }    // Input port at left
+          : { x: baseX + 22, y: baseY };   // Output port at right
+      
       default:
         console.warn('Unknown component type:', component.type);
         return { x: baseX, y: baseY };
@@ -2508,71 +2636,81 @@ class PALineupCanvas {
     console.log('Creating Single Driver Doherty preset...');
     this._loadingTemplate = true;
 
-    // Layout: Source → [Driver IMN + Driver + Driver OMN] → Interstage → Splitter
-    //         → [Main IMN + Main PA + Main OMN]  (y=180)
-    //         → [Aux IMN  + Aux PA  + Aux OMN]   (y=420)
-    //         → Combiner → Load
-    // Grid columns (120px): 60,180,300,420,540,660,780,900,1020,1140,1260
-    const source   = this.addComponent('termination', 60,   300, { label: 'Source',      impedance: 50 });
-    const drvIMN   = this.addComponent('matching',    180,  300, { label: 'Driver IMN',  matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
-    const driver   = this.addComponent('transistor',  300,  300, { label: 'Driver',      technology: 'GaN', biasClass: 'A',  gain: 15, pae: 40, p1db: 35, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
-    const drvOMN   = this.addComponent('matching',    420,  300, { label: 'Driver OMN',  matchType: 'Pi',          loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
-    const isMatch  = this.addComponent('matching',    540,  300, { label: 'Interstage',  matchType: 'Pi',          loss: 0.5, z_in: 50,           z_out: 50 });
-    const splitter = this.addComponent('splitter',    660,  300, { label: 'Splitter',    type: 'Wilkinson' });
-    const mainIMN  = this.addComponent('matching',    780,  180, { label: 'Main IMN',    matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
-    const auxIMN   = this.addComponent('matching',    780,  420, { label: 'Aux IMN',     matchType: 'TL-stub',     loss: 0.3, z_in: 50,           z_out: 'Z_in_a',   pa_role: 'imn' });
-    const mainPA   = this.addComponent('transistor',  900,  180, { label: 'Main PA',     technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 46, pout: 46, z_in: 'Z_in_m',  z_out: 'Z_out_m',  pa_group: 'Main PA' });
-    const auxPA    = this.addComponent('transistor',  900,  420, { label: 'Aux PA',      technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 43, pout: 43, z_in: 'Z_in_a',  z_out: 'Z_out_a',  pa_group: 'Aux PA' });
-    const mainOMN  = this.addComponent('matching',    1020, 180, { label: 'Main OMN',    matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_m',    z_out: 25,         pa_role: 'omn' });
-    const auxOMN   = this.addComponent('matching',    1020, 420, { label: 'Aux OMN',     matchType: 'TL-stub',     loss: 0.2, z_in: 'Z_out_a',    z_out: 25,         pa_role: 'omn' });
-    const combiner = this.addComponent('combiner',    1140, 300, { label: 'Doherty',     type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
-    const load     = this.addComponent('termination', 1260, 300, { label: 'Load',        impedance: 50 });
+    // Doherty combining principle:
+    //   Main path: IMN → Main PA → OMN → [λ/4 inverter Z₀=35.35Ω] → combining node
+    //   Aux  path: [90° offset Z₀=50Ω] → IMN → Aux PA → OMN → combining node
+    // Both signals arrive in-phase at combining node.
+    // Grid columns (120px): 60,180,300,420,540,660,780,900,1020,1140,1260,1380
+    const source    = this.addComponent('termination', 60,   300, { label: 'Source',       impedance: 50 });
+    const drvIMN    = this.addComponent('matching',    180,  300, { label: 'Driver IMN',   matchType: 'Pi',     loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
+    const driver    = this.addComponent('transistor',  300,  300, { label: 'Driver',       technology: 'GaN', biasClass: 'A',  gain: 15, pae: 40, p1db: 35, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
+    const drvOMN    = this.addComponent('matching',    420,  300, { label: 'Driver OMN',   matchType: 'Pi',     loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
+    const isMatch   = this.addComponent('matching',    540,  300, { label: 'Interstage',   matchType: 'Pi',     loss: 0.5, z_in: 50,           z_out: 50 });
+    const splitter  = this.addComponent('splitter',    660,  300, { label: 'Splitter',     type: 'Wilkinson' });
+    // Main path (y=180): direct phase from splitter
+    const mainIMN   = this.addComponent('matching',    780,  180, { label: 'Main IMN',     matchType: 'Pi',     loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
+    const mainPA    = this.addComponent('transistor',  900,  180, { label: 'Main PA',      technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 46, pout: 46, z_in: 'Z_in_m',  z_out: 'Z_out_m',  pa_group: 'Main PA' });
+    const mainOMN   = this.addComponent('matching',    1020, 180, { label: 'Main OMN',     matchType: 'Pi',     loss: 0.3, z_in: 'Z_out_m',    z_out: 'Z_inv',    pa_role: 'omn' });
+    const mainInv   = this.addComponent('offset_line', 1140, 180, { label: 'λ/4 Inv',      phase_shift_deg: 90, impedance: 35.35, loss: 0.2,  offset_role: 'inverter' });
+    // Aux path (y=420): 90° input offset compensates inverter delay
+    const auxOffset = this.addComponent('offset_line', 780,  420, { label: '90° Offset',   phase_shift_deg: 90, impedance: 50,    loss: 0.2,  offset_role: 'phase' });
+    const auxIMN    = this.addComponent('matching',    900,  420, { label: 'Aux IMN',      matchType: 'TL-stub', loss: 0.3, z_in: 50,          z_out: 'Z_in_a',   pa_role: 'imn' });
+    const auxPA     = this.addComponent('transistor',  1020, 420, { label: 'Aux PA',       technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 43, pout: 43, z_in: 'Z_in_a',  z_out: 'Z_out_a',  pa_group: 'Aux PA' });
+    const auxOMN    = this.addComponent('matching',    1140, 420, { label: 'Aux OMN',      matchType: 'TL-stub', loss: 0.2, z_in: 'Z_out_a',   z_out: 50,         pa_role: 'omn' });
+    const combiner  = this.addComponent('combiner',    1260, 300, { label: 'Doherty',      type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
+    const load      = this.addComponent('termination', 1380, 300, { label: 'Load',         impedance: 50 });
 
-    this.createConnection(source.id,   drvIMN.id,   'output',  'input');
-    this.createConnection(drvIMN.id,   driver.id,   'output',  'input');
-    this.createConnection(driver.id,   drvOMN.id,   'output',  'input');
-    this.createConnection(drvOMN.id,   isMatch.id,  'output',  'input');
-    this.createConnection(isMatch.id,  splitter.id, 'output',  'input');
-    this.createConnection(splitter.id, mainIMN.id,  'output1', 'input');
-    this.createConnection(splitter.id, auxIMN.id,   'output2', 'input');
-    this.createConnection(mainIMN.id,  mainPA.id,   'output',  'input');
-    this.createConnection(auxIMN.id,   auxPA.id,    'output',  'input');
-    this.createConnection(mainPA.id,   mainOMN.id,  'output',  'input');
-    this.createConnection(auxPA.id,    auxOMN.id,   'output',  'input');
-    this.createConnection(mainOMN.id,  combiner.id, 'output',  'input1');
-    this.createConnection(auxOMN.id,   combiner.id, 'output',  'input2');
-    this.createConnection(combiner.id, load.id,     'output',  'input');
+    this.createConnection(source.id,    drvIMN.id,   'output',  'input');
+    this.createConnection(drvIMN.id,    driver.id,   'output',  'input');
+    this.createConnection(driver.id,    drvOMN.id,   'output',  'input');
+    this.createConnection(drvOMN.id,    isMatch.id,  'output',  'input');
+    this.createConnection(isMatch.id,   splitter.id, 'output',  'input');
+    this.createConnection(splitter.id,  mainIMN.id,  'output1', 'input');
+    this.createConnection(splitter.id,  auxOffset.id,'output2', 'input');
+    this.createConnection(mainIMN.id,   mainPA.id,   'output',  'input');
+    this.createConnection(mainPA.id,    mainOMN.id,  'output',  'input');
+    this.createConnection(mainOMN.id,   mainInv.id,  'output',  'input');
+    this.createConnection(mainInv.id,   combiner.id, 'output',  'input1');
+    this.createConnection(auxOffset.id, auxIMN.id,   'output',  'input');
+    this.createConnection(auxIMN.id,    auxPA.id,    'output',  'input');
+    this.createConnection(auxPA.id,     auxOMN.id,   'output',  'input');
+    this.createConnection(auxOMN.id,    combiner.id, 'output',  'input2');
+    this.createConnection(combiner.id,  load.id,     'output',  'input');
 
     this._loadingTemplate = false;
     this.saveHistory();
-    console.log('Single Driver Doherty created with connections');
+    console.log('Single Driver Doherty created with Doherty combining elements');
   }
   
   createDualDriverDoherty() {
     console.log('Creating Dual Driver Doherty preset...');
     this._loadingTemplate = true;
 
-    // Two parallel driver chains (no shared splitter before drivers).
-    // Layout: Source → [Main Drv IMN+Drv+Drv OMN] → Main IS Match → [Main IMN+Main PA+Main OMN]
-    //         Source → [Aux Drv IMN+Drv+Drv OMN]  → Aux IS Match  → [Aux IMN+Aux PA+Aux OMN]
-    //         → Combiner → Load
+    // Two parallel driver chains → separate interstage matches.
+    // Doherty principle:
+    //   Main path: Main Drv chain → IS → IMN → Main PA → OMN → [λ/4 inverter] → combiner
+    //   Aux  path: Aux Drv chain  → IS → [90° offset] → IMN → Aux PA → OMN → combiner
     const source       = this.addComponent('termination', 60,   300, { label: 'Source',        impedance: 50 });
-    const mainDrvIMN   = this.addComponent('matching',    180,  180, { label: 'Main Drv IMN',  matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
-    const auxDrvIMN    = this.addComponent('matching',    180,  420, { label: 'Aux Drv IMN',   matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
+    const mainDrvIMN   = this.addComponent('matching',    180,  180, { label: 'Main Drv IMN',  matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
+    const auxDrvIMN    = this.addComponent('matching',    180,  420, { label: 'Aux Drv IMN',   matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
     const mainDriver   = this.addComponent('transistor',  300,  180, { label: 'Main Driver',   technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Main Driver PA' });
     const auxDriver    = this.addComponent('transistor',  300,  420, { label: 'Aux Driver',    technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Aux Driver PA' });
-    const mainDrvOMN   = this.addComponent('matching',    420,  180, { label: 'Main Drv OMN',  matchType: 'Pi',          loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
-    const auxDrvOMN    = this.addComponent('matching',    420,  420, { label: 'Aux Drv OMN',   matchType: 'Pi',          loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
-    const mainIS       = this.addComponent('matching',    540,  180, { label: 'Main IS Match', matchType: 'Pi',          loss: 0.4, z_in: 50,           z_out: 50 });
-    const auxIS        = this.addComponent('matching',    540,  420, { label: 'Aux IS Match',  matchType: 'Pi',          loss: 0.4, z_in: 50,           z_out: 50 });
-    const mainIMN      = this.addComponent('matching',    660,  180, { label: 'Main IMN',      matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
-    const auxIMN       = this.addComponent('matching',    660,  420, { label: 'Aux IMN',       matchType: 'TL-stub',     loss: 0.3, z_in: 50,           z_out: 'Z_in_a',   pa_role: 'imn' });
+    const mainDrvOMN   = this.addComponent('matching',    420,  180, { label: 'Main Drv OMN',  matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
+    const auxDrvOMN    = this.addComponent('matching',    420,  420, { label: 'Aux Drv OMN',   matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
+    const mainIS       = this.addComponent('matching',    540,  180, { label: 'Main IS Match', matchType: 'Pi',      loss: 0.4, z_in: 50,           z_out: 50 });
+    const auxIS        = this.addComponent('matching',    540,  420, { label: 'Aux IS Match',  matchType: 'Pi',      loss: 0.4, z_in: 50,           z_out: 50 });
+    // Main path: direct (0° phase)
+    const mainIMN      = this.addComponent('matching',    660,  180, { label: 'Main IMN',      matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
     const mainPA       = this.addComponent('transistor',  780,  180, { label: 'Main PA',       technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, pout: 46, z_in: 'Z_in_m', z_out: 'Z_out_m', pa_group: 'Main PA' });
-    const auxPA        = this.addComponent('transistor',  780,  420, { label: 'Aux PA',        technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, pout: 43, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
-    const mainOMN      = this.addComponent('matching',    900,  180, { label: 'Main OMN',      matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_m',    z_out: 25,         pa_role: 'omn' });
-    const auxOMN       = this.addComponent('matching',    900,  420, { label: 'Aux OMN',       matchType: 'TL-stub',     loss: 0.2, z_in: 'Z_out_a',    z_out: 25,         pa_role: 'omn' });
-    const combiner     = this.addComponent('combiner',    1020, 300, { label: 'Doherty',       type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
-    const load         = this.addComponent('termination', 1140, 300, { label: 'Load',          impedance: 50 });
+    const mainOMN      = this.addComponent('matching',    900,  180, { label: 'Main OMN',      matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_m',    z_out: 'Z_inv',    pa_role: 'omn' });
+    const mainInv      = this.addComponent('offset_line', 1020, 180, { label: 'λ/4 Inv',       phase_shift_deg: 90,  impedance: 35.35, loss: 0.2,  offset_role: 'inverter' });
+    // Aux path: 90° input offset
+    const auxOffset    = this.addComponent('offset_line', 660,  420, { label: '90° Offset',    phase_shift_deg: 90,  impedance: 50,    loss: 0.2,  offset_role: 'phase' });
+    const auxIMN       = this.addComponent('matching',    780,  420, { label: 'Aux IMN',       matchType: 'TL-stub', loss: 0.3, z_in: 50,           z_out: 'Z_in_a',   pa_role: 'imn' });
+    const auxPA        = this.addComponent('transistor',  900,  420, { label: 'Aux PA',        technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, pout: 43, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
+    const auxOMN       = this.addComponent('matching',    1020, 420, { label: 'Aux OMN',       matchType: 'TL-stub', loss: 0.2, z_in: 'Z_out_a',    z_out: 50,         pa_role: 'omn' });
+    const combiner     = this.addComponent('combiner',    1140, 300, { label: 'Doherty',       type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
+    const load         = this.addComponent('termination', 1260, 300, { label: 'Load',          impedance: 50 });
 
     this.createConnection(source.id,     mainDrvIMN.id, 'output',  'input');
     this.createConnection(source.id,     auxDrvIMN.id,  'output',  'input');
@@ -2583,18 +2721,20 @@ class PALineupCanvas {
     this.createConnection(mainDrvOMN.id, mainIS.id,     'output',  'input');
     this.createConnection(auxDrvOMN.id,  auxIS.id,      'output',  'input');
     this.createConnection(mainIS.id,     mainIMN.id,    'output',  'input');
-    this.createConnection(auxIS.id,      auxIMN.id,     'output',  'input');
+    this.createConnection(auxIS.id,      auxOffset.id,  'output',  'input');
     this.createConnection(mainIMN.id,    mainPA.id,     'output',  'input');
-    this.createConnection(auxIMN.id,     auxPA.id,      'output',  'input');
     this.createConnection(mainPA.id,     mainOMN.id,    'output',  'input');
+    this.createConnection(mainOMN.id,    mainInv.id,    'output',  'input');
+    this.createConnection(mainInv.id,    combiner.id,   'output',  'input1');
+    this.createConnection(auxOffset.id,  auxIMN.id,     'output',  'input');
+    this.createConnection(auxIMN.id,     auxPA.id,      'output',  'input');
     this.createConnection(auxPA.id,      auxOMN.id,     'output',  'input');
-    this.createConnection(mainOMN.id,    combiner.id,   'output',  'input1');
     this.createConnection(auxOMN.id,     combiner.id,   'output',  'input2');
     this.createConnection(combiner.id,   load.id,       'output',  'input');
 
     this._loadingTemplate = false;
     this.saveHistory();
-    console.log('Dual Driver Doherty created with connections');
+    console.log('Dual Driver Doherty created with Doherty combining elements');
   }
   
   createTripleStage() {
@@ -2639,21 +2779,29 @@ class PALineupCanvas {
     console.log('Creating Conventional Doherty preset...');
     this._loadingTemplate = true;
 
-    // Same as Single Driver Doherty but uses 90° Hybrid splitter
-    const source   = this.addComponent('termination', 60,   300, { label: 'Source',      impedance: 50 });
-    const drvIMN   = this.addComponent('matching',    180,  300, { label: 'Driver IMN',  matchType: 'L',           loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
-    const driver   = this.addComponent('transistor',  300,  300, { label: 'Driver',      biasClass: 'A',  gain: 15, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
-    const drvOMN   = this.addComponent('matching',    420,  300, { label: 'Driver OMN',  matchType: 'L',           loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
-    const isMatch  = this.addComponent('matching',    540,  300, { label: 'Interstage',  matchType: 'L',           loss: 0.5, z_in: 50,           z_out: 50 });
-    const splitter = this.addComponent('splitter',    660,  300, { label: '90° Splitter', type: 'Hybrid' });
-    const mainIMN  = this.addComponent('matching',    780,  180, { label: 'Main IMN',    matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
-    const auxIMN   = this.addComponent('matching',    780,  420, { label: 'Aux IMN',     matchType: 'TL-stub',     loss: 0.3, z_in: 50,           z_out: 'Z_in_a',   pa_role: 'imn' });
-    const mainPA   = this.addComponent('transistor',  900,  180, { label: 'Main PA',     technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46, pae: 55, z_in: 'Z_in_m', z_out: 'Z_out_m', pa_group: 'Main PA' });
-    const auxPA    = this.addComponent('transistor',  900,  420, { label: 'Aux PA',      technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43, pae: 50, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
-    const mainOMN  = this.addComponent('matching',    1020, 180, { label: 'Main OMN',    matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_m',    z_out: 25,         pa_role: 'omn' });
-    const auxOMN   = this.addComponent('matching',    1020, 420, { label: 'Aux OMN',     matchType: 'TL-stub',     loss: 0.2, z_in: 'Z_out_a',    z_out: 25,         pa_role: 'omn' });
-    const combiner = this.addComponent('combiner',    1140, 300, { label: 'Doherty',     type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
-    const load     = this.addComponent('termination', 1260, 300, { label: 'Load',        impedance: 50 });
+    // Conventional Doherty with 90° Hybrid splitter.
+    // The hybrid provides: port1 → 0° (Main), port2 → -90° (Aux).
+    // Main output still needs a λ/4 impedance inverter (Z₀=35.35Ω) for load modulation.
+    // No explicit input offset needed on Aux because hybrid already provides -90°.
+    //   Main path: IMN → Main PA → OMN → [λ/4 inverter] → combining node (at -90°)
+    //   Aux  path: (-90° from hybrid) → IMN → Aux PA → OMN → combining node (at -90°)
+    const source    = this.addComponent('termination', 60,   300, { label: 'Source',       impedance: 50 });
+    const drvIMN    = this.addComponent('matching',    180,  300, { label: 'Driver IMN',   matchType: 'L',      loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
+    const driver    = this.addComponent('transistor',  300,  300, { label: 'Driver',       biasClass: 'A',  gain: 15, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
+    const drvOMN    = this.addComponent('matching',    420,  300, { label: 'Driver OMN',   matchType: 'L',      loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
+    const isMatch   = this.addComponent('matching',    540,  300, { label: 'Interstage',   matchType: 'L',      loss: 0.5, z_in: 50,           z_out: 50 });
+    const splitter  = this.addComponent('splitter',    660,  300, { label: '90° Hybrid',   type: 'Hybrid' });
+    // Main path (0° from port1): IMN → PA → OMN → λ/4 inverter
+    const mainIMN   = this.addComponent('matching',    780,  180, { label: 'Main IMN',     matchType: 'Pi',     loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
+    const mainPA    = this.addComponent('transistor',  900,  180, { label: 'Main PA',      technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46, pae: 55, z_in: 'Z_in_m', z_out: 'Z_out_m', pa_group: 'Main PA' });
+    const mainOMN   = this.addComponent('matching',    1020, 180, { label: 'Main OMN',     matchType: 'Pi',     loss: 0.3, z_in: 'Z_out_m',    z_out: 'Z_inv',    pa_role: 'omn' });
+    const mainInv   = this.addComponent('offset_line', 1140, 180, { label: 'λ/4 Inv',      phase_shift_deg: 90, impedance: 35.35, loss: 0.2,  offset_role: 'inverter' });
+    // Aux path (-90° from port2 of hybrid): IMN → PA → OMN (direct to combiner)
+    const auxIMN    = this.addComponent('matching',    780,  420, { label: 'Aux IMN',      matchType: 'TL-stub', loss: 0.3, z_in: 50,          z_out: 'Z_in_a',   pa_role: 'imn' });
+    const auxPA     = this.addComponent('transistor',  900,  420, { label: 'Aux PA',       technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43, pae: 50, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
+    const auxOMN    = this.addComponent('matching',    1020, 420, { label: 'Aux OMN',      matchType: 'TL-stub', loss: 0.2, z_in: 'Z_out_a',   z_out: 50,         pa_role: 'omn' });
+    const combiner  = this.addComponent('combiner',    1260, 300, { label: 'Doherty',      type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
+    const load      = this.addComponent('termination', 1380, 300, { label: 'Load',         impedance: 50 });
 
     this.createConnection(source.id,   drvIMN.id,   'output',  'input');
     this.createConnection(drvIMN.id,   driver.id,   'output',  'input');
@@ -2663,162 +2811,253 @@ class PALineupCanvas {
     this.createConnection(splitter.id, mainIMN.id,  'output1', 'input');
     this.createConnection(splitter.id, auxIMN.id,   'output2', 'input');
     this.createConnection(mainIMN.id,  mainPA.id,   'output',  'input');
-    this.createConnection(auxIMN.id,   auxPA.id,    'output',  'input');
     this.createConnection(mainPA.id,   mainOMN.id,  'output',  'input');
+    this.createConnection(mainOMN.id,  mainInv.id,  'output',  'input');
+    this.createConnection(mainInv.id,  combiner.id, 'output',  'input1');
+    this.createConnection(auxIMN.id,   auxPA.id,    'output',  'input');
     this.createConnection(auxPA.id,    auxOMN.id,   'output',  'input');
-    this.createConnection(mainOMN.id,  combiner.id, 'output',  'input1');
     this.createConnection(auxOMN.id,   combiner.id, 'output',  'input2');
     this.createConnection(combiner.id, load.id,     'output',  'input');
 
     this._loadingTemplate = false;
     this.saveHistory();
-    console.log('Conventional Doherty created with connections');
+    console.log('Conventional Doherty created with Doherty combining elements');
   }
   
   createInvertedDoherty() {
     console.log('Creating Inverted Doherty preset...');
     this._loadingTemplate = true;
 
-    // Inverted Doherty: Main PA uses TL-stub IMN (90° phase shift at input),
-    // Aux PA uses Pi IMN. Output matching roles are swapped vs conventional.
-    const source   = this.addComponent('termination', 60,   300, { label: 'Source',      impedance: 50 });
-    const drvIMN   = this.addComponent('matching',    180,  300, { label: 'Driver IMN',  matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
-    const driver   = this.addComponent('transistor',  300,  300, { label: 'Driver',      biasClass: 'A',  gain: 15, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
-    const drvOMN   = this.addComponent('matching',    420,  300, { label: 'Driver OMN',  matchType: 'Pi',          loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
-    const isMatch  = this.addComponent('matching',    540,  300, { label: 'Interstage',  matchType: 'Pi',          loss: 0.5, z_in: 50,           z_out: 50 });
-    const splitter = this.addComponent('splitter',    660,  300, { label: 'Splitter',    type: 'Wilkinson' });
-    const mainIMN  = this.addComponent('matching',    780,  180, { label: 'Main IMN',    matchType: 'TL-stub',     loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
-    const auxIMN   = this.addComponent('matching',    780,  420, { label: 'Aux IMN',     matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_a',   pa_role: 'imn' });
-    const mainPA   = this.addComponent('transistor',  900,  180, { label: 'Main PA',     technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46, z_in: 'Z_in_m',  z_out: 'Z_out_m',  pa_group: 'Main PA' });
-    const auxPA    = this.addComponent('transistor',  900,  420, { label: 'Aux PA',      technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43, z_in: 'Z_in_a',  z_out: 'Z_out_a',  pa_group: 'Aux PA' });
-    const mainOMN  = this.addComponent('matching',    1020, 180, { label: 'Main OMN',    matchType: 'L',           loss: 0.2, z_in: 'Z_out_m',    z_out: 50,         pa_role: 'omn' });
-    const auxOMN   = this.addComponent('matching',    1020, 420, { label: 'Aux OMN',     matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_a',    z_out: 25,         pa_role: 'omn' });
-    const combiner = this.addComponent('combiner',    1140, 300, { label: 'Inverted',    type: 'doherty', subtype: 'Inverted-Doherty', ways: 2 });
-    const load     = this.addComponent('termination', 1260, 300, { label: 'Load',        impedance: 50 });
+    // Inverted Doherty: the λ/4 impedance inverter moves to the Aux output path,
+    // and the 90° phase offset moves to the Main input path.
+    //   Main path: [90° offset] → IMN → Main PA → OMN → combining node (at -90°)
+    //   Aux  path: IMN → Aux PA → OMN → [λ/4 inverter Z₀=35.35Ω] → combining node (at -90°)
+    const source    = this.addComponent('termination', 60,   300, { label: 'Source',       impedance: 50 });
+    const drvIMN    = this.addComponent('matching',    180,  300, { label: 'Driver IMN',   matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
+    const driver    = this.addComponent('transistor',  300,  300, { label: 'Driver',       biasClass: 'A',  gain: 15, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
+    const drvOMN    = this.addComponent('matching',    420,  300, { label: 'Driver OMN',   matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
+    const isMatch   = this.addComponent('matching',    540,  300, { label: 'Interstage',   matchType: 'Pi',      loss: 0.5, z_in: 50,           z_out: 50 });
+    const splitter  = this.addComponent('splitter',    660,  300, { label: 'Splitter',     type: 'Wilkinson' });
+    // Main path: 90° input offset then direct output to combiner
+    const mainOffset = this.addComponent('offset_line',780,  180, { label: '90° Offset',   phase_shift_deg: 90,  impedance: 50,    loss: 0.2,  offset_role: 'phase' });
+    const mainIMN   = this.addComponent('matching',    900,  180, { label: 'Main IMN',     matchType: 'TL-stub', loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
+    const mainPA    = this.addComponent('transistor',  1020, 180, { label: 'Main PA',      technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46, z_in: 'Z_in_m',  z_out: 'Z_out_m',  pa_group: 'Main PA' });
+    const mainOMN   = this.addComponent('matching',    1140, 180, { label: 'Main OMN',     matchType: 'L',       loss: 0.2, z_in: 'Z_out_m',    z_out: 50,         pa_role: 'omn' });
+    // Aux path: direct from splitter, λ/4 inverter on output
+    const auxIMN    = this.addComponent('matching',    780,  420, { label: 'Aux IMN',      matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_a',   pa_role: 'imn' });
+    const auxPA     = this.addComponent('transistor',  900,  420, { label: 'Aux PA',       technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43, z_in: 'Z_in_a',  z_out: 'Z_out_a',  pa_group: 'Aux PA' });
+    const auxOMN    = this.addComponent('matching',    1020, 420, { label: 'Aux OMN',      matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_a',    z_out: 'Z_inv',    pa_role: 'omn' });
+    const auxInv    = this.addComponent('offset_line', 1140, 420, { label: 'λ/4 Inv',      phase_shift_deg: 90,  impedance: 35.35, loss: 0.2,  offset_role: 'inverter' });
+    const combiner  = this.addComponent('combiner',    1260, 300, { label: 'Inverted',     type: 'doherty', subtype: 'Inverted-Doherty', ways: 2 });
+    const load      = this.addComponent('termination', 1380, 300, { label: 'Load',         impedance: 50 });
 
-    this.createConnection(source.id,   drvIMN.id,   'output',  'input');
-    this.createConnection(drvIMN.id,   driver.id,   'output',  'input');
-    this.createConnection(driver.id,   drvOMN.id,   'output',  'input');
-    this.createConnection(drvOMN.id,   isMatch.id,  'output',  'input');
-    this.createConnection(isMatch.id,  splitter.id, 'output',  'input');
-    this.createConnection(splitter.id, mainIMN.id,  'output1', 'input');
-    this.createConnection(splitter.id, auxIMN.id,   'output2', 'input');
-    this.createConnection(mainIMN.id,  mainPA.id,   'output',  'input');
-    this.createConnection(auxIMN.id,   auxPA.id,    'output',  'input');
-    this.createConnection(mainPA.id,   mainOMN.id,  'output',  'input');
-    this.createConnection(auxPA.id,    auxOMN.id,   'output',  'input');
-    this.createConnection(mainOMN.id,  combiner.id, 'output',  'input1');
-    this.createConnection(auxOMN.id,   combiner.id, 'output',  'input2');
-    this.createConnection(combiner.id, load.id,     'output',  'input');
+    this.createConnection(source.id,    drvIMN.id,    'output',  'input');
+    this.createConnection(drvIMN.id,    driver.id,    'output',  'input');
+    this.createConnection(driver.id,    drvOMN.id,    'output',  'input');
+    this.createConnection(drvOMN.id,    isMatch.id,   'output',  'input');
+    this.createConnection(isMatch.id,   splitter.id,  'output',  'input');
+    this.createConnection(splitter.id,  mainOffset.id,'output1', 'input');
+    this.createConnection(splitter.id,  auxIMN.id,    'output2', 'input');
+    this.createConnection(mainOffset.id,mainIMN.id,   'output',  'input');
+    this.createConnection(mainIMN.id,   mainPA.id,    'output',  'input');
+    this.createConnection(mainPA.id,    mainOMN.id,   'output',  'input');
+    this.createConnection(mainOMN.id,   combiner.id,  'output',  'input1');
+    this.createConnection(auxIMN.id,    auxPA.id,     'output',  'input');
+    this.createConnection(auxPA.id,     auxOMN.id,    'output',  'input');
+    this.createConnection(auxOMN.id,    auxInv.id,    'output',  'input');
+    this.createConnection(auxInv.id,    combiner.id,  'output',  'input2');
+    this.createConnection(combiner.id,  load.id,      'output',  'input');
 
     this._loadingTemplate = false;
     this.saveHistory();
-    console.log('Inverted Doherty created with connections');
+    console.log('Inverted Doherty created with Doherty combining elements');
   }
   
   createSymmetricDoherty() {
     console.log('Creating Symmetric Doherty preset...');
     this._loadingTemplate = true;
 
-    // Symmetric: both PAs identical bias, equal Zin/Zout variables
-    const source   = this.addComponent('termination', 60,   300, { label: 'Source',      impedance: 50 });
-    const drvIMN   = this.addComponent('matching',    180,  300, { label: 'Driver IMN',  matchType: 'T',           loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
-    const driver   = this.addComponent('transistor',  300,  300, { label: 'Driver',      biasClass: 'A',  gain: 15, pout: 36, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
-    const drvOMN   = this.addComponent('matching',    420,  300, { label: 'Driver OMN',  matchType: 'T',           loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
-    const isMatch  = this.addComponent('matching',    540,  300, { label: 'Interstage',  matchType: 'T',           loss: 0.5, z_in: 50,           z_out: 50 });
-    const splitter = this.addComponent('splitter',    660,  300, { label: 'Splitter',    type: 'Wilkinson' });
-    const mainIMN  = this.addComponent('matching',    780,  180, { label: 'Main IMN',    matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
-    const auxIMN   = this.addComponent('matching',    780,  420, { label: 'Aux IMN',     matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_a',   pa_role: 'imn' });
-    const mainPA   = this.addComponent('transistor',  900,  180, { label: 'Main PA',     technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46, pae: 55, z_in: 'Z_in_m', z_out: 'Z_out_m', pa_group: 'Main PA' });
-    const auxPA    = this.addComponent('transistor',  900,  420, { label: 'Aux PA',      technology: 'GaN', biasClass: 'C',  gain: 12, pout: 46, pae: 55, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
-    const mainOMN  = this.addComponent('matching',    1020, 180, { label: 'Main OMN',    matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_m',    z_out: 25,         pa_role: 'omn' });
-    const auxOMN   = this.addComponent('matching',    1020, 420, { label: 'Aux OMN',     matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_a',    z_out: 25,         pa_role: 'omn' });
-    const combiner = this.addComponent('combiner',    1140, 300, { label: 'Symmetric',   type: 'doherty', subtype: 'Symmetric-Doherty', ways: 2 });
-    const load     = this.addComponent('termination', 1260, 300, { label: 'Load',        impedance: 50 });
+    // Symmetric Doherty: equal-size Main and Aux devices (1:1 ratio).
+    // Back-off efficiency peak at -6 dB (vs -9.5 dB for 2:1 asymmetric).
+    // Same Doherty combining principle as conventional:
+    //   Main path: IMN → Main PA → OMN → [λ/4 inverter Z₀=35.35Ω] → combiner
+    //   Aux  path: [90° offset] → IMN → Aux PA → OMN → combiner
+    const source    = this.addComponent('termination', 60,   300, { label: 'Source',       impedance: 50 });
+    const drvIMN    = this.addComponent('matching',    180,  300, { label: 'Driver IMN',   matchType: 'T',      loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
+    const driver    = this.addComponent('transistor',  300,  300, { label: 'Driver',       biasClass: 'A',  gain: 15, pout: 36, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
+    const drvOMN    = this.addComponent('matching',    420,  300, { label: 'Driver OMN',   matchType: 'T',      loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
+    const isMatch   = this.addComponent('matching',    540,  300, { label: 'Interstage',   matchType: 'T',      loss: 0.5, z_in: 50,           z_out: 50 });
+    const splitter  = this.addComponent('splitter',    660,  300, { label: 'Splitter',     type: 'Wilkinson' });
+    // Main path (0° phase)
+    const mainIMN   = this.addComponent('matching',    780,  180, { label: 'Main IMN',     matchType: 'Pi',     loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
+    const mainPA    = this.addComponent('transistor',  900,  180, { label: 'Main PA',      technology: 'GaN', biasClass: 'AB', gain: 12, pout: 46, pae: 55, z_in: 'Z_in_m', z_out: 'Z_out_m', pa_group: 'Main PA' });
+    const mainOMN   = this.addComponent('matching',    1020, 180, { label: 'Main OMN',     matchType: 'Pi',     loss: 0.3, z_in: 'Z_out_m',    z_out: 'Z_inv',    pa_role: 'omn' });
+    const mainInv   = this.addComponent('offset_line', 1140, 180, { label: 'λ/4 Inv',      phase_shift_deg: 90, impedance: 35.35, loss: 0.2,  offset_role: 'inverter' });
+    // Aux path: 90° input offset, equal device size
+    const auxOffset = this.addComponent('offset_line', 780,  420, { label: '90° Offset',   phase_shift_deg: 90, impedance: 50,    loss: 0.2,  offset_role: 'phase' });
+    const auxIMN    = this.addComponent('matching',    900,  420, { label: 'Aux IMN',      matchType: 'Pi',     loss: 0.3, z_in: 50,           z_out: 'Z_in_a',   pa_role: 'imn' });
+    const auxPA     = this.addComponent('transistor',  1020, 420, { label: 'Aux PA',       technology: 'GaN', biasClass: 'C',  gain: 12, pout: 46, pae: 55, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
+    const auxOMN    = this.addComponent('matching',    1140, 420, { label: 'Aux OMN',      matchType: 'Pi',     loss: 0.2, z_in: 'Z_out_a',    z_out: 50,         pa_role: 'omn' });
+    const combiner  = this.addComponent('combiner',    1260, 300, { label: 'Symmetric',    type: 'doherty', subtype: 'Symmetric-Doherty', ways: 2 });
+    const load      = this.addComponent('termination', 1380, 300, { label: 'Load',         impedance: 50 });
 
-    this.createConnection(source.id,   drvIMN.id,   'output',  'input');
-    this.createConnection(drvIMN.id,   driver.id,   'output',  'input');
-    this.createConnection(driver.id,   drvOMN.id,   'output',  'input');
-    this.createConnection(drvOMN.id,   isMatch.id,  'output',  'input');
-    this.createConnection(isMatch.id,  splitter.id, 'output',  'input');
-    this.createConnection(splitter.id, mainIMN.id,  'output1', 'input');
-    this.createConnection(splitter.id, auxIMN.id,   'output2', 'input');
-    this.createConnection(mainIMN.id,  mainPA.id,   'output',  'input');
-    this.createConnection(auxIMN.id,   auxPA.id,    'output',  'input');
-    this.createConnection(mainPA.id,   mainOMN.id,  'output',  'input');
-    this.createConnection(auxPA.id,    auxOMN.id,   'output',  'input');
-    this.createConnection(mainOMN.id,  combiner.id, 'output',  'input1');
-    this.createConnection(auxOMN.id,   combiner.id, 'output',  'input2');
-    this.createConnection(combiner.id, load.id,     'output',  'input');
+    this.createConnection(source.id,    drvIMN.id,    'output',  'input');
+    this.createConnection(drvIMN.id,    driver.id,    'output',  'input');
+    this.createConnection(driver.id,    drvOMN.id,    'output',  'input');
+    this.createConnection(drvOMN.id,    isMatch.id,   'output',  'input');
+    this.createConnection(isMatch.id,   splitter.id,  'output',  'input');
+    this.createConnection(splitter.id,  mainIMN.id,   'output1', 'input');
+    this.createConnection(splitter.id,  auxOffset.id, 'output2', 'input');
+    this.createConnection(mainIMN.id,   mainPA.id,    'output',  'input');
+    this.createConnection(mainPA.id,    mainOMN.id,   'output',  'input');
+    this.createConnection(mainOMN.id,   mainInv.id,   'output',  'input');
+    this.createConnection(mainInv.id,   combiner.id,  'output',  'input1');
+    this.createConnection(auxOffset.id, auxIMN.id,    'output',  'input');
+    this.createConnection(auxIMN.id,    auxPA.id,     'output',  'input');
+    this.createConnection(auxPA.id,     auxOMN.id,    'output',  'input');
+    this.createConnection(auxOMN.id,    combiner.id,  'output',  'input2');
+    this.createConnection(combiner.id,  load.id,      'output',  'input');
 
     this._loadingTemplate = false;
     this.saveHistory();
-    console.log('Symmetric Doherty created with connections');
+    console.log('Symmetric Doherty created with Doherty combining elements');
   }
   
   createAsymmetricDoherty() {
     console.log('Creating Asymmetric Doherty preset...');
     this._loadingTemplate = true;
 
-    // Asymmetric 2:1 — Main PA is 2× size, different Zout targets
-    // Z_out_m → 25Ω inverter, Z_out_a → 50Ω inverter
-    const source   = this.addComponent('termination', 60,   300, { label: 'Source',       impedance: 50 });
-    const drvIMN   = this.addComponent('matching',    180,  300, { label: 'Driver IMN',   matchType: 'L',           loss: 0.3, z_in: 50,           z_out: 'Z_in_drv',  pa_role: 'imn' });
-    const driver   = this.addComponent('transistor',  300,  300, { label: 'Driver',       biasClass: 'A',  gain: 15, pout: 36, z_in: 'Z_in_drv', z_out: 'Z_out_drv',  pa_group: 'Driver PA' });
-    const drvOMN   = this.addComponent('matching',    420,  300, { label: 'Driver OMN',   matchType: 'L',           loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,           pa_role: 'omn' });
-    const isMatch  = this.addComponent('matching',    540,  300, { label: 'Interstage',   matchType: 'L',           loss: 0.5, z_in: 50,           z_out: 50 });
-    const splitter = this.addComponent('splitter',    660,  300, { label: '2:1 Splitter', type: 'Asymmetric' });
-    const mainIMN  = this.addComponent('matching',    780,  180, { label: 'Main IMN',     matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_m',     pa_role: 'imn' });
-    const auxIMN   = this.addComponent('matching',    780,  420, { label: 'Aux IMN',      matchType: 'L',           loss: 0.3, z_in: 50,           z_out: 'Z_in_a',     pa_role: 'imn' });
-    const mainPA   = this.addComponent('transistor',  900,  180, { label: 'Main PA',      technology: 'GaN', biasClass: 'AB', gain: 12, pout: 49, pae: 55, z_in: 'Z_in_m', z_out: 'Z_out_m', pa_group: 'Main PA' });
-    const auxPA    = this.addComponent('transistor',  900,  420, { label: 'Aux PA',       technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43, pae: 50, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
-    const mainOMN  = this.addComponent('matching',    1020, 180, { label: 'Main OMN',     matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_m',    z_out: 25,           pa_role: 'omn' });
-    const auxOMN   = this.addComponent('matching',    1020, 420, { label: 'Aux OMN',      matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_a',    z_out: 50,           pa_role: 'omn' });
-    const combiner = this.addComponent('combiner',    1140, 300, { label: 'Asym 2:1',     type: 'doherty', subtype: 'Asymmetric-Doherty', ways: 2 });
-    const load     = this.addComponent('termination', 1260, 300, { label: 'Load',         impedance: 50 });
+    // Asymmetric 2:1 — Main PA is 2× the size of Aux.
+    // Back-off efficiency peak at -9.5 dB OBO.
+    // Z_inv (Main output λ/4 inverter): Z₀ = √(R_L × R_opt_main) = √(50 × 16.7) ≈ 28.9Ω
+    //   Main path: IMN → Main PA → OMN → [λ/4 inverter Z₀≈28.9Ω] → combiner
+    //   Aux  path: [90° offset Z₀=50Ω] → IMN → Aux PA → OMN → combiner
+    const source    = this.addComponent('termination', 60,   300, { label: 'Source',        impedance: 50 });
+    const drvIMN    = this.addComponent('matching',    180,  300, { label: 'Driver IMN',    matchType: 'L',       loss: 0.3, z_in: 50,           z_out: 'Z_in_drv',  pa_role: 'imn' });
+    const driver    = this.addComponent('transistor',  300,  300, { label: 'Driver',        biasClass: 'A',  gain: 15, pout: 36, z_in: 'Z_in_drv', z_out: 'Z_out_drv',  pa_group: 'Driver PA' });
+    const drvOMN    = this.addComponent('matching',    420,  300, { label: 'Driver OMN',    matchType: 'L',       loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,           pa_role: 'omn' });
+    const isMatch   = this.addComponent('matching',    540,  300, { label: 'Interstage',    matchType: 'L',       loss: 0.5, z_in: 50,           z_out: 50 });
+    const splitter  = this.addComponent('splitter',    660,  300, { label: '2:1 Splitter',  type: 'Asymmetric' });
+    // Main path (2× device, 0° phase)
+    const mainIMN   = this.addComponent('matching',    780,  180, { label: 'Main IMN',      matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_m',     pa_role: 'imn' });
+    const mainPA    = this.addComponent('transistor',  900,  180, { label: 'Main PA (2×)',  technology: 'GaN', biasClass: 'AB', gain: 12, pout: 49, pae: 55, z_in: 'Z_in_m', z_out: 'Z_out_m', pa_group: 'Main PA' });
+    const mainOMN   = this.addComponent('matching',    1020, 180, { label: 'Main OMN',      matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_m',    z_out: 'Z_inv',      pa_role: 'omn' });
+    const mainInv   = this.addComponent('offset_line', 1140, 180, { label: 'λ/4 Inv',       phase_shift_deg: 90,  impedance: 28.87, loss: 0.2,  offset_role: 'inverter' });
+    // Aux path (1× device, 90° input offset)
+    const auxOffset = this.addComponent('offset_line', 780,  420, { label: '90° Offset',    phase_shift_deg: 90,  impedance: 50,    loss: 0.2,  offset_role: 'phase' });
+    const auxIMN    = this.addComponent('matching',    900,  420, { label: 'Aux IMN',       matchType: 'L',       loss: 0.3, z_in: 50,           z_out: 'Z_in_a',     pa_role: 'imn' });
+    const auxPA     = this.addComponent('transistor',  1020, 420, { label: 'Aux PA (1×)',   technology: 'GaN', biasClass: 'C',  gain: 12, pout: 43, pae: 50, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
+    const auxOMN    = this.addComponent('matching',    1140, 420, { label: 'Aux OMN',       matchType: 'L',       loss: 0.2, z_in: 'Z_out_a',    z_out: 50,           pa_role: 'omn' });
+    const combiner  = this.addComponent('combiner',    1260, 300, { label: 'Asym 2:1',      type: 'doherty', subtype: 'Asymmetric-Doherty', ways: 2 });
+    const load      = this.addComponent('termination', 1380, 300, { label: 'Load',          impedance: 50 });
 
-    this.createConnection(source.id,   drvIMN.id,   'output',  'input');
-    this.createConnection(drvIMN.id,   driver.id,   'output',  'input');
-    this.createConnection(driver.id,   drvOMN.id,   'output',  'input');
-    this.createConnection(drvOMN.id,   isMatch.id,  'output',  'input');
-    this.createConnection(isMatch.id,  splitter.id, 'output',  'input');
-    this.createConnection(splitter.id, mainIMN.id,  'output1', 'input');
-    this.createConnection(splitter.id, auxIMN.id,   'output2', 'input');
-    this.createConnection(mainIMN.id,  mainPA.id,   'output',  'input');
-    this.createConnection(auxIMN.id,   auxPA.id,    'output',  'input');
-    this.createConnection(mainPA.id,   mainOMN.id,  'output',  'input');
-    this.createConnection(auxPA.id,    auxOMN.id,   'output',  'input');
-    this.createConnection(mainOMN.id,  combiner.id, 'output',  'input1');
-    this.createConnection(auxOMN.id,   combiner.id, 'output',  'input2');
-    this.createConnection(combiner.id, load.id,     'output',  'input');
+    this.createConnection(source.id,    drvIMN.id,    'output',  'input');
+    this.createConnection(drvIMN.id,    driver.id,    'output',  'input');
+    this.createConnection(driver.id,    drvOMN.id,    'output',  'input');
+    this.createConnection(drvOMN.id,    isMatch.id,   'output',  'input');
+    this.createConnection(isMatch.id,   splitter.id,  'output',  'input');
+    this.createConnection(splitter.id,  mainIMN.id,   'output1', 'input');
+    this.createConnection(splitter.id,  auxOffset.id, 'output2', 'input');
+    this.createConnection(mainIMN.id,   mainPA.id,    'output',  'input');
+    this.createConnection(mainPA.id,    mainOMN.id,   'output',  'input');
+    this.createConnection(mainOMN.id,   mainInv.id,   'output',  'input');
+    this.createConnection(mainInv.id,   combiner.id,  'output',  'input1');
+    this.createConnection(auxOffset.id, auxIMN.id,    'output',  'input');
+    this.createConnection(auxIMN.id,    auxPA.id,     'output',  'input');
+    this.createConnection(auxPA.id,     auxOMN.id,    'output',  'input');
+    this.createConnection(auxOMN.id,    combiner.id,  'output',  'input2');
+    this.createConnection(combiner.id,  load.id,      'output',  'input');
 
     this._loadingTemplate = false;
     this.saveHistory();
-    console.log('Asymmetric Doherty created with connections');
+    console.log('Asymmetric Doherty created with Doherty combining elements');
   }
   
   createEnvelopeTrackingDoherty() {
     console.log('Creating Envelope Tracking Doherty preset...');
     this._loadingTemplate = true;
 
-    // ET Doherty: same as Single Driver but with dynamic DC supply nodes
-    // DC supply nodes sit one row above/below their respective PAs (rows 60 / 540)
-    const source   = this.addComponent('termination', 60,   300, { label: 'RF Source',   impedance: 50 });
-    const drvIMN   = this.addComponent('matching',    180,  300, { label: 'Driver IMN',  matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
-    const driver   = this.addComponent('transistor',  300,  300, { label: 'Driver',      technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
-    const drvOMN   = this.addComponent('matching',    420,  300, { label: 'Driver OMN',  matchType: 'Pi',          loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
-    const isMatch  = this.addComponent('matching',    540,  300, { label: 'Interstage',  matchType: 'Pi',          loss: 0.5, z_in: 50,           z_out: 50 });
-    const splitter = this.addComponent('splitter',    660,  300, { label: 'Splitter',    type: 'Wilkinson' });
-    const mainIMN  = this.addComponent('matching',    780,  180, { label: 'Main IMN',    matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
-    const mainPA   = this.addComponent('transistor',  900,  180, { label: 'Main PA',     technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 46, pout: 46, z_in: 'Z_in_m', z_out: 'Z_out_m', pa_group: 'Main PA' });
-    const mainDC   = this.addComponent('dc_supply',   900,   60, { label: 'VDD Main (ET)', vdd: 28, maxCurrent: 5 });
-    const auxIMN   = this.addComponent('matching',    780,  420, { label: 'Aux IMN',     matchType: 'TL-stub',     loss: 0.3, z_in: 50,           z_out: 'Z_in_a',   pa_role: 'imn' });
-    const auxPA    = this.addComponent('transistor',  900,  420, { label: 'Aux PA',      technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 43, pout: 43, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
-    const auxDC    = this.addComponent('dc_supply',   900,  540, { label: 'VDD Aux (ET)',  vdd: 28, maxCurrent: 3 });
-    const mainOMN  = this.addComponent('matching',    1020, 180, { label: 'Main OMN',    matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_m',    z_out: 25,         pa_role: 'omn' });
-    const auxOMN   = this.addComponent('matching',    1020, 420, { label: 'Aux OMN',     matchType: 'TL-stub',     loss: 0.2, z_in: 'Z_out_a',    z_out: 25,         pa_role: 'omn' });
-    const combiner = this.addComponent('combiner',    1140, 300, { label: 'Doherty',     type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
-    const load     = this.addComponent('termination', 1260, 300, { label: 'Load',        impedance: 50 });
+    // ET Doherty: standard Doherty combining principle + dynamic VDD supply nodes for Main and Aux PAs.
+    //   Main path: IMN → Main PA → OMN → [λ/4 inverter Z₀=35.35Ω] → combining node
+    //   Aux  path: [90° offset Z₀=50Ω] → IMN → Aux PA → OMN → combining node
+    const source    = this.addComponent('termination', 60,   300, { label: 'RF Source',    impedance: 50 });
+    const drvIMN    = this.addComponent('matching',    180,  300, { label: 'Driver IMN',   matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
+    const driver    = this.addComponent('transistor',  300,  300, { label: 'Driver',       technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
+    const drvOMN    = this.addComponent('matching',    420,  300, { label: 'Driver OMN',   matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
+    const isMatch   = this.addComponent('matching',    540,  300, { label: 'Interstage',   matchType: 'Pi',      loss: 0.5, z_in: 50,           z_out: 50 });
+    const splitter  = this.addComponent('splitter',    660,  300, { label: 'Splitter',     type: 'Wilkinson' });
+    // Main path (0° phase)
+    const mainIMN   = this.addComponent('matching',    780,  180, { label: 'Main IMN',     matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
+    const mainPA    = this.addComponent('transistor',  900,  180, { label: 'Main PA',      technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 46, pout: 46, z_in: 'Z_in_m', z_out: 'Z_out_m', pa_group: 'Main PA' });
+    const mainDC    = this.addComponent('dc_supply',   900,   60, { label: 'VDD Main (ET)', vdd: 28, maxCurrent: 5 });
+    const mainOMN   = this.addComponent('matching',    1020, 180, { label: 'Main OMN',     matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_m',    z_out: 'Z_inv',    pa_role: 'omn' });
+    const mainInv   = this.addComponent('offset_line', 1140, 180, { label: 'λ/4 Inv',      phase_shift_deg: 90,  impedance: 35.35, loss: 0.2,  offset_role: 'inverter' });
+    // Aux path (90° offset)
+    const auxOffset = this.addComponent('offset_line', 780,  420, { label: '90° Offset',   phase_shift_deg: 90,  impedance: 50,    loss: 0.2,  offset_role: 'phase' });
+    const auxIMN    = this.addComponent('matching',    900,  420, { label: 'Aux IMN',      matchType: 'TL-stub', loss: 0.3, z_in: 50,           z_out: 'Z_in_a',   pa_role: 'imn' });
+    const auxPA     = this.addComponent('transistor',  1020, 420, { label: 'Aux PA',       technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 43, pout: 43, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
+    const auxDC     = this.addComponent('dc_supply',   1020, 540, { label: 'VDD Aux (ET)',  vdd: 28, maxCurrent: 3 });
+    const auxOMN    = this.addComponent('matching',    1140, 420, { label: 'Aux OMN',      matchType: 'TL-stub', loss: 0.2, z_in: 'Z_out_a',    z_out: 50,         pa_role: 'omn' });
+    const combiner  = this.addComponent('combiner',    1260, 300, { label: 'Doherty',      type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
+    const load      = this.addComponent('termination', 1380, 300, { label: 'Load',         impedance: 50 });
+
+    this.createConnection(source.id,    drvIMN.id,    'output',  'input');
+    this.createConnection(drvIMN.id,    driver.id,    'output',  'input');
+    this.createConnection(driver.id,    drvOMN.id,    'output',  'input');
+    this.createConnection(drvOMN.id,    isMatch.id,   'output',  'input');
+    this.createConnection(isMatch.id,   splitter.id,  'output',  'input');
+    this.createConnection(splitter.id,  mainIMN.id,   'output1', 'input');
+    this.createConnection(splitter.id,  auxOffset.id, 'output2', 'input');
+    this.createConnection(mainIMN.id,   mainPA.id,    'output',  'input');
+    this.createConnection(mainPA.id,    mainOMN.id,   'output',  'input');
+    this.createConnection(mainOMN.id,   mainInv.id,   'output',  'input');
+    this.createConnection(mainInv.id,   combiner.id,  'output',  'input1');
+    this.createConnection(auxOffset.id, auxIMN.id,    'output',  'input');
+    this.createConnection(auxIMN.id,    auxPA.id,     'output',  'input');
+    this.createConnection(auxPA.id,     auxOMN.id,    'output',  'input');
+    this.createConnection(auxOMN.id,    combiner.id,  'output',  'input2');
+    this.createConnection(combiner.id,  load.id,      'output',  'input');
+    this.createConnection(mainDC.id,    mainPA.id,    'output',  'dc');
+    this.createConnection(auxDC.id,     auxPA.id,     'output',  'dc');
+
+    this._loadingTemplate = false;
+    this.saveHistory();
+    console.log('Envelope Tracking Doherty created with Doherty combining elements');
+  }
+  
+  create3WaySymmetricDoherty() {
+    console.log('Creating 3-Way Symmetric Doherty preset...');
+    this._loadingTemplate = true;
+
+    // 3-Way Symmetric Doherty: equal-size Main, Peak1, Peak2 devices.
+    // Doherty combining principle for 3-way:
+    //   Main  path: IMN → Main PA  → OMN → [λ/4 inverter Z₀=35.35Ω] → combining node
+    //   Peak1 path: [90° offset] → IMN → Peak1 PA → OMN → combining node
+    //   Peak2 path: [90° offset] → IMN → Peak2 PA → OMN → combining node
+    // Main at y=180, Peak1 at y=300, Peak2 at y=420 (driver at centre y=300)
+    const source    = this.addComponent('termination', 60,   300, { label: 'Source',          impedance: 50 });
+    const drvIMN    = this.addComponent('matching',    180,  300, { label: 'Driver IMN',       matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
+    const driver    = this.addComponent('transistor',  300,  300, { label: 'Driver',           technology: 'GaN', biasClass: 'A',  gain: 16, pout: 38, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
+    const drvOMN    = this.addComponent('matching',    420,  300, { label: 'Driver OMN',       matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
+    const isMatch   = this.addComponent('matching',    540,  300, { label: 'Interstage',       matchType: 'Pi',      loss: 0.4, z_in: 50,           z_out: 50 });
+    const splitter  = this.addComponent('splitter',    660,  300, { label: '3-Way Equal',      type: 'Corporate', portCount: 3 });
+    // Main path (0° phase, y=180)
+    const mainIMN   = this.addComponent('matching',    780,  180, { label: 'Main IMN',         matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
+    const mainPA    = this.addComponent('transistor',  900,  180, { label: 'Main PA',          technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 45, pout: 45, z_in: 'Z_in_m',  z_out: 'Z_out_m',  pa_group: 'Main PA' });
+    const mainOMN   = this.addComponent('matching',    1020, 180, { label: 'Main OMN',         matchType: 'Pi',      loss: 0.2, z_in: 'Z_out_m',    z_out: 'Z_inv',    pa_role: 'omn' });
+    const mainInv   = this.addComponent('offset_line', 1140, 180, { label: 'λ/4 Inv',          phase_shift_deg: 90,  impedance: 35.35, loss: 0.2,  offset_role: 'inverter' });
+    // Peak1 path (90° offset, y=300)
+    const pk1Off    = this.addComponent('offset_line', 780,  300, { label: '90° Offset',       phase_shift_deg: 90,  impedance: 50,    loss: 0.2,  offset_role: 'phase' });
+    const peak1IMN  = this.addComponent('matching',    900,  300, { label: 'Peak1 IMN',        matchType: 'TL-stub', loss: 0.3, z_in: 50,           z_out: 'Z_in_p1',  pa_role: 'imn' });
+    const peak1PA   = this.addComponent('transistor',  1020, 300, { label: 'Peak PA 1',        technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 45, pout: 45, z_in: 'Z_in_p1', z_out: 'Z_out_p1', pa_group: 'Peak PA 1' });
+    const peak1OMN  = this.addComponent('matching',    1140, 300, { label: 'Peak1 OMN',        matchType: 'TL-stub', loss: 0.2, z_in: 'Z_out_p1',   z_out: 50,         pa_role: 'omn' });
+    // Peak2 path (90° offset, y=420)
+    const pk2Off    = this.addComponent('offset_line', 780,  420, { label: '90° Offset',       phase_shift_deg: 90,  impedance: 50,    loss: 0.2,  offset_role: 'phase' });
+    const peak2IMN  = this.addComponent('matching',    900,  420, { label: 'Peak2 IMN',        matchType: 'TL-stub', loss: 0.3, z_in: 50,           z_out: 'Z_in_p2',  pa_role: 'imn' });
+    const peak2PA   = this.addComponent('transistor',  1020, 420, { label: 'Peak PA 2',        technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 45, pout: 45, z_in: 'Z_in_p2', z_out: 'Z_out_p2', pa_group: 'Peak PA 2' });
+    const peak2OMN  = this.addComponent('matching',    1140, 420, { label: 'Peak2 OMN',        matchType: 'TL-stub', loss: 0.2, z_in: 'Z_out_p2',   z_out: 50,         pa_role: 'omn' });
+    const combiner  = this.addComponent('combiner',    1260, 300, { label: '3-Way Doherty',    type: 'doherty', subtype: '3-Way', portCount: 3, ways: 3 });
+    const load      = this.addComponent('termination', 1380, 300, { label: 'Load',             impedance: 50 });
 
     this.createConnection(source.id,   drvIMN.id,   'output',  'input');
     this.createConnection(drvIMN.id,   driver.id,   'output',  'input');
@@ -2826,116 +3065,86 @@ class PALineupCanvas {
     this.createConnection(drvOMN.id,   isMatch.id,  'output',  'input');
     this.createConnection(isMatch.id,  splitter.id, 'output',  'input');
     this.createConnection(splitter.id, mainIMN.id,  'output1', 'input');
-    this.createConnection(splitter.id, auxIMN.id,   'output2', 'input');
+    this.createConnection(splitter.id, pk1Off.id,   'output2', 'input');
+    this.createConnection(splitter.id, pk2Off.id,   'output3', 'input');
     this.createConnection(mainIMN.id,  mainPA.id,   'output',  'input');
-    this.createConnection(auxIMN.id,   auxPA.id,    'output',  'input');
     this.createConnection(mainPA.id,   mainOMN.id,  'output',  'input');
-    this.createConnection(auxPA.id,    auxOMN.id,   'output',  'input');
-    this.createConnection(mainOMN.id,  combiner.id, 'output',  'input1');
-    this.createConnection(auxOMN.id,   combiner.id, 'output',  'input2');
+    this.createConnection(mainOMN.id,  mainInv.id,  'output',  'input');
+    this.createConnection(mainInv.id,  combiner.id, 'output',  'input1');
+    this.createConnection(pk1Off.id,   peak1IMN.id, 'output',  'input');
+    this.createConnection(peak1IMN.id, peak1PA.id,  'output',  'input');
+    this.createConnection(peak1PA.id,  peak1OMN.id, 'output',  'input');
+    this.createConnection(peak1OMN.id, combiner.id, 'output',  'input2');
+    this.createConnection(pk2Off.id,   peak2IMN.id, 'output',  'input');
+    this.createConnection(peak2IMN.id, peak2PA.id,  'output',  'input');
+    this.createConnection(peak2PA.id,  peak2OMN.id, 'output',  'input');
+    this.createConnection(peak2OMN.id, combiner.id, 'output',  'input3');
     this.createConnection(combiner.id, load.id,     'output',  'input');
-    this.createConnection(mainDC.id,   mainPA.id,   'output',  'dc');
-    this.createConnection(auxDC.id,    auxPA.id,    'output',  'dc');
 
     this._loadingTemplate = false;
     this.saveHistory();
-    console.log('Envelope Tracking Doherty created with connections');
-  }
-  
-  create3WaySymmetricDoherty() {
-    console.log('Creating 3-Way Symmetric Doherty preset...');
-    this._loadingTemplate = true;
-
-    // 3 rows: main=180, mid(peak1)=300, bot(peak2)=420
-    // Driver group at centre (y=300), 3-way splitter, then 3 PA groups
-    const source     = this.addComponent('termination', 60,   300, { label: 'Source',        impedance: 50 });
-    const drvIMN     = this.addComponent('matching',    180,  300, { label: 'Driver IMN',    matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
-    const driver     = this.addComponent('transistor',  300,  300, { label: 'Driver',        technology: 'GaN', biasClass: 'A',  gain: 16, pout: 38, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
-    const drvOMN     = this.addComponent('matching',    420,  300, { label: 'Driver OMN',    matchType: 'Pi',          loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
-    const isMatch    = this.addComponent('matching',    540,  300, { label: 'Interstage',    matchType: 'Pi',          loss: 0.4, z_in: 50,           z_out: 50 });
-    const splitter   = this.addComponent('splitter',    660,  300, { label: '3-Way Equal',   type: 'Corporate', portCount: 3 });
-    const mainIMN    = this.addComponent('matching',    780,  180, { label: 'Main IMN',      matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
-    const peak1IMN   = this.addComponent('matching',    780,  300, { label: 'Peak1 IMN',     matchType: 'TL-stub',     loss: 0.3, z_in: 50,           z_out: 'Z_in_p1',  pa_role: 'imn' });
-    const peak2IMN   = this.addComponent('matching',    780,  420, { label: 'Peak2 IMN',     matchType: 'TL-stub',     loss: 0.3, z_in: 50,           z_out: 'Z_in_p2',  pa_role: 'imn' });
-    const mainPA     = this.addComponent('transistor',  900,  180, { label: 'Main PA',       technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 45, pout: 45, z_in: 'Z_in_m',  z_out: 'Z_out_m',  pa_group: 'Main PA' });
-    const peak1PA    = this.addComponent('transistor',  900,  300, { label: 'Peak PA 1',     technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 45, pout: 45, z_in: 'Z_in_p1', z_out: 'Z_out_p1', pa_group: 'Peak PA 1' });
-    const peak2PA    = this.addComponent('transistor',  900,  420, { label: 'Peak PA 2',     technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 45, pout: 45, z_in: 'Z_in_p2', z_out: 'Z_out_p2', pa_group: 'Peak PA 2' });
-    const mainOMN    = this.addComponent('matching',    1020, 180, { label: 'Main OMN',      matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_m',    z_out: 25,         pa_role: 'omn' });
-    const peak1OMN   = this.addComponent('matching',    1020, 300, { label: 'Peak1 OMN',     matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_p1',   z_out: 25,         pa_role: 'omn' });
-    const peak2OMN   = this.addComponent('matching',    1020, 420, { label: 'Peak2 OMN',     matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_p2',   z_out: 25,         pa_role: 'omn' });
-    const combiner   = this.addComponent('combiner',    1140, 300, { label: '3-Way Doherty', type: 'doherty', subtype: '3-Way', portCount: 3, ways: 3 });
-    const load       = this.addComponent('termination', 1260, 300, { label: 'Load',          impedance: 50 });
-
-    this.createConnection(source.id,   drvIMN.id,    'output',  'input');
-    this.createConnection(drvIMN.id,   driver.id,    'output',  'input');
-    this.createConnection(driver.id,   drvOMN.id,    'output',  'input');
-    this.createConnection(drvOMN.id,   isMatch.id,   'output',  'input');
-    this.createConnection(isMatch.id,  splitter.id,  'output',  'input');
-    this.createConnection(splitter.id, mainIMN.id,   'output1', 'input');
-    this.createConnection(splitter.id, peak1IMN.id,  'output2', 'input');
-    this.createConnection(splitter.id, peak2IMN.id,  'output3', 'input');
-    this.createConnection(mainIMN.id,  mainPA.id,    'output',  'input');
-    this.createConnection(peak1IMN.id, peak1PA.id,   'output',  'input');
-    this.createConnection(peak2IMN.id, peak2PA.id,   'output',  'input');
-    this.createConnection(mainPA.id,   mainOMN.id,   'output',  'input');
-    this.createConnection(peak1PA.id,  peak1OMN.id,  'output',  'input');
-    this.createConnection(peak2PA.id,  peak2OMN.id,  'output',  'input');
-    this.createConnection(mainOMN.id,  combiner.id,  'output',  'input1');
-    this.createConnection(peak1OMN.id, combiner.id,  'output',  'input2');
-    this.createConnection(peak2OMN.id, combiner.id,  'output',  'input3');
-    this.createConnection(combiner.id, load.id,      'output',  'input');
-
-    this._loadingTemplate = false;
-    this.saveHistory();
-    console.log('3-Way Symmetric Doherty created with connections');
+    console.log('3-Way Symmetric Doherty created with Doherty combining elements');
   }
   
   create3WayAsymmetricDoherty() {
     console.log('Creating 3-Way Asymmetric Doherty preset...');
     this._loadingTemplate = true;
 
-    // Main PA = 50%, Peak PA 1 = 25%, Peak PA 2 = 25%
-    // 3 rows: main=180, peak1=300, peak2=420; Driver at centre y=300
-    const source     = this.addComponent('termination', 60,   300, { label: 'Source',             impedance: 50 });
-    const drvIMN     = this.addComponent('matching',    180,  300, { label: 'Driver IMN',         matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
-    const driver     = this.addComponent('transistor',  300,  300, { label: 'Driver',             technology: 'GaN', biasClass: 'A',  gain: 17, pout: 39, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
-    const drvOMN     = this.addComponent('matching',    420,  300, { label: 'Driver OMN',         matchType: 'Pi',          loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
-    const isMatch    = this.addComponent('matching',    540,  300, { label: 'Interstage',         matchType: 'Pi',          loss: 0.4, z_in: 50,           z_out: 50 });
-    const splitter   = this.addComponent('splitter',    660,  300, { label: '3-Way 2:1:1',        type: 'Asymmetric', portCount: 3 });
-    const mainIMN    = this.addComponent('matching',    780,  180, { label: 'Main IMN',           matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
-    const peak1IMN   = this.addComponent('matching',    780,  300, { label: 'Peak1 IMN',          matchType: 'TL-stub',     loss: 0.3, z_in: 50,           z_out: 'Z_in_p1',  pa_role: 'imn' });
-    const peak2IMN   = this.addComponent('matching',    780,  420, { label: 'Peak2 IMN',          matchType: 'TL-stub',     loss: 0.3, z_in: 50,           z_out: 'Z_in_p2',  pa_role: 'imn' });
-    const mainPA     = this.addComponent('transistor',  900,  180, { label: 'Main PA (50%)',      technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 48, pout: 48, z_in: 'Z_in_m',  z_out: 'Z_out_m',  pa_group: 'Main PA' });
-    const peak1PA    = this.addComponent('transistor',  900,  300, { label: 'Peak PA 1 (25%)',    technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 42, pout: 42, z_in: 'Z_in_p1', z_out: 'Z_out_p1', pa_group: 'Peak PA 1' });
-    const peak2PA    = this.addComponent('transistor',  900,  420, { label: 'Peak PA 2 (25%)',    technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 42, pout: 42, z_in: 'Z_in_p2', z_out: 'Z_out_p2', pa_group: 'Peak PA 2' });
-    const mainOMN    = this.addComponent('matching',    1020, 180, { label: 'Main OMN (25\u03a9)',  matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_m',    z_out: 25,         pa_role: 'omn' });
-    const peak1OMN   = this.addComponent('matching',    1020, 300, { label: 'Peak1 OMN (50\u03a9)', matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_p1',   z_out: 50,         pa_role: 'omn' });
-    const peak2OMN   = this.addComponent('matching',    1020, 420, { label: 'Peak2 OMN (50\u03a9)', matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_p2',   z_out: 50,         pa_role: 'omn' });
-    const combiner   = this.addComponent('combiner',    1140, 300, { label: '3-Way Asym 2:1:1',  type: 'doherty', subtype: '3-Way-Asymmetric', portCount: 3, ways: 3 });
-    const load       = this.addComponent('termination', 1260, 300, { label: 'Load',              impedance: 50 });
+    // 3-Way Asymmetric Doherty: Main 50%, Peak1 25%, Peak2 25%.
+    // Doherty combining principle for 3-way:
+    //   Main  path: IMN → Main PA  → OMN → [λ/4 inverter Z₀≈25Ω] → combining node
+    //   Peak1 path: [90° offset] → IMN → Peak1 PA → OMN → combining node
+    //   Peak2 path: [90° offset] → IMN → Peak2 PA → OMN → combining node
+    // Z₀ for Main inverter ≈ √(R_L × R_opt_main); with 50% device → R_opt~25Ω → Z₀≈√(50×12.5)≈25Ω
+    const source    = this.addComponent('termination', 60,   300, { label: 'Source',               impedance: 50 });
+    const drvIMN    = this.addComponent('matching',    180,  300, { label: 'Driver IMN',           matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
+    const driver    = this.addComponent('transistor',  300,  300, { label: 'Driver',               technology: 'GaN', biasClass: 'A',  gain: 17, pout: 39, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
+    const drvOMN    = this.addComponent('matching',    420,  300, { label: 'Driver OMN',           matchType: 'Pi',          loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
+    const isMatch   = this.addComponent('matching',    540,  300, { label: 'Interstage',           matchType: 'Pi',          loss: 0.4, z_in: 50,           z_out: 50 });
+    const splitter  = this.addComponent('splitter',    660,  300, { label: '3-Way 2:1:1',          type: 'Asymmetric', portCount: 3 });
+    // Main path (0° phase, y=180)
+    const mainIMN   = this.addComponent('matching',    780,  180, { label: 'Main IMN',             matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
+    const mainPA    = this.addComponent('transistor',  900,  180, { label: 'Main PA (50%)',        technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 48, pout: 48, z_in: 'Z_in_m',  z_out: 'Z_out_m',  pa_group: 'Main PA' });
+    const mainOMN   = this.addComponent('matching',    1020, 180, { label: 'Main OMN',             matchType: 'Pi',          loss: 0.2, z_in: 'Z_out_m',    z_out: 'Z_inv',    pa_role: 'omn' });
+    const mainInv   = this.addComponent('offset_line', 1140, 180, { label: 'λ/4 Inv',              phase_shift_deg: 90,      impedance: 25,    loss: 0.2,  offset_role: 'inverter' });
+    // Peak1 path (90° offset, y=300)
+    const pk1Off    = this.addComponent('offset_line', 780,  300, { label: '90° Offset',           phase_shift_deg: 90,      impedance: 50,    loss: 0.2,  offset_role: 'phase' });
+    const peak1IMN  = this.addComponent('matching',    900,  300, { label: 'Peak1 IMN',            matchType: 'TL-stub',     loss: 0.3, z_in: 50,           z_out: 'Z_in_p1',  pa_role: 'imn' });
+    const peak1PA   = this.addComponent('transistor',  1020, 300, { label: 'Peak PA 1 (25%)',      technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 42, pout: 42, z_in: 'Z_in_p1', z_out: 'Z_out_p1', pa_group: 'Peak PA 1' });
+    const peak1OMN  = this.addComponent('matching',    1140, 300, { label: 'Peak1 OMN',            matchType: 'TL-stub',     loss: 0.2, z_in: 'Z_out_p1',   z_out: 50,         pa_role: 'omn' });
+    // Peak2 path (90° offset, y=420)
+    const pk2Off    = this.addComponent('offset_line', 780,  420, { label: '90° Offset',           phase_shift_deg: 90,      impedance: 50,    loss: 0.2,  offset_role: 'phase' });
+    const peak2IMN  = this.addComponent('matching',    900,  420, { label: 'Peak2 IMN',            matchType: 'TL-stub',     loss: 0.3, z_in: 50,           z_out: 'Z_in_p2',  pa_role: 'imn' });
+    const peak2PA   = this.addComponent('transistor',  1020, 420, { label: 'Peak PA 2 (25%)',      technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 42, pout: 42, z_in: 'Z_in_p2', z_out: 'Z_out_p2', pa_group: 'Peak PA 2' });
+    const peak2OMN  = this.addComponent('matching',    1140, 420, { label: 'Peak2 OMN',            matchType: 'TL-stub',     loss: 0.2, z_in: 'Z_out_p2',   z_out: 50,         pa_role: 'omn' });
+    const combiner  = this.addComponent('combiner',    1260, 300, { label: '3-Way Asym 2:1:1',    type: 'doherty', subtype: '3-Way-Asymmetric', portCount: 3, ways: 3 });
+    const load      = this.addComponent('termination', 1380, 300, { label: 'Load',                impedance: 50 });
 
-    this.createConnection(source.id,   drvIMN.id,    'output',  'input');
-    this.createConnection(drvIMN.id,   driver.id,    'output',  'input');
-    this.createConnection(driver.id,   drvOMN.id,    'output',  'input');
-    this.createConnection(drvOMN.id,   isMatch.id,   'output',  'input');
-    this.createConnection(isMatch.id,  splitter.id,  'output',  'input');
-    this.createConnection(splitter.id, mainIMN.id,   'output1', 'input');
-    this.createConnection(splitter.id, peak1IMN.id,  'output2', 'input');
-    this.createConnection(splitter.id, peak2IMN.id,  'output3', 'input');
-    this.createConnection(mainIMN.id,  mainPA.id,    'output',  'input');
-    this.createConnection(peak1IMN.id, peak1PA.id,   'output',  'input');
-    this.createConnection(peak2IMN.id, peak2PA.id,   'output',  'input');
-    this.createConnection(mainPA.id,   mainOMN.id,   'output',  'input');
-    this.createConnection(peak1PA.id,  peak1OMN.id,  'output',  'input');
-    this.createConnection(peak2PA.id,  peak2OMN.id,  'output',  'input');
-    this.createConnection(mainOMN.id,  combiner.id,  'output',  'input1');
-    this.createConnection(peak1OMN.id, combiner.id,  'output',  'input2');
-    this.createConnection(peak2OMN.id, combiner.id,  'output',  'input3');
-    this.createConnection(combiner.id, load.id,      'output',  'input');
+    this.createConnection(source.id,   drvIMN.id,   'output',  'input');
+    this.createConnection(drvIMN.id,   driver.id,   'output',  'input');
+    this.createConnection(driver.id,   drvOMN.id,   'output',  'input');
+    this.createConnection(drvOMN.id,   isMatch.id,  'output',  'input');
+    this.createConnection(isMatch.id,  splitter.id, 'output',  'input');
+    this.createConnection(splitter.id, mainIMN.id,  'output1', 'input');
+    this.createConnection(splitter.id, pk1Off.id,   'output2', 'input');
+    this.createConnection(splitter.id, pk2Off.id,   'output3', 'input');
+    this.createConnection(mainIMN.id,  mainPA.id,   'output',  'input');
+    this.createConnection(mainPA.id,   mainOMN.id,  'output',  'input');
+    this.createConnection(mainOMN.id,  mainInv.id,  'output',  'input');
+    this.createConnection(mainInv.id,  combiner.id, 'output',  'input1');
+    this.createConnection(pk1Off.id,   peak1IMN.id, 'output',  'input');
+    this.createConnection(peak1IMN.id, peak1PA.id,  'output',  'input');
+    this.createConnection(peak1PA.id,  peak1OMN.id, 'output',  'input');
+    this.createConnection(peak1OMN.id, combiner.id, 'output',  'input2');
+    this.createConnection(pk2Off.id,   peak2IMN.id, 'output',  'input');
+    this.createConnection(peak2IMN.id, peak2PA.id,  'output',  'input');
+    this.createConnection(peak2PA.id,  peak2OMN.id, 'output',  'input');
+    this.createConnection(peak2OMN.id, combiner.id, 'output',  'input3');
+    this.createConnection(combiner.id, load.id,     'output',  'input');
 
     this._loadingTemplate = false;
     this.saveHistory();
-    console.log('3-Way Asymmetric Doherty created with connections');
+    console.log('3-Way Asymmetric Doherty created with Doherty combining elements');
   }
   
   // Zoom control methods
@@ -6325,6 +6534,7 @@ function createSharedPalette() {
     { type: 'splitter', icon: 'Y', label: 'Splitter', color: '#ffaa00', useIcon: false },
     { type: 'combiner', icon: 'Ψ', label: 'Combiner', color: '#ff00aa', useIcon: false },
     { type: 'termination', icon: '⏚', label: 'Termination', color: '#888888', useIcon: true },
+    { type: 'offset_line', icon: 'λ/4', label: 'λ/4 Line', color: '#00ddff', useIcon: true },
     { type: 'wire', icon: '━', label: 'Wire Mode', color: '#ff7f11', isAction: true, useIcon: true }
   ];
   

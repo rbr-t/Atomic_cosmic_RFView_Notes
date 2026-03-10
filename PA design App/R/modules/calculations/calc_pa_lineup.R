@@ -430,6 +430,40 @@ lineup_calculate_engine <- function(components,
       # Combining adds 10*log10(n_inputs) in signal power but we track net change
       total_gain    <- total_gain + 10 * log10(n_inputs) - loss_db
 
+    } else if (comp_type == "offset_line") {
+      # λ/4 transmission line — contributes insertion loss and 90° phase shift
+      loss_db     <- as.numeric(safeProp(props, "loss",           0.2))
+      phase_deg   <- as.numeric(safeProp(props, "phase_shift_deg", 90))
+      imp_ohm     <- as.numeric(safeProp(props, "impedance",       50))
+      role        <- safeProp(props, "offset_role", "phase")
+      pout_dbm    <- current_pin    - loss_db
+      pout_bo_dbm <- current_pin_bo - loss_db
+      stage_name  <- safeProp(props, "label", "λ/4 Line")
+      rationale <- c(rationale,
+        sprintf("  %s (%s): Z\u2080=%.1f\u03a9, loss=%.2f dB, \u03c6=%d\u00b0",
+                stage_name, role, imp_ohm, loss_db, as.integer(phase_deg)),
+        sprintf("    Pout=%.2f dBm (full) | %.2f dBm (backoff)", pout_dbm, pout_bo_dbm))
+      stage_results[[length(stage_results) + 1]] <- list(
+        stage        = stage_name,
+        type         = "offset_line",
+        id           = cid,
+        pin_dbm      = current_pin,
+        pout_dbm     = pout_dbm,
+        phase_shift_deg = phase_deg,
+        impedance    = imp_ohm,
+        offset_role  = role,
+        loss_db      = loss_db,
+        gain_full_db = -loss_db,
+        gain_bo_db   = -loss_db,
+        pin_bo_dbm   = current_pin_bo,
+        pout_bo_dbm  = pout_bo_dbm
+      )
+      pout_map[[cid]]    <- pout_dbm
+      pout_bo_map[[cid]] <- pout_bo_dbm
+      linear_pin    <- pout_dbm
+      linear_pin_bo <- pout_bo_dbm
+      total_gain    <- total_gain - loss_db
+
     } else {
       # Unknown component type — pass through
       pout_map[[cid]]    <- current_pin
