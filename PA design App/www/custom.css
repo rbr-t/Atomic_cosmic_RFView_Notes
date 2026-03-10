@@ -959,15 +959,16 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
   padding: 12px 15px 10px;
 }
 
-/* Two-column layout for top sidebar */
+/* Two-column layout for top sidebar — wraps on narrow screens */
 .top-sidebar-two-col {
   display: flex;
+  flex-wrap: wrap;          /* columns stack when width is tight */
   gap: 0;
   align-items: flex-start;
 }
 .top-sidebar-col {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 220px;          /* shrinks but wraps below ~220 px */
+  min-width: 180px;
   padding: 0 15px;
   border-right: 1px solid rgba(255,255,255,0.08);
 }
@@ -998,8 +999,8 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 }
 .top-sidebar-templates {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px; padding-right: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px; padding-right: 10px;
 }
 .top-sidebar-templates .preset-template {
   padding: 12px 15px;

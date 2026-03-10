@@ -27,6 +27,10 @@ serverGuardrails <- function(input, output, session, state) {
     Filter(Negate(is.null), devices)
   }
 
+  # ── Reactive triggers for device library operations ─────────
+  rv_lib_refresh <- reactiveVal(0)   # bumped on save, delete, edit
+  rv_edit_id     <- reactiveVal(NULL) # stores id of device being edited
+
   # ── On startup: push saved devices to canvas ─────────────────
   observe({
     devices <- loadDevicePortfolio("device_portfolio")
@@ -35,9 +39,9 @@ serverGuardrails <- function(input, output, session, state) {
     }
   })
 
-  # ── Reactive: all saved devices (re-fetched on save) ────────────
+  # ── Reactive: all saved devices (re-fetched on save/delete/edit) ─
   all_lib_devices <- reactive({
-    input$grd_save_device  # invalidate after a save
+    input$grd_save_device; rv_lib_refresh()  # invalidate on save OR refresh
     loadDevicePortfolio("device_portfolio")
   })
 
@@ -751,9 +755,9 @@ serverGuardrails <- function(input, output, session, state) {
                      type = "message", duration = 4)
   })
 
-  # Render list of saved devices (refreshes when save button is clicked)
+  # Render list of saved devices (refreshes on save, delete, or edit)
   output$grd_saved_devices_list <- renderUI({
-    input$grd_save_device  # reactive dependency
+    input$grd_save_device; rv_lib_refresh()  # dual reactive dependency
     devices <- loadDevicePortfolio("device_portfolio")
     if (length(devices) == 0) {
       return(div(style = "color:var(--tx-med); font-size:12px; padding:6px;",
@@ -763,17 +767,108 @@ serverGuardrails <- function(input, output, session, state) {
     tags$ul(
       style = "padding-left:0; list-style:none; margin:0;",
       lapply(devices, function(d) {
-        sc <- status_colors[[d$validation_status %||% "ok"]] %||% "#888"
+        sc     <- status_colors[[d$validation_status %||% "ok"]] %||% "#888"
+        dev_id <- d$id %||% ""
+        safe_label <- gsub("'", "\\\\'", d$label %||% "device")
         tags$li(
           style = paste0("padding:5px 6px; margin-bottom:4px; background:var(--s-raised);",
                          " border-radius:3px; border-left:3px solid ", sc, ";"),
-          div(style = "color:var(--tx-hi); font-size:12px; font-weight:bold;", d$label),
-          div(style = "color:var(--tx-med); font-size:11px;",
-              d$tech_label, " · ", d$freq_ghz, " GHz · G=", d$gain_db,
-              " dB · PAE=", d$pae_pct, "% · Pout=", d$pout_dbm, " dBm")
+          div(style = "display:flex; align-items:center; justify-content:space-between; gap:6px;",
+            div(style = "min-width:0; flex:1;",
+              div(style = "color:var(--tx-hi); font-size:12px; font-weight:bold;
+                           white-space:nowrap; overflow:hidden; text-overflow:ellipsis;",
+                  d$label),
+              div(style = "color:var(--tx-med); font-size:11px;",
+                  d$tech_label, " · ", d$freq_ghz, " GHz · G=", d$gain_db,
+                  " dB · PAE=", d$pae_pct, "% · Pout=", d$pout_dbm, " dBm")
+            ),
+            div(style = "display:flex; gap:3px; flex-shrink:0;",
+              tags$button(
+                class = "btn btn-xs btn-default",
+                style = "padding:2px 5px; color:var(--tx-med);",
+                title = "Edit label / notes",
+                onclick = paste0(
+                  "Shiny.setInputValue('grd_edit_device','", dev_id,
+                  "',{priority:'event'})"),
+                HTML('<i class="fa fa-pencil"></i>')
+              ),
+              tags$button(
+                class = "btn btn-xs btn-danger",
+                style = "padding:2px 5px;",
+                title = "Delete device",
+                onclick = paste0(
+                  "if(confirm('Delete \\u2018", safe_label,
+                  "\\u2019 from the device library?')){",
+                  "Shiny.setInputValue('grd_delete_device','", dev_id,
+                  "',{priority:'event'});}"),
+                HTML('<i class="fa fa-trash"></i>')
+              )
+            )
+          )
         )
       })
     )
+  })
+
+  # ── Delete device ────────────────────────────────────────────────
+  observeEvent(input$grd_delete_device, {
+    req(input$grd_delete_device)
+    dev_id <- input$grd_delete_device
+    fpath  <- file.path("device_portfolio", paste0(dev_id, ".json"))
+    if (file.exists(fpath)) {
+      file.remove(fpath)
+      updated <- loadDevicePortfolio("device_portfolio")
+      session$sendCustomMessage("updateDevicePortfolio", updated)
+      rv_lib_refresh(rv_lib_refresh() + 1L)
+      showNotification("Device removed from library.", type = "warning", duration = 3)
+    }
+  })
+
+  # ── Open edit modal ──────────────────────────────────────────────
+  observeEvent(input$grd_edit_device, {
+    req(input$grd_edit_device)
+    dev_id <- input$grd_edit_device
+    fpath  <- file.path("device_portfolio", paste0(dev_id, ".json"))
+    if (!file.exists(fpath)) {
+      showNotification("Device file not found.", type = "error"); return()
+    }
+    d <- jsonlite::read_json(fpath, simplifyVector = FALSE)
+    rv_edit_id(dev_id)
+    showModal(modalDialog(
+      title = tagList(icon("pencil"), " Edit Device"),
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("grd_edit_device_save", "Save Changes",
+                     class = "btn-success", icon = icon("save"))
+      ),
+      textInput("grd_edit_device_label", "Device Label",
+                value = d$label %||% "",
+                placeholder = "e.g. GaN_3p5G_43dBm"),
+      textInput("grd_edit_device_notes", "Notes (optional)",
+                value = d$notes %||% "",
+                placeholder = "e.g. 3.5 GHz driver stage")
+    ))
+  })
+
+  # ── Save edits from modal ────────────────────────────────────────
+  observeEvent(input$grd_edit_device_save, {
+    dev_id <- rv_edit_id()
+    req(dev_id, nchar(trimws(input$grd_edit_device_label %||% "")) > 0)
+    fpath <- file.path("device_portfolio", paste0(dev_id, ".json"))
+    if (!file.exists(fpath)) {
+      showNotification("Device file not found.", type = "error"); return()
+    }
+    d       <- jsonlite::read_json(fpath, simplifyVector = FALSE)
+    d$label <- trimws(input$grd_edit_device_label)
+    d$notes <- trimws(input$grd_edit_device_notes %||% "")
+    jsonlite::write_json(d, fpath, auto_unbox = TRUE, pretty = TRUE)
+    removeModal()
+    rv_edit_id(NULL)
+    updated <- loadDevicePortfolio("device_portfolio")
+    session$sendCustomMessage("updateDevicePortfolio", updated)
+    rv_lib_refresh(rv_lib_refresh() + 1L)
+    showNotification(paste0("'", d$label, "' updated."), type = "message", duration = 3)
   })
 
 }
