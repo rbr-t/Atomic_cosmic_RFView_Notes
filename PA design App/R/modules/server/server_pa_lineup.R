@@ -506,6 +506,44 @@ serverPaLineup <- function(input, output, session, state) {
             class = "btn-primary btn-block",
             onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
         )
+      } else if (comp_type == "offset_line") {
+        tagList(
+          h4(paste0("\u03bb/4 Line: ", getProp("label", "\u03bb/4 Line"))),
+          textInput(paste0("prop_", selected, "_label"), "Label",
+            value = getProp("label", "\u03bb/4 Line")),
+          selectInput(paste0("prop_", selected, "_offset_role"), "Role",
+            choices = c(
+              "Phase Offset (Input)" = "phase",
+              "Impedance Inverter (Output)" = "inverter",
+              "Transformer" = "transformer"
+            ),
+            selected = getProp("offset_role", "phase")),
+          numericInput(paste0("prop_", selected, "_phase_shift_deg"), "Phase Shift (\u00b0)",
+            value = as.numeric(getProp("phase_shift_deg", 90)),
+            min = 0, max = 360, step = 1),
+          numericInput(paste0("prop_", selected, "_impedance"), "Z\u2080 (\u03a9)",
+            value = as.numeric(getProp("impedance", 50)),
+            min = 1, step = 0.5),
+          numericInput(paste0("prop_", selected, "_loss"), "Insertion Loss (dB)",
+            value = as.numeric(getProp("loss", 0.2)),
+            min = 0, step = 0.05),
+          hr(),
+          h5("Display on Canvas"),
+          checkboxGroupInput(paste0("prop_", selected, "_display"), label = NULL,
+            choices = c(
+              "Label" = "label",
+              "Phase (\u00b0)" = "phase",
+              "Loss (dB)" = "loss",
+              "Z\u2080 (\u03a9)" = "impedance"
+            ),
+            selected = c("label", "phase"),
+            inline = FALSE
+          ),
+          hr(),
+          actionButton(paste0("apply_props_", selected), "Apply Changes",
+            class = "btn-primary btn-block",
+            onclick = paste0("console.log('Apply button clicked: apply_props_", selected, "');"))
+        )
       } else {
         tagList(
           h4("Unknown Component Type"),
@@ -933,6 +971,13 @@ serverPaLineup <- function(input, output, session, state) {
         properties$impedance <- input[[paste0("prop_", selected, "_impedance")]]
         properties$type      <- input[[paste0("prop_", selected, "_type")]]
         properties$display   <- input[[paste0("prop_", selected, "_display")]]
+      } else if (comp_type == "offset_line") {
+        properties$label          <- input[[paste0("prop_", selected, "_label")]]
+        properties$offset_role    <- input[[paste0("prop_", selected, "_offset_role")]]
+        properties$phase_shift_deg <- input[[paste0("prop_", selected, "_phase_shift_deg")]]
+        properties$impedance      <- input[[paste0("prop_", selected, "_impedance")]]
+        properties$loss           <- input[[paste0("prop_", selected, "_loss")]]
+        properties$display        <- input[[paste0("prop_", selected, "_display")]]
       }
 
       cat(sprintf("[Property Observer] Sending %d properties to JS\n", length(properties)))
@@ -1662,6 +1707,62 @@ serverPaLineup <- function(input, output, session, state) {
               make_pae_rows(res)
             )
           } else tags$em("Run Calculate to see per-stage results.", style="color:#888;")
+        ),
+
+        # ── Tab 4: Phase Analysis ──────────────────────────────────────────
+        tabPanel(title = tagList(icon("wave-square"), " Phase"),
+          br(),
+          wellPanel(
+            h5(icon("calculator"), " Phase Shift Formulas", style="color:#455a64;"),
+            HTML("
+              <p><b>\u03bb/4 Transmission Line:</b> introduces exactly 90\u00b0 electrical phase shift at the design frequency.</p>
+              <p><b>Impedance Inverter:</b> Z<sub>0</sub> = &radic;(Z<sub>in</sub> &times; Z<sub>out</sub>), phase = 90\u00b0</p>
+              <p><b>Doherty combiner path:</b> Main path sees 90\u00b0 inverter; Aux path sees 90\u00b0 offset line &rarr; signals arrive in-phase at combiner.</p>
+              <p style='color:#888; font-size:11px;'>Other component types (transistors, matching networks, splitters, combiners) are assigned 0\u00b0 in this simplified model.</p>
+            ")
+          ),
+          if (!is.null(res) && res$success && !is.null(res$phase_results) && length(res$phase_results) > 0) {
+            has_phase <- any(sapply(res$phase_results, function(p) p$phase_contrib != 0))
+            phase_rows <- lapply(res$phase_results, function(p) {
+              is_active <- !is.null(p$phase_contrib) && p$phase_contrib != 0
+              tags$tr(
+                style = if (is_active) "background-color:#e8f5e9; font-weight:bold;" else "",
+                tags$td(p$stage %||% "", style="padding:3px 6px;"),
+                tags$td(tools::toTitleCase(gsub("_"," ", p$type %||% "")), style="padding:3px 6px;"),
+                tags$td(
+                  if (is_active)
+                    tags$span(sprintf("+%.0f\u00b0", p$phase_contrib), style="color:#2e7d32;")
+                  else tags$span("0\u00b0", style="color:#aaa;"),
+                  style="text-align:right;padding:3px 6px;"
+                ),
+                tags$td(sprintf("%.0f\u00b0", p$cumulative_phase %||% 0),
+                        style="text-align:right; font-weight:bold; padding:3px 6px;"),
+                tags$td(p$notes %||% "", style="padding:3px 6px; font-size:11px; color:#555;")
+              )
+            })
+            total_contrib <- sum(sapply(res$phase_results, function(p) p$phase_contrib %||% 0))
+            last_cum      <- if (length(res$phase_results) > 0)
+                                res$phase_results[[length(res$phase_results)]]$cumulative_phase %||% 0
+                              else 0
+            tagList(
+              if (!has_phase) div(class="alert alert-info",
+                "\u2139 No \u03bb/4 offset lines in this lineup \u2014 all phase contributions are 0\u00b0."),
+              tags$table(style="width:100%; border-collapse:collapse; font-size:12px;",
+                tags$thead(tags$tr(
+                  lapply(c("Stage","Type","Phase Contrib.","Cumulative Phase","Notes"),
+                         function(h) tags$th(h, style="text-align:left; border-bottom:1px solid #ccc; padding:3px 6px;"))
+                )),
+                tags$tbody(phase_rows),
+                tags$tfoot(tags$tr(style="background:#eceff1; font-weight:bold;",
+                  tags$td("TOTAL", style="padding:3px 6px;"),
+                  tags$td("\u2014", style="padding:3px 6px;"),
+                  tags$td(sprintf("%.0f\u00b0", total_contrib), style="text-align:right;padding:3px 6px;"),
+                  tags$td(sprintf("%.0f\u00b0", last_cum),      style="text-align:right;padding:3px 6px;"),
+                  tags$td("\u03a3 phase from \u03bb/4 lines", style="padding:3px 6px; font-size:11px;")
+                ))
+              )
+            )
+          } else tags$em("Run Calculate to see per-stage phase data.", style="color:#888;")
         )
       )
     }

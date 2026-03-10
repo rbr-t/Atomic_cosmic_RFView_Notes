@@ -138,6 +138,8 @@ lineup_calculate_engine <- function(components,
   total_pdc    <- 0
   total_pdc_bo <- 0
   stage_results <- list()
+  phase_results <- list()
+  cumulative_phase <- 0
   warnings      <- c()
 
   # Track last computed stage output for x-sort linear mode
@@ -470,6 +472,23 @@ lineup_calculate_engine <- function(components,
       pout_bo_map[[cid]] <- current_pin_bo
     }
 
+    # Universal phase tracking: offset_lines contribute their phase, others contribute 0
+    phase_contrib    <- if (comp_type == "offset_line")
+                          as.numeric(safeProp(props, "phase_shift_deg", 90))
+                        else 0
+    cumulative_phase <- cumulative_phase + phase_contrib
+    phase_results[[length(phase_results) + 1]] <- list(
+      stage            = stage_name,
+      type             = comp_type,
+      phase_contrib    = phase_contrib,
+      cumulative_phase = cumulative_phase,
+      notes            = if (comp_type == "offset_line")
+                           paste0(safeProp(props, "offset_role", "phase"),
+                                  " \u03bb/4 (Z\u2080=",
+                                  safeProp(props, "impedance", 50), "\u03a9)")
+                         else ""
+    )
+
     rationale <- c(rationale, "")
   }
 
@@ -550,6 +569,7 @@ lineup_calculate_engine <- function(components,
     system_de_bo      = system_de_bo,
     total_pdiss_bo    = total_pdc_bo - final_pout_bo_w,
     stage_results     = stage_results,
+    phase_results     = phase_results,
     warnings          = warnings,
     rationale         = paste(rationale, collapse = "\n")
   )

@@ -1172,7 +1172,7 @@ $(document).ready(function() {
               
               fluidRow(
                 # Left: Interactive Canvas
-                column(8,
+                column(9,
                   box(
                     title = tagList(
                       icon("paint-brush"), 
@@ -1548,7 +1548,7 @@ $(document).ready(function() {
                 ),
                 
                 # Right: Component Properties & Results
-                column(4, id = "right-panel-col",
+                column(3, id = "right-panel-col",
                   # Line-up Specifications Box — tabset matrix layout
                   box(
                     title = tagList(icon("clipboard-list"), "Line-up Specifications"),
@@ -1943,13 +1943,6 @@ $(document).ready(function() {
                   tabPanel(
                     title = tagList(icon("table"), "Table View"),
                     uiOutput("pa_lineup_tables_dynamic")
-                  ),
-                  
-                  # Phase Analysis
-                  tabPanel(
-                    title = tagList(icon("wave-square"), "Phase Analysis"),
-                    br(),
-                    uiOutput("pa_lineup_phase")
                   ),
                   
                   # Equations View
