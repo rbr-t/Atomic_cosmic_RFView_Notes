@@ -170,6 +170,16 @@ code            { font-family: var(--font-mono); font-size: 0.9em;
 .skin-black .main-sidebar {
   background-color: var(--s-nav) !important;
   border-right: 1px solid var(--bdr-sub) !important;
+  width: 218px !important;   /* 5% narrower than AdminLTE default 230 px */
+}
+
+/* Compensate content wrapper for narrower sidebar */
+.content-wrapper,
+.main-footer {
+  margin-left: 218px !important;
+}
+.skin-black .main-header .navbar {
+  margin-left: 218px !important;
 }
 
 /* All sidebar links */
@@ -213,8 +223,8 @@ code            { font-family: var(--font-mono); font-size: 0.9em;
   background: rgba(0, 0, 0, 0.25) !important;
 }
 .skin-black .treeview-menu > li > a {
-  padding-left: 30px !important;
-  font-size: 13px;
+  padding-left: 24px !important;
+  font-size: 12px !important;
 }
 
 /* — Content wrapper -------------------------------------------- */
@@ -684,13 +694,15 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 #sticky_canvas_box {
   position: -webkit-sticky !important;
   position:  sticky !important;
-  top:  0 !important;
+  top:  50px !important;   /* stick below the 50 px AdminLTE navbar */
   z-index: 900 !important;
   background: var(--s-card);
   transition: box-shadow 0.3s;
   margin-bottom: 20px;
   display: block;
   width: 100%;
+  max-height: calc(100vh - 55px);
+  overflow-y: auto;
 }
 #sticky_canvas_box.stuck {
   box-shadow: 0 4px 20px var(--accent-glow);
@@ -698,6 +710,29 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 }
 @supports not (position: sticky) {
   #sticky_canvas_box { position: relative; }
+}
+
+
+/* ================================================================
+   12b. LAYOUT — PA LINEUP COLUMN WIDTHS
+   ================================================================ */
+
+/* Canvas column (col-sm-9): reduce left padding so the canvas
+   hugs the left edge more → effectively extends ~10 px left.      */
+#canvas-col {
+  padding-left: 5px !important;
+}
+
+/* Right panel (col-sm-3): reduce left padding (shrinks the gap
+   between canvas and right panel) and widen the usable area by
+   increasing the column to ~27 %.                               */
+#right-panel-col {
+  padding-left: 6px !important;
+  width: 27% !important;
+}
+/* Compensate the canvas column width so both columns stay ≤ 100 % */
+#canvas-col {
+  width: 73% !important;
 }
 
 
@@ -773,6 +808,42 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 /* Canvas container */
 #pa_lineup_canvas_container { position: relative; min-height: 650px; }
 .component-palette { z-index: 1100 !important; pointer-events: auto; }
+
+
+/* ================================================================
+   13c. RIGHT SIDEBAR — ELEMENT FIT & OVERFLOW
+   ================================================================ */
+/* Prevent any control inside the right panel from spilling outside */
+#right-panel-col .box { overflow: hidden; }
+
+#right-panel-col input[type="number"],
+#right-panel-col input[type="text"],
+#right-panel-col select,
+#right-panel-col .selectize-control,
+#right-panel-col .form-control {
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Labels in right panel: wrap instead of overflow */
+#right-panel-col label,
+#right-panel-col .control-label {
+  white-space: normal !important;
+  word-break: break-word;
+  font-size: 12px;
+}
+
+/* Numeric inputs next to buttons: use flex so they don't overflow */
+#right-panel-col .input-group {
+  display: flex !important;
+  flex-wrap: nowrap;
+  max-width: 100%;
+}
+#right-panel-col .input-group .form-control {
+  flex: 1 1 0%;
+  min-width: 0;
+}
 
 
 /* ================================================================

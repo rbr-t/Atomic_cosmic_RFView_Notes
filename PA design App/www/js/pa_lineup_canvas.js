@@ -500,6 +500,7 @@ class PALineupCanvas {
       { type: 'splitter', icon: 'Y', label: 'Splitter', color: '#ffaa00', useIcon: false },
       { type: 'combiner', icon: 'Ψ', label: 'Combiner', color: '#ff00aa', useIcon: false },
       { type: 'termination', icon: '⏚', label: 'Termination', color: '#888888', useIcon: true },
+      { type: 'offset_line', icon: 'λ/4', label: 'λ/4 Line', color: '#00ddff', useIcon: true },
       { type: 'wire', icon: '━', label: 'Wire Mode', color: '#ff7f11', isAction: true, useIcon: true }
     ];
     

@@ -1316,7 +1316,13 @@ serverPaLineup <- function(input, output, session, state) {
     # Do not render a placeholder — wait until real results exist.
     # This prevents a 1-column "No data" DataTable being initialised first
     # and then failing to update when 16-column data arrives.
-    req(results)
+    if(is.null(results)) {
+      return(datatable(
+        data.frame(Message = "Add components and click Calculate to see results."),
+        options = list(dom = 't', pageLength = 5),
+        rownames = FALSE
+      ))
+    }
     
     if(!results$success || length(results$stage_results) == 0) {
       msg <- if (!isTRUE(results$success))
@@ -1528,8 +1534,19 @@ serverPaLineup <- function(input, output, session, state) {
     layout <- input$canvas_layout
     
     if(is.null(layout) || layout == "1x1") {
-      # Single canvas mode - show single table
-      return(DTOutput("pa_lineup_table"))
+      # Single canvas mode - show single table.
+      # Include a rebind script so DataTables initialises correctly
+      # when this uiOutput is (re-)created after a layout switch.
+      return(tagList(
+        DTOutput("pa_lineup_table"),
+        tags$script(HTML(
+          "setTimeout(function(){",
+          "  if(typeof Shiny !== 'undefined'){",
+          "    Shiny.bindAll(document.getElementById('pa_lineup_tables_dynamic'));",
+          "  }",
+          "}, 150);"
+        ))
+      ))
     }
     
     # Multi-canvas mode - create tabs

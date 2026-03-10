@@ -1172,7 +1172,7 @@ $(document).ready(function() {
               
               fluidRow(
                 # Left: Interactive Canvas
-                column(9,
+                column(9, id = "canvas-col",
                   box(
                     title = tagList(
                       icon("paint-brush"), 
