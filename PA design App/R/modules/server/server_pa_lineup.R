@@ -688,9 +688,18 @@ serverPaLineup <- function(input, output, session, state) {
     # Give JavaScript time to send the data
     Sys.sleep(0.5)
     
-    # Get backoff value from input (with fallback)
-    backoff_value <- if(!is.null(input$backoff_db)) input$backoff_db else 6
-    input_power <- 0  # Default 0 dBm
+    # Use spec-based input power — same calculation as single-canvas Calculate
+    backoff_value <- if (!is.null(input$spec_par))       input$spec_par
+                     else if (!is.null(input$backoff_db)) input$backoff_db
+                     else 6
+    if (!is.null(input$spec_p3db) && !is.null(input$spec_gain)) {
+      input_power <- input$spec_p3db - input$spec_gain
+      cat(sprintf("[Calculate All] Specs: P3dB=%.1f, Gain=%.1f → Pin=%.2f dBm, BO=%.1f dB\n",
+                  input$spec_p3db, input$spec_gain, input_power, backoff_value))
+    } else {
+      input_power <- 0
+      cat("[Calculate All] No specs found, using Pin=0 dBm\n")
+    }
     
     calculated_count <- 0
     failed_count <- 0
@@ -1312,17 +1321,13 @@ serverPaLineup <- function(input, output, session, state) {
   # PA Lineup Table
   output$pa_lineup_table <- renderDT({
     results <- lineup_calc_results()
-    
-    # Do not render a placeholder — wait until real results exist.
-    # This prevents a 1-column "No data" DataTable being initialised first
-    # and then failing to update when 16-column data arrives.
-    if(is.null(results)) {
-      return(datatable(
-        data.frame(Message = "Add components and click Calculate to see results."),
-        options = list(dom = 't', pageLength = 5),
-        rownames = FALSE
-      ))
-    }
+
+    # Use req() — do NOT return a 1-column placeholder datatable.
+    # Returning a placeholder causes DataTables to initialise with the wrong
+    # column structure; when the real 16-column result arrives DataTables
+    # refuses to reinitialise and the table stays blank.
+    # req() silently stops rendering until results are available.
+    req(results)
     
     if(!results$success || length(results$stage_results) == 0) {
       msg <- if (!isTRUE(results$success))

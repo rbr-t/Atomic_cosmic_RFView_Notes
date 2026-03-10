@@ -99,16 +99,32 @@ lineup_calculate_engine <- function(components,
       preds <- pred_map[[id]]
       if (!is.null(preds)) in_degree[id] <- length(preds)
     }
+
+    # Helper: get X position so BFS queue is always left-to-right sorted
+    # (mirrors JS _topoSortComponents which also X-sorts zero-in-degree nodes)
+    getCompX <- function(id) {
+      comp <- comp_by_id[[id]]
+      if (!is.null(comp$x)) as.numeric(comp$x) else 0
+    }
+
+    # Initialise BFS queue: zero-in-degree nodes in ascending X order
     queue      <- names(in_degree[in_degree == 0])
+    queue      <- queue[order(sapply(queue, getCompX))]
     topo_order <- character(0)
     while (length(queue) > 0) {
       node   <- queue[1]; queue <- queue[-1]
       topo_order <- c(topo_order, node)
+      # Collect successors whose in-degree just hit 0; insert in X order
+      newly_avail <- character(0)
       for (succ_id in succ_map[[node]]) {
         if (!is.na(in_degree[succ_id])) {
           in_degree[succ_id] <- in_degree[succ_id] - 1
-          if (in_degree[succ_id] == 0) queue <- c(queue, succ_id)
+          if (in_degree[succ_id] == 0) newly_avail <- c(newly_avail, succ_id)
         }
+      }
+      if (length(newly_avail) > 0) {
+        newly_avail <- newly_avail[order(sapply(newly_avail, getCompX))]
+        queue <- c(queue, newly_avail)
       }
     }
     # Keep only IDs that exist in comp_by_id
