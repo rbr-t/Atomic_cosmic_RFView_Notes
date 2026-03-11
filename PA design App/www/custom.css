@@ -1373,3 +1373,187 @@ body.theme-light *[style*="color: var(--c-err)"]   { color: var(--c-err)  !impor
 .download-option-box .download-icon { font-size: 32px; color: var(--accent, #ff7f11); margin-bottom: 8px; }
 .download-option-box h5 { color: var(--tx-hi, #eee); margin: 6px 0 4px 0; font-size: 13px; }
 .download-option-box p  { color: var(--tx-low, #888); font-size: 11px; margin: 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITY DRAWER — right-side sliding panel
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Drawer container */
+#utility-drawer {
+  position: fixed;
+  top: 50px;                       /* flush under the header bar   */
+  right: -400px;                   /* hidden off-screen by default  */
+  width: 380px;
+  height: calc(100vh - 50px);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  background: #1b1b2b;
+  border-left: 2px solid var(--accent, #ff7f11);
+  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.55);
+  transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#utility-drawer.open { right: 0; }
+
+/* Drawer title bar */
+#utility-drawer-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 0 10px;
+  height: 42px;
+  background: #13131f;
+  border-bottom: 1px solid rgba(255, 127, 17, 0.35);
+}
+#utility-drawer-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent, #ff7f11);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#utility-drawer-header .drawer-icon {
+  font-size: 14px;
+  color: var(--accent, #ff7f11);
+  flex-shrink: 0;
+}
+
+/* Drawer action buttons (row in header) */
+.drawer-hdr-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #aaa;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 1.4;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.drawer-hdr-btn:hover {
+  border-color: var(--accent, #ff7f11);
+  color: var(--accent, #ff7f11);
+  background: rgba(255, 127, 17, 0.08);
+}
+.drawer-hdr-btn.btn-close-drawer {
+  border-color: rgba(255,255,255,0.22);
+}
+.drawer-hdr-btn.btn-close-drawer:hover {
+  border-color: #e55;
+  color: #e55;
+  background: rgba(220, 50, 50, 0.08);
+}
+
+/* Scrollable body area */
+#utility-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 14px 20px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent, #ff7f11) #1b1b2b;
+}
+#utility-drawer-body::-webkit-scrollbar { width: 5px; }
+#utility-drawer-body::-webkit-scrollbar-track  { background: #1b1b2b; }
+#utility-drawer-body::-webkit-scrollbar-thumb  { background: var(--accent, #ff7f11); border-radius: 3px; }
+
+/* Content inside the drawer */
+.drawer-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+  margin: 14px 0 6px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.drawer-section-label:first-child { margin-top: 0; }
+
+.drawer-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: var(--tx-med, #bbb);
+  font-size: 12px;
+}
+.drawer-link-row:last-child { border-bottom: none; }
+.drawer-link-row .drawer-link-icon {
+  width: 18px;
+  text-align: center;
+  color: var(--accent, #ff7f11);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Full-view nav arrow inside drawer */
+.drawer-fullview-link {
+  display: block;
+  margin-top: 16px;
+  padding: 9px 14px;
+  background: rgba(255, 127, 17, 0.10);
+  border: 1px solid rgba(255, 127, 17, 0.30);
+  border-radius: 5px;
+  color: var(--accent, #ff7f11) !important;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.drawer-fullview-link:hover {
+  background: rgba(255, 127, 17, 0.20);
+  text-decoration: none;
+}
+
+/* Quick converter cards inside the RF Tools drawer */
+.drawer-converter-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 10px 12px 8px 12px;
+  margin-bottom: 10px;
+}
+.drawer-converter-card label {
+  font-size: 11px;
+  color: var(--tx-low, #888);
+  margin-bottom: 3px;
+  display: block;
+}
+.drawer-converter-card .form-control {
+  background: #13131f !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  color: var(--tx-hi, #eee) !important;
+  font-size: 12px;
+  height: 28px;
+  padding: 2px 8px;
+}
+.drawer-result-badge {
+  display: inline-block;
+  background: rgba(255, 127, 17, 0.15);
+  border: 1px solid rgba(255, 127, 17, 0.3);
+  color: var(--accent, #ff7f11);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+/* Slight push on the main content when drawer is open — optional visual hint */
+.wrapper.drawer-open .content-wrapper {
+  margin-right: 380px;
+  transition: margin-right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.wrapper .content-wrapper {
+  transition: margin-right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}

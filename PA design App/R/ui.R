@@ -12,28 +12,28 @@ ui <- dashboardPage(
     ),
     # ── TOP UTILITY BAR ──────────────────────────────────────────────────────
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "#", class = "utility-link",
-        onclick = "Shiny.setInputValue(\'goto_utility_tab\', \'util_data\', {priority:\'event\'}); return false;",
+      tags$a(href = "#", class = "utility-link", `data-panel` = "util_data",
+        onclick = "utilityDrawerOpen('util_data'); return false;",
         icon("database"), " Data Manager")
     ),
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "#", class = "utility-link",
-        onclick = "Shiny.setInputValue(\'goto_utility_tab\', \'smith_chart\', {priority:\'event\'}); return false;",
+      tags$a(href = "#", class = "utility-link", `data-panel` = "smith_chart",
+        onclick = "utilityDrawerOpen('smith_chart'); return false;",
         icon("tools"), " RF Tools")
     ),
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "#", class = "utility-link",
-        onclick = "Shiny.setInputValue(\'goto_utility_tab\', \'util_agents\', {priority:\'event\'}); return false;",
+      tags$a(href = "#", class = "utility-link", `data-panel` = "util_agents",
+        onclick = "utilityDrawerOpen('util_agents'); return false;",
         icon("robot"), " AI Agents")
     ),
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "#", class = "utility-link",
-        onclick = "Shiny.setInputValue(\'goto_utility_tab\', \'util_knowledge\', {priority:\'event\'}); return false;",
+      tags$a(href = "#", class = "utility-link", `data-panel` = "util_knowledge",
+        onclick = "utilityDrawerOpen('util_knowledge'); return false;",
         icon("book"), " Knowledge Base")
     ),
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "#", class = "utility-link",
-        onclick = "Shiny.setInputValue(\'goto_utility_tab\', \'settings\', {priority:\'event\'}); return false;",
+      tags$a(href = "#", class = "utility-link", `data-panel` = "settings",
+        onclick = "utilityDrawerOpen('settings'); return false;",
         icon("cog"), " Settings")
     )
   ),
@@ -179,44 +179,117 @@ $(document).ready(function() {
     }
   });
 
-  // ── Phase 4: Utility top-bar active-state tracker ───────────────────────
-  // The utility tabs are NOT in the shinydashboard sidebar tree — they live
-  // only as extra tabItems.  We track the current active sidebar_menu value
-  // and highlight the matching utility-nav item by toggling .active-utility.
-  var utilityTabMap = {
-    'util_data':      '[onclick*='util_data']',
-    'smith_chart':    '[onclick*='smith_chart']',
-    'rf_converters':  '[onclick*='rf_converters']',
-    'util_agents':    '[onclick*='util_agents']',
-    'util_knowledge': '[onclick*='util_knowledge']',
-    'settings':       '[onclick*='settings']'
+  // ── Utility Drawer ──────────────────────────────────────────────────────
+  // Clicking a utility-bar link opens a sliding right-side drawer panel.
+  // The main content remains visible and fully interactive behind the drawer.
+
+  var _drawerTab = null; // currently shown panel name
+
+  var _drawerMeta = {
+    'util_data':      { title: 'Data Manager',   icon: 'database' },
+    'smith_chart':    { title: 'RF Tools',        icon: 'tools'    },
+    'util_agents':    { title: 'AI Agents',       icon: 'robot'    },
+    'util_knowledge': { title: 'Knowledge Base',  icon: 'book'     },
+    'settings':       { title: 'Settings',        icon: 'cog'      }
   };
-  function syncUtilityActiveState(tabName) {
-    // Remove active class from all utility items
-    $('.utility-nav').removeClass('active-utility');
-    // Add to matching item if the active tab is a utility tab
-    if (utilityTabMap[tabName]) {
-      $('.utility-nav').filter(function() {
-        return $(this).find('a[onclick*=\'' + tabName + '\']').length > 0;
-      }).addClass('active-utility');
+
+  function utilityDrawerOpen(tabName) {
+    // Toggle: clicking the same tab again closes the drawer
+    if (_drawerTab === tabName && $('#utility-drawer').hasClass('open')) {
+      utilityDrawerClose();
+      return;
     }
+    _drawerTab = tabName;
+    var meta = _drawerMeta[tabName] || { title: tabName, icon: 'th' };
+    // Update header title
+    $('#utility-drawer-title').text(meta.title);
+    // Open drawer + push content wrapper
+    $('#utility-drawer').addClass('open');
+    $('body > .wrapper').addClass('drawer-open');
+    // Highlight active utility link
+    $('.utility-nav').removeClass('active-utility');
+    $('.utility-nav').filter(function() {
+      return $(this).find('[data-panel=\'' + tabName + '\']').length > 0;
+    }).addClass('active-utility');
+    // Ask Shiny to render the panel content
+    Shiny.setInputValue('utility_drawer_tab', tabName, {priority: 'event'});
   }
-  // Watch for Shiny input changes
+
+  function utilityDrawerClose() {
+    $('#utility-drawer').removeClass('open');
+    $('body > .wrapper').removeClass('drawer-open');
+    $('.utility-nav').removeClass('active-utility');
+    _drawerTab = null;
+  }
+
+  function utilityDrawerFullView() {
+    if (!_drawerTab) return;
+    var tab = _drawerTab;
+    utilityDrawerClose();
+    // Navigate to the full tabItem in the main sidebar
+    Shiny.setInputValue('goto_utility_tab', tab, {priority: 'event'});
+  }
+
+  function utilityDrawerPopout() {
+    if (!_drawerTab) return;
+    var tab = _drawerTab;
+    var base = window.location.href.split('?')[0].split('#')[0];
+    window.open(
+      base + '?panel=' + encodeURIComponent(tab),
+      'pa_utility_' + tab,
+      'width=820,height=680,resizable=yes,scrollbars=yes,menubar=no,toolbar=no,location=no'
+    );
+  }
+
+  // Re-use the existing goto_utility_tab observer for Full View navigation
   $(document).on('shiny:inputchanged', function(e) {
-    if (e.name === 'sidebar_menu') syncUtilityActiveState(e.value);
-    if (e.name === 'goto_utility_tab') syncUtilityActiveState(e.value);
+    if (e.name !== 'goto_utility_tab') return;
   });
-  // Also add TOOLS label before the first utility-nav item on load
+
+  // Add TOOLS label before the first utility-nav item on load
   $(document).ready(function() {
     var $first = $('.utility-nav').first();
     if ($first.length && !$('#utility-nav-label').length) {
-      $first.before('<li class=\'dropdown\'><span class=\'utility-nav-label\' id=\'utility-nav-label\'>Tools</span></li>');
+      $first.before(\'<li class=\\\'dropdown\\\'><span class=\\\'utility-nav-label\\\' id=\\\'utility-nav-label\\\'>Tools</span></li>\');
     }
   });
 });
       "))
     ),
-    
+
+    # ── UTILITY DRAWER ────────────────────────────────────────────────────────
+    # Slides in from the right when a utility-bar icon is clicked.
+    # Main content remains interactive underneath.
+    tags$div(id = "utility-drawer",
+      # Header bar
+      tags$div(id = "utility-drawer-header",
+        tags$span(id = "utility-drawer-icon",  class = "drawer-icon"),
+        tags$span(id = "utility-drawer-title", "Utility Panel"),
+        # "Expand to full view" button
+        tags$button(class = "drawer-hdr-btn", id = "drawer-full-btn",
+          title  = "Open full screen view",
+          onclick = "utilityDrawerFullView()",
+          tags$i(class = "fa fa-expand-arrows-alt"), " Full View"
+        ),
+        # "Open in new window" button
+        tags$button(class = "drawer-hdr-btn", id = "drawer-popout-btn",
+          title  = "Open in new browser window",
+          onclick = "utilityDrawerPopout()",
+          tags$i(class = "fa fa-external-link-alt"), " New Window"
+        ),
+        # Close button
+        tags$button(class = "drawer-hdr-btn btn-close-drawer", id = "drawer-close-btn",
+          title  = "Close panel",
+          onclick = "utilityDrawerClose()",
+          tags$i(class = "fa fa-times")
+        )
+      ),
+      # Scrollable body — content rendered by server
+      tags$div(id = "utility-drawer-body",
+        uiOutput("utility_drawer_content")
+      )
+    ),
+
     tabItems(
       # Dashboard Tab
       tabItem(tabName = "dashboard",
@@ -2548,9 +2621,9 @@ $(document).ready(function() {
             h4("Portfolio Export"),
             p("Export your technology comparison portfolio as:"),
             fluidRow(
-              column(4, actionButton("portfolio_export_csv",  icon("file-csv"),  " CSV",  class="btn-default btn-block")),
-              column(4, actionButton("portfolio_export_html", icon("file-code"), " HTML", class="btn-default btn-block")),
-              column(4, actionButton("portfolio_export_pdf",  icon("file-pdf"),  " PDF",  class="btn-default btn-block"))
+              column(4, actionButton("portfolio_export_csv",  "CSV",  icon = icon("file-csv"),  class="btn-default btn-block")),
+              column(4, actionButton("portfolio_export_html", "HTML", icon = icon("file-code"), class="btn-default btn-block")),
+              column(4, actionButton("portfolio_export_pdf",  "PDF",  icon = icon("file-pdf"),  class="btn-default btn-block"))
             ),
             p(class="text-muted", "Export handlers — under construction.")
           )
@@ -2819,7 +2892,7 @@ $(document).ready(function() {
                 column(4, selectInput("ll_severity", "Severity",
                   choices = c("Info", "Warning", "Critical")))
               ),
-              actionButton("ll_save", icon("save"), " Save Lesson", class = "btn-primary")
+              actionButton("ll_save", "Save Lesson", icon = icon("save"), class = "btn-primary")
             )
           ),
           tabPanel("Hot Issues",
@@ -2913,10 +2986,10 @@ $(document).ready(function() {
                   checkboxInput("report_include_tables", "Embed data tables",         value = TRUE)
                 ),
                 fluidRow(
-                  column(6, actionButton("report_preview_btn", icon("eye"),
-                    " Preview (HTML)", class = "btn-default btn-block")),
-                  column(6, downloadButton("report_download_master", icon("download"),
-                    " Download Master Report", class = "btn-success btn-block"))
+                  column(6, actionButton("report_preview_btn", "Preview (HTML)",
+                    icon = icon("eye"), class = "btn-default btn-block")),
+                  column(6, downloadButton("report_download_master", "Download Master Report",
+                    class = "btn-success btn-block"))
                 )
               ),
               column(5,
@@ -3075,11 +3148,11 @@ $(document).ready(function() {
                   textInput("subapp_version","Version",       value = "1.0"),
                   checkboxInput("subapp_standalone", "Include all dependencies (larger file)", value = TRUE),
                   br(),
-                  actionButton("subapp_preview_manifest", icon("list"),
-                    " Preview file manifest", class = "btn-default btn-block"),
+                  actionButton("subapp_preview_manifest", "Preview file manifest",
+                    icon = icon("list"), class = "btn-default btn-block"),
                   br(),
-                  downloadButton("subapp_download_zip", icon("file-archive"),
-                    " Download sub-app ZIP", class = "btn-success btn-block")
+                  downloadButton("subapp_download_zip", "Download sub-app ZIP",
+                    class = "btn-success btn-block")
                 ),
                 uiOutput("subapp_manifest_preview")
               )
@@ -3101,8 +3174,8 @@ $(document).ready(function() {
                     column(6, textInput("tmpl_tech",    "Technology",   placeholder = "GaN on SiC 0.25 µm")),
                     column(6, textInput("tmpl_band",    "Band",         placeholder = "Sub-6 GHz 5G NR"))
                   ),
-                  actionButton("tmpl_save_btn", icon("save"),
-                    " Save Template", class = "btn-primary btn-block")
+                  actionButton("tmpl_save_btn", "Save Template",
+                    icon = icon("save"), class = "btn-primary btn-block")
                 )
               ),
               column(6,
