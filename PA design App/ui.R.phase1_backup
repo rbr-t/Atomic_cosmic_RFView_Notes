@@ -75,19 +75,19 @@ ui <- dashboardPage(
       ),
 
       menuItem("4 · Device Level", tabName = "device_level", icon = icon("draw-polygon"),
-        menuSubItem("4.1  PA Specifications",          tabName = "dev_specs"),
-        menuSubItem("4.2  Architecture & Design Canvas", tabName = "dev_architecture"),
-        menuSubItem("4.3  Interstage & Passives",      tabName = "dev_interstage")
+        menuSubItem("4.1  PA Specifications",     tabName = "dev_specs"),
+        menuSubItem("4.2  Architecture & Design", tabName = "dev_architecture"),
+        menuSubItem("4.3  Transistor Design",     tabName = "dev_transistor"),
+        menuSubItem("4.4  PA Design",             tabName = "dev_pa_design"),
+        menuSubItem("4.5  Interstage & Passives", tabName = "dev_interstage")
       ),
 
       menuItem("5 · Product Level", tabName = "product_level", icon = icon("industry"),
-        menuSubItem("5.1  Transistor Design",     tabName = "prod_transistor"),
-        menuSubItem("5.2  PA Stage Design",       tabName = "prod_pa_stage"),
-        menuSubItem("5.3  Module Design",         tabName = "prod_module"),
-        menuSubItem("5.4  Reliability",           tabName = "prod_reliability"),
-        menuSubItem("5.5  Prototype",             tabName = "prod_prototype"),
-        menuSubItem("5.6  CV Measurements",       tabName = "prod_cv_meas"),
-        menuSubItem("5.7  Analysis",              tabName = "prod_analysis")
+        menuSubItem("5.1  Design (PA Lineup)",    tabName = "prod_lineup"),
+        menuSubItem("5.2  Reliability",           tabName = "prod_reliability"),
+        menuSubItem("5.3  Prototype",             tabName = "prod_prototype"),
+        menuSubItem("5.4  CV Measurements",       tabName = "prod_cv_meas"),
+        menuSubItem("5.5  Analysis",              tabName = "prod_analysis")
       ),
 
       menuItem("6 · Lessons Learnt",  tabName = "lessons_learnt",  icon = icon("graduation-cap")),
@@ -348,6 +348,321 @@ $(document).ready(function() {
                 )
               ),
               
+              hr(),
+              
+              # Tabset for Technology References
+              tabsetPanel(
+                id = "freq_tech_tabs",
+                type = "tabs",
+                
+                # Tab 1: Technology Selection Guide
+                tabPanel(
+                  title = tagList(icon("microchip"), "Technology Selection"),
+                  value = "tech_select",
+                  
+                  br(),
+                  h4(icon("info-circle"), " Transition Frequency (fT) and Maximum Oscillation Frequency (fmax)"),
+                  p("For selecting the appropriate transistor technology based on operating frequency:"),
+                  
+                  HTML("
+                    <div class='callout callout-info' style='margin: 10px 0;'>
+                      <h5><i class='fa fa-info-circle'></i> Selection Rule of Thumb</h5>
+                      <p><strong>For operating frequency fop, select technology with: fT > 5 × fop</strong></p>
+                      <p style='font-size: 13px;'>This ensures sufficient gain and prevents instability at the design frequency.</p>
+                    </div>
+                    
+                    <h5 style='margin-top: 20px;'>Technology Comparison</h5>
+                    <table class='table table-striped table-sm'>
+                      <thead>
+                        <tr>
+                          <th>Technology</th>
+                          <th>fT Range</th>
+                          <th>fmax Range</th>
+                          <th>Recommended Frequency</th>
+                          <th>Key Applications</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><strong>Si LDMOS</strong></td>
+                          <td>20-40 GHz</td>
+                          <td>30-60 GHz</td>
+                          <td>< 4 GHz</td>
+                          <td>Base stations, high power</td>
+                        </tr>
+                        <tr>
+                          <td><strong>GaAs pHEMT</strong></td>
+                          <td>30-60 GHz</td>
+                          <td>80-150 GHz</td>
+                          <td>2-12 GHz</td>
+                          <td>Microwave, mmWave</td>
+                        </tr>
+                        <tr>
+                          <td><strong>GaN HEMT</strong></td>
+                          <td>50-100 GHz</td>
+                          <td>150-300 GHz</td>
+                          <td>2-40 GHz</td>
+                          <td>5G, radar, satellite</td>
+                        </tr>
+                        <tr>
+                          <td><strong>SiGe HBT</strong></td>
+                          <td>200-300 GHz</td>
+                          <td>400-500 GHz</td>
+                          <td>20-100 GHz</td>
+                          <td>mmWave, sub-THz</td>
+                        </tr>
+                        <tr>
+                          <td><strong>InP HEMT</strong></td>
+                          <td>300-600 GHz</td>
+                          <td>600-1000 GHz</td>
+                          <td>60-300 GHz</td>
+                          <td>Sub-THz, 6G research</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  "),
+                  
+                  # Dynamic recommendation
+                  uiOutput("technology_fT_recommendation")
+                ),
+                
+                # Tab 2: fT/fmax Plots
+                tabPanel(
+                  title = tagList(icon("chart-line"), "fT/fmax Plots"),
+                  value = "ft_fmax_plots",
+                  
+                  br(),
+                  h4(icon("chart-area"), " Transistor Frequency Performance"),
+                  
+                  HTML("
+                    <div class='callout callout-warn' style='margin: 10px 0;'>
+                      <h5><i class='fa fa-exclamation-triangle'></i> Note</h5>
+                      <p>Detailed fT and fmax plots with technology evolution trends are available in:</p>
+                      <p><strong><a href='../PA_Design_Reference_Manual/Chapters/Chapter_01_Transistor_Fundamentals.html#section-2-2' target='_blank'>
+                        <i class='fa fa-external-link'></i> Chapter 1: Transistor Fundamentals - Section 2.2 (High-Frequency Parameters)
+                      </a></strong></p>
+                      <p style='margin-bottom: 0; font-size: 13px;'>Includes detailed figures showing fT and fmax evolution over time for different technologies.</p>
+                    </div>
+                    
+                    <h5 style='margin-top: 25px;'>Key Frequency Relationships:</h5>
+                    <div class='row' style='margin-top: 15px;'>
+                      <div class='col-md-6'>
+                        <div class='callout callout-neutral' style='border-radius: 5px; height: 100%;'>
+                          <h6><strong>Transition Frequency  (fT)</strong></h6>
+                          <ul style='font-size: 14px;'>
+                            <li>Frequency where current gain h<sub>21</sub> = 1 (0 dB)</li>
+                            <li>Indicates amplification capability</li>
+                            <li>Higher fT → Better high-frequency performance</li>
+                            <li><strong>Formula:</strong> fT ≈ g<sub>m</sub> / (2πC<sub>gs</sub>)</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div class='col-md-6'>
+                        <div class='callout callout-neutral' style='border-radius: 5px; height: 100%;'>
+                          <h6><strong>Maximum Oscillation Frequency (fmax)</strong></h6>
+                          <ul style='font-size: 14px;'>
+                            <li>Frequency where power gain U = 1 (0 dB)</li>
+                            <li>Practical upper limit for oscillators/amplifiers</li>
+                            <li>Always: fmax ≥ fT</li>
+                            <li><strong>Formula:</strong> fmax ≈ √(fT / (8πR<sub>g</sub>C<sub>gd</sub>))</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <h5 style='margin-top: 25px;'>Available Gain at Operating Frequency:</h5>
+                    <div class='callout callout-info' style='margin: 10px 0;'>
+                      <p style='margin: 0;'><strong>G<sub>available</sub>(f<sub>op</sub>) ≈ 20 × log<sub>10</sub>(fT / f<sub>op</sub>) dB</strong></p>
+                      <p style='margin: 5px 0 0 0; font-size: 13px;'>Example: With fT = 100 GHz at f<sub>op</sub> = 10 GHz → G ≈ 20 dB</p>
+                    </div>
+                    
+                    <h5 style='margin-top: 25px;'>Technology Evolution Trends:</h5>
+                    <table class='table table-bordered table-sm'>
+                      <thead>
+                        <tr>
+                          <th>Year Range</th>
+                          <th>Si LDMOS fT</th>
+                          <th>GaN HEMT fT</th>
+                          <th>SiGe HBT fT</th>
+                          <th>InP HEMT fT</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>2000-2005</td>
+                          <td>~20 GHz</td>
+                          <td>~30 GHz</td>
+                          <td>~120 GHz</td>
+                          <td>~200 GHz</td>
+                        </tr>
+                        <tr>
+                          <td>2005-2010</td>
+                          <td>~30 GHz</td>
+                          <td>~50 GHz</td>
+                          <td>~200 GHz</td>
+                          <td>~350 GHz</td>
+                        </tr>
+                        <tr>
+                          <td>2010-2015</td>
+                          <td>~35 GHz</td>
+                          <td>~70 GHz</td>
+                          <td>~250 GHz</td>
+                          <td>~500 GHz</td>
+                        </tr>
+                        <tr>
+                          <td>2015-2020</td>
+                          <td>~40 GHz</td>
+                          <td>~90 GHz</td>
+                          <td>~300 GHz</td>
+                          <td>~600 GHz</td>
+                        </tr>
+                        <tr>
+                          <td><strong>2020+</strong></td>
+                          <td><strong>~40 GHz</strong></td>
+                          <td><strong>~100 GHz</strong></td>
+                          <td><strong>~350 GHz</strong></td>
+                          <td><strong>~700+ GHz</strong></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    
+                    <p style='margin-top: 15px; font-size: 13px; color: #666;'>
+                      <i class='fa fa-book'></i> <strong>References:</strong>
+                    </p>
+                    <ul style='font-size: 13px; color: #666;'>
+                      <li>Figures 2.2.4, 2.2.5 in <a href='../PA_Design_Reference_Manual/Chapters/Chapter_01_Transistor_Fundamentals.html' target='_blank'>Chapter 1</a></li>
+                      <li>ITRS Roadmap for RF and Analog/Mixed-Signal Technologies</li>
+                      <li>IEEE Transactions on Electron Devices (various years)</li>
+                    </ul>
+                  ")
+                ),
+                
+                # Tab 3: Design Guidelines
+                tabPanel(
+                  title = tagList(icon("lightbulb"), "Design Guidelines"),
+                  value = "design_guide",
+                  
+                  br(),
+                  h4(icon("tools"), " Practical Design Rules"),
+                  
+                  HTML("
+                    <h5>Frequency Selection Criteria:</h5>
+                    <div class='row' style='margin-top: 15px;'>
+                      <div class='col-md-4'>
+                        <div class='callout callout-ok' style='border-radius: 5px;'>
+                          <h6><strong><i class='fa fa-check-circle'></i> Safe Range</strong></h6>
+                          <p style='font-size: 14px; margin: 0;'>f<sub>op</sub> < fT / 10</p>
+                          <p style='font-size: 12px; margin: 5px 0 0 0;'>High gain, excellent stability, easy matching</p>
+                        </div>
+                      </div>
+                      <div class='col-md-4'>
+                        <div class='callout callout-warn' style='border-radius: 5px;'>
+                          <h6><strong><i class='fa fa-exclamation-triangle'></i> Acceptable Range</strong></h6>
+                          <p style='font-size: 14px; margin: 0;'>fT / 10 < f<sub>op</sub> < fT / 5</p>
+                          <p style='font-size: 12px; margin: 5px 0 0 0;'>Moderate gain, requires attention to stability</p>
+                        </div>
+                      </div>
+                      <div class='col-md-4'>
+                        <div class='callout callout-danger' style='border-radius: 5px;'>
+                          <h6><strong><i class='fa fa-times-circle'></i> Avoid</strong></h6>
+                          <p style='font-size: 14px; margin: 0;'>f<sub>op</sub> > fT / 5</p>
+                          <p style='font-size: 12px; margin: 5px 0 0 0;'>Low gain, stability issues, difficult matching</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <h5 style='margin-top: 25px;'>Design Examples:</h5>
+                    <table class='table table-bordered'>
+                      <thead>
+                        <tr>
+                          <th>Application</th>
+                          <th>Frequency</th>
+                          <th>Required fT</th>
+                          <th>Technology Choice</th>
+                          <th>Expected Gain</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><strong>LTE Base Station</strong></td>
+                          <td>1.8 GHz</td>
+                          <td>> 9 GHz</td>
+                          <td>Si LDMOS (fT ~40 GHz)</td>
+                          <td>~25 dB per stage</td>
+                        </tr>
+                        <tr>
+                          <td><strong>5G Sub-6GHz</strong></td>
+                          <td>3.5 GHz</td>
+                          <td>> 17.5 GHz</td>
+                          <td>GaN HEMT (fT ~100 GHz)</td>
+                          <td>~28 dB per stage</td>
+                        </tr>
+                        <tr>
+                          <td><strong>5G mmWave</strong></td>
+                          <td>28 GHz</td>
+                          <td>> 140 GHz</td>
+                          <td>SiGe HBT (fT ~300 GHz) or GaN</td>
+                          <td>~10-12 dB per stage</td>
+                        </tr>
+                        <tr>
+                          <td><strong>6G Research (Sub-THz)</strong></td>
+                          <td>140 GHz</td>
+                          <td>> 700 GHz</td>
+                          <td>InP HEMT (fT ~700+ GHz)</td>
+                          <td>~6-8 dB per stage</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    
+                    <div class='callout callout-info' style='margin: 20px 0;'>
+                      <h5><i class='fa fa-calculator'></i> Quick Calculator:</h5>
+                      <p><strong>For your current global frequency: </strong><span id='calc_freq'></span></p>
+                      <p><strong>Minimum Required fT: </strong><span id='calc_ft_min'></span></p>
+                      <p><strong>Recommended fT: </strong><span id='calc_ft_rec'></span></p>
+                      <p><strong>Suggested Technologies: </strong><span id='calc_tech'></span></p>
+                      <script>
+                        // Update calculator when frequency changes
+                        $(document).ready(function() {
+                          function updateCalc() {
+                            if (typeof Shiny !== 'undefined' && Shiny.shinyapp && Shiny.shinyapp.$inputValues) {
+                              var freq = Shiny.shinyapp.$inputValues.global_frequency || 2.6;
+                              var ft_min = freq * 5;
+                              var ft_rec = freq * 10;
+                              
+                              $('#calc_freq').text(freq.toFixed(2) + ' GHz');
+                              $('#calc_ft_min').text(ft_min.toFixed(1) + ' GHz');
+                              $('#calc_ft_rec').text(ft_rec.toFixed(1) + ' GHz');
+                              
+                              var tech = [];
+                              if (ft_rec < 40) tech.push('Si LDMOS');
+                              if (ft_rec < 100) tech.push('GaN HEMT');
+                              if (ft_rec < 300) tech.push('SiGe HBT');
+                              if (ft_rec >= 200) tech.push('InP HEMT');
+                              
+                              $('#calc_tech').text(tech.join(', ') || 'Advanced research technologies required');
+                            }
+                          }
+                          
+                          // Update on load and when frequency changes
+                          updateCalc();
+                          setInterval(updateCalc, 1000);
+                        });
+                      </script>
+                    </div>
+                    
+                    <h5 style='margin-top: 25px;'>Key Takeaways:</h5>
+                    <ul>
+                      <li><strong>Always check fT before selecting a technology</strong> - It's the single most important parameter for frequency selection</li>
+                      <li><strong>Use the 5× rule as minimum</strong> - fT should be at least 5× your operating frequency</li>
+                      <li><strong>Higher fT = More margin</strong> - Provides better gain, easier matching, and improved stability</li>
+                      <li><strong>Consider fmax for oscillators</strong> - For VCOs and oscillators, use fmax instead of fT as the limit</li>
+                      <li><strong>Technology roadmaps matter</strong> - fT has improved steadily, enabling higher frequency designs each year</li>
+                    </ul>
+                  ")
+                )
+              ),
+              
+              htmlOutput("freq_recommendation")
       ),  # closes tabItem(sys_freq_planning)
 
       # ── 2.4 Link Budget ───────────────────────────────────────────────────────
@@ -881,8 +1196,8 @@ $(document).ready(function() {
               )
       ),  # closes tabItem(tech_guardrails)
 
-      # ── 4.2 Architecture & Design Canvas (PA Lineup) ────────────────────────
-      tabItem(tabName = "dev_architecture",
+      # ── 5.1 Product Design: PA Lineup ─────────────────────────────────────────
+      tabItem(tabName = "prod_lineup",
               
               fluidRow(
                 # Left: Interactive Canvas
@@ -1677,12 +1992,8 @@ $(document).ready(function() {
                   )
                 )
               )
-      ),  # closes tabItem(dev_architecture)
-
-      # ── 4.3 Interstage & Passives stub ────────────────────────────────────
-      # (dev_interstage stub is further below in the file)
-      # ── 5.x Product Level stubs (prod_transistor, prod_pa_stage, prod_module) below ──
-
+      ),  # closes tabItem(prod_lineup)
+      
       # Placeholder tabs (to be implemented)
       # ── 1. First Principles (landing) ────────────────────────────────────────
       tabItem(tabName = "first_principles",
@@ -1744,7 +2055,11 @@ $(document).ready(function() {
         p(class = "text-muted", "Under construction — thermal modeling and technology comparison.")
       ),
       
-      # dev_architecture now defined above (canvas block)
+      # ── 4.2 Architecture & Design Choices ────────────────────────────────────
+      tabItem(tabName = "dev_architecture",
+        h2(icon("draw-polygon"), " 4.2 Architecture & Design Choices"),
+        p("Under construction — topology selection canvas, architecture comparisons and rationale.")
+      ),
       
       # ── System-level stubs ────────────────────────────────────────────────────
       tabItem(tabName = "system_level",
@@ -1771,322 +2086,7 @@ $(document).ready(function() {
       ),
       tabItem(tabName = "tech_selection",
         h2(icon("microchip"), " 3.1 Technology Selection"),
-        p("Choose the right transistor technology for your operating frequency.
-           The selection rules, fT/fmax plots and design guidelines below are
-           transferred from the Frequency Planning tool (2.1).
-"),
-                tabsetPanel(
-          id = "freq_tech_tabs",
-          type = "tabs",
-          
-          # Tab 1: Technology Selection Guide
-          tabPanel(
-            title = tagList(icon("microchip"), "Technology Selection"),
-            value = "tech_select",
-            
-            br(),
-            h4(icon("info-circle"), " Transition Frequency (fT) and Maximum Oscillation Frequency (fmax)"),
-            p("For selecting the appropriate transistor technology based on operating frequency:"),
-            
-            HTML("
-              <div class='callout callout-info' style='margin: 10px 0;'>
-                <h5><i class='fa fa-info-circle'></i> Selection Rule of Thumb</h5>
-                <p><strong>For operating frequency fop, select technology with: fT > 5 × fop</strong></p>
-                <p style='font-size: 13px;'>This ensures sufficient gain and prevents instability at the design frequency.</p>
-              </div>
-              
-              <h5 style='margin-top: 20px;'>Technology Comparison</h5>
-              <table class='table table-striped table-sm'>
-                <thead>
-                  <tr>
-                    <th>Technology</th>
-                    <th>fT Range</th>
-                    <th>fmax Range</th>
-                    <th>Recommended Frequency</th>
-                    <th>Key Applications</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><strong>Si LDMOS</strong></td>
-                    <td>20-40 GHz</td>
-                    <td>30-60 GHz</td>
-                    <td>< 4 GHz</td>
-                    <td>Base stations, high power</td>
-                  </tr>
-                  <tr>
-                    <td><strong>GaAs pHEMT</strong></td>
-                    <td>30-60 GHz</td>
-                    <td>80-150 GHz</td>
-                    <td>2-12 GHz</td>
-                    <td>Microwave, mmWave</td>
-                  </tr>
-                  <tr>
-                    <td><strong>GaN HEMT</strong></td>
-                    <td>50-100 GHz</td>
-                    <td>150-300 GHz</td>
-                    <td>2-40 GHz</td>
-                    <td>5G, radar, satellite</td>
-                  </tr>
-                  <tr>
-                    <td><strong>SiGe HBT</strong></td>
-                    <td>200-300 GHz</td>
-                    <td>400-500 GHz</td>
-                    <td>20-100 GHz</td>
-                    <td>mmWave, sub-THz</td>
-                  </tr>
-                  <tr>
-                    <td><strong>InP HEMT</strong></td>
-                    <td>300-600 GHz</td>
-                    <td>600-1000 GHz</td>
-                    <td>60-300 GHz</td>
-                    <td>Sub-THz, 6G research</td>
-                  </tr>
-                </tbody>
-              </table>
-            "),
-            
-            # Dynamic recommendation
-            uiOutput("technology_fT_recommendation")
-          ),
-          
-          # Tab 2: fT/fmax Plots
-          tabPanel(
-            title = tagList(icon("chart-line"), "fT/fmax Plots"),
-            value = "ft_fmax_plots",
-            
-            br(),
-            h4(icon("chart-area"), " Transistor Frequency Performance"),
-            
-            HTML("
-              <div class='callout callout-warn' style='margin: 10px 0;'>
-                <h5><i class='fa fa-exclamation-triangle'></i> Note</h5>
-                <p>Detailed fT and fmax plots with technology evolution trends are available in:</p>
-                <p><strong><a href='../PA_Design_Reference_Manual/Chapters/Chapter_01_Transistor_Fundamentals.html#section-2-2' target='_blank'>
-                  <i class='fa fa-external-link'></i> Chapter 1: Transistor Fundamentals - Section 2.2 (High-Frequency Parameters)
-                </a></strong></p>
-                <p style='margin-bottom: 0; font-size: 13px;'>Includes detailed figures showing fT and fmax evolution over time for different technologies.</p>
-              </div>
-              
-              <h5 style='margin-top: 25px;'>Key Frequency Relationships:</h5>
-              <div class='row' style='margin-top: 15px;'>
-                <div class='col-md-6'>
-                  <div class='callout callout-neutral' style='border-radius: 5px; height: 100%;'>
-                    <h6><strong>Transition Frequency  (fT)</strong></h6>
-                    <ul style='font-size: 14px;'>
-                      <li>Frequency where current gain h<sub>21</sub> = 1 (0 dB)</li>
-                      <li>Indicates amplification capability</li>
-                      <li>Higher fT → Better high-frequency performance</li>
-                      <li><strong>Formula:</strong> fT ≈ g<sub>m</sub> / (2πC<sub>gs</sub>)</li>
-                    </ul>
-                  </div>
-                </div>
-                <div class='col-md-6'>
-                  <div class='callout callout-neutral' style='border-radius: 5px; height: 100%;'>
-                    <h6><strong>Maximum Oscillation Frequency (fmax)</strong></h6>
-                    <ul style='font-size: 14px;'>
-                      <li>Frequency where power gain U = 1 (0 dB)</li>
-                      <li>Practical upper limit for oscillators/amplifiers</li>
-                      <li>Always: fmax ≥ fT</li>
-                      <li><strong>Formula:</strong> fmax ≈ √(fT / (8πR<sub>g</sub>C<sub>gd</sub>))</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-              <h5 style='margin-top: 25px;'>Available Gain at Operating Frequency:</h5>
-              <div class='callout callout-info' style='margin: 10px 0;'>
-                <p style='margin: 0;'><strong>G<sub>available</sub>(f<sub>op</sub>) ≈ 20 × log<sub>10</sub>(fT / f<sub>op</sub>) dB</strong></p>
-                <p style='margin: 5px 0 0 0; font-size: 13px;'>Example: With fT = 100 GHz at f<sub>op</sub> = 10 GHz → G ≈ 20 dB</p>
-              </div>
-              
-              <h5 style='margin-top: 25px;'>Technology Evolution Trends:</h5>
-              <table class='table table-bordered table-sm'>
-                <thead>
-                  <tr>
-                    <th>Year Range</th>
-                    <th>Si LDMOS fT</th>
-                    <th>GaN HEMT fT</th>
-                    <th>SiGe HBT fT</th>
-                    <th>InP HEMT fT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>2000-2005</td>
-                    <td>~20 GHz</td>
-                    <td>~30 GHz</td>
-                    <td>~120 GHz</td>
-                    <td>~200 GHz</td>
-                  </tr>
-                  <tr>
-                    <td>2005-2010</td>
-                    <td>~30 GHz</td>
-                    <td>~50 GHz</td>
-                    <td>~200 GHz</td>
-                    <td>~350 GHz</td>
-                  </tr>
-                  <tr>
-                    <td>2010-2015</td>
-                    <td>~35 GHz</td>
-                    <td>~70 GHz</td>
-                    <td>~250 GHz</td>
-                    <td>~500 GHz</td>
-                  </tr>
-                  <tr>
-                    <td>2015-2020</td>
-                    <td>~40 GHz</td>
-                    <td>~90 GHz</td>
-                    <td>~300 GHz</td>
-                    <td>~600 GHz</td>
-                  </tr>
-                  <tr>
-                    <td><strong>2020+</strong></td>
-                    <td><strong>~40 GHz</strong></td>
-                    <td><strong>~100 GHz</strong></td>
-                    <td><strong>~350 GHz</strong></td>
-                    <td><strong>~700+ GHz</strong></td>
-                  </tr>
-                </tbody>
-              </table>
-              
-              <p style='margin-top: 15px; font-size: 13px; color: #666;'>
-                <i class='fa fa-book'></i> <strong>References:</strong>
-              </p>
-              <ul style='font-size: 13px; color: #666;'>
-                <li>Figures 2.2.4, 2.2.5 in <a href='../PA_Design_Reference_Manual/Chapters/Chapter_01_Transistor_Fundamentals.html' target='_blank'>Chapter 1</a></li>
-                <li>ITRS Roadmap for RF and Analog/Mixed-Signal Technologies</li>
-                <li>IEEE Transactions on Electron Devices (various years)</li>
-              </ul>
-            ")
-          ),
-          
-          # Tab 3: Design Guidelines
-          tabPanel(
-            title = tagList(icon("lightbulb"), "Design Guidelines"),
-            value = "design_guide",
-            
-            br(),
-            h4(icon("tools"), " Practical Design Rules"),
-            
-            HTML("
-              <h5>Frequency Selection Criteria:</h5>
-              <div class='row' style='margin-top: 15px;'>
-                <div class='col-md-4'>
-                  <div class='callout callout-ok' style='border-radius: 5px;'>
-                    <h6><strong><i class='fa fa-check-circle'></i> Safe Range</strong></h6>
-                    <p style='font-size: 14px; margin: 0;'>f<sub>op</sub> < fT / 10</p>
-                    <p style='font-size: 12px; margin: 5px 0 0 0;'>High gain, excellent stability, easy matching</p>
-                  </div>
-                </div>
-                <div class='col-md-4'>
-                  <div class='callout callout-warn' style='border-radius: 5px;'>
-                    <h6><strong><i class='fa fa-exclamation-triangle'></i> Acceptable Range</strong></h6>
-                    <p style='font-size: 14px; margin: 0;'>fT / 10 < f<sub>op</sub> < fT / 5</p>
-                    <p style='font-size: 12px; margin: 5px 0 0 0;'>Moderate gain, requires attention to stability</p>
-                  </div>
-                </div>
-                <div class='col-md-4'>
-                  <div class='callout callout-danger' style='border-radius: 5px;'>
-                    <h6><strong><i class='fa fa-times-circle'></i> Avoid</strong></h6>
-                    <p style='font-size: 14px; margin: 0;'>f<sub>op</sub> > fT / 5</p>
-                    <p style='font-size: 12px; margin: 5px 0 0 0;'>Low gain, stability issues, difficult matching</p>
-                  </div>
-                </div>
-              </div>
-              
-              <h5 style='margin-top: 25px;'>Design Examples:</h5>
-              <table class='table table-bordered'>
-                <thead>
-                  <tr>
-                    <th>Application</th>
-                    <th>Frequency</th>
-                    <th>Required fT</th>
-                    <th>Technology Choice</th>
-                    <th>Expected Gain</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><strong>LTE Base Station</strong></td>
-                    <td>1.8 GHz</td>
-                    <td>> 9 GHz</td>
-                    <td>Si LDMOS (fT ~40 GHz)</td>
-                    <td>~25 dB per stage</td>
-                  </tr>
-                  <tr>
-                    <td><strong>5G Sub-6GHz</strong></td>
-                    <td>3.5 GHz</td>
-                    <td>> 17.5 GHz</td>
-                    <td>GaN HEMT (fT ~100 GHz)</td>
-                    <td>~28 dB per stage</td>
-                  </tr>
-                  <tr>
-                    <td><strong>5G mmWave</strong></td>
-                    <td>28 GHz</td>
-                    <td>> 140 GHz</td>
-                    <td>SiGe HBT (fT ~300 GHz) or GaN</td>
-                    <td>~10-12 dB per stage</td>
-                  </tr>
-                  <tr>
-                    <td><strong>6G Research (Sub-THz)</strong></td>
-                    <td>140 GHz</td>
-                    <td>> 700 GHz</td>
-                    <td>InP HEMT (fT ~700+ GHz)</td>
-                    <td>~6-8 dB per stage</td>
-                  </tr>
-                </tbody>
-              </table>
-              
-              <div class='callout callout-info' style='margin: 20px 0;'>
-                <h5><i class='fa fa-calculator'></i> Quick Calculator:</h5>
-                <p><strong>For your current global frequency: </strong><span id='calc_freq'></span></p>
-                <p><strong>Minimum Required fT: </strong><span id='calc_ft_min'></span></p>
-                <p><strong>Recommended fT: </strong><span id='calc_ft_rec'></span></p>
-                <p><strong>Suggested Technologies: </strong><span id='calc_tech'></span></p>
-                <script>
-                  // Update calculator when frequency changes
-                  $(document).ready(function() {
-                    function updateCalc() {
-                      if (typeof Shiny !== 'undefined' && Shiny.shinyapp && Shiny.shinyapp.$inputValues) {
-                        var freq = Shiny.shinyapp.$inputValues.global_frequency || 2.6;
-                        var ft_min = freq * 5;
-                        var ft_rec = freq * 10;
-                        
-                        $('#calc_freq').text(freq.toFixed(2) + ' GHz');
-                        $('#calc_ft_min').text(ft_min.toFixed(1) + ' GHz');
-                        $('#calc_ft_rec').text(ft_rec.toFixed(1) + ' GHz');
-                        
-                        var tech = [];
-                        if (ft_rec < 40) tech.push('Si LDMOS');
-                        if (ft_rec < 100) tech.push('GaN HEMT');
-                        if (ft_rec < 300) tech.push('SiGe HBT');
-                        if (ft_rec >= 200) tech.push('InP HEMT');
-                        
-                        $('#calc_tech').text(tech.join(', ') || 'Advanced research technologies required');
-                      }
-                    }
-                    
-                    // Update on load and when frequency changes
-                    updateCalc();
-                    setInterval(updateCalc, 1000);
-                  });
-                </script>
-              </div>
-              
-              <h5 style='margin-top: 25px;'>Key Takeaways:</h5>
-              <ul>
-                <li><strong>Always check fT before selecting a technology</strong> - It's the single most important parameter for frequency selection</li>
-                <li><strong>Use the 5× rule as minimum</strong> - fT should be at least 5× your operating frequency</li>
-                <li><strong>Higher fT = More margin</strong> - Provides better gain, easier matching, and improved stability</li>
-                <li><strong>Consider fmax for oscillators</strong> - For VCOs and oscillators, use fmax instead of fT as the limit</li>
-                <li><strong>Technology roadmaps matter</strong> - fT has improved steadily, enabling higher frequency designs each year</li>
-              </ul>
-            ")
-          )
-        ),
-        
-        htmlOutput("freq_recommendation")
+        p("Under construction — fT/fmax comparison, selection guidelines (content from Freq Planning subtabs).")
       ),
       tabItem(tabName = "tech_device_lib",
         h2(icon("th-large"), " 3.3 Device Library"),
@@ -2104,115 +2104,32 @@ $(document).ready(function() {
       # ── Device-level stubs ────────────────────────────────────────────────────
       tabItem(tabName = "device_level",
         h2(icon("draw-polygon"), " 4 · Device Level"),
-        p("Select a sub-topic from the sidebar. The architecture canvas (4.2) drives design choices for each stage.")
+        p("Select a sub-topic from the sidebar.")
       ),
       tabItem(tabName = "dev_specs",
         h2(icon("clipboard-list"), " 4.1 PA Specifications"),
         p("Under construction — PA specification entry (Power, Gain, Linearity, Conditions).")
       ),
+      tabItem(tabName = "dev_transistor",
+        h2(icon("microchip"), " 4.3 Transistor Design"),
+        p("Under construction — LP performance, linearity and stability analysis.")
+      ),
+      tabItem(tabName = "dev_pa_design",
+        h2(icon("bolt"), " 4.4 PA Design"),
+        p("Under construction — Driver, Main and Aux stage design (performance, linearity, stability).")
+      ),
       tabItem(tabName = "dev_interstage",
-        h2(icon("random"), " 4.3 Interstage & Passives"),
+        h2(icon("random"), " 4.5 Interstage & Passives"),
         p("Under construction — Splitter, combiner and interstage matching design.")
       ),
 
       # ── Product-level stubs ───────────────────────────────────────────────────
-      # ── Product-level: three product tiers + shared flow ───────────────────────────
       tabItem(tabName = "product_level",
         h2(icon("industry"), " 5 · Product Level"),
-        p("Three product tiers: a single transistor, a PA stage, or a fully assembled module/line-up."),
-        p("Each tier builds a library that feeds the next: Module (5.3) pulls from PA Stage Library; PA Stage (5.2) pulls from Transistor Library (5.1).")
-      ),
-
-      # 5.1 Transistor Design (as product — builds Transistor Library)
-      tabItem(tabName = "prod_transistor",
-        h2(icon("microchip"), " 5.1 Transistor Design"),
-        tabsetPanel(
-          tabPanel("Specifications",
-            p("Under construction — Target specs: fT, Pout density, PAE, gain at Vdd/Id bias.")
-          ),
-          tabPanel("LP Performance",
-            p("Under construction — Bias, load-pull, gain circles, Cripps optimum load.")
-          ),
-          tabPanel("Linearity",
-            p("Under construction — AM/AM, AM/PM, IIP3, IMD3 analysis.")
-          ),
-          tabPanel("Stability",
-            p("Under construction — K-factor, MSG, MAG, stability circles, stabilisation networks.")
-          ),
-          tabPanel("Transistor Library",
-            div(class = "callout callout-info",
-              p(icon("info-circle"), " Characterised transistors appear in the Design Canvas palette (4.2)
-                and in PA Stage Design (5.2) as building blocks.")
-            ),
-            p("Under construction — Transistor library: browse, compare, tag, export.")
-          )
-        )
-      ),
-
-      # 5.2 PA Stage Design (individual stage as product — builds PA Stage Library)
-      tabItem(tabName = "prod_pa_stage",
-        h2(icon("bolt"), " 5.2 PA Stage Design"),
-        tabsetPanel(
-          tabPanel("Specifications",
-            p("Under construction — Stage-level target spec (Driver / Main / Aux).")
-          ),
-          tabPanel("Architecture Choices",
-            p("Under construction — Class selection, biasing, topology (Class A/AB/B/F/Doherty).")
-          ),
-          tabPanel("Performance",
-            p("Under construction — Gain, PAE, P1dB, P3dB, load-pull across frequency.")
-          ),
-          tabPanel("Linearity",
-            p("Under construction — Stage-level linearity, IMD, AM/AM within lineup context.")
-          ),
-          tabPanel("Stability",
-            p("Under construction — Stage stability inside module embedding environment.")
-          ),
-          tabPanel("PA Stage Library",
-            div(class = "callout callout-info",
-              p(icon("info-circle"), " Characterised PA stages are building blocks for Module Design (5.3).
-                Each entry links back to its transistor(s) from the Transistor Library (5.1).")
-            ),
-            p("Under construction — PA stage library: browse, compare, tag, export.")
-          )
-        )
-      ),
-
-      # 5.3 Module / Line-up Design (final assembled product)
-      tabItem(tabName = "prod_module",
-        h2(icon("industry"), " 5.3 Module Design"),
-        tabsetPanel(
-          tabPanel("Specifications",
-            p("Under construction — Module-level spec (full line-up Pout, gain, PAE, compliance targets).")
-          ),
-          tabPanel("Line-up Design",
-            div(class = "callout callout-info",
-              p(icon("info-circle"), strong(" Architecture canvas (4.2)"),
-                " defines the topology. Pull PA stages from the ",
-                strong("PA Stage Library (5.2)"),
-                " and assemble into a module, then run cascade simulations.")
-            ),
-            p("Under construction — Line-up cascade with PA-stage library components.")
-          ),
-          tabPanel("Doherty Design",
-            p("Under construction — Doherty combiner network, OBO tuning, efficiency vs back-off.")
-          ),
-          tabPanel("Optimisation",
-            p("Under construction — Automated sweep, Pareto front (PAE vs linearity).")
-          ),
-          tabPanel("Reliability & Thermal",
-            p("Under construction — Module-level MTTF and thermal network (links to 5.4 Reliability).")
-          ),
-          tabPanel("Module Library",
-            div(class = "callout callout-info",
-              p(icon("info-circle"), " Completed modules are archived here for reuse, cross-project comparison and App Download (8).")
-            ),
-            p("Under construction — Module library: browse, tag, export.")
-          )
-        )
+        p("Select a sub-topic from the sidebar.")
       ),
       tabItem(tabName = "prod_prototype",
-        h2(icon("tools"), " 5.5 Prototype"),
+        h2(icon("tools"), " 5.3 Prototype"),
         tabsetPanel(
           tabPanel("Test Structures", p("Under construction.")),
           tabPanel("Layout",          p("Under construction — layout review for RF best practices.")),
@@ -2222,7 +2139,7 @@ $(document).ready(function() {
         )
       ),
       tabItem(tabName = "prod_cv_meas",
-        h2(icon("flask"), " 5.6 CV Measurements"),
+        h2(icon("flask"), " 5.4 CV Measurements"),
         tabsetPanel(
           tabPanel("DC",                p("Under construction — DC characterisation.")),
           tabPanel("S-parameter",       p("Under construction — S-parameter measurements.")),
@@ -2232,7 +2149,7 @@ $(document).ready(function() {
         )
       ),
       tabItem(tabName = "prod_analysis",
-        h2(icon("balance-scale"), " 5.7 Analysis"),
+        h2(icon("balance-scale"), " 5.5 Analysis"),
         tabsetPanel(
           tabPanel("Sim vs Measurement", p("Under construction — comparison plots and tables.")),
           tabPanel("Modelling",          p("Under construction — extraction and model validation.")),
@@ -2384,7 +2301,7 @@ $(document).ready(function() {
 
       # ── 5.2 Prod Reliability (MTTF + Thermal consolidated) ────────────────────
       tabItem(tabName = "prod_reliability",
-        h2(icon("heartbeat"), " 5.4 Reliability & Thermal Analysis"),
+        h2(icon("heartbeat"), " 5.2 Reliability & Thermal Analysis"),
         tabsetPanel(
           tabPanel("MTTF Calculator",
             h3(icon("stopwatch"), " MTTF (Mean Time To Failure) Calculator"),
