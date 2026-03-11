@@ -289,7 +289,7 @@ serverGuardrails <- function(input, output, session, state) {
 
   # Click on Design Space → reposition ★ + sync input fields
   observeEvent({
-    req(isTRUE(input$theoretical_calc_tabs == "perf_guardrails"))
+    req(isTRUE(input$sidebar_menu == "tech_guardrails"))
     event_data("plotly_click", source = "grd_ds")
   }, {
     click <- event_data("plotly_click", source = "grd_ds")
@@ -398,7 +398,7 @@ serverGuardrails <- function(input, output, session, state) {
   })
 
   observeEvent({
-    req(isTRUE(input$theoretical_calc_tabs == "perf_guardrails"))
+    req(isTRUE(input$sidebar_menu == "tech_guardrails"))
     event_data("plotly_click", source = "grd_gn")
   }, {
     click <- event_data("plotly_click", source = "grd_gn")
@@ -543,7 +543,7 @@ serverGuardrails <- function(input, output, session, state) {
 
   # Click on PAE plot → update backoff + PAE inputs
   observeEvent({
-    req(isTRUE(input$theoretical_calc_tabs == "perf_guardrails"))
+    req(isTRUE(input$sidebar_menu == "tech_guardrails"))
     event_data("plotly_click", source = "grd_pae")
   }, {
     click <- event_data("plotly_click", source = "grd_pae")

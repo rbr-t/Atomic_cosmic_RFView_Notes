@@ -37,6 +37,12 @@ server <- function(input, output, session) {
   # ── Initialise shared reactive state (rv, lineup reactives, helpers) ──
   state <- initServerState(input, output, session)
 
+  # ── Utility Bar: top-header nav links → update sidebar tab ───────────────
+  observeEvent(input$goto_utility_tab, {
+    req(input$goto_utility_tab)
+    updateTabItems(session, "sidebar_menu", input$goto_utility_tab)
+  }, ignoreInit = TRUE)
+
   # ── Register all feature modules ────────────────────────────────────────
   serverDashboard(input, output, session, state)
   serverProjects(input, output, session, state)

@@ -1,0 +1,680 @@
+#!/usr/bin/env python3
+"""
+Phase 1 UI Restructure – PA Design App
+Transforms ui.R sidebar and tabItems to new design-flow navigation.
+"""
+
+import re
+
+FILEPATH = "/workspaces/Atomic_cosmic_RFView_Notes/PA design App/R/ui.R"
+
+with open(FILEPATH, "r") as f:
+    content = f.read()
+
+original_len = len(content)
+changes = []
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 1. Replace sidebarMenu
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_SIDEBAR = '''    sidebarMenu(
+      id = "sidebar_menu",
+      menuItem("Dashboard", tabName = "dashboard", icon = icon("tachometer-alt")),
+      menuItem("Projects", tabName = "projects", icon = icon("folder-open")),
+      menuItem("Design Flow", tabName = "design", icon = icon("project-diagram"),
+        menuSubItem("First Principles", tabName = "first_principles"),
+        menuSubItem("Theoretical Calc", tabName = "theoretical_calc"),
+        menuSubItem("Architecture", tabName = "architecture"),
+        menuSubItem("Simulation", tabName = "simulation"),
+        menuSubItem("Layout", tabName = "layout"),
+        menuSubItem("Measurement", tabName = "measurement")
+      ),
+      menuItem("Data Manager", tabName = "data", icon = icon("database")),
+      menuItem("RF Tools", tabName = "rf_tools", icon = icon("tools"),
+        menuSubItem("Smith Chart", tabName = "smith_chart"),
+        menuSubItem("RF Converters", tabName = "rf_converters"),
+        menuSubItem("MTTF Calculator", tabName = "mttf_calc"),
+        menuSubItem("Thermal Analysis", tabName = "thermal_calc")
+      ),
+      menuItem("AI Agents", tabName = "agents", icon = icon("robot")),
+      menuItem("Knowledge Base", tabName = "knowledge", icon = icon("book")),
+      menuItem("Settings", tabName = "settings", icon = icon("cog"))
+    )'''
+
+NEW_SIDEBAR = '''    sidebarMenu(
+      id = "sidebar_menu",
+      menuItem("Dashboard",  tabName = "dashboard", icon = icon("tachometer-alt")),
+      menuItem("Projects",   tabName = "projects",  icon = icon("folder-open")),
+
+      # ── DESIGN FLOW ──────────────────────────────────────────────────────────
+      tags$li(class = "header", "DESIGN FLOW"),
+
+      menuItem("1 \u00b7 First Principles", tabName = "first_principles", icon = icon("atom"),
+        menuSubItem("1.1  Atoms & Charge",       tabName = "fp_atoms"),
+        menuSubItem("1.2  EM Wave Origin",        tabName = "fp_em_waves"),
+        menuSubItem("1.3  RF Materials",          tabName = "fp_materials"),
+        menuSubItem("1.4  Transmission Lines",    tabName = "fp_tlines"),
+        menuSubItem("1.5  Thermal Effects",       tabName = "fp_thermal")
+      ),
+
+      menuItem("2 \u00b7 System Level", tabName = "system_level", icon = icon("network-wired"),
+        menuSubItem("2.1  Frequency Planning",    tabName = "sys_freq_planning"),
+        menuSubItem("2.2  TX Architectures",      tabName = "sys_tx_arch"),
+        menuSubItem("2.3  RX Architectures",      tabName = "sys_rx_arch"),
+        menuSubItem("2.4  Link Budget",           tabName = "sys_link_budget"),
+        menuSubItem("2.5  System Architecture",   tabName = "sys_architecture")
+      ),
+
+      menuItem("3 \u00b7 Technology Level", tabName = "tech_level", icon = icon("microchip"),
+        menuSubItem("3.1  Technology Selection",  tabName = "tech_selection"),
+        menuSubItem("3.2  Guardrails",            tabName = "tech_guardrails"),
+        menuSubItem("3.3  Device Library",        tabName = "tech_device_lib"),
+        menuSubItem("3.4  Loss Curves",           tabName = "tech_loss_curves"),
+        menuSubItem("3.5  Technology Stack",      tabName = "tech_stack"),
+        menuSubItem("3.6  Portfolio",             tabName = "tech_portfolio")
+      ),
+
+      menuItem("4 \u00b7 Device Level", tabName = "device_level", icon = icon("draw-polygon"),
+        menuSubItem("4.1  PA Specifications",     tabName = "dev_specs"),
+        menuSubItem("4.2  Architecture & Design", tabName = "dev_architecture"),
+        menuSubItem("4.3  Transistor Design",     tabName = "dev_transistor"),
+        menuSubItem("4.4  PA Design",             tabName = "dev_pa_design"),
+        menuSubItem("4.5  Interstage & Passives", tabName = "dev_interstage")
+      ),
+
+      menuItem("5 \u00b7 Product Level", tabName = "product_level", icon = icon("industry"),
+        menuSubItem("5.1  Design (PA Lineup)",    tabName = "prod_lineup"),
+        menuSubItem("5.2  Reliability",           tabName = "prod_reliability"),
+        menuSubItem("5.3  Prototype",             tabName = "prod_prototype"),
+        menuSubItem("5.4  CV Measurements",       tabName = "prod_cv_meas"),
+        menuSubItem("5.5  Analysis",              tabName = "prod_analysis")
+      ),
+
+      menuItem("6 \u00b7 Lessons Learnt",  tabName = "lessons_learnt",  icon = icon("graduation-cap")),
+      menuItem("7 \u00b7 Reporting",       tabName = "reporting",        icon = icon("file-alt")),
+      menuItem("8 \u00b7 App Download",    tabName = "app_download",     icon = icon("download"))
+    )'''
+
+if OLD_SIDEBAR in content:
+    content = content.replace(OLD_SIDEBAR, NEW_SIDEBAR, 1)
+    changes.append("Sidebar menu replaced")
+else:
+    print("ERROR: OLD_SIDEBAR not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 2. Add Utility Bar to dashboardHeader
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_HEADER_END = '''    tags$li(class = "dropdown",
+      tags$a(href = "#", icon("user"), "Profile")
+    )
+  ),'''
+
+NEW_HEADER_END = '''    tags$li(class = "dropdown",
+      tags$a(href = "#", icon("user"), "Profile")
+    ),
+    # ── TOP UTILITY BAR ──────────────────────────────────────────────────────
+    tags$li(class = "dropdown utility-nav",
+      tags$a(href = "#", class = "utility-link",
+        onclick = "Shiny.setInputValue(\\'goto_utility_tab\\', \\'util_data\\', {priority:\\'event\\'}); return false;",
+        icon("database"), " Data Manager")
+    ),
+    tags$li(class = "dropdown utility-nav",
+      tags$a(href = "#", class = "utility-link",
+        onclick = "Shiny.setInputValue(\\'goto_utility_tab\\', \\'smith_chart\\', {priority:\\'event\\'}); return false;",
+        icon("tools"), " RF Tools")
+    ),
+    tags$li(class = "dropdown utility-nav",
+      tags$a(href = "#", class = "utility-link",
+        onclick = "Shiny.setInputValue(\\'goto_utility_tab\\', \\'util_agents\\', {priority:\\'event\\'}); return false;",
+        icon("robot"), " AI Agents")
+    ),
+    tags$li(class = "dropdown utility-nav",
+      tags$a(href = "#", class = "utility-link",
+        onclick = "Shiny.setInputValue(\\'goto_utility_tab\\', \\'util_knowledge\\', {priority:\\'event\\'}); return false;",
+        icon("book"), " Knowledge Base")
+    ),
+    tags$li(class = "dropdown utility-nav",
+      tags$a(href = "#", class = "utility-link",
+        onclick = "Shiny.setInputValue(\\'goto_utility_tab\\', \\'settings\\', {priority:\\'event\\'}); return false;",
+        icon("cog"), " Settings")
+    )
+  ),'''
+
+if OLD_HEADER_END in content:
+    content = content.replace(OLD_HEADER_END, NEW_HEADER_END, 1)
+    changes.append("Utility bar added to header")
+else:
+    print("ERROR: OLD_HEADER_END not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 3. Transform theoretical_calc opening → sys_freq_planning tabItem
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_THEO_OPEN = '''      tabItem(tabName = "theoretical_calc",
+        h2("Theoretical Calculation Module"),
+        fluidRow(
+          box(
+            title = "Project Selection",
+            width = 12,
+            status = "primary",
+            solidHeader = TRUE,
+            collapsible = TRUE,
+            selectInput("calc_project_select", "Select Project", choices = NULL),
+            textOutput("calc_project_specs")
+          )
+        ),
+        fluidRow(
+          tabBox(
+            width = 12,
+            id = "theoretical_calc_tabs",
+            
+            # ======================================
+            # Tab 1: Frequency Planning Tool
+            # ======================================
+            tabPanel(
+              title = tagList(icon("satellite-dish"), "Frequency Planning"),
+              value = "freq_planning",'''
+
+NEW_THEO_OPEN = '''      # ── 2.1 Frequency Planning ────────────────────────────────────────────────
+      tabItem(tabName = "sys_freq_planning",
+        fluidRow(
+          box(
+            title = "Project Selection",
+            width = 12,
+            status = "primary",
+            solidHeader = TRUE,
+            collapsible = TRUE,
+            selectInput("calc_project_select", "Select Project", choices = NULL),
+            textOutput("calc_project_specs")
+          )
+        ),'''
+
+if OLD_THEO_OPEN in content:
+    content = content.replace(OLD_THEO_OPEN, NEW_THEO_OPEN, 1)
+    changes.append("theoretical_calc opening → sys_freq_planning")
+else:
+    print("ERROR: OLD_THEO_OPEN not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 4. Transition: Frequency Planning → Link Budget
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_T1 = '''              htmlOutput("freq_recommendation")
+            ),
+            
+            # ======================================
+            # Tab 2: Link Budget Calculator
+            # ======================================
+            tabPanel(
+              title = tagList(icon("link"), "Link Budget"),
+              value = "link_budget",'''
+
+NEW_T1 = '''              htmlOutput("freq_recommendation")
+      ),  # closes tabItem(sys_freq_planning)
+
+      # ── 2.4 Link Budget ───────────────────────────────────────────────────────
+      tabItem(tabName = "sys_link_budget",'''
+
+if OLD_T1 in content:
+    content = content.replace(OLD_T1, NEW_T1, 1)
+    changes.append("Transition: Freq Planning → Link Budget")
+else:
+    print("ERROR: OLD_T1 (Freq Planning → Link Budget) not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 5. Transition: Link Budget → Loss Curves
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_T2 = '''              hr(),
+              htmlOutput("link_budget_summary")
+            ),
+            
+            # ======================================
+            # Tab 3: Passive Component Loss Curves
+            # ======================================
+            tabPanel(
+              title = tagList(icon("chart-line"), "Loss Curves"),
+              value = "loss_curves",'''
+
+NEW_T2 = '''              hr(),
+              htmlOutput("link_budget_summary")
+      ),  # closes tabItem(sys_link_budget)
+
+      # ── 3.4 Loss Curves ───────────────────────────────────────────────────────
+      tabItem(tabName = "tech_loss_curves",'''
+
+if OLD_T2 in content:
+    content = content.replace(OLD_T2, NEW_T2, 1)
+    changes.append("Transition: Link Budget → Loss Curves")
+else:
+    print("ERROR: OLD_T2 (Link Budget → Loss Curves) not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 6. Transition: Loss Curves → Guardrails
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_T3 = '''            ),
+            
+            # ======================================
+            # Tab 4: Performance Guardrails
+            # ======================================
+            tabPanel(
+              title = tagList(icon("shield-alt"), "Performance Guardrails"),
+              value = "perf_guardrails",'''
+
+NEW_T3 = '''      ),  # closes tabItem(tech_loss_curves)
+
+      # ── 3.2 Guardrails ────────────────────────────────────────────────────────
+      tabItem(tabName = "tech_guardrails",'''
+
+if OLD_T3 in content:
+    content = content.replace(OLD_T3, NEW_T3, 1)
+    changes.append("Transition: Loss Curves → Guardrails")
+else:
+    print("ERROR: OLD_T3 (Loss Curves → Guardrails) not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 7. Transition: Guardrails → PA Lineup
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_T4 = '''            ),
+
+            # ======================================
+            # Tab 5: PA Lineup Calculator (Enhanced Interactive)
+            # ======================================
+            tabPanel(
+              title = tagList(icon("project-diagram"), "PA Lineup"),
+              value = "pa_lineup",'''
+
+NEW_T4 = '''      ),  # closes tabItem(tech_guardrails)
+
+      # ── 5.1 Product Design: PA Lineup ─────────────────────────────────────────
+      tabItem(tabName = "prod_lineup",'''
+
+if OLD_T4 in content:
+    content = content.replace(OLD_T4, NEW_T4, 1)
+    changes.append("Transition: Guardrails → PA Lineup")
+else:
+    print("ERROR: OLD_T4 (Guardrails → PA Lineup) not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 8. Close prod_lineup + remove old theoretical_calc close brackets
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_THEO_CLOSE = '''            )
+          )
+        )
+      ),  # closes tabItem(theoretical_calc)'''
+
+NEW_THEO_CLOSE = '''      ),  # closes tabItem(prod_lineup)'''
+
+if OLD_THEO_CLOSE in content:
+    content = content.replace(OLD_THEO_CLOSE, NEW_THEO_CLOSE, 1)
+    changes.append("Closed prod_lineup, removed theoretical_calc wrapper")
+else:
+    print("ERROR: OLD_THEO_CLOSE not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 9. Expand first_principles stub → structured sub-section scaffold
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_FP_STUB = '''      tabItem(tabName = "first_principles",
+        h2("First Principles Module"),
+        p("Module under construction - validates design feasibility based on fundamental RF theory.")
+      ),'''
+
+NEW_FP_STUB = '''      # ── 1. First Principles (landing) ────────────────────────────────────────
+      tabItem(tabName = "first_principles",
+        h2(icon("atom"), " First Principles"),
+        p("Select a sub-topic from the sidebar to explore atomic-level foundations of RF design."),
+        fluidRow(
+          lapply(
+            list(
+              list("fp_atoms",     "atom",             "1.1 Atoms & Charge",
+                   "Electron/charge models, quantum basics, semiconductor fundamentals."),
+              list("fp_em_waves",  "broadcast-tower",  "1.2 EM Wave Origin",
+                   "Maxwell equations, EM field propagation mechanisms."),
+              list("fp_materials", "cubes",            "1.3 RF Materials",
+                   "Dielectrics, conductors, substrates and their RF constraints."),
+              list("fp_tlines",    "project-diagram",  "1.4 Transmission Lines",
+                   "TL theory, waveguides, return paths with simple worked examples."),
+              list("fp_thermal",   "thermometer-half", "1.5 Thermal Effects",
+                   "Temperature impact on GaN, LDMOS, GaAs, SiGe performance.")
+            ),
+            function(item) {
+              column(4,
+                box(
+                  title = tagList(icon(item[[2]]), " ", item[[3]]),
+                  width = 12, status = "primary", solidHeader = TRUE,
+                  p(item[[4]]),
+                  actionButton(paste0("goto_", item[[1]]), "Open",
+                               class = "btn-sm btn-default",
+                               onclick = paste0("Shiny.setInputValue(\\'sidebar_menu\\', \\'",
+                                                item[[1]], "\\', {priority:\\'event\\'})"))
+                )
+              )
+            }
+          )
+        )
+      ),
+      # 1.1 Atoms & Charge
+      tabItem(tabName = "fp_atoms",
+        h2(icon("atom"), " 1.1 Atoms, Electrons, Charge & Molecules"),
+        p(class = "text-muted", "Under construction — atom/charge simulation canvas will go here.")
+      ),
+      # 1.2 EM Wave Origin
+      tabItem(tabName = "fp_em_waves",
+        h2(icon("broadcast-tower"), " 1.2 EM Wave Origin & Propagation"),
+        p(class = "text-muted", "Under construction — simulation canvas for EM fields will go here.")
+      ),
+      # 1.3 RF Materials
+      tabItem(tabName = "fp_materials",
+        h2(icon("cubes"), " 1.3 RF Materials & Constraints"),
+        p(class = "text-muted", "Under construction — dielectric/conductor properties at RF frequencies.")
+      ),
+      # 1.4 Transmission Lines
+      tabItem(tabName = "fp_tlines",
+        h2(icon("project-diagram"), " 1.4 Transmission Lines, Waveguides & Return Paths"),
+        p(class = "text-muted", "Under construction — TL theory, Smith Chart integration, worked examples.")
+      ),
+      # 1.5 Thermal Effects
+      tabItem(tabName = "fp_thermal",
+        h2(icon("thermometer-half"), " 1.5 Impact of Temperature on Technologies"),
+        p(class = "text-muted", "Under construction — thermal modeling and technology comparison.")
+      ),'''
+
+if OLD_FP_STUB in content:
+    content = content.replace(OLD_FP_STUB, NEW_FP_STUB, 1)
+    changes.append("First Principles stub expanded with sub-tabs")
+else:
+    print("ERROR: OLD_FP_STUB not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 10. Rename architecture stub → dev_architecture
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_ARCH = '''      tabItem(tabName = "architecture",
+        h2("Architecture Selection Module"),
+        p("Module under construction - recommends PA architecture and topology.")
+      ),'''
+
+NEW_ARCH = '''      # ── 4.2 Architecture & Design Choices ────────────────────────────────────
+      tabItem(tabName = "dev_architecture",
+        h2(icon("draw-polygon"), " 4.2 Architecture & Design Choices"),
+        p("Under construction — topology selection canvas, architecture comparisons and rationale.")
+      ),'''
+
+if OLD_ARCH in content:
+    content = content.replace(OLD_ARCH, NEW_ARCH, 1)
+    changes.append("architecture stub → dev_architecture")
+else:
+    print("ERROR: OLD_ARCH not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 11. Replace simulation/layout/measurement stubs with new Phase stubs
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_SIM_LAYOUT_MEAS = '''      tabItem(tabName = "simulation",
+        h2("Simulation Module"),
+        p("Module under construction - integrates with ADS/AWR via MCP.")
+      ),
+      
+      tabItem(tabName = "layout",
+        h2("Layout Module"),
+        p("Module under construction - reviews layout for RF best practices.")
+      ),
+      
+      tabItem(tabName = "measurement",
+        h2("Measurement Module"),
+        p("Module under construction - controls lab equipment and analyzes data.")
+      ),'''
+
+NEW_SIM_LAYOUT_MEAS = '''      # ── System-level stubs ────────────────────────────────────────────────────
+      tabItem(tabName = "system_level",
+        h2(icon("network-wired"), " 2 \u00b7 System Level"),
+        p("Select a sub-topic from the sidebar.")
+      ),
+      tabItem(tabName = "sys_tx_arch",
+        h2(icon("broadcast-tower"), " 2.2 Transmitter Architectures"),
+        p("Under construction — TX architecture types, design constraints, theoretical calculations.")
+      ),
+      tabItem(tabName = "sys_rx_arch",
+        h2(icon("wifi"), " 2.3 Receiver Architectures"),
+        p("Under construction — RX architecture NF/IP3/dynamic range calculations.")
+      ),
+      tabItem(tabName = "sys_architecture",
+        h2(icon("project-diagram"), " 2.5 System Architecture"),
+        p("Under construction — system block diagram canvas and signal chain partitioning.")
+      ),
+
+      # ── Technology-level stubs ────────────────────────────────────────────────
+      tabItem(tabName = "tech_level",
+        h2(icon("microchip"), " 3 \u00b7 Technology Level"),
+        p("Select a sub-topic from the sidebar.")
+      ),
+      tabItem(tabName = "tech_selection",
+        h2(icon("microchip"), " 3.1 Technology Selection"),
+        p("Under construction — fT/fmax comparison, selection guidelines (content from Freq Planning subtabs).")
+      ),
+      tabItem(tabName = "tech_device_lib",
+        h2(icon("th-large"), " 3.3 Device Library"),
+        p("Under construction — browse, compare and annotate saved transistor devices.")
+      ),
+      tabItem(tabName = "tech_stack",
+        h2(icon("layer-group"), " 3.5 Technology Stack"),
+        p("Under construction — PCB stackup, packaging options, assembly rules.")
+      ),
+      tabItem(tabName = "tech_portfolio",
+        h2(icon("chart-bar"), " 3.6 Portfolio Generation"),
+        p("Under construction — multi-device portfolio comparison and trade-off analysis.")
+      ),
+
+      # ── Device-level stubs ────────────────────────────────────────────────────
+      tabItem(tabName = "device_level",
+        h2(icon("draw-polygon"), " 4 \u00b7 Device Level"),
+        p("Select a sub-topic from the sidebar.")
+      ),
+      tabItem(tabName = "dev_specs",
+        h2(icon("clipboard-list"), " 4.1 PA Specifications"),
+        p("Under construction — PA specification entry (Power, Gain, Linearity, Conditions).")
+      ),
+      tabItem(tabName = "dev_transistor",
+        h2(icon("microchip"), " 4.3 Transistor Design"),
+        p("Under construction — LP performance, linearity and stability analysis.")
+      ),
+      tabItem(tabName = "dev_pa_design",
+        h2(icon("bolt"), " 4.4 PA Design"),
+        p("Under construction — Driver, Main and Aux stage design (performance, linearity, stability).")
+      ),
+      tabItem(tabName = "dev_interstage",
+        h2(icon("random"), " 4.5 Interstage & Passives"),
+        p("Under construction — Splitter, combiner and interstage matching design.")
+      ),
+
+      # ── Product-level stubs ───────────────────────────────────────────────────
+      tabItem(tabName = "product_level",
+        h2(icon("industry"), " 5 \u00b7 Product Level"),
+        p("Select a sub-topic from the sidebar.")
+      ),
+      tabItem(tabName = "prod_prototype",
+        h2(icon("tools"), " 5.3 Prototype"),
+        tabsetPanel(
+          tabPanel("Test Structures", p("Under construction.")),
+          tabPanel("Layout",          p("Under construction — layout review for RF best practices.")),
+          tabPanel("Tapeout",         p("Under construction.")),
+          tabPanel("Assembly",        p("Under construction.")),
+          tabPanel("BOM",             p("Under construction."))
+        )
+      ),
+      tabItem(tabName = "prod_cv_meas",
+        h2(icon("flask"), " 5.4 CV Measurements"),
+        tabsetPanel(
+          tabPanel("DC",                p("Under construction — DC characterisation.")),
+          tabPanel("S-parameter",       p("Under construction — S-parameter measurements.")),
+          tabPanel("Load-pull",         p("Under construction — load-pull setup and data.")),
+          tabPanel("RF Large-Signal",   p("Under construction — large-signal RF performance.")),
+          tabPanel("DPD Linearity",     p("Under construction — DPD and linearity measurements."))
+        )
+      ),
+      tabItem(tabName = "prod_analysis",
+        h2(icon("balance-scale"), " 5.5 Analysis"),
+        tabsetPanel(
+          tabPanel("Sim vs Measurement", p("Under construction — comparison plots and tables.")),
+          tabPanel("Modelling",          p("Under construction — extraction and model validation.")),
+          tabPanel("Compliance Matrix",  p("Under construction — spec compliance tracking.")),
+          tabPanel("Lessons Learnt",     p("Under construction — stage-specific lessons."))
+        )
+      ),
+
+      # ── Lessons Learnt ────────────────────────────────────────────────────────
+      tabItem(tabName = "lessons_learnt",
+        h2(icon("graduation-cap"), " 6 \u00b7 Lessons Learnt"),
+        p("Under construction — cross-project searchable lessons database by technology / frequency band.")
+      ),
+
+      # ── Reporting ─────────────────────────────────────────────────────────────
+      tabItem(tabName = "reporting",
+        h2(icon("file-alt"), " 7 \u00b7 Reporting"),
+        tabsetPanel(
+          tabPanel("Stage Reports",
+            p("Under construction — per-stage report generation (exported from each design stage).")
+          ),
+          tabPanel("Master Report",
+            p("Under construction — assemble all stage sub-reports into a single logical master document.")
+          ),
+          tabPanel("Report Config",
+            p("Under construction — select stages, detail level, output format (HTML / PDF).")
+          )
+        )
+      ),
+
+      # ── App Download ──────────────────────────────────────────────────────────
+      tabItem(tabName = "app_download",
+        h2(icon("download"), " 8 \u00b7 App Download"),
+        tabsetPanel(
+          tabPanel("Dataset Snapshot",
+            p("Under construction — freeze current project dataset into a self-contained dynamic HTML report.")
+          ),
+          tabPanel("Sub-App Export",
+            p("Under construction — select a subset of stages and export as standalone sub-app (Antenna, LNA, Mixer...).")
+          ),
+          tabPanel("Template Store",
+            p("Under construction — save this app structure as reusable template for new designs.")
+          )
+        )
+      ),
+
+      # ── Utilities (reached via top utility bar) ───────────────────────────────
+      tabItem(tabName = "util_data",
+        h2(icon("database"), " Data Manager"),
+        p("Under construction — database browser, metadata, tagging system, import/export.")
+      ),
+      tabItem(tabName = "util_agents",
+        h2(icon("robot"), " AI Agents"),
+        p("Under construction — agent manager, prompt store, external knowledge access.")
+      ),
+      tabItem(tabName = "util_knowledge",
+        h2(icon("book"), " Knowledge Base"),
+        p("Under construction — internal notes, datasheets, references and IFX notes library.")
+      ),
+
+      # ── Prod Reliability (MTTF + Thermal consolidated) ───────────────────────
+      tabItem(tabName = "prod_reliability",
+        h2(icon("heartbeat"), " 5.2 Reliability & Thermal Analysis"),
+        tabsetPanel('''
+
+if OLD_SIM_LAYOUT_MEAS in content:
+    content = content.replace(OLD_SIM_LAYOUT_MEAS, NEW_SIM_LAYOUT_MEAS, 1)
+    changes.append("Simulation/layout/measurement stubs replaced with full new structure")
+else:
+    print("ERROR: OLD_SIM_LAYOUT_MEAS not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 12. Merge mttf_calc into prod_reliability (open new combined tabItem)
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_MTTF_OPEN = '''      # RF Tools: MTTF Calculator
+      tabItem(tabName = "mttf_calc",
+        h2("\u23f1\ufe0f MTTF (Mean Time To Failure) Calculator"),'''
+
+NEW_MTTF_OPEN = '''          tabPanel("MTTF Calculator",
+            h3(icon("stopwatch"), " MTTF (Mean Time To Failure) Calculator"),'''
+
+if OLD_MTTF_OPEN in content:
+    content = content.replace(OLD_MTTF_OPEN, NEW_MTTF_OPEN, 1)
+    changes.append("mttf_calc opening merged into prod_reliability tabsetPanel")
+else:
+    # Try without emoji
+    OLD_MTTF_OPEN2 = '''      # RF Tools: MTTF Calculator
+      tabItem(tabName = "mttf_calc",'''
+    if OLD_MTTF_OPEN2 in content:
+        # Find and replace the entire opening line
+        content = content.replace(
+            OLD_MTTF_OPEN2,
+            '''          tabPanel("MTTF Calculator",''',
+            1
+        )
+        changes.append("mttf_calc opening merged (fallback)")
+    else:
+        print("ERROR: OLD_MTTF_OPEN not found (tried both variants)!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 13. Fix MTTF close + Thermal open: merge into same prod_reliability tabsetPanel
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_MTTF_THERMAL_BOUNDARY = '''      # RF Tools: Thermal Analysis
+      tabItem(tabName = "thermal_calc",
+        h2("\U0001f321\ufe0f Thermal Analysis"),'''
+
+NEW_MTTF_THERMAL_BOUNDARY = '''          tabPanel("Thermal Analysis",
+            h3(icon("fire"), " Thermal Analysis"),'''
+
+if OLD_MTTF_THERMAL_BOUNDARY in content:
+    content = content.replace(OLD_MTTF_THERMAL_BOUNDARY, NEW_MTTF_THERMAL_BOUNDARY, 1)
+    changes.append("thermal_calc merged into prod_reliability tabsetPanel")
+else:
+    OLD_MTTF_THERMAL_BOUNDARY2 = '''      # RF Tools: Thermal Analysis
+      tabItem(tabName = "thermal_calc",'''
+    if OLD_MTTF_THERMAL_BOUNDARY2 in content:
+        content = content.replace(
+            OLD_MTTF_THERMAL_BOUNDARY2,
+            '''          tabPanel("Thermal Analysis",''',
+            1
+        )
+        changes.append("thermal_calc merged (fallback)")
+    else:
+        print("ERROR: OLD_MTTF_THERMAL_BOUNDARY not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 14. Close thermal_calc tabItem → close the tabsetPanel + tabItem for prod_reliability
+# ═══════════════════════════════════════════════════════════════════════════════
+OLD_THERMAL_SETTINGS = '''      # Settings Tab
+      tabItem(tabName = "settings",'''
+
+NEW_THERMAL_SETTINGS = '''        )  # close tabsetPanel in prod_reliability
+      ),  # closes tabItem(prod_reliability)
+
+      # Settings Tab
+      tabItem(tabName = "settings",'''
+
+if OLD_THERMAL_SETTINGS in content:
+    content = content.replace(OLD_THERMAL_SETTINGS, NEW_THERMAL_SETTINGS, 1)
+    changes.append("prod_reliability tabItem closed before settings")
+else:
+    print("ERROR: OLD_THERMAL_SETTINGS not found!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 15. Fix H2 de-emojification in MTTF/Thermal headers (if emojis were kept)
+# ═══════════════════════════════════════════════════════════════════════════════
+content = re.sub(
+    r'h2\("\u23f1\ufe0f MTTF',
+    'h3(icon("stopwatch"), " MTTF',
+    content
+)
+content = re.sub(
+    r'h2\("\U0001f321\ufe0f Thermal',
+    'h3(icon("fire"), " Thermal',
+    content
+)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Write output
+# ═══════════════════════════════════════════════════════════════════════════════
+with open(FILEPATH, "w") as f:
+    f.write(content)
+
+print("\nTransformation complete!")
+print(f"Original length: {original_len} chars")
+print(f"New length:      {len(content)} chars")
+print(f"\nApplied changes ({len(changes)}):")
+for i, c in enumerate(changes, 1):
+    print(f"  {i}. {c}")
