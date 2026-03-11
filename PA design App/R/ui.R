@@ -180,79 +180,63 @@ $(document).ready(function() {
   });
 
   // ── Utility Drawer ──────────────────────────────────────────────────────
-  // Clicking a utility-bar link opens a sliding right-side drawer panel.
-  // The main content remains visible and fully interactive behind the drawer.
+  // Functions are attached to window so onclick= HTML attributes can call them.
+  // The drawer floats over the app — main sidebar and content stay interactive.
 
-  var _drawerTab = null; // currently shown panel name
-
+  var _drawerTab = null;
   var _drawerMeta = {
-    'util_data':      { title: 'Data Manager',   icon: 'database' },
-    'smith_chart':    { title: 'RF Tools',        icon: 'tools'    },
-    'util_agents':    { title: 'AI Agents',       icon: 'robot'    },
-    'util_knowledge': { title: 'Knowledge Base',  icon: 'book'     },
-    'settings':       { title: 'Settings',        icon: 'cog'      }
+    'util_data':      { title: 'Data Manager'  },
+    'smith_chart':    { title: 'RF Tools'       },
+    'util_agents':    { title: 'AI Agents'      },
+    'util_knowledge': { title: 'Knowledge Base' },
+    'settings':       { title: 'Settings'       }
   };
 
-  function utilityDrawerOpen(tabName) {
-    // Toggle: clicking the same tab again closes the drawer
+  window.utilityDrawerOpen = function(tabName) {
+    // Second click on same tab toggles closed
     if (_drawerTab === tabName && $('#utility-drawer').hasClass('open')) {
-      utilityDrawerClose();
+      window.utilityDrawerClose();
       return;
     }
     _drawerTab = tabName;
-    var meta = _drawerMeta[tabName] || { title: tabName, icon: 'th' };
-    // Update header title
+    var meta = _drawerMeta[tabName] || { title: tabName };
     $('#utility-drawer-title').text(meta.title);
-    // Open drawer + push content wrapper
     $('#utility-drawer').addClass('open');
-    $('body > .wrapper').addClass('drawer-open');
     // Highlight active utility link
     $('.utility-nav').removeClass('active-utility');
     $('.utility-nav').filter(function() {
       return $(this).find('[data-panel=\'' + tabName + '\']').length > 0;
     }).addClass('active-utility');
-    // Ask Shiny to render the panel content
+    // Ask Shiny to render drawer content
     Shiny.setInputValue('utility_drawer_tab', tabName, {priority: 'event'});
-  }
+  };
 
-  function utilityDrawerClose() {
+  window.utilityDrawerClose = function() {
     $('#utility-drawer').removeClass('open');
-    $('body > .wrapper').removeClass('drawer-open');
     $('.utility-nav').removeClass('active-utility');
     _drawerTab = null;
-  }
+  };
 
-  function utilityDrawerFullView() {
+  // Navigate the main sidebar to the full tabItem view
+  window.utilityDrawerFullView = function() {
     if (!_drawerTab) return;
     var tab = _drawerTab;
-    utilityDrawerClose();
-    // Navigate to the full tabItem in the main sidebar
+    window.utilityDrawerClose();
     Shiny.setInputValue('goto_utility_tab', tab, {priority: 'event'});
-  }
+  };
 
-  function utilityDrawerPopout() {
+  // Open in a real new browser tab (full Shiny app, panel pre-selected via ?panel=)
+  window.utilityDrawerPopout = function() {
     if (!_drawerTab) return;
-    var tab = _drawerTab;
     var base = window.location.href.split('?')[0].split('#')[0];
-    window.open(
-      base + '?panel=' + encodeURIComponent(tab),
-      'pa_utility_' + tab,
-      'width=820,height=680,resizable=yes,scrollbars=yes,menubar=no,toolbar=no,location=no'
-    );
+    window.open(base + '?panel=' + encodeURIComponent(_drawerTab), '_blank');
+  };
+
+  // Add TOOLS label before the first utility-nav item
+  var $firstUtil = $('.utility-nav').first();
+  if ($firstUtil.length && !$('#utility-nav-label').length) {
+    $firstUtil.before('<li class=\'dropdown\'><span class=\'utility-nav-label\' id=\'utility-nav-label\'>Tools</span></li>');
   }
-
-  // Re-use the existing goto_utility_tab observer for Full View navigation
-  $(document).on('shiny:inputchanged', function(e) {
-    if (e.name !== 'goto_utility_tab') return;
-  });
-
-  // Add TOOLS label before the first utility-nav item on load
-  $(document).ready(function() {
-    var $first = $('.utility-nav').first();
-    if ($first.length && !$('#utility-nav-label').length) {
-      $first.before(\'<li class=\\\'dropdown\\\'><span class=\\\'utility-nav-label\\\' id=\\\'utility-nav-label\\\'>Tools</span></li>\');
-    }
-  });
 });
       "))
     ),
