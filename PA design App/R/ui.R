@@ -178,6 +178,41 @@ $(document).ready(function() {
       $compProps.data('rp-pinned', false);
     }
   });
+
+  // ── Phase 4: Utility top-bar active-state tracker ───────────────────────
+  // The utility tabs are NOT in the shinydashboard sidebar tree — they live
+  // only as extra tabItems.  We track the current active sidebar_menu value
+  // and highlight the matching utility-nav item by toggling .active-utility.
+  var utilityTabMap = {
+    'util_data':      '[onclick*='util_data']',
+    'smith_chart':    '[onclick*='smith_chart']',
+    'rf_converters':  '[onclick*='rf_converters']',
+    'util_agents':    '[onclick*='util_agents']',
+    'util_knowledge': '[onclick*='util_knowledge']',
+    'settings':       '[onclick*='settings']'
+  };
+  function syncUtilityActiveState(tabName) {
+    // Remove active class from all utility items
+    $('.utility-nav').removeClass('active-utility');
+    // Add to matching item if the active tab is a utility tab
+    if (utilityTabMap[tabName]) {
+      $('.utility-nav').filter(function() {
+        return $(this).find('a[onclick*=\'' + tabName + '\']').length > 0;
+      }).addClass('active-utility');
+    }
+  }
+  // Watch for Shiny input changes
+  $(document).on('shiny:inputchanged', function(e) {
+    if (e.name === 'sidebar_menu') syncUtilityActiveState(e.value);
+    if (e.name === 'goto_utility_tab') syncUtilityActiveState(e.value);
+  });
+  // Also add TOOLS label before the first utility-nav item on load
+  $(document).ready(function() {
+    var $first = $('.utility-nav').first();
+    if ($first.length && !$('#utility-nav-label').length) {
+      $first.before('<li class=\'dropdown\'><span class=\'utility-nav-label\' id=\'utility-nav-label\'>Tools</span></li>');
+    }
+  });
 });
       "))
     ),
@@ -1719,30 +1754,238 @@ $(document).ready(function() {
         )
       ),
       # 1.1 Atoms & Charge
+      # 1.1 Atoms & Charge
+      # 1.1 Atoms & Charge
       tabItem(tabName = "fp_atoms",
         h2(icon("atom"), " 1.1 Atoms, Electrons, Charge & Molecules"),
-        p(class = "text-muted", "Under construction — atom/charge simulation canvas will go here.")
+        tabsetPanel(
+          tabPanel("Electron Model",
+            h4("Bohr / Quantum Model"),
+            p("Energy levels, electron shells, and ionisation energy underpin semiconductor doping and band-gap engineering."),
+            HTML("<table class='table table-sm table-striped'>
+              <thead><tr><th>Parameter</th><th>Si</th><th>GaAs</th><th>GaN</th><th>SiGe</th></tr></thead>
+              <tbody>
+                <tr><td>Band gap (eV)</td><td>1.12</td><td>1.42</td><td>3.4</td><td>0.67–1.12</td></tr>
+                <tr><td>Electron mobility (cm²/Vs)</td><td>1400</td><td>8500</td><td>1500 (2DEG ~2000)</td><td>~1000</td></tr>
+                <tr><td>Breakdown field (MV/cm)</td><td>0.3</td><td>0.4</td><td>3.3</td><td>0.3</td></tr>
+              </tbody></table>"),
+            p(class="text-muted", "Interactive periodic-table explorer — coming soon.")
+          ),
+          tabPanel("Semiconductor Fundamentals",
+            h4("Doping, Carrier Concentration, pn-Junctions"),
+            p("N-type and P-type doping create the charge carriers exploited in FETs and BJTs."),
+            wellPanel(
+              h5("Key relationships"),
+              HTML("<ul>
+                <li>Intrinsic carrier density: n<sub>i</sub> = √(N<sub>c</sub>·N<sub>v</sub>) · exp(−E<sub>g</sub>/2kT)</li>
+                <li>Depletion width: W<sub>d</sub> ∝ √(V<sub>bi</sub>/N<sub>d</sub>)</li>
+                <li>Threshold voltage V<sub>t</sub> = V<sub>FB</sub> − Q<sub>dep</sub>/C<sub>ox</sub> − 2φ<sub>F</sub></li>
+              </ul>")
+            )
+          ),
+          tabPanel("HEMT 2DEG Physics",
+            h4("Two-Dimensional Electron Gas"),
+            p("In GaN/AlGaN HEMTs, spontaneous + piezoelectric polarisation creates a high-density 2DEG without doping — enabling GaN's outstanding Pout density."),
+            wellPanel(
+              HTML("<ul>
+                <li>2DEG sheet charge density n<sub>s</sub> ~ 10¹³ cm⁻²</li>
+                <li>Polarisation discontinuity ΔP = P<sub>sp,AlGaN</sub> + P<sub>pe,AlGaN</sub> − P<sub>sp,GaN</sub></li>
+                <li>Conduction band offset ΔEc ≈ 0.7 eV for Al₀.₂₅Ga₀.₇₅N/GaN</li>
+              </ul>")
+            ),
+            p(class="text-muted", "Simulation canvas — under construction.")
+          )
+        )
       ),
+
+
+      # 1.2 EM Wave Origin
+      # 1.2 EM Wave Origin
       # 1.2 EM Wave Origin
       tabItem(tabName = "fp_em_waves",
         h2(icon("broadcast-tower"), " 1.2 EM Wave Origin & Propagation"),
-        p(class = "text-muted", "Under construction — simulation canvas for EM fields will go here.")
+        tabsetPanel(
+          tabPanel("Maxwell Equations",
+            h4("Maxwell in Differential Form"),
+            HTML("<div class='code-block'>
+              ∇ × E = −∂B/∂t &nbsp;&nbsp;(Faraday)<br>
+              ∇ × H = J + ∂D/∂t &nbsp;&nbsp;(Ampère-Maxwell)<br>
+              ∇ · D = ρ_free &nbsp;&nbsp;(Gauss – electric)<br>
+              ∇ · B = 0 &nbsp;&nbsp;(Gauss – magnetic)
+            </div>"),
+            p("Wave equation derived from the above: ∇²E = με ∂²E/∂t² → plane-wave speed v = 1/√(με).")
+          ),
+          tabPanel("Wave Propagation",
+            h4("Plane Wave Parameters"),
+            wellPanel(
+              HTML("<ul>
+                <li>Wavelength: λ = c / (f √ε<sub>r</sub>)</li>
+                <li>Skin depth: δ = √(2ρ / ωμ) — sets conductor surface current concentration</li>
+                <li>Wave impedance: η = √(μ/ε) — 377 Ω in free space, ~50 Ω in GaAs MMIC</li>
+                <li>Phase velocity in dielectric: v<sub>p</sub> = c / √(ε<sub>r</sub> μ<sub>r</sub>)</li>
+              </ul>")
+            ),
+            p(class="text-muted", "Interactive 2D propagation visualisation — under construction.")
+          ),
+          tabPanel("Near vs Far Field",
+            h4("Reactive Near Field / Radiative Far Field"),
+            p("At distances r < λ/2π from a radiating element, the reactive near-field energy dominates and the wave cannot propagate freely. PA output matching networks operate in this near-field regime."),
+            HTML("<table class='table table-sm table-striped'>
+              <thead><tr><th>Zone</th><th>Distance</th><th>Relevance to PA design</th></tr></thead>
+              <tbody>
+                <tr><td>Reactive near field</td><td>r < λ/2π</td><td>Matching network, bond-wire inductance</td></tr>
+                <tr><td>Radiating near field</td><td>λ/2π – 2D²/λ</td><td>Package, PCB edge coupling</td></tr>
+                <tr><td>Far field</td><td>r > 2D²/λ</td><td>Antenna, OTA test</td></tr>
+              </tbody></table>")
+          )
+        )
       ),
+
+
+      # 1.3 RF Materials
+      # 1.3 RF Materials
       # 1.3 RF Materials
       tabItem(tabName = "fp_materials",
         h2(icon("cubes"), " 1.3 RF Materials & Constraints"),
-        p(class = "text-muted", "Under construction — dielectric/conductor properties at RF frequencies.")
+        tabsetPanel(
+          tabPanel("Substrate Comparison",
+            h4("Common RF Substrate Properties"),
+            HTML("<table class='table table-sm table-striped'>
+              <thead><tr><th>Material</th><th>ε<sub>r</sub></th><th>tan δ</th><th>Thermal (W/mK)</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td>Rogers RO4003C</td><td>3.55</td><td>0.0027</td><td>0.71</td><td>Low-loss PCB, mmWave capable</td></tr>
+                <tr><td>GaN on SiC</td><td>9.7</td><td>~0</td><td>490</td><td>Best thermal for power GaN</td></tr>
+                <tr><td>GaAs</td><td>12.9</td><td>~0</td><td>46</td><td>Standard III-V MMIC substrate</td></tr>
+                <tr><td>Si (bulk)</td><td>11.7</td><td>high</td><td>148</td><td>Lossy at RF — avoid hi-Q passives</td></tr>
+                <tr><td>SiO₂ (oxide)</td><td>3.9</td><td>low</td><td>1.4</td><td>Back-end dielectric, low thermal</td></tr>
+              </tbody></table>")
+          ),
+          tabPanel("Conductor Losses",
+            h4("Skin Effect & Conductor Q"),
+            p("At RF/mmWave, current crowds into the conductor surface within the skin depth δ = √(2ρ/ωμ), increasing effective resistance."),
+            wellPanel(
+              HTML("<ul>
+                <li>R<sub>s</sub> = √(ρωμ/2) — surface resistance (Ω/□)</li>
+                <li>Gold at 50 GHz: R<sub>s</sub> ≈ 0.055 Ω/□, δ ≈ 0.35 μm</li>
+                <li>Copper at 50 GHz: R<sub>s</sub> ≈ 0.052 Ω/□, δ ≈ 0.37 μm</li>
+                <li>Thick metals reduce series resistance; min 3–5× skin depths rule of thumb</li>
+              </ul>")
+            )
+          ),
+          tabPanel("Die Attach & Packaging",
+            h4("Thermal Interface Materials"),
+            p("Die-attach material controls θ_jc — the dominant thermal resistance for power PAs."),
+            HTML("<table class='table table-sm table-striped'>
+              <thead><tr><th>Material</th><th>Thermal (W/mK)</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td>AuSn solder</td><td>57</td><td>Best for GaN on SiC, hermetic</td></tr>
+                <tr><td>Ag epoxy</td><td>3–5</td><td>Low cost, lower performance</td></tr>
+                <tr><td>Indium foil</td><td>84</td><td>Soft, good for lab evaluation</td></tr>
+              </tbody></table>")
+          )
+        )
       ),
+
+
+      # 1.4 Transmission Lines
+      # 1.4 Transmission Lines
       # 1.4 Transmission Lines
       tabItem(tabName = "fp_tlines",
         h2(icon("project-diagram"), " 1.4 Transmission Lines, Waveguides & Return Paths"),
-        p(class = "text-muted", "Under construction — TL theory, Smith Chart integration, worked examples.")
+        tabsetPanel(
+          tabPanel("TL Theory",
+            h4("Telegrapher Equations"),
+            wellPanel(
+              HTML("<div class='code-block'>
+                ∂V/∂x = −L′ ∂I/∂t − R′ I<br>
+                ∂I/∂x = −C′ ∂V/∂t − G′ V<br><br>
+                Characteristic impedance:  Z₀ = √((R′+jωL′)/(G′+jωC′))<br>
+                Lossless:  Z₀ = √(L′/C′),  v<sub>p</sub> = 1/√(L′C′)
+              </div>")
+            ),
+            p("Reflection coefficient Γ = (Z_L − Z₀)/(Z_L + Z₀); VSWR = (1+|Γ|)/(1−|Γ|).")
+          ),
+          tabPanel("Microstrip Design",
+            h4("Microstrip — Width vs Z₀"),
+            p("For a 50 Ω line on Rogers RO4003C (ε_r = 3.55, h = 0.813 mm): W ≈ 1.8 mm."),
+            wellPanel(
+              HTML("<ul>
+                <li>Effective dielectric: ε<sub>eff</sub> = (ε<sub>r</sub>+1)/2 + (ε<sub>r</sub>−1)/2 · F(W/h)</li>
+                <li>Guided wavelength: λ<sub>g</sub> = λ₀ / √ε<sub>eff</sub></li>
+                <li>Quarter-wave transformer length: λ<sub>g</sub>/4 at centre frequency</li>
+              </ul>")
+            ),
+            p(class="text-muted", "Microstrip calculator widget — under construction.")
+          ),
+          tabPanel("Return Paths",
+            h4("Current Return Path & Ground Plane"),
+            p("RF current returns via the path of least inductance, not least resistance. Slots, vias, and splits in the ground plane create uncontrolled impedance transitions."),
+            div(class="callout callout-warning",
+              HTML("<strong>PA layout rule of thumb:</strong> Place via-stitching within λ/20 of any RF trace to provide continuous ground return and suppress parallel-plate modes.")
+            )
+          ),
+          tabPanel("Smith Chart",
+            h4("Smith Chart Navigation"),
+            p("The Smith Chart maps the complex reflection coefficient Γ on the unit circle. Constant |Γ| circles correspond to constant VSWR. Use it for:"),
+            HTML("<ul>
+              <li>Impedance transformation (series/shunt L, C)</li>
+              <li>Stability circle overlay</li>
+              <li>Load-pull contour display</li>
+              <li>Matching network synthesis</li>
+            </ul>"),
+            actionButton("goto_smith_chart_fp", "Open Smith Chart Tool",
+              class = "btn-primary",
+              onclick = "Shiny.setInputValue('goto_utility_tab', 'smith_chart', {priority:'event'})")
+          )
+        )
       ),
+
+
+      # 1.5 Thermal Effects
+      # 1.5 Thermal Effects
       # 1.5 Thermal Effects
       tabItem(tabName = "fp_thermal",
         h2(icon("thermometer-half"), " 1.5 Impact of Temperature on Technologies"),
-        p(class = "text-muted", "Under construction — thermal modeling and technology comparison.")
+        tabsetPanel(
+          tabPanel("Thermal Resistance Network",
+            h4("Junction → Ambient Thermal Chain"),
+            HTML("<div class='code-block'>
+              T<sub>j</sub> = T<sub>amb</sub> + P<sub>diss</sub> × (θ<sub>jc</sub> + θ<sub>cs</sub> + θ<sub>sa</sub>)<br><br>
+              θ<sub>jc</sub>: die → case (dominated by die-attach and substrate)<br>
+              θ<sub>cs</sub>: case → heatsink (TIM layer)<br>
+              θ<sub>sa</sub>: heatsink → ambient
+            </div>"),
+            p("For GaN on SiC: θ_jc ≈ 0.5–2 K/W per mm² gate periphery — best in class.")
+          ),
+          tabPanel("Technology Temperature Coefficients",
+            h4("How Temperature Shifts Key Parameters"),
+            HTML("<table class='table table-sm table-striped'>
+              <thead><tr><th>Parameter</th><th>GaN</th><th>LDMOS</th><th>GaAs pHEMT</th></tr></thead>
+              <tbody>
+                <tr><td>I<sub>dss</sub> vs T</td><td>−0.15%/°C</td><td>−0.4%/°C</td><td>−0.2%/°C</td></tr>
+                <tr><td>V<sub>t</sub> vs T</td><td>+1 mV/°C</td><td>+2 mV/°C</td><td>+1 mV/°C</td></tr>
+                <tr><td>Gain vs T</td><td>−0.05 dB/°C</td><td>−0.1 dB/°C</td><td>−0.08 dB/°C</td></tr>
+                <tr><td>fT vs T</td><td>−0.1%/°C</td><td>−0.3%/°C</td><td>−0.2%/°C</td></tr>
+              </tbody></table>")
+          ),
+          tabPanel("Reliability & MTTF",
+            h4("Temperature-Accelerated Lifetime (Arrhenius)"),
+            wellPanel(
+              HTML("<div class='code-block'>
+                MTTF = A · exp(E<sub>a</sub> / k<sub>B</sub> T<sub>j</sub>)<br>
+                Acceleration factor AF = exp(E<sub>a</sub>/k<sub>B</sub> · (1/T<sub>use</sub> − 1/T<sub>test</sub>))<br><br>
+                Typical E<sub>a</sub>: GaN = 1.8 eV, GaAs = 1.6 eV, LDMOS = 1.0 eV
+              </div>")
+            ),
+            p("Rule of thumb: every 10 °C rise doubles the failure rate (E_a ~ 0.7 eV equivalent)."),
+            actionButton("goto_reliability_fp", "Open Reliability Calculator (5.4)",
+              class = "btn-primary",
+              onclick = "Shiny.setInputValue('sidebar_menu', 'prod_reliability', {priority:'event'})")
+          )
+        )
       ),
+
+
       
       # dev_architecture now defined above (canvas block)
       
@@ -1752,17 +1995,137 @@ $(document).ready(function() {
         p("Select a sub-topic from the sidebar.")
       ),
       tabItem(tabName = "sys_tx_arch",
-        h2(icon("broadcast-tower"), " 2.2 Transmitter Architectures"),
-        p("Under construction — TX architecture types, design constraints, theoretical calculations.")
+        h2(icon("broadcast-tower"), " 2.2 TX Architectures"),
+        tabsetPanel(
+          tabPanel("Architecture Types",
+            h4("Common TX Chain Topologies"),
+            HTML("<table class='table table-sm table-striped'>
+              <thead><tr><th>Architecture</th><th>Complexity</th><th>PAE</th><th>Linearity</th><th>Typical Use</th></tr></thead>
+              <tbody>
+                <tr><td>Direct conversion (homodyne)</td><td>Low</td><td>High</td><td>DC offset sensitive</td><td>5G NR, Wi-Fi</td></tr>
+                <tr><td>Superheterodyne</td><td>Medium</td><td>Medium</td><td>Excellent</td><td>Microwave backhaul</td></tr>
+                <tr><td>Direct digital (RFDAC)</td><td>High</td><td>Power-hungry DAC</td><td>Very good</td><td>Massive MIMO</td></tr>
+                <tr><td>Polar TX</td><td>High</td><td>Best PA efficiency</td><td>Bandwidth limited</td><td>Handset PA</td></tr>
+              </tbody></table>")
+          ),
+          tabPanel("PA Position & Gain Budget",
+            h4("TX Signal Chain Gain Budget"),
+            p("Define the gain and power at each stage from baseband to antenna:"),
+            wellPanel(
+              HTML("<ul>
+                <li>Baseband → DAC: digital scale sets TX power headroom</li>
+                <li>Up-converter / Mixer: conversion loss −6 to −8 dB typical</li>
+                <li>Pre-driver / Driver: +20–25 dB gain, sets P1dB headroom for PA</li>
+                <li>PA final stage: target P_sat (module-level)</li>
+                <li>Filter + duplexer: −2 to −3 dB before antenna</li>
+              </ul>")
+            ),
+            p(class="text-muted", "TX gain budget calculator — under construction.")
+          ),
+          tabPanel("Linearisation",
+            h4("DPD & Pre-distortion Techniques"),
+            p("Modern wideband signals (100–400 MHz) require digital pre-distortion (DPD) to meet ACLR/EVM specs with Class AB or Doherty PAs."),
+            HTML("<ul>
+              <li>Memory polynomial DPD: models AM/AM, AM/PM and memory effects</li>
+              <li>Bandwidth expansion: DPD signal BW = 3–5× modulation BW</li>
+              <li>Observation receiver needed for closed-loop adaptation</li>
+            </ul>")
+          )
+        )
       ),
+
+
       tabItem(tabName = "sys_rx_arch",
-        h2(icon("wifi"), " 2.3 Receiver Architectures"),
-        p("Under construction — RX architecture NF/IP3/dynamic range calculations.")
+        h2(icon("satellite-dish"), " 2.3 RX Architectures"),
+        tabsetPanel(
+          tabPanel("Noise Figure Chain",
+            h4("Friis Formula — Cascaded NF"),
+            wellPanel(
+              HTML("<div class='code-block'>
+                NF<sub>total</sub> = NF₁ + (NF₂−1)/G₁ + (NF₃−1)/(G₁G₂) + ...<br>
+                F<sub>total</sub> = F₁ + (F₂−1)/G₁ + (F₃−1)/(G₁G₂) + ...
+              </div>")
+            ),
+            p("First stage NF dominates — LNA design governs system sensitivity. Minimum detectable signal MDS = −174 + NF + 10·log(BW) dBm.")
+          ),
+          tabPanel("IP3 & Dynamic Range",
+            h4("IIP3 Cascade & SFDR"),
+            wellPanel(
+              HTML("<div class='code-block'>
+                1/IIP3<sub>total</sub> ≈ 1/IIP3₁ + G₁/IIP3₂ + G₁G₂/IIP3₃ + ...<br>
+                SFDR = (2/3)(IIP3 − NF − 10·log(BW)) dB·Hz<sup>2/3</sup>
+              </div>")
+            ),
+            p("Trade-off: increasing LNA gain improves NF but reduces IIP3; attenuators before LNA improve IIP3 at the cost of NF.")
+          ),
+          tabPanel("RX Topologies",
+            h4("Direct Conversion vs Superheterodyne"),
+            HTML("<table class='table table-sm table-striped'>
+              <thead><tr><th>Issue</th><th>Direct Conv.</th><th>Superhet</th></tr></thead>
+              <tbody>
+                <tr><td>DC offset</td><td>Critical</td><td>Not an issue</td></tr>
+                <tr><td>IQ mismatch</td><td>Critical</td><td>Moderate</td></tr>
+                <tr><td>Image rejection</td><td>Requires DSP</td><td>Image reject filter</td></tr>
+                <tr><td>Integration level</td><td>High (single chip)</td><td>Lower</td></tr>
+              </tbody></table>")
+          )
+        )
       ),
+
+
       tabItem(tabName = "sys_architecture",
-        h2(icon("project-diagram"), " 2.5 System Architecture"),
-        p("Under construction — system block diagram canvas and signal chain partitioning.")
+        h2(icon("network-wired"), " 2.5 System Architecture"),
+        tabsetPanel(
+          tabPanel("Block Diagram Canvas",
+            h4("System Signal Chain — Block Diagram"),
+            div(class="callout callout-info",
+              p(icon("info-circle"), " Interactive canvas coming. For now, document your system architecture in the fields below.")
+            ),
+            wellPanel(
+              h5("Architecture Description"),
+              textAreaInput("sys_arch_description", NULL,
+                value = "",
+                placeholder = "Describe your TX/RX chain topology, key partitioning decisions, frequency plan...",
+                width = "100%", height = "120px"),
+              fluidRow(
+                column(4, numericInput("sys_arch_freq_ghz",  "Center Frequency (GHz)", value = 3.5, min = 0.1, max = 300, step = 0.5)),
+                column(4, numericInput("sys_arch_bw_mhz",   "Channel BW (MHz)",       value = 100, min = 1,   max = 2000, step = 10)),
+                column(4, numericInput("sys_arch_pout_dbm",  "System P_out (dBm)",     value = 43,  min = 0,   max = 70,   step = 1))
+              )
+            )
+          ),
+          tabPanel("Partitioning",
+            h4("PA Module Partitioning"),
+            p("Define what is integrated vs discrete:"),
+            HTML("<ul>
+              <li>MMIC die vs board-level implementation</li>
+              <li>Number of PA stages (driver chain depth)</li>
+              <li>Bias circuit integration (on-chip vs off-chip PMIC)</li>
+              <li>Duplexer / diplexer placement</li>
+              <li>DPD / DSP processing location (baseband vs near-antenna)</li>
+            </ul>"),
+            p(class="text-muted", "Partitioning decision tree — under construction.")
+          ),
+          tabPanel("Spec Allocation",
+            h4("System → Subsystem Spec Allocation"),
+            p("Allocate the system EVM, ACLR, P_out, and gain budget between subsystems:"),
+            wellPanel(
+              HTML("<table class='table table-sm'>
+                <thead><tr><th>Subsystem</th><th>Gain (dB)</th><th>NF (dB)</th><th>IIP3 (dBm)</th><th>P_sat (dBm)</th></tr></thead>
+                <tbody>
+                  <tr><td>IQ Mod / DAC</td><td>0</td><td>—</td><td>+20</td><td>+10</td></tr>
+                  <tr><td>Up-converter</td><td>−7</td><td>—</td><td>+15</td><td>+8</td></tr>
+                  <tr><td>Driver PA</td><td>+25</td><td>—</td><td>+30</td><td>+28</td></tr>
+                  <tr><td>Final PA</td><td>+12</td><td>—</td><td>+48</td><td>+46</td></tr>
+                  <tr><td>Filter + switch</td><td>−2</td><td>—</td><td>—</td><td>—</td></tr>
+                </tbody></table>"),
+              p(class="text-muted", "Editable allocation table — under construction.")
+            )
+          )
+        )
       ),
+
+
 
       # ── Technology-level stubs ────────────────────────────────────────────────
       tabItem(tabName = "tech_level",
@@ -2090,16 +2453,111 @@ $(document).ready(function() {
       ),
       tabItem(tabName = "tech_device_lib",
         h2(icon("th-large"), " 3.3 Device Library"),
-        p("Under construction — browse, compare and annotate saved transistor devices.")
+        tabsetPanel(
+          tabPanel("Browse Devices",
+            h4("Transistor & Device Catalogue"),
+            div(class="callout callout-info",
+              p(icon("info-circle"), " Devices characterised and saved in the Transistor Library (5.1) appear here for cross-project reuse.")
+            ),
+            fluidRow(
+              column(3, selectInput("dev_lib_tech", "Technology",
+                choices = c("All", "GaN HEMT", "GaAs pHEMT", "LDMOS", "SiGe HBT"),
+                selected = "All")),
+              column(3, sliderInput("dev_lib_freq", "Frequency range (GHz)",
+                min=0.1, max=100, value=c(1,40), step=0.5)),
+              column(3, sliderInput("dev_lib_pout", "P_out density (W/mm)",
+                min=0.1, max=10, value=c(0.5,6), step=0.1))
+            ),
+            p(class="text-muted", "Device table with filter/sort/compare — under construction.")
+          ),
+          tabPanel("Device Detail",
+            h4("Selected Device — Parameters"),
+            p(class="text-muted", "Click a device in Browse to open detail view — under construction.")
+          ),
+          tabPanel("Compare",
+            h4("Side-by-side Device Comparison"),
+            p(class="text-muted", "Select 2–4 devices and compare fT, Pout, PAE, gain, VBR — under construction.")
+          )
+        )
       ),
+
+
       tabItem(tabName = "tech_stack",
         h2(icon("layer-group"), " 3.5 Technology Stack"),
-        p("Under construction — PCB stackup, packaging options, assembly rules.")
+        tabsetPanel(
+          tabPanel("Process Overview",
+            h4("Technology Process Definition"),
+            wellPanel(
+              fluidRow(
+                column(6,
+                  selectInput("ts_foundry", "Foundry / PDK",
+                    choices = c("Custom/Other", "WIN Semiconductors", "UMS", "Wolfspeed", "RFMD", "Tower Jazz")),
+                  textInput("ts_node", "Process Node", placeholder = "e.g. 0.25 µm GaN on SiC"),
+                  numericInput("ts_vdd", "Nominal V_DD (V)", value = 28, min=1, max=100)
+                ),
+                column(6,
+                  numericInput("ts_ft", "fT (GHz)", value = 40, min=1, max=500),
+                  numericInput("ts_fmax", "fmax (GHz)", value = 80, min=1, max=1000),
+                  numericInput("ts_pout_density", "P_out density (W/mm)", value = 5, min=0.1, max=15, step=0.1)
+                )
+              )
+            )
+          ),
+          tabPanel("Metal Stack",
+            h4("Back-end-of-line (BEOL) Metal Layers"),
+            p("Define conductor layers available in the PDK for matching network synthesis:"),
+            HTML("<table class='table table-sm table-striped'>
+              <thead><tr><th>Layer</th><th>Metal</th><th>Thickness (μm)</th><th>Sheet R (mΩ/□)</th><th>Use</th></tr></thead>
+              <tbody>
+                <tr><td>M1</td><td>Au/Ti</td><td>0.5</td><td>70</td><td>FET gate / active</td></tr>
+                <tr><td>M2</td><td>Au</td><td>1.5</td><td>20</td><td>Interconnect</td></tr>
+                <tr><td>M3 (thick)</td><td>Au</td><td>4.0</td><td>8</td><td>Transmission lines, inductors</td></tr>
+                <tr><td>Backside</td><td>Au</td><td>10</td><td>3</td><td>Ground, thermal path</td></tr>
+              </tbody></table>"),
+            p(class="text-muted", "Editable PDK metal stack — under construction.")
+          ),
+          tabPanel("Assembly & Packaging",
+            h4("Package Options"),
+            HTML("<ul>
+              <li><strong>Bare die (flip-chip / wire-bond)</strong>: minimal parasitics, highest performance</li>
+              <li><strong>Plastic QFN / LGA</strong>: low cost, moderate thermal; good for LDMOS</li>
+              <li><strong>Metal-ceramic (CuW / AlN)</strong>: best thermal; standard for GaN power modules</li>
+              <li><strong>HTCC / LTCC</strong>: multi-chip, hermetic, for space and military</li>
+            </ul>")
+          )
+        )
       ),
+
+
       tabItem(tabName = "tech_portfolio",
         h2(icon("chart-bar"), " 3.6 Portfolio Generation"),
-        p("Under construction — multi-device portfolio comparison and trade-off analysis.")
+        tabsetPanel(
+          tabPanel("Radar Plot",
+            h4("Technology / Module Portfolio — Radar Chart"),
+            div(class="callout callout-info",
+              p(icon("info-circle"), " Compare designs across key axes: Frequency, P_out, PAE, Gain, Linearity, Cost.")
+            ),
+            p(class="text-muted", "D3.js radar chart — under construction.")
+          ),
+          tabPanel("Pareto Analysis",
+            h4("PAE vs Linearity Pareto Front"),
+            p("For each candidate design, plot PAE (y) vs ACLR back-off from P_sat (x). The Pareto front shows which designs are non-dominated."),
+            p(class="text-muted", "Pareto scatter plot — under construction.")
+          ),
+          tabPanel("Export",
+            h4("Portfolio Export"),
+            p("Export your technology comparison portfolio as:"),
+            fluidRow(
+              column(4, actionButton("portfolio_export_csv",  icon("file-csv"),  " CSV",  class="btn-default btn-block")),
+              column(4, actionButton("portfolio_export_html", icon("file-code"), " HTML", class="btn-default btn-block")),
+              column(4, actionButton("portfolio_export_pdf",  icon("file-pdf"),  " PDF",  class="btn-default btn-block"))
+            ),
+            p(class="text-muted", "Export handlers — under construction.")
+          )
+        )
       ),
+
+
 
       # ── Device-level stubs ────────────────────────────────────────────────────
       tabItem(tabName = "device_level",
@@ -2108,12 +2566,99 @@ $(document).ready(function() {
       ),
       tabItem(tabName = "dev_specs",
         h2(icon("clipboard-list"), " 4.1 PA Specifications"),
-        p("Under construction — PA specification entry (Power, Gain, Linearity, Conditions).")
+        tabsetPanel(
+          tabPanel("Target Specs",
+            h4("PA Design Specification Entry"),
+            fluidRow(
+              column(6,
+                wellPanel(
+                  h5(icon("broadcast-tower"), " RF Performance"),
+                  fluidRow(
+                    column(6, numericInput("spec_freq_lo",  "Freq Low (GHz)",   value = 3.3, min=0.1, max=300, step=0.1)),
+                    column(6, numericInput("spec_freq_hi",  "Freq High (GHz)",  value = 3.8, min=0.1, max=300, step=0.1))
+                  ),
+                  fluidRow(
+                    column(6, numericInput("spec_pout",     "P_out (dBm)",      value = 43,  min=0, max=70, step=0.5)),
+                    column(6, numericInput("spec_gain",     "Gain (dB)",        value = 25,  min=0, max=60, step=0.5))
+                  ),
+                  fluidRow(
+                    column(6, numericInput("spec_pae",      "PAE target (%)",   value = 40,  min=1, max=90, step=1)),
+                    column(6, numericInput("spec_p1db",     "P1dB (dBm)",       value = 40,  min=0, max=70, step=0.5))
+                  )
+                )
+              ),
+              column(6,
+                wellPanel(
+                  h5(icon("bolt"), " Linearity"),
+                  fluidRow(
+                    column(6, numericInput("spec_aclr",     "ACLR (dBc)",       value = -45, min=-70, max=-20, step=1)),
+                    column(6, numericInput("spec_evm",      "EVM (%)",          value = 3,   min=0.1, max=10, step=0.1))
+                  ),
+                  fluidRow(
+                    column(6, numericInput("spec_backoff",  "Back-off (dB)",    value = 8,   min=0, max=20, step=0.5)),
+                    column(6, selectInput("spec_modulation","Modulation", choices=c("5G NR 256-QAM","OFDM 64-QAM","CW","Custom")))
+                  )
+                )
+              )
+            )
+          ),
+          tabPanel("Supply & Bias",
+            h4("DC Operating Point"),
+            fluidRow(
+              column(4, numericInput("spec_vdd",    "V_DD (V)",          value=28, min=1, max=100, step=1)),
+              column(4, numericInput("spec_idd_ma", "I_DD at P_sat (mA)", value=1200, min=1, max=20000, step=50)),
+              column(4, numericInput("spec_temp_c", "T_case (°C)",       value=85, min=-40, max=150, step=5))
+            ),
+            p(class="text-muted", "Bias optimisation tool — under construction.")
+          ),
+          tabPanel("Compliance Matrix",
+            h4("Spec Tracking — Target vs Simulated vs Measured"),
+            p(class="text-muted", "Compliance matrix linking to simulation and measurement results — under construction.")
+          )
+        )
       ),
+
+
       tabItem(tabName = "dev_interstage",
         h2(icon("random"), " 4.3 Interstage & Passives"),
-        p("Under construction — Splitter, combiner and interstage matching design.")
+        tabsetPanel(
+          tabPanel("Splitters / Combiners",
+            h4("Power Splitter / Combiner Topologies"),
+            HTML("<table class='table table-sm table-striped'>
+              <thead><tr><th>Type</th><th>BW</th><th>Isolation</th><th>Insertion Loss</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td>Wilkinson</td><td>Narrowband</td><td>Good (20–30 dB)</td><td>~0.3 dB</td><td>In-phase; resistor dissipates reflected power</td></tr>
+                <tr><td>Hybrid coupler (90°)</td><td>Octave</td><td>Excellent</td><td>~0.5 dB</td><td>Used in balanced amplifier topologies</td></tr>
+                <tr><td>Rat-race (180°)</td><td>~30%</td><td>Good</td><td>~0.5 dB</td><td>Sum/difference port; push-pull PA</td></tr>
+                <tr><td>Corporate Wilkinson (N-way)</td><td>Narrowband</td><td>Port-to-port</td><td>0.3+0.3n dB</td><td>Phased array, spatial combining</td></tr>
+              </tbody></table>")
+          ),
+          tabPanel("Interstage Matching",
+            h4("Driver → Final Stage Matching Network"),
+            p("The interstage network simultaneously conjugate-matches the driver output and presents the optimum load to the final stage input:"),
+            wellPanel(
+              HTML("<ul>
+                <li>Source pull: find optimum source impedance Z<sub>S,opt</sub> for final stage at each frequency</li>
+                <li>Driver output must present Z<sub>S,opt</sub>* for maximum power transfer</li>
+                <li>Bandwidth-efficiency trade-off: wider BW → lower gain, higher mismatch loss</li>
+              </ul>")
+            ),
+            p(class="text-muted", "Matching network synthesis tool (L/π/T networks, Chebyshev) — under construction.")
+          ),
+          tabPanel("Passive Q & Loss",
+            h4("On-chip vs Off-chip Passives"),
+            HTML("<table class='table table-sm table-striped'>
+              <thead><tr><th>Component</th><th>On-chip Q</th><th>Off-chip Q</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td>Spiral inductor (1 nH, 5 GHz)</td><td>15–30</td><td>50–200</td><td>SMD wirewound: best Q</td></tr>
+                <tr><td>MIM capacitor (1 pF, 5 GHz)</td><td>50–100</td><td>200–500</td><td>Ceramic SMD (C0G/NP0)</td></tr>
+                <tr><td>λ/4 line (50 Ω, 5 GHz)</td><td>Radiation Q dependent</td><td>Stripline > microstrip</td><td>PCB loss ~0.1 dB/cm at 5 GHz</td></tr>
+              </tbody></table>")
+          )
+        )
       ),
+
+
 
       # ── Product-level stubs ───────────────────────────────────────────────────
       # ── Product-level: three product tiers + shared flow ───────────────────────────
@@ -2242,42 +2787,335 @@ $(document).ready(function() {
       ),
 
       # ── Lessons Learnt ────────────────────────────────────────────────────────
+      # ── Lessons Learnt ─────────────────────────────────────────────────────────
+      # ── Lessons Learnt ─────────────────────────────────────────────────────────
       tabItem(tabName = "lessons_learnt",
         h2(icon("graduation-cap"), " 6 · Lessons Learnt"),
-        p("Under construction — cross-project searchable lessons database by technology / frequency band.")
+        tabsetPanel(
+          tabPanel("Browse Lessons",
+            h4("Searchable Cross-Project Lessons Database"),
+            fluidRow(
+              column(3, selectInput("ll_tech_filter", "Technology",
+                choices = c("All", "GaN", "LDMOS", "GaAs pHEMT", "SiGe HBT"), selected = "All")),
+              column(3, selectInput("ll_stage_filter", "Design Stage",
+                choices = c("All", "System", "Technology", "Device", "Product"), selected = "All")),
+              column(3, selectInput("ll_band_filter", "Frequency Band",
+                choices = c("All", "< 1 GHz", "1–6 GHz", "6–30 GHz", "> 30 GHz"), selected = "All")),
+              column(3, textInput("ll_keyword", "Keyword search", placeholder = "e.g. stability, Doherty..."))
+            ),
+            p(class="text-muted", "Lessons table with tagging and filter — under construction.")
+          ),
+          tabPanel("Add Lesson",
+            h4("Record a New Lesson"),
+            wellPanel(
+              textInput("ll_title",       "Title",        placeholder = "Short one-line summary"),
+              selectInput("ll_category",  "Category",
+                choices = c("Design Rule", "Process Insight", "Measurement Gotcha", "Simulation vs Reality", "Tool/Flow", "Other")),
+              textAreaInput("ll_body",    "Description",  height = "120px",
+                placeholder = "What happened? What was the root cause? What is the corrective action?"),
+              fluidRow(
+                column(4, textInput("ll_tags",      "Tags (comma-separated)", placeholder = "e.g. GaN, stability")),
+                column(4, textInput("ll_project",   "Project / Tapeout",     placeholder = "e.g. PA_5G_2025")),
+                column(4, selectInput("ll_severity", "Severity",
+                  choices = c("Info", "Warning", "Critical")))
+              ),
+              actionButton("ll_save", icon("save"), " Save Lesson", class = "btn-primary")
+            )
+          ),
+          tabPanel("Hot Issues",
+            h4("Critical / Recurring Issues"),
+            p("Lessons tagged as Critical that appear in multiple projects are listed here automatically."),
+            p(class="text-muted", "Hot-issue aggregation — under construction.")
+          )
+        )
       ),
+
+
 
       # ── Reporting ─────────────────────────────────────────────────────────────
+      # ── 7 · Reporting ─────────────────────────────────────────────────────────
+      # ── 7 · Reporting ─────────────────────────────────────────────────────────
       tabItem(tabName = "reporting",
         h2(icon("file-alt"), " 7 · Reporting"),
-        tabsetPanel(
+
+        tabsetPanel(id = "reporting_tabs",
+
+          # ── Stage Reports ──────────────────────────────────────────────────
           tabPanel("Stage Reports",
-            p("Under construction — per-stage report generation (exported from each design stage).")
+            br(),
+            fluidRow(
+              column(8,
+                h4(icon("list-check"), " Stage Report Status"),
+                p(class="text-muted",
+                  "Each design stage can generate a self-contained HTML section.
+                   Completed stages are shown in green; stubs in grey."),
+
+                # Stage cards — rendered server-side so status is reactive
+                uiOutput("reporting_stage_cards")
+              ),
+              column(4,
+                wellPanel(
+                  h5(icon("sliders-h"), " Report Options"),
+                  checkboxGroupInput("report_include_stages",
+                    "Include stages:",
+                    choices = list(
+                      "1 · First Principles"  = "first_principles",
+                      "2 · System Level"      = "system_level",
+                      "3 · Technology"        = "tech_level",
+                      "4 · Device Level"      = "device_level",
+                      "5 · Product Level"     = "product_level",
+                      "6 · Lessons Learnt"    = "lessons_learnt"
+                    ),
+                    selected = c("tech_level","device_level","product_level")
+                  ),
+                  selectInput("report_detail_level", "Detail level",
+                    choices = c(
+                      "Summary (exec)"    = "summary",
+                      "Standard"          = "standard",
+                      "Full (all data)"   = "full"
+                    ),
+                    selected = "standard"
+                  ),
+                  hr(),
+                  downloadButton("report_download_stages", "Download Stage Reports",
+                    class = "btn-primary btn-block")
+                )
+              )
+            )
           ),
+
+          # ── Master Report ──────────────────────────────────────────────────
           tabPanel("Master Report",
-            p("Under construction — assemble all stage sub-reports into a single logical master document.")
+            br(),
+            fluidRow(
+              column(7,
+                h4(icon("file-pdf"), " Master Design Report"),
+                wellPanel(
+                  fluidRow(
+                    column(6, textInput("report_title",   "Report Title",
+                             value = "PA Design Report",
+                             placeholder = "Project / Design Name")),
+                    column(6, textInput("report_author",  "Author(s)",
+                             placeholder = "Your name"))
+                  ),
+                  fluidRow(
+                    column(6, textInput("report_revision", "Revision",  value = "1.0")),
+                    column(6, selectInput("report_format",  "Output Format",
+                             choices = c("Self-contained HTML" = "html_self",
+                                         "HTML (linked)"       = "html_linked",
+                                         "PDF (via pandoc)"    = "pdf")))
+                  ),
+                  textAreaInput("report_abstract", "Abstract / Executive Summary",
+                    height = "90px",
+                    placeholder = "High-level description of the design, target spec, and key results."),
+                  checkboxInput("report_include_toc",    "Include table of contents", value = TRUE),
+                  checkboxInput("report_include_charts", "Embed interactive charts",  value = TRUE),
+                  checkboxInput("report_include_tables", "Embed data tables",         value = TRUE)
+                ),
+                fluidRow(
+                  column(6, actionButton("report_preview_btn", icon("eye"),
+                    " Preview (HTML)", class = "btn-default btn-block")),
+                  column(6, downloadButton("report_download_master", icon("download"),
+                    " Download Master Report", class = "btn-success btn-block"))
+                )
+              ),
+              column(5,
+                h4(icon("eye"), " Report Preview"),
+                div(style = "border:1px solid #444; border-radius:6px; min-height:300px; padding:12px;",
+                  uiOutput("report_preview_html")
+                )
+              )
+            )
           ),
+
+          # ── Report Config ──────────────────────────────────────────────────
           tabPanel("Report Config",
-            p("Under construction — select stages, detail level, output format (HTML / PDF).")
+            br(),
+            h4(icon("cog"), " Report Configuration"),
+            fluidRow(
+              column(6,
+                wellPanel(
+                  h5("Company & Branding"),
+                  textInput("report_company",     "Company / Organisation", placeholder = "Infineon Technologies"),
+                  textInput("report_logo_url",    "Logo URL or path",       placeholder = "/path/to/logo.png"),
+                  selectInput("report_colour_scheme", "Colour scheme",
+                    choices = c("Dark (default)" = "dark",
+                                "Light / print"  = "light",
+                                "Corporate blue" = "blue")),
+                  checkboxInput("report_confidential", "Mark as Confidential", value = TRUE)
+                )
+              ),
+              column(6,
+                wellPanel(
+                  h5("Pandoc & PDF Settings"),
+                  textInput("report_pandoc_path",   "Pandoc path (optional)", placeholder = "auto-detected"),
+                  textInput("report_latex_engine",  "LaTeX engine",           value = "xelatex"),
+                  numericInput("report_font_size",  "Body font size (pt)",    value = 11, min=8, max=14, step=1),
+                  selectInput("report_page_size",   "Page size",
+                    choices = c("A4" = "a4paper", "Letter" = "letterpaper"))
+                )
+              )
+            ),
+            fluidRow(
+              column(12,
+                wellPanel(
+                  h5("Custom CSS / Header Snippet"),
+                  textAreaInput("report_custom_css", NULL,
+                    height = "80px",
+                    placeholder = "/* Optional extra CSS for the HTML report */")
+                )
+              )
+            )
           )
         )
       ),
 
+
+
       # ── App Download ──────────────────────────────────────────────────────────
+      # ── 8 · App Download ──────────────────────────────────────────────────────
+      # ── 8 · App Download ──────────────────────────────────────────────────────
       tabItem(tabName = "app_download",
         h2(icon("download"), " 8 · App Download"),
-        tabsetPanel(
+        p(class="text-muted",
+          "Export the current design as a self-contained sub-app, a data snapshot, or a reusable template."),
+        br(),
+
+        tabsetPanel(id = "download_tabs",
+
+          # ── Dataset Snapshot ───────────────────────────────────────────────
           tabPanel("Dataset Snapshot",
-            p("Under construction — freeze current project dataset into a self-contained dynamic HTML report.")
+            br(),
+            fluidRow(
+              column(4,
+                div(class = "download-option-box",
+                  div(class = "download-icon", icon("file-code")),
+                  h5("HTML Data Report"),
+                  p("Freeze all charts and tables into a portable self-contained HTML file."),
+                  br(),
+                  downloadButton("snap_download_html", "Download HTML",
+                    class = "btn-primary btn-block")
+                )
+              ),
+              column(4,
+                div(class = "download-option-box",
+                  div(class = "download-icon", icon("file-csv")),
+                  h5("CSV / Excel Export"),
+                  p("Export all data tables (specs, results, library items) as a zip of CSV files."),
+                  br(),
+                  downloadButton("snap_download_csv", "Download CSV",
+                    class = "btn-default btn-block")
+                )
+              ),
+              column(4,
+                div(class = "download-option-box",
+                  div(class = "download-icon", icon("database")),
+                  h5("RDS / JSON Snapshot"),
+                  p("Full R project state as RDS (for re-import) or JSON (for external tools)."),
+                  br(),
+                  downloadButton("snap_download_rds", "Download RDS",
+                    class = "btn-default btn-block")
+                )
+              )
+            ),
+            br(),
+            wellPanel(
+              h5(icon("cog"), " Snapshot options"),
+              fluidRow(
+                column(4, checkboxInput("snap_include_canvas",  "Include canvas state (JSON)", value = TRUE)),
+                column(4, checkboxInput("snap_include_charts",  "Embed charts",               value = TRUE)),
+                column(4, checkboxInput("snap_include_models",  "Include model parameters",   value = TRUE))
+              ),
+              fluidRow(
+                column(6, textInput("snap_project_tag", "Project tag",
+                  value = "", placeholder = "e.g. PA_5G_R1 — appended to filename")),
+                column(6, selectInput("snap_compression", "Compression",
+                  choices = c("None" = "none", "gzip" = "gz", "bzip2" = "bz2"), selected = "gz"))
+              )
+            )
           ),
+
+          # ── Sub-App Export ─────────────────────────────────────────────────
           tabPanel("Sub-App Export",
-            p("Under construction — select a subset of stages and export as standalone sub-app (Antenna, LNA, Mixer...).")
+            br(),
+            h4(icon("cube"), " Export a Focused Sub-Application"),
+            p("Choose a subset of design sections to bundle as a standalone Shiny app — useful for sharing a specific design with colleagues who only need one segment."),
+            fluidRow(
+              column(6,
+                wellPanel(
+                  h5("Select sections to include"),
+                  checkboxGroupInput("subapp_sections",
+                    NULL,
+                    choices = list(
+                      "1 · First Principles"           = "first_principles",
+                      "2 · System Level"               = "system_level",
+                      "2.1  Frequency Planning"        = "sys_freq_planning",
+                      "2.4  Link Budget"               = "sys_link_budget",
+                      "3 · Technology Level"           = "tech_level",
+                      "3.1  Technology Selection"      = "tech_selection",
+                      "3.4  Loss Curves"               = "tech_loss_curves",
+                      "4 · Device Level"               = "device_level",
+                      "4.2  Architecture Canvas"       = "dev_architecture",
+                      "5.1  Transistor Design"         = "prod_transistor",
+                      "5.2  PA Stage Design"           = "prod_pa_stage",
+                      "5.3  Module Design"             = "prod_module",
+                      "5.4  Reliability"               = "prod_reliability",
+                      "RF Tools (Smith Chart etc.)"    = "rf_tools",
+                      "7 · Reporting"                  = "reporting"
+                    ),
+                    selected = c("tech_selection","dev_architecture","prod_transistor","prod_pa_stage","prod_module")
+                  )
+                )
+              ),
+              column(6,
+                wellPanel(
+                  h5("Sub-app settings"),
+                  textInput("subapp_name",   "Sub-app name",  placeholder = "e.g. Doherty_PA_Tool"),
+                  textInput("subapp_author", "Author",        placeholder = "Your name"),
+                  textInput("subapp_version","Version",       value = "1.0"),
+                  checkboxInput("subapp_standalone", "Include all dependencies (larger file)", value = TRUE),
+                  br(),
+                  actionButton("subapp_preview_manifest", icon("list"),
+                    " Preview file manifest", class = "btn-default btn-block"),
+                  br(),
+                  downloadButton("subapp_download_zip", icon("file-archive"),
+                    " Download sub-app ZIP", class = "btn-success btn-block")
+                ),
+                uiOutput("subapp_manifest_preview")
+              )
+            )
           ),
+
+          # ── Template Store ─────────────────────────────────────────────────
           tabPanel("Template Store",
-            p("Under construction — save this app structure as reusable template for new designs.")
+            br(),
+            fluidRow(
+              column(6,
+                h4(icon("save"), " Save Current App as Template"),
+                wellPanel(
+                  textInput("tmpl_name",        "Template name",
+                    placeholder = "e.g. 5G NR n77 PA — GaN 28V"),
+                  textInput("tmpl_description", "Description",
+                    placeholder = "Brief description of the design configuration"),
+                  fluidRow(
+                    column(6, textInput("tmpl_tech",    "Technology",   placeholder = "GaN on SiC 0.25 µm")),
+                    column(6, textInput("tmpl_band",    "Band",         placeholder = "Sub-6 GHz 5G NR"))
+                  ),
+                  actionButton("tmpl_save_btn", icon("save"),
+                    " Save Template", class = "btn-primary btn-block")
+                )
+              ),
+              column(6,
+                h4(icon("folder-open"), " Saved Templates"),
+                uiOutput("tmpl_list_ui"),
+                p(class="text-muted", "Templates are stored as JSON in the app data directory.")
+              )
+            )
           )
         )
       ),
+
+
 
       # ── Utilities (reached via top utility bar) ───────────────────────────────
       tabItem(tabName = "util_data",

@@ -1277,23 +1277,58 @@ body.theme-light *[style*="color: var(--c-err)"]   { color: var(--c-err)  !impor
 .content-wrapper table td { color: var(--tx-hi) !important; }
 
 /* ── Utility Nav Bar (top header items) ─────────────────────────────────── */
+
+/* Thin vertical rule before the first utility item — separates logo/title from tools */
+.utility-nav:first-of-type > a.utility-link {
+  border-left: 1px solid rgba(255,255,255,0.12) !important;
+  margin-left: 6px !important;
+}
+
 .utility-nav > a.utility-link {
-  padding: 10px 14px !important;
-  font-size: 12px !important;
+  padding: 8px 13px !important;
+  font-size: 11.5px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--tx-med, #aaa) !important;
   border-bottom: 2px solid transparent;
-  transition: color 0.2s, border-color 0.2s;
+  border-radius: 0 !important;
+  transition: color 0.18s, border-color 0.18s, background 0.18s;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
 }
 .utility-nav > a.utility-link:hover {
   color: var(--accent, #ff7f11) !important;
   border-bottom-color: var(--accent, #ff7f11);
-  background: transparent !important;
+  background: rgba(255,127,17,0.07) !important;
 }
-.utility-nav > a.utility-link .fa {
-  margin-right: 4px;
+/* Active state — set by JS when a utility tab is the current sidebar tab */
+.utility-nav.active-utility > a.utility-link {
+  color: var(--accent, #ff7f11) !important;
+  border-bottom: 2px solid var(--accent, #ff7f11) !important;
+  background: rgba(255,127,17,0.10) !important;
 }
+.utility-nav > a.utility-link .fa,
+.utility-nav > a.utility-link .fas,
+.utility-nav > a.utility-link .far {
+  font-size: 13px;
+}
+
+/* ── Utility bar label (label above the group, hidden on narrow screens) ── */
+.utility-nav-label {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  line-height: 1;
+  padding: 14px 6px 0 12px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+@media (max-width: 900px) { .utility-nav-label { display: none; } }
+
 /* Sidebar "DESIGN FLOW" section header label */
 .sidebar-menu .header {
   font-size: 10px !important;
@@ -1303,3 +1338,38 @@ body.theme-light *[style*="color: var(--c-err)"]   { color: var(--c-err)  !impor
   color: var(--accent, #ff7f11) !important;
   padding: 12px 15px 4px 15px !important;
 }
+
+/* ── Reporting / Download cards ──────────────────────────────────────────── */
+.report-stage-card {
+  background: var(--s-raised, #2a2a2a);
+  border: 1px solid var(--bdr-norm, #444);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.report-stage-card .stage-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tx-hi, #eee);
+  min-width: 160px;
+}
+.report-stage-card .stage-status {
+  font-size: 11px;
+  color: var(--tx-low, #888);
+  flex: 1;
+}
+.download-option-box {
+  border: 1px solid var(--bdr-norm, #444);
+  border-radius: 8px;
+  padding: 18px;
+  text-align: center;
+  background: var(--s-raised, #2a2a2a);
+  transition: border-color 0.2s;
+}
+.download-option-box:hover { border-color: var(--accent, #ff7f11); }
+.download-option-box .download-icon { font-size: 32px; color: var(--accent, #ff7f11); margin-bottom: 8px; }
+.download-option-box h5 { color: var(--tx-hi, #eee); margin: 6px 0 4px 0; font-size: 13px; }
+.download-option-box p  { color: var(--tx-low, #888); font-size: 11px; margin: 0; }
