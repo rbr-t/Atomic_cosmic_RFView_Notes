@@ -12,28 +12,23 @@ ui <- dashboardPage(
     ),
     # ── TOP UTILITY BAR ──────────────────────────────────────────────────────
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "#", class = "utility-link", `data-panel` = "util_data",
-        onclick = "utilityDrawerOpen('util_data'); return false;",
+      tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "util_data",
         icon("database"), " Data Manager")
     ),
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "#", class = "utility-link", `data-panel` = "smith_chart",
-        onclick = "utilityDrawerOpen('smith_chart'); return false;",
+      tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "smith_chart",
         icon("tools"), " RF Tools")
     ),
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "#", class = "utility-link", `data-panel` = "util_agents",
-        onclick = "utilityDrawerOpen('util_agents'); return false;",
+      tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "util_agents",
         icon("robot"), " AI Agents")
     ),
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "#", class = "utility-link", `data-panel` = "util_knowledge",
-        onclick = "utilityDrawerOpen('util_knowledge'); return false;",
+      tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "util_knowledge",
         icon("book"), " Knowledge Base")
     ),
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "#", class = "utility-link", `data-panel` = "settings",
-        onclick = "utilityDrawerOpen('settings'); return false;",
+      tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "settings",
         icon("cog"), " Settings")
     )
   ),
@@ -104,6 +99,7 @@ ui <- dashboardPage(
       tags$link(rel = "stylesheet", type = "text/css", href = "css/pa_lineup.css"),
       tags$script(src = "https://d3js.org/d3.v7.min.js"),
       tags$script(src = "js/pa_lineup_canvas.js"),
+      tags$script(src = "js/utility_drawer.js"),
       tags$style(HTML("
         /* Hardcoded fallbacks removed — all theming now in custom.css */
       ")),
@@ -179,64 +175,9 @@ $(document).ready(function() {
     }
   });
 
-  // ── Utility Drawer ──────────────────────────────────────────────────────
-  // Functions are attached to window so onclick= HTML attributes can call them.
-  // The drawer floats over the app — main sidebar and content stay interactive.
-
-  var _drawerTab = null;
-  var _drawerMeta = {
-    'util_data':      { title: 'Data Manager'  },
-    'smith_chart':    { title: 'RF Tools'       },
-    'util_agents':    { title: 'AI Agents'      },
-    'util_knowledge': { title: 'Knowledge Base' },
-    'settings':       { title: 'Settings'       }
-  };
-
-  window.utilityDrawerOpen = function(tabName) {
-    // Second click on same tab toggles closed
-    if (_drawerTab === tabName && $('#utility-drawer').hasClass('open')) {
-      window.utilityDrawerClose();
-      return;
-    }
-    _drawerTab = tabName;
-    var meta = _drawerMeta[tabName] || { title: tabName };
-    $('#utility-drawer-title').text(meta.title);
-    $('#utility-drawer').addClass('open');
-    // Highlight active utility link
-    $('.utility-nav').removeClass('active-utility');
-    $('.utility-nav').filter(function() {
-      return $(this).find('[data-panel=\'' + tabName + '\']').length > 0;
-    }).addClass('active-utility');
-    // Ask Shiny to render drawer content
-    Shiny.setInputValue('utility_drawer_tab', tabName, {priority: 'event'});
-  };
-
-  window.utilityDrawerClose = function() {
-    $('#utility-drawer').removeClass('open');
-    $('.utility-nav').removeClass('active-utility');
-    _drawerTab = null;
-  };
-
-  // Navigate the main sidebar to the full tabItem view
-  window.utilityDrawerFullView = function() {
-    if (!_drawerTab) return;
-    var tab = _drawerTab;
-    window.utilityDrawerClose();
-    Shiny.setInputValue('goto_utility_tab', tab, {priority: 'event'});
-  };
-
-  // Open in a real new browser tab (full Shiny app, panel pre-selected via ?panel=)
-  window.utilityDrawerPopout = function() {
-    if (!_drawerTab) return;
-    var base = window.location.href.split('?')[0].split('#')[0];
-    window.open(base + '?panel=' + encodeURIComponent(_drawerTab), '_blank');
-  };
-
-  // Add TOOLS label before the first utility-nav item
-  var $firstUtil = $('.utility-nav').first();
-  if ($firstUtil.length && !$('#utility-nav-label').length) {
-    $firstUtil.before('<li class=\'dropdown\'><span class=\'utility-nav-label\' id=\'utility-nav-label\'>Tools</span></li>');
-  }
+  // Utility drawer logic lives in www/js/utility_drawer.js (loaded from tags$head).
+  // jQuery delegation and global function declarations are defined there,
+  // avoiding all R string-escaping issues.
 });
       "))
     ),
@@ -251,20 +192,17 @@ $(document).ready(function() {
         tags$span(id = "utility-drawer-title", "Utility Panel"),
         # "Expand to full view" button
         tags$button(class = "drawer-hdr-btn", id = "drawer-full-btn",
-          title  = "Open full screen view",
-          onclick = "utilityDrawerFullView()",
+          title = "Open full screen view",
           tags$i(class = "fa fa-expand-arrows-alt"), " Full View"
         ),
-        # "Open in new window" button
+        # "Open in new tab" button
         tags$button(class = "drawer-hdr-btn", id = "drawer-popout-btn",
-          title  = "Open in new browser window",
-          onclick = "utilityDrawerPopout()",
-          tags$i(class = "fa fa-external-link-alt"), " New Window"
+          title = "Open in new browser tab",
+          tags$i(class = "fa fa-external-link-alt"), " New Tab"
         ),
         # Close button
         tags$button(class = "drawer-hdr-btn btn-close-drawer", id = "drawer-close-btn",
-          title  = "Close panel",
-          onclick = "utilityDrawerClose()",
+          title = "Close panel",
           tags$i(class = "fa fa-times")
         )
       ),
