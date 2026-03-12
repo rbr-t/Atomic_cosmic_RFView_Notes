@@ -93,37 +93,222 @@ serverRfTools <- function(input, output, session, state) {
   })
   
   # ============================================================
-  # RF Tools: Smith Chart (Placeholder)
+  # RF Tools: Smith Chart — full implementation
   # ============================================================
-  
-  output$smith_chart_plot <- renderPlotly({
-    plot_ly() %>%
-      add_trace(
-        type = "scatter",
-        mode = "lines",
-        x = cos(seq(0, 2*pi, length.out = 100)),
-        y = sin(seq(0, 2*pi, length.out = 100)),
-        line = list(color = "white"),
-        showlegend = FALSE
-      ) %>%
-      layout(
-        xaxis = list(range = c(-1.2, 1.2), title = "Real(Γ)"),
-        yaxis = list(range = c(-1.2, 1.2), title = "Imag(Γ)"),
-        title = "Smith Chart (Placeholder - Full implementation pending)"
-      )
-  })
-  
-  output$smith_components <- renderText({
-    paste0(
-      "Smith Chart matching network synthesis:\n",
-      "========================================\n",
-      "Placeholder - Full implementation pending\n\n",
-      "Will support:\n",
-      "- Single/double stub matching\n",
-      "- L/Pi/T network synthesis\n",
-      "- Interactive impedance plotting\n",
-      "- S-parameter trajectory visualization\n"
+
+  # ── Helper: generate all Smith Chart grid traces ─────────────────────────
+  .smith_grid <- function() {
+    GRID   <- "rgba(80,100,80,0.55)"
+    GRID_H <- "rgba(130,170,130,0.8)"   # highlighted (r=0,1 / x=±1)
+    n      <- 300
+    theta  <- seq(0, 2 * pi, length.out = n)
+    traces <- list()
+
+    # Unit circle
+    traces <- c(traces, list(list(
+      x = cos(theta), y = sin(theta),
+      line = list(color = "rgba(200,210,200,0.75)", width = 1.6),
+      name = "|Γ|=1"
+    )))
+
+    # Real axis
+    traces <- c(traces, list(list(
+      x = c(-1, 1), y = c(0, 0),
+      line = list(color = "rgba(160,160,160,0.45)", width = 0.8),
+      name = "real_ax"
+    )))
+
+    # Constant-R circles: center=(r/(1+r),0), radius=1/(1+r)
+    for (r in c(0, 0.2, 0.5, 1, 2, 5, 10)) {
+      cx  <- r / (1 + r)
+      rad <- 1 / (1 + r)
+      col <- if (r %in% c(0, 1)) GRID_H else GRID
+      lw  <- if (r %in% c(0, 1)) 1.0 else 0.65
+      traces <- c(traces, list(list(
+        x    = cx + rad * cos(theta),
+        y    =      rad * sin(theta),
+        line = list(color = col, width = lw),
+        name = paste0("R=", r)
+      )))
+    }
+
+    # Constant-X arcs: center=(1,1/x), radius=1/|x|, clipped to |Γ|≤1
+    for (xv in c(0.2, 0.5, 1, 2, 5, 10, -0.2, -0.5, -1, -2, -5, -10)) {
+      cx  <- 1
+      cy  <- 1 / xv
+      rad <- 1 / abs(xv)
+      px  <- cx + rad * cos(theta)
+      py  <- cy + rad * sin(theta)
+      outside     <- (px^2 + py^2) > 1.0005
+      px[outside] <- NA
+      py[outside] <- NA
+      col <- if (abs(xv) == 1) GRID_H else GRID
+      lw  <- if (abs(xv) == 1) 1.0 else 0.65
+      traces <- c(traces, list(list(
+        x = px, y = py,
+        line = list(color = col, width = lw),
+        name = paste0("X=", xv)
+      )))
+    }
+    traces
+  }
+
+  # ── Reactive: stored impedance points ────────────────────────────────────
+  smith_pts <- reactiveVal(data.frame(
+    label  = character(),
+    z_real = numeric(),
+    z_imag = numeric(),
+    color  = character(),
+    stringsAsFactors = FALSE
+  ))
+
+  # z → Γ helper
+  .z_to_gamma <- function(z_real, z_imag, z0 = 50) {
+    z     <- complex(real = z_real, imaginary = z_imag)
+    gamma <- (z - z0) / (z + z0)
+    list(re = Re(gamma), im = Im(gamma))
+  }
+
+  # Add point button
+  observeEvent(input$smith_add_point, {
+    req(input$smith_z_real)
+    z0  <- as.numeric(input$smith_z0 %||% 50)
+    pts <- smith_pts()
+    lbl <- if (!is.null(input$smith_label) && nzchar(input$smith_label))
+      input$smith_label else paste0("Z", nrow(pts) + 1)
+    cols <- c("#ff7f11","#1f77b4","#2ca02c","#d62728","#9467bd","#8c564b","#e377c2")
+    col  <- cols[(nrow(pts) %% length(cols)) + 1]
+    new_row <- data.frame(
+      label  = lbl,
+      z_real = as.numeric(input$smith_z_real),
+      z_imag = as.numeric(input$smith_z_imag),
+      color  = col,
+      stringsAsFactors = FALSE
     )
+    smith_pts(rbind(pts, new_row))
+  })
+
+  # Clear
+  observeEvent(input$smith_clear, {
+    smith_pts(data.frame(label=character(), z_real=numeric(),
+                         z_imag=numeric(), color=character(),
+                         stringsAsFactors=FALSE))
+  })
+
+  # ── Main Smith Chart plot ─────────────────────────────────────────────────
+  output$smith_chart_plot <- renderPlotly({
+    z0   <- as.numeric(input$smith_z0 %||% 50)
+    grid <- .smith_grid()
+
+    p <- plot_ly()
+
+    # Grid traces
+    for (tr in grid) {
+      p <- p %>% add_trace(
+        type = "scatter", mode = "lines",
+        x = tr$x, y = tr$y,
+        line = tr$line,
+        name = tr$name,
+        hoverinfo = "none",
+        showlegend = FALSE
+      )
+    }
+
+    pts <- smith_pts()
+    if (nrow(pts) > 0) {
+      z     <- complex(real = pts$z_real, imaginary = pts$z_imag)
+      gamma <- (z - z0) / (z + z0)
+      hover <- sprintf(
+        "<b>%s</b><br>Z = %.2f %+.2fj Ω<br>Γ = %.3f %+.3fj<br>|Γ| = %.3f",
+        pts$label, pts$z_real, pts$z_imag, Re(gamma), Im(gamma), Mod(gamma)
+      )
+      p <- p %>% add_trace(
+        type      = "scatter",
+        mode      = "markers+text",
+        x         = Re(gamma),
+        y         = Im(gamma),
+        text      = pts$label,
+        textposition = "top center",
+        hovertext = hover,
+        hoverinfo = "text",
+        marker    = list(size = 11, color = pts$color,
+                         line = list(color = "white", width = 1.2)),
+        showlegend = TRUE,
+        name      = "Points"
+      )
+    }
+
+    p %>% layout(
+      paper_bgcolor = "#1b1b2b",
+      plot_bgcolor  = "#1b1b2b",
+      xaxis = list(
+        title      = "Real(\u0393)",
+        range      = c(-1.25, 1.25),
+        zeroline   = FALSE,
+        showgrid   = FALSE,
+        color      = "#aaa",
+        tickfont   = list(color = "#aaa"),
+        scaleanchor = "y",
+        scaleratio  = 1
+      ),
+      yaxis = list(
+        title    = "Imag(\u0393)",
+        range    = c(-1.25, 1.25),
+        zeroline = FALSE,
+        showgrid = FALSE,
+        color    = "#aaa",
+        tickfont = list(color = "#aaa")
+      ),
+      title  = list(text = paste0("Smith Chart  (Z\u2080 = ", z0, " \u03a9)"),
+                    font = list(color = "#eee", size = 14)),
+      font   = list(color = "#aaa"),
+      legend = list(font = list(color = "#aaa"), bgcolor = "rgba(0,0,0,0.35)",
+                    x = 1.02, y = 1),
+      margin = list(l = 50, r = 10, t = 50, b = 50)
+    )
+  })
+
+  # ── Matching network synthesis text ──────────────────────────────────────
+  output$smith_components <- renderText({
+    pts <- smith_pts()
+    z0  <- as.numeric(input$smith_z0 %||% 50)
+    if (nrow(pts) == 0) {
+      return("Add impedance points using the controls on the left.\n\nTip: enter Z real/imag + optional label, then click Add Point.")
+    }
+    z    <- complex(real = pts$z_real, imaginary = pts$z_imag)
+    gam  <- (z - z0) / (z + z0)
+    lines_out <- c(
+      sprintf("%-8s  Z (Ω)              Γ              |Γ|    RL (dB)",
+              "Label"),
+      strrep("-", 60)
+    )
+    for (i in seq_len(nrow(pts))) {
+      rl <- if (Mod(gam[i]) > 0) -20 * log10(Mod(gam[i])) else Inf
+      lines_out <- c(lines_out,
+        sprintf("%-8s  %6.2f %+6.2fj    %6.3f %+6.3fj   %.3f  %5.1f dB",
+                pts$label[i], pts$z_real[i], pts$z_imag[i],
+                Re(gam[i]), Im(gam[i]), Mod(gam[i]), rl))
+    }
+
+    # Matching between first two points if ≥ 2
+    if (nrow(pts) >= 2) {
+      z1 <- z[1]; z2 <- z[2]
+      lines_out <- c(lines_out, "", strrep("-", 60),
+        "L-section matching  (Point 1 → Point 2):",
+        "")
+      # Simple L-section: series element first
+      # Equations: shunt B, series X  to transform Z1 → Z2*
+      # Simplified: report qualitative direction
+      delta_r <- Re(z2) - Re(z1)
+      delta_x <- Im(z2) - Im(z1)
+      series_type <- if (delta_x > 0) "Inductor" else if (delta_x < 0) "Capacitor" else "None"
+      lines_out <- c(lines_out,
+        sprintf("  \u0394R = %+.2f Ω  \u0394X = %+.2f Ω", delta_r, delta_x),
+        sprintf("  Series element hint: %s", series_type),
+        "",
+        "Full lossless L/Pi/T synthesis: coming in next release.")
+    }
+    paste(lines_out, collapse = "\n")
   })
   
   # ============================================================

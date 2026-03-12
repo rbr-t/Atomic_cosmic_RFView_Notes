@@ -1,0 +1,5 @@
+Separate library for components
+1. I also want a plan to prepare a library of components such as capacitors, inductors, resistors and PDK's that are publicly available. The idea is also to use them in the canvases for simulations.
+   1.1 Frequency response
+   1.2 S-parameters
+   1.3 maximum ratings and limitations (frequency, Voltage rating, resonances, parasitics)

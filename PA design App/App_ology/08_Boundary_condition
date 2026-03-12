@@ -1,0 +1,4 @@
+Boundary condition
+Boundary conditions can be multi dimensional
+1. Technical boundary conditions during simulations
+2. During the app implemantation, keep practical limits and define clear start and end points, objectives and goals. Otherwise the app may never get finished. 

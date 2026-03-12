@@ -1,0 +1,11 @@
+Knowledge base extraction
+
+1. Extract data from the sites in the context of this app. The goal is to make a database and appopriate libraries for device, technology an use them anywhere in the app in canvases for simulation.
+   1.1 Appropirate tags, for example Tehnology, Driver, main, Peak, frequency, company, business area (basestation, multimarkert, medical, defencse, aerospace..)
+   1.2 Device library for Driver, main, peak (aux). Each component should have all the related data (Performance, linearity, impedances, frequency)
+   1.3 Use symbols from the datasheets. 
+   1.4 Maintain library of circuits and layouts, BOM
+   1.5 Maintain refrences and always mention them from where the data is coming from.
+   1.6 Look for following companies datasheets (Amplen, NXP, Sumitomo, Macom, Wolfspeed, Freescale, Watech, Recokn RF, GalliumSemi, Forefront RF, Gureilla RF)
+
+2. First take one example (datasheet, url) and define your extraction plan. Extract relevant data and organize and report. We will see how to continue from there.

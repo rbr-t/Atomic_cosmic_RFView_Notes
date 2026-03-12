@@ -32,6 +32,10 @@ source("modules/server/server_spec_design.R")
 source("modules/server/server_file_ops.R")
 source("modules/server/server_rf_tools.R")
 source("modules/server/server_guardrails.R")
+
+# ── Load Pull subsystem ───────────────────────────────────────────────────
+source("modules/rf_tools/lp_parsers.R")
+source("modules/server/server_lp_viewer.R")
 source("modules/server/server_settings.R")
 source("modules/server/server_reporting.R")
 
@@ -117,6 +121,26 @@ server <- function(input, output, session) {
         tags$a(class = "drawer-fullview-link",
           onclick = "utilityDrawerFullView()",
           icon("chart-bar"), " Open Smith Chart — Full View"
+        )
+      ),
+
+      # ── Load Pull Viewer ──────────────────────────────────────────────────
+      "lp_viewer" = tagList(
+        p(style = "color:#aaa; font-size:12px; margin:0 0 12px 0;",
+          "Load-pull / source-pull data viewer.",
+          " Upload SPL, MDF, AMCAD, Focus, Anteverta or MDIF files."),
+        tags$div(class = "drawer-section-label", "Quick upload"),
+        fileInput("drawer_lp_quick_upload", NULL,
+          multiple    = TRUE,
+          accept      = c(".spl",".lpt",".txt",".dat",
+                          ".mdf",".csv",".ant",".mdif"),
+          buttonLabel = icon("upload"),
+          placeholder = "Choose LP file\u2026"),
+        p(style = "color:#888; font-size:11px; margin-top:4px;",
+          "After uploading, open the full view to parse and visualise."),
+        tags$a(class = "drawer-fullview-link",
+          onclick = "utilityDrawerFullView()",
+          icon("chart-area"), " Open Load Pull Viewer — Full View"
         )
       ),
 
@@ -274,6 +298,7 @@ server <- function(input, output, session) {
   serverGuardrails(input, output, session, state)
   serverSettings(input, output, session, state)
   serverReporting(input, output, session, state)
+  serverLpViewer(input, output, session, state)
 
   # ── Session cleanup ──────────────────────────────────────────────────────
   onStop(function() {

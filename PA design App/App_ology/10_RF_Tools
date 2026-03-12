@@ -1,0 +1,9 @@
+Load pull viewer
+Support all possible LP file types (spl, mdf, focus , amcad, anteverta,mdif)
+Controls to play and manipulate parameters & plots
+contours for Zin, Zout, Pout, PAE, DE, Gain (powr gain, transducer gain)
+XY plots for gain power efficiency in single plot
+Nose plot and trade-off plots 
+Tabular view of performance at avergae power (Pavg) and peak power (Ppeak/Px dB)
+Ability to compare multiple devices
+LP report
