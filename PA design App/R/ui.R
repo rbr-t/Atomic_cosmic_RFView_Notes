@@ -95,8 +95,10 @@ ui <- dashboardPage(
 
       # ── TOOLS (hidden in sidebar — opened via top utility bar) ──────────────
       tags$li(class = "header", "RF TOOLS"),
-      menuItem("Load Pull Viewer",  tabName = "lp_viewer",   icon = icon("chart-area")),
-      menuItem("Smith Chart",       tabName = "smith_chart", icon = icon("chart-bar"))
+      menuItem("Load Pull Viewer",  tabName = "lp_viewer",      icon = icon("chart-area")),
+      menuItem("Smith Chart",       tabName = "smith_chart",    icon = icon("chart-bar")),
+      tags$li(class = "header", "KNOWLEDGE"),
+      menuItem("Device Library",    tabName = "util_knowledge", icon = icon("book"))
     )
   ),
   
@@ -3131,8 +3133,67 @@ $(document).ready(function() {
         p("Under construction — agent manager, prompt store, external knowledge access.")
       ),
       tabItem(tabName = "util_knowledge",
-        h2(icon("book"), " Knowledge Base"),
-        p("Under construction — internal notes, datasheets, references and IFX notes library.")
+        h2(icon("book"), " Device Knowledge Base"),
+        p(style = "color:#aaa; font-size:13px; margin-bottom:16px;",
+          "Searchable library of RF power transistors: specifications, impedance data, app notes and design references.",
+          " Devices flagged ", tags$span(style="color:#2ca02c;font-weight:600;", "\u2713\u2713 high"),
+          " confidence are verified against datasheets. ",
+          tags$span(style="color:#ff7f11;font-weight:600;", "\u2713 medium"),
+          " = strong training knowledge. ",
+          tags$span(style="color:#d62728;font-weight:600;", "\u26a0 low"),
+          " = placeholder — download the datasheet to complete."
+        ),
+        verbatimTextOutput("kb_stats_text"),
+
+        fluidRow(
+          # ── Filter sidebar ───────────────────────────────────────────────
+          box(title = "Filters", width = 3, status = "primary", solidHeader = TRUE,
+
+            textInput("kb_search_box", "Search",
+              placeholder = "Part number, technology, tag\u2026"),
+
+            hr(),
+            uiOutput("kb_filter_mfr_ui"),
+            uiOutput("kb_filter_tech_ui"),
+
+            numericInput("kb_filter_freq_mhz", "Covers frequency (MHz)",
+              value = NULL, min = 0.01, max = 50000, step = 1),
+
+            numericInput("kb_filter_pout_w", "Min Pout (W)",
+              value = NULL, min = 0, max = 10000, step = 5),
+
+            selectInput("kb_filter_app", "Application",
+              choices  = c("All", "cellular", "avionics", "ism", "broadcast",
+                           "defense", "medical", "radar", "5G", "4G"),
+              selected = "All", multiple = TRUE),
+
+            selectInput("kb_filter_role", "Role in PA chain",
+              choices  = c("All", "driver", "main", "peak", "combined"),
+              selected = "All", multiple = TRUE),
+
+            hr(),
+            checkboxInput("kb_show_placeholders", "Show placeholder entries",
+              value = FALSE),
+
+            actionButton("kb_clear_filters", "Clear all filters",
+              icon = icon("times"), class = "btn-default btn-block btn-sm")
+          ),
+
+          # ── Main panel ───────────────────────────────────────────────────
+          column(9,
+            fluidRow(
+              box(title = "Devices", width = 12, status = "info", solidHeader = TRUE,
+                DT::DTOutput("kb_device_table", height = "420px")
+              )
+            ),
+            fluidRow(
+              box(title = "Device Detail", width = 12, status = "default",
+                solidHeader = TRUE,
+                uiOutput("kb_device_detail")
+              )
+            )
+          )
+        )
       ),
 
       # RF Tools: Smith Chart

@@ -1,0 +1,138 @@
+{
+  "_comment": "PA Design App — Canonical tag taxonomy for device knowledge base",
+  "_version": "1.0",
+
+  "technology": {
+    "description": "Semiconductor process",
+    "values": [
+      {"tag": "LDMOS",      "label": "LDMOS",           "description": "Laterally Diffused MOS — silicon, 28V or 50V"},
+      {"tag": "LDMOS-Gen9", "label": "LDMOS Gen9",      "description": "Ampleon/NXP 9th generation LDMOS process"},
+      {"tag": "LDMOS-Gen8", "label": "LDMOS Gen8",      "description": "Ampleon/NXP 8th generation LDMOS process"},
+      {"tag": "GaN-SiC",    "label": "GaN on SiC",      "description": "Gallium Nitride on Silicon Carbide — high power density, high frequency"},
+      {"tag": "GaN-Si",     "label": "GaN on Silicon",  "description": "Gallium Nitride on Silicon — lower cost GaN"},
+      {"tag": "GaAs",       "label": "GaAs",            "description": "Gallium Arsenide — high efficiency at microwave frequencies"},
+      {"tag": "SiGe",       "label": "SiGe HBT",        "description": "Silicon Germanium heterojunction bipolar"},
+      {"tag": "PHEMT",      "label": "pHEMT",           "description": "Pseudomorphic HEMT — GaAs/InGaAs"}
+    ]
+  },
+
+  "supply_voltage": {
+    "description": "Nominal drain/collector supply voltage",
+    "values": [
+      {"tag": "12V",  "label": "12 V"},
+      {"tag": "28V",  "label": "28 V"},
+      {"tag": "48V",  "label": "48 V"},
+      {"tag": "50V",  "label": "50 V"},
+      {"tag": "65V",  "label": "65 V"}
+    ]
+  },
+
+  "frequency_band": {
+    "description": "Operating frequency band / cellular standard",
+    "values": [
+      {"tag": "HF",        "label": "HF (3–30 MHz)",          "freq_min_mhz": 3,      "freq_max_mhz": 30},
+      {"tag": "VHF",       "label": "VHF (30–300 MHz)",       "freq_min_mhz": 30,     "freq_max_mhz": 300},
+      {"tag": "UHF",       "label": "UHF (300–1000 MHz)",     "freq_min_mhz": 300,    "freq_max_mhz": 1000},
+      {"tag": "L-band",    "label": "L-band (1–2 GHz)",       "freq_min_mhz": 1000,   "freq_max_mhz": 2000},
+      {"tag": "S-band",    "label": "S-band (2–4 GHz)",       "freq_min_mhz": 2000,   "freq_max_mhz": 4000},
+      {"tag": "C-band",    "label": "C-band (4–8 GHz)",       "freq_min_mhz": 4000,   "freq_max_mhz": 8000},
+      {"tag": "X-band",    "label": "X-band (8–12 GHz)",      "freq_min_mhz": 8000,   "freq_max_mhz": 12000},
+      {"tag": "Ku-band",   "label": "Ku-band (12–18 GHz)",    "freq_min_mhz": 12000,  "freq_max_mhz": 18000},
+      {"tag": "broadband", "label": "Broadband (≥decade BW)", "freq_min_mhz": null,   "freq_max_mhz": null},
+      {"tag": "B1",        "label": "LTE B1 (2100 MHz)",      "freq_min_mhz": 2110,   "freq_max_mhz": 2170},
+      {"tag": "B3",        "label": "LTE B3 (1800 MHz)",      "freq_min_mhz": 1710,   "freq_max_mhz": 1785},
+      {"tag": "B7",        "label": "LTE B7 (2600 MHz)",      "freq_min_mhz": 2500,   "freq_max_mhz": 2690},
+      {"tag": "B8",        "label": "LTE B8 (900 MHz)",       "freq_min_mhz": 880,    "freq_max_mhz": 960},
+      {"tag": "B20",       "label": "LTE B20 (800 MHz DD)",   "freq_min_mhz": 791,    "freq_max_mhz": 862},
+      {"tag": "B28",       "label": "LTE B28 (700 MHz APT)",  "freq_min_mhz": 703,    "freq_max_mhz": 803},
+      {"tag": "n77",       "label": "5G NR n77 (3.3–4.2 GHz)", "freq_min_mhz": 3300, "freq_max_mhz": 4200},
+      {"tag": "n78",       "label": "5G NR n78 (3.4–3.8 GHz)", "freq_min_mhz": 3400, "freq_max_mhz": 3800},
+      {"tag": "n79",       "label": "5G NR n79 (4.4–5.0 GHz)", "freq_min_mhz": 4400, "freq_max_mhz": 5000},
+      {"tag": "ISM-13.56", "label": "ISM 13.56 MHz",          "freq_min_mhz": 13.4,  "freq_max_mhz": 13.7},
+      {"tag": "ISM-27",    "label": "ISM 27.12 MHz",          "freq_min_mhz": 26.9,  "freq_max_mhz": 27.3},
+      {"tag": "ISM-433",   "label": "ISM 433 MHz",            "freq_min_mhz": 433.0, "freq_max_mhz": 434.8},
+      {"tag": "ISM-915",   "label": "ISM 915 MHz",            "freq_min_mhz": 902,   "freq_max_mhz": 928},
+      {"tag": "ISM-2450",  "label": "ISM 2.45 GHz",           "freq_min_mhz": 2400,  "freq_max_mhz": 2500},
+      {"tag": "FM-broadcast","label": "FM Broadcast (88–108 MHz)", "freq_min_mhz": 88, "freq_max_mhz": 108}
+    ]
+  },
+
+  "application": {
+    "description": "Market / application segment",
+    "values": [
+      {"tag": "cellular",     "label": "Cellular Infrastructure"},
+      {"tag": "5G",           "label": "5G New Radio"},
+      {"tag": "4G",           "label": "4G / LTE"},
+      {"tag": "3G",           "label": "3G / WCDMA / UMTS"},
+      {"tag": "2G",           "label": "2G / GSM"},
+      {"tag": "broadcast",    "label": "Broadcast (FM, DAB, DVB-T)"},
+      {"tag": "ism",          "label": "ISM / Industrial"},
+      {"tag": "medical",      "label": "Medical (MRI, ablation, plasma)"},
+      {"tag": "avionics",     "label": "Avionics"},
+      {"tag": "defense",      "label": "Defense / Aerospace"},
+      {"tag": "radar",        "label": "Radar"},
+      {"tag": "satellite",    "label": "Satellite / VSAT"},
+      {"tag": "wlan",         "label": "WLAN / WiFi"},
+      {"tag": "multimarket",  "label": "Multi-market"}
+    ]
+  },
+
+  "power_class": {
+    "description": "Peak output power class",
+    "values": [
+      {"tag": "mW-class",   "label": "< 1 W",          "pout_w_max": 1},
+      {"tag": "1W-class",   "label": "1–10 W",         "pout_w_min": 1,   "pout_w_max": 10},
+      {"tag": "10W-class",  "label": "10–50 W",        "pout_w_min": 10,  "pout_w_max": 50},
+      {"tag": "100W-class", "label": "50–200 W",       "pout_w_min": 50,  "pout_w_max": 200},
+      {"tag": "kW-class",   "label": "> 200 W",        "pout_w_min": 200}
+    ]
+  },
+
+  "role": {
+    "description": "Role in PA chain",
+    "values": [
+      {"tag": "driver",    "label": "Driver stage"},
+      {"tag": "predriver", "label": "Pre-driver stage"},
+      {"tag": "main",      "label": "Main / carrier amplifier"},
+      {"tag": "peak",      "label": "Peak / auxiliary amplifier"},
+      {"tag": "combined",  "label": "Combined main+peak (integrated Doherty)"}
+    ]
+  },
+
+  "topology": {
+    "description": "Amplifier topology",
+    "values": [
+      {"tag": "single-ended",  "label": "Single-ended"},
+      {"tag": "push-pull",     "label": "Push-pull"},
+      {"tag": "balanced",      "label": "Balanced (0° hybrid)"},
+      {"tag": "Doherty",       "label": "Doherty"},
+      {"tag": "Chireix",       "label": "Chireix outphasing"},
+      {"tag": "envelope-tracking", "label": "Envelope tracking"},
+      {"tag": "switch-mode",   "label": "Switch-mode (Class D/E/F)"},
+      {"tag": "class-AB",      "label": "Class AB"},
+      {"tag": "class-J",       "label": "Class J"},
+      {"tag": "class-F",       "label": "Class F / inverse-F"}
+    ]
+  },
+
+  "use_case": {
+    "description": "Specific system use case",
+    "values": [
+      {"tag": "macrocell",     "label": "Macrocell BTS"},
+      {"tag": "microcell",     "label": "Micro / small cell"},
+      {"tag": "massive-MIMO",  "label": "Massive MIMO / AAU"},
+      {"tag": "repeater",      "label": "Repeater / booster"},
+      {"tag": "SSR",           "label": "Secondary Surveillance Radar"},
+      {"tag": "IFF",           "label": "Identification Friend/Foe"},
+      {"tag": "TACAN",         "label": "TACAN navigation"},
+      {"tag": "DME",           "label": "Distance Measuring Equipment"},
+      {"tag": "ATC",           "label": "Air Traffic Control"},
+      {"tag": "plasma",        "label": "Plasma generation"},
+      {"tag": "MRI",           "label": "MRI / medical imaging"},
+      {"tag": "heating",       "label": "Industrial heating"},
+      {"tag": "FM-tx",         "label": "FM transmitter"},
+      {"tag": "DAB-tx",        "label": "DAB transmitter"},
+      {"tag": "DVB-T-tx",      "label": "DVB-T transmitter"}
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "manufacturer":    "Ampleon",
+  "manufacturer_id": "ampleon",
+  "full_name":       "Ampleon Netherlands B.V.",
+  "founded":         2015,
+  "parent_history":  "Spun off from NXP Semiconductors RF Power division in 2015. NXP RF Power was previously part of Philips Semiconductors.",
+  "headquarters":    "Nijmegen, Netherlands",
+  "website":         "https://www.ampleon.com",
+  "products_url":    "https://www.ampleon.com/products.html",
+  "knowledge_base_url": "https://www.ampleon.com/knowledge-base.html",
+  "focus_areas":     ["LDMOS RF power transistors", "GaN RF power transistors", "RF power amplifier modules"],
+  "key_markets":     ["cellular infrastructure", "broadcast", "ISM/industrial", "avionics", "defense", "medical"],
+
+  "product_families": [
+    {
+      "family_id":   "BLF-broadband",
+      "family_name": "BLF — Broadband High Power LDMOS",
+      "technology":  "LDMOS",
+      "description": "High-voltage (50V) LDMOS transistors for wideband applications: avionics pulse systems, industrial RF heating, ISM, medical. Covers 10 kHz to 500 MHz in push-pull configuration.",
+      "key_devices": ["BLF188XR", "BLF188XRS", "BLF578", "BLF374F"],
+      "vdd_v": 50,
+      "power_range_w": [100, 2000],
+      "freq_range_mhz": [0.01, 500]
+    },
+    {
+      "family_id":   "BLF-cellular-L-band",
+      "family_name": "BLF7Gxx — Cellular L/S-band LDMOS",
+      "technology":  "LDMOS-Gen9",
+      "description": "Generation 9 LDMOS for cellular infrastructure (LTE/5G). Covers 700 MHz – 3.8 GHz. Optimised for Doherty and wideband LDMOS PAs for macro BTS.",
+      "key_devices": ["BLF8G10-80", "BLF7G20LS-130P", "BLF7G22LS-160P", "BLF7G22LS-80P", "BLF7G27-70"],
+      "vdd_v": 50,
+      "power_range_w": [40, 300],
+      "freq_range_mhz": [700, 3800]
+    },
+    {
+      "family_id":   "CLF-5G",
+      "family_name": "CLF — Compact LDMOS for 5G",
+      "technology":  "LDMOS-Gen9",
+      "description": "Compact form-factor Gen9 LDMOS purpose-built for 5G NR sub-6 GHz Massive MIMO / AAU applications. Single-ended and Doherty-ready pairs.",
+      "key_devices": ["CLF1G7060S", "CLF1G7060D"],
+      "vdd_v": 50,
+      "power_range_w": [20, 120],
+      "freq_range_mhz": [1700, 3800]
+    },
+    {
+      "family_id":   "GaN",
+      "family_name": "GaN — High Efficiency GaN on SiC",
+      "technology":  "GaN-SiC",
+      "description": "Gallium Nitride on Silicon Carbide for applications requiring higher frequency capability, higher power density, and wider bandwidth than LDMOS. Sub-6 GHz and mmWave products.",
+      "key_devices": ["A2G06S050W", "A2G09D160W"],
+      "vdd_v": 50,
+      "power_range_w": [10, 500],
+      "freq_range_mhz": [100, 18000]
+    }
+  ],
+
+  "design_resources": [
+    {
+      "title":  "Ampleon RF Power Design Academy",
+      "url":    "https://www.ampleon.com/knowledge-base.html",
+      "type":   "training"
+    },
+    {
+      "title":  "Doherty PA Reference Design (2.1 GHz, 160W)",
+      "url":    "https://www.ampleon.com/documents/application-note/AN11303.pdf",
+      "type":   "app_note",
+      "device": "BLF7G22LS-160P"
+    },
+    {
+      "title":  "Ampleon Load-Pull Models (ADS/Spectre)",
+      "url":    "https://www.ampleon.com/products/design-in-tools.html",
+      "type":   "simulation_models"
+    }
+  ],
+
+  "package_guide": {
+    "MOS-10":      "Large 10-lead plastic overmoulded package (SOT1227A), used for push-pull broadband devices up to ~2 kW pulsed",
+    "MOS-9":       "9-lead variant, used for single-ended broadband devices",
+    "LFPAK56":     "Surface-mount power package, used for cellular Gen9 LDMOS (single device)",
+    "LFPAK56D":    "Dual-device LFPAK56 package — used for Doherty-paired (main+peak) devices",
+    "SOT539":      "Air-cavity ceramic package, high-frequency capable, used for some GaN/LDMOS",
+    "air-cavity":  "Hermetic air-cavity package for high reliability / military / space"
+  },
+
+  "notes": "Data populated from training knowledge (2024). Verify exact specifications, part numbers and availability at https://www.ampleon.com/products.html. Download datasheets and drop into workspace/data/kb/ampleon/ to upgrade confidence level."
+}

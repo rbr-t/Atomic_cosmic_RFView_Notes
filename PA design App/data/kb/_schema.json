@@ -1,0 +1,181 @@
+{
+  "_comment": "PA Design App — Knowledge Base Device Record Schema v1.0",
+  "_version": "1.0",
+
+  "fields": {
+    "device_id": {
+      "type": "string", "required": true,
+      "description": "Unique identifier: manufacturer_PARTNUMBER (e.g. ampleon_BLF188XR)"
+    },
+    "part_number": {
+      "type": "string", "required": true,
+      "description": "Exact manufacturer part number as printed on device / datasheet"
+    },
+    "manufacturer": {
+      "type": "string", "required": true,
+      "description": "Company name (Ampleon, NXP, Wolfspeed, MACOM, Sumitomo, Freescale, Qorvo, etc.)"
+    },
+    "family": {
+      "type": "string",
+      "description": "Product family identifier (e.g. BLF, CLF, CGHV, PTVA, MRF)"
+    },
+    "series": {
+      "type": "string",
+      "description": "More specific grouping within a family (e.g. BLF7G22, CLF1G0)"
+    },
+    "technology": {
+      "type": "string", "required": true,
+      "enum": ["LDMOS", "GaN-SiC", "GaN-Si", "GaAs", "GaAs-HBT", "SiGe-HBT", "PHEMT", "Other"],
+      "description": "Semiconductor technology"
+    },
+    "generation": {
+      "type": "string",
+      "description": "Process generation (e.g. Gen9, Gen8, 0.25um)"
+    },
+    "package": {
+      "type": "string",
+      "description": "Package type (e.g. MOS-10, LFPAK56, SOT539, air-cavity, QFN)"
+    },
+    "package_leads": {
+      "type": "integer",
+      "description": "Number of leads/pins"
+    },
+    "vdd_v": {
+      "type": "number", "unit": "V",
+      "description": "Nominal drain supply voltage"
+    },
+    "vdd_range_v": {
+      "type": "array", "items": "number", "unit": "V",
+      "description": "[min, max] operating supply voltage"
+    },
+    "idd_q_ma": {
+      "type": "number", "unit": "mA",
+      "description": "Quiescent drain current (Class AB bias)"
+    },
+    "freq_min_mhz": {
+      "type": "number", "unit": "MHz", "required": true,
+      "description": "Minimum operating frequency"
+    },
+    "freq_max_mhz": {
+      "type": "number", "unit": "MHz", "required": true,
+      "description": "Maximum operating frequency"
+    },
+    "freq_test_mhz": {
+      "type": "number", "unit": "MHz",
+      "description": "Frequency at which datasheet performance is specified"
+    },
+    "pout_w_cw": {
+      "type": "number", "unit": "W",
+      "description": "Rated CW (continuous wave) output power"
+    },
+    "pout_w_pulse": {
+      "type": "number", "unit": "W",
+      "description": "Rated pulsed output power"
+    },
+    "pout_dbm": {
+      "type": "number", "unit": "dBm",
+      "description": "Output power in dBm (computed from pout_w_cw if available, else pout_w_pulse)"
+    },
+    "gain_db": {
+      "type": "number", "unit": "dB",
+      "description": "Large-signal power gain at rated output and test frequency"
+    },
+    "drain_eff_pct": {
+      "type": "number", "unit": "%",
+      "description": "Drain efficiency at rated conditions"
+    },
+    "pae_pct": {
+      "type": "number", "unit": "%",
+      "description": "Power-added efficiency at rated conditions"
+    },
+    "p1db_w": {
+      "type": "number", "unit": "W",
+      "description": "1 dB compression point output power"
+    },
+    "ip3_dbm": {
+      "type": "number", "unit": "dBm",
+      "description": "Output third-order intercept point"
+    },
+    "ropt_ohm": {
+      "type": "number", "unit": "Ω",
+      "description": "Real part of optimum load impedance (from load-pull or datasheet matching data)"
+    },
+    "xopt_ohm": {
+      "type": "number", "unit": "Ω",
+      "description": "Imaginary part of optimum load impedance (inductive positive)"
+    },
+    "rin_ohm": {
+      "type": "number", "unit": "Ω",
+      "description": "Real part of input impedance at test frequency"
+    },
+    "xin_ohm": {
+      "type": "number", "unit": "Ω",
+      "description": "Imaginary part of input impedance at test frequency"
+    },
+    "impedance_ref_plane": {
+      "type": "string",
+      "description": "Reference plane for impedance data (package_lead, internal, fixture_ref, 50ohm_ref)"
+    },
+    "s_params_available": {
+      "type": "boolean",
+      "description": "S-parameter file (.s2p) available from manufacturer"
+    },
+    "spice_model_available": {
+      "type": "boolean",
+      "description": "SPICE model available from manufacturer"
+    },
+    "ads_model_available": {
+      "type": "boolean",
+      "description": "ADS / Keysight model available"
+    },
+    "application": {
+      "type": "array", "items": "string",
+      "description": "Application segments: cellular, broadcast, ism, avionics, defense, medical, satellite, radar, wlan"
+    },
+    "use_case": {
+      "type": "array", "items": "string",
+      "description": "Specific use cases: 4G, 5G, LTE, SSR, TACAN, IFF, DME, FM-broadcast, DAB, ISM-13.56, plasma, MRI, Doherty-main, Doherty-peak"
+    },
+    "role": {
+      "type": "array", "items": "string",
+      "enum": ["driver", "main", "peak", "combined", "predrivers"],
+      "description": "Typical role in a PA chain: driver / main / peak / combined"
+    },
+    "topology": {
+      "type": "array", "items": "string",
+      "description": "Supported amplifier topologies: single-ended, push-pull, Doherty, balanced, Chireix, load-modulated"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "EOL", "NRND", "preview"],
+      "description": "Product lifecycle status"
+    },
+    "datasheet_url": {
+      "type": "string",
+      "description": "URL to manufacturer datasheet or product page"
+    },
+    "app_notes": {
+      "type": "array",
+      "items": {"title": "string", "url": "string"},
+      "description": "Relevant application notes"
+    },
+    "knowledge_source": {
+      "type": "string",
+      "enum": ["datasheet", "app_note", "from_training", "user_entered"],
+      "description": "Origin of the data in this record"
+    },
+    "knowledge_confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "Confidence level. 'high' = verified against datasheet. 'medium' = from reliable training knowledge. 'low' = placeholder / inferred."
+    },
+    "tags": {
+      "type": "array", "items": "string",
+      "description": "Free-form searchable tags from the tag taxonomy"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-form engineering notes and design hints"
+    }
+  }
+}

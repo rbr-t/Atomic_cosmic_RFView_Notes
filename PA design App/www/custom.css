@@ -1550,3 +1550,21 @@ body.theme-light *[style*="color: var(--c-err)"]   { color: var(--c-err)  !impor
 }
 
 /* Drawer is a pure floating overlay — content-wrapper is never pushed */
+
+/* ── Knowledge Base ─────────────────────────────────────────── */
+.kb-detail-section {
+  border-left: 2px solid rgba(255,127,17,0.25);
+  padding: 6px 12px;
+  margin: 6px 0;
+  background: rgba(0,0,0,0.15);
+  border-radius: 0 4px 4px 0;
+}
+.kb-detail-section b {
+  color: #ccc;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dataTable th, .dataTable td {
+  font-size: 12px !important;
+}

@@ -36,6 +36,11 @@ source("modules/server/server_guardrails.R")
 # ── Load Pull subsystem ───────────────────────────────────────────────────
 source("modules/rf_tools/lp_parsers.R")
 source("modules/server/server_lp_viewer.R")
+
+# ── Knowledge Base subsystem ─────────────────────────────────────────────
+source("knowledge_base/kb_loader.R")
+source("knowledge_base/kb_query.R")
+source("modules/server/server_knowledge_base.R")
 source("modules/server/server_settings.R")
 source("modules/server/server_reporting.R")
 
@@ -299,6 +304,7 @@ server <- function(input, output, session) {
   serverSettings(input, output, session, state)
   serverReporting(input, output, session, state)
   serverLpViewer(input, output, session, state)
+  serverKnowledgeBase(input, output, session, state)
 
   # ── Session cleanup ──────────────────────────────────────────────────────
   onStop(function() {
