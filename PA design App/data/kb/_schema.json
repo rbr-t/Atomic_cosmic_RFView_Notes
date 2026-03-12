@@ -116,6 +116,21 @@
       "type": "string",
       "description": "Reference plane for impedance data (package_lead, internal, fixture_ref, 50ohm_ref)"
     },
+    "load_pull_table": {
+      "type": "array",
+      "description": "Multi-frequency load-pull impedance table extracted from datasheet. Each entry has: freq_mhz, condition ('max_power'|'max_efficiency'), zs_r, zs_x (source Ω), zl_r, zl_x (load Ω), pout_w, drain_eff_pct, gain_db. Empty array if no datasheet loaded.",
+      "items": {
+        "freq_mhz":       "number — test frequency in MHz",
+        "condition":      "string — 'max_power' or 'max_efficiency'",
+        "zs_r":           "number — source impedance real part (Ω)",
+        "zs_x":           "number — source impedance imaginary part (Ω)",
+        "zl_r":           "number — load impedance real part = Ropt (Ω)",
+        "zl_x":           "number — load impedance imaginary part = Xopt (Ω)",
+        "pout_w":         "number — output power at this condition (W)",
+        "drain_eff_pct":  "number — drain efficiency at this condition (%)",
+        "gain_db":        "number — power gain at this condition (dB)"
+      }
+    },
     "s_params_available": {
       "type": "boolean",
       "description": "S-parameter file (.s2p) available from manufacturer"

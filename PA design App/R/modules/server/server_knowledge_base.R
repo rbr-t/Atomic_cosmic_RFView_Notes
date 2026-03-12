@@ -162,7 +162,7 @@ serverKnowledgeBase <- function(input, output, session, state) {
     kb_device_card(raw)
   })
 
-  # ── Smith Chart integration ────────────────────────────────────────────────
+  # ── Smith Chart integration — single representative Ropt ──────────────────
   observeEvent(input$kb_send_to_smith, {
     dev_id <- selected_device_id()
     req(dev_id)
@@ -177,13 +177,46 @@ serverKnowledgeBase <- function(input, output, session, state) {
     updateNumericInput(session, "smith_z_imag",  value = as.numeric(x_opt %||% 0))
     updateTextInput(  session, "smith_label",    value = raw$part_number %||% dev_id)
 
-    # Navigate to Smith Chart tab
     updateTabItems(session, "sidebar_menu", "smith_chart")
 
     showNotification(
       paste0("Ropt for ", raw$part_number, " loaded into Smith Chart."),
-      type     = "message",
-      duration = 4
+      type = "message", duration = 4
+    )
+  })
+
+  # ── Smith Chart integration — LP table row (multi-frequency) ──────────────
+  # Fired by JavaScript onclick in .render_lp_table() via Shiny.setInputValue
+  observeEvent(input$kb_lp_row_click, {
+    payload <- input$kb_lp_row_click
+    req(payload)
+
+    zl_r <- as.numeric(payload$zl_r)
+    zl_x <- as.numeric(payload$zl_x)
+    freq  <- payload$freq
+    cond  <- payload$condition %||% ""
+
+    if (is.na(zl_r)) return()
+
+    # Get current device part number for the label
+    dev_id <- selected_device_id()
+    label_str <- if (!is.null(dev_id) && nzchar(dev_id)) {
+      raw <- tryCatch(kb_get_raw_device(dev_id, kb_root = "../data/kb"), error = function(e) NULL)
+      pn  <- if (!is.null(raw)) raw$part_number %||% dev_id else dev_id
+      paste0(pn, " @ ", freq, "MHz (", cond, ")")
+    } else {
+      paste0("ZL @ ", freq, "MHz")
+    }
+
+    updateNumericInput(session, "smith_z_real",  value = zl_r)
+    updateNumericInput(session, "smith_z_imag",  value = zl_x)
+    updateTextInput(  session, "smith_label",    value = label_str)
+    updateTabItems(   session, "sidebar_menu",   "smith_chart")
+
+    showNotification(
+      paste0("ZL = ", zl_r, if (zl_x >= 0) "+" else "", zl_x,
+             "j Ω at ", freq, " MHz loaded into Smith Chart."),
+      type = "message", duration = 4
     )
   })
 

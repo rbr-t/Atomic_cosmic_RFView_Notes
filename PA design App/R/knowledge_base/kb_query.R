@@ -268,7 +268,10 @@ kb_device_card <- function(dev) {
         tags$small(style = "color:#666;", "Ref plane: ", .v("impedance_ref_plane"))
       ),
 
-      # Applications & roles
+      # Multi-frequency load-pull table (if available in raw list)
+      .render_lp_table(dev),
+
+
       div(class = "kb-detail-section",
         tags$b("Applications"), br(),
         span(style = "color:#aaa; font-size:12px;",
@@ -318,6 +321,91 @@ kb_device_card <- function(dev) {
                      " padding:8px 10px; text-align:center;"),
     div(style = "color:#666; font-size:10px; text-transform:uppercase; letter-spacing:0.5px;", label),
     div(style = "color:#f0f0f0; font-size:14px; font-weight:600; margin-top:2px;", value)
+  )
+}
+
+# Render the multi-frequency load-pull table from the raw device list.
+# Each row has a JavaScript "Send to Smith" icon that fires Shiny.setInputValue.
+.render_lp_table <- function(dev) {
+  lp <- dev[["load_pull_table"]]
+  if (is.null(lp) || length(lp) == 0) return(NULL)
+
+  # Build table rows for the two conditions
+  .make_rows <- function(condition_filter, header_label) {
+    rows <- Filter(function(r) identical(r$condition, condition_filter), lp)
+    if (length(rows) == 0) return(NULL)
+
+    row_tags <- lapply(rows, function(r) {
+      freq  <- r$freq_mhz
+      zl_r  <- round(r$zl_r, 2)
+      zl_x  <- round(r$zl_x, 2)
+      zs_r  <- round(r$zs_r, 2)
+      zs_x  <- round(r$zs_x, 2)
+      pout  <- r$pout_w
+      de    <- round(r$drain_eff_pct, 1)
+      gp    <- round(r$gain_db, 1)
+      zl_str <- paste0(zl_r, if (zl_x >= 0) "+" else "", zl_x, "j")
+      zs_str <- paste0(zs_r, if (zs_x >= 0) "+" else "", zs_x, "j")
+
+      # JSON payload for Shiny.setInputValue
+      js_payload <- sprintf(
+        '{\"freq\":%s,\"zl_r\":%s,\"zl_x\":%s,\"zs_r\":%s,\"zs_x\":%s,\"condition\":\"%s\"}',
+        freq, zl_r, zl_x, zs_r, zs_x, condition_filter
+      )
+      send_btn <- tags$td(
+        style = "text-align:center; padding:2px 4px;",
+        tags$span(
+          style  = "cursor:pointer; color:#ff7f11; font-size:13px;",
+          title  = "Send ZL to Smith Chart",
+          onclick = paste0("Shiny.setInputValue('kb_lp_row_click',", js_payload, ",{priority:'event'});"),
+          "\u21d2"  # ⇒ arrow icon
+        )
+      )
+
+      tags$tr(
+        tags$td(style = "padding:2px 6px; color:#f0f0f0;",      freq),
+        tags$td(style = "padding:2px 6px; font-family:monospace; font-size:11px; color:#ff7f11;", zl_str),
+        tags$td(style = "padding:2px 6px; font-family:monospace; font-size:11px; color:#aaa;",    zs_str),
+        tags$td(style = "padding:2px 6px; color:#aaa;", pout),
+        tags$td(style = "padding:2px 6px; color:#aaa;", de),
+        tags$td(style = "padding:2px 6px; color:#aaa;", gp),
+        send_btn
+      )
+    })
+
+    tagList(
+      tags$tr(
+        tags$th(colspan = 7,
+          style = "background:#1a1a2a; color:#888; font-size:10px; text-transform:uppercase; padding:3px 6px; letter-spacing:0.5px;",
+          header_label)
+      ),
+      do.call(tagList, row_tags)
+    )
+  }
+
+  div(class = "kb-detail-section",
+    tags$b("Multi-frequency Load-Pull Table"),
+    tags$small(style = "color:#666; margin-left:8px;",
+      " — ZL / ZS at package lead tips, VDS=28V IDq=180mA, P3dB"),
+    div(style = "overflow-x:auto; margin-top:6px;",
+      tags$table(
+        style = paste0("width:100%; border-collapse:collapse; font-size:12px;",
+                       " background:#141420; border-radius:4px; overflow:hidden;"),
+        tags$thead(
+          tags$tr(
+            lapply(c("f (MHz)", "ZL (Ω)", "ZS (Ω)", "Pout (W)", "ηD (%)", "Gp (dB)", ""),
+              function(h) tags$th(style = "padding:4px 6px; background:#1e1e2e; color:#888; font-weight:600; text-align:left;", h)
+            )
+          )
+        ),
+        tags$tbody(
+          .make_rows("max_power",      "Max Output Power Load"),
+          .make_rows("max_efficiency", "Max Drain Efficiency Load")
+        )
+      )
+    ),
+    tags$small(style = "color:#555;",
+      "\u21d2 Click the arrow to send ZL to the Smith Chart tool.")
   )
 }
 
