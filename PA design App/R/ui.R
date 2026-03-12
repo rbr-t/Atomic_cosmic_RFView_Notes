@@ -2515,7 +2515,7 @@ $(document).ready(function() {
                   solidHeader = TRUE,
                   DT::DTOutput("dl33_device_table", height = "360px")
                 ),
-                box(width = 12, status = "default",
+                box(width = 12, status = "primary",
                   title = tagList(icon("info-circle"), " Device Detail"),
                   uiOutput("dl33_device_detail")
                 )

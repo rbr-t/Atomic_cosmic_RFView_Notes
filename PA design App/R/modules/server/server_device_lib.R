@@ -159,6 +159,48 @@ serverDeviceLib <- function(input, output, session, state) {
     do.call(rbind, all_rows)
   })
 
+  # ── Merged canvas-palette push ─────────────────────────────────────────────
+  # Reacts to state$rv_lib_refresh (bumped by server_guardrails on save/delete/edit
+  # and on startup) plus rv_refresh (bumped by KB-to-canvas operations here and in
+  # server_knowledge_base).  Pushes portfolio devices + ALL KB catalogue devices
+  # (in-memory — no disk write) so the canvas palette is always fully harmonised.
+  observe({
+    state$rv_lib_refresh()   # take dependency — fired by guardrails
+    rv_refresh()             # also re-run when KB explicitly added to portfolio
+
+    isolate({
+      # 1. Portfolio devices (user-designed + any KB devices written to disk)
+      port_devs    <- .load_portfolio("device_portfolio")
+      port_labels  <- vapply(port_devs, function(d) d$label %||% "", character(1))
+
+      # 2. KB catalogue devices not already in the portfolio (in-memory, no disk write)
+      kb_devs <- list()
+      if (nrow(kb_all) > 0) {
+        kb_filt2 <- kb_all[!grepl("^PLACEHOLDER", kb_all$part_number,
+                                  ignore.case = TRUE), ]
+        for (i in seq_len(nrow(kb_filt2))) {
+          pn  <- as.character(kb_filt2$part_number[i])
+          did <- as.character(kb_filt2$device_id[i])
+          if (pn %in% port_labels) next   # already in portfolio — skip duplicate
+
+          raw <- tryCatch(
+            kb_get_raw_device(did, kb_root = "../data/kb"),
+            error = function(e) NULL
+          )
+          if (is.null(raw)) next
+
+          dev    <- .kb_to_portfolio(raw)
+          dev$id <- paste0("kb_preview_", gsub("[^a-zA-Z0-9]", "_", dev$label))
+          kb_devs <- c(kb_devs, list(dev))
+        }
+      }
+
+      all_devs <- c(port_devs, kb_devs)
+      if (length(all_devs) > 0)
+        session$sendCustomMessage("updateDevicePortfolio", all_devs)
+    })
+  })
+
   # ── Filtered reactive (source + technology) ───────────────────────────────
   dl33_filtered <- reactive({
     df <- unified_df()
@@ -349,15 +391,12 @@ serverDeviceLib <- function(input, output, session, state) {
 
     rv_refresh(rv_refresh() + 1)
 
-    all_devices <- Filter(Negate(is.null),
-      lapply(list.files(portfolio_dir, pattern = "\\.json$", full.names = TRUE), function(f) {
-        tryCatch(jsonlite::read_json(f, simplifyVector = FALSE), error = function(e) NULL)
-      })
-    )
-    session$sendCustomMessage("updateDevicePortfolio", all_devices)
+    # Bump shared signal → merged-push observer will re-send the full
+    # harmonised palette (portfolio + KB) to the canvas
+    isolate(state$rv_lib_refresh(state$rv_lib_refresh() + 1L))
 
     showNotification(
-      paste0(device$label, " added to canvas palette — drag it from the Device Library panel."),
+      paste0(device$label, " permanently saved to portfolio — visible in canvas palette."),
       type = "message", duration = 5
     )
   })

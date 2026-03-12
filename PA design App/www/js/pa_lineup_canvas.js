@@ -8150,6 +8150,51 @@ function registerMessageHandlers() {
         div.setAttribute('data-device-type', 'portfolio');
         const props = dev.canvas_component || {};
 
+        // Determine technology colour and symbol type
+        const tech = (dev.technology || dev.tech_label || '').toLowerCase();
+        const techColor =
+          (tech.includes('gan'))   ? '#70AD47' :
+          (tech.includes('ldmos')) ? '#4472C4' :
+          (tech.includes('gaas') || tech.includes('phemt')) ? '#FFC000' :
+          (tech.includes('sige') || tech.includes('hbt'))   ? '#FF6B6B' : '#aaaaaa';
+        const isBJT = tech.includes('sige') || tech.includes('hbt') || tech.includes('bjt');
+
+        // SVG transistor symbol (MOSFET or BJT, coloured by technology)
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svgEl  = document.createElementNS(svgNS, 'svg');
+        svgEl.setAttribute('width',  '30');
+        svgEl.setAttribute('height', '36');
+        svgEl.setAttribute('viewBox', '0 0 30 36');
+        svgEl.style.cssText = 'flex-shrink:0; margin-right:5px; opacity:0.85;';
+        svgEl.setAttribute('aria-hidden', 'true');
+        if (!isBJT) {
+          // N-channel MOSFET / FET symbol (GaN / LDMOS / GaAs)
+          svgEl.innerHTML =
+            '<line x1="3" y1="18" x2="10" y2="18" stroke="' + techColor + '" stroke-width="1.5"/>' +
+            '<line x1="10" y1="7"  x2="10" y2="29" stroke="' + techColor + '" stroke-width="2"/>' +
+            '<line x1="13" y1="9"  x2="13" y2="15" stroke="' + techColor + '" stroke-width="2.5"/>' +
+            '<line x1="13" y1="21" x2="13" y2="27" stroke="' + techColor + '" stroke-width="2.5"/>' +
+            '<line x1="13" y1="12" x2="24" y2="12" stroke="' + techColor + '" stroke-width="1.5"/>' +
+            '<line x1="24" y1="5"  x2="24" y2="12" stroke="' + techColor + '" stroke-width="1.5"/>' +
+            '<line x1="13" y1="24" x2="24" y2="24" stroke="' + techColor + '" stroke-width="1.5"/>' +
+            '<line x1="24" y1="24" x2="24" y2="31" stroke="' + techColor + '" stroke-width="1.5"/>' +
+            '<polygon points="10,18 13,15 13,21" fill="' + techColor + '"/>' +
+            '<circle cx="24" cy="5"  r="1.5" fill="' + techColor + '"/>' +
+            '<circle cx="24" cy="31" r="1.5" fill="' + techColor + '"/>';
+        } else {
+          // NPN BJT symbol (SiGe / HBT)
+          svgEl.innerHTML =
+            '<line x1="3"  y1="18" x2="13" y2="18" stroke="' + techColor + '" stroke-width="1.5"/>' +
+            '<line x1="13" y1="8"  x2="13" y2="28" stroke="' + techColor + '" stroke-width="2.5"/>' +
+            '<line x1="13" y1="12" x2="24" y2="6"  stroke="' + techColor + '" stroke-width="1.5"/>' +
+            '<line x1="24" y1="5"  x2="24" y2="6"  stroke="' + techColor + '" stroke-width="1.5"/>' +
+            '<line x1="13" y1="24" x2="24" y2="30" stroke="' + techColor + '" stroke-width="1.5"/>' +
+            '<line x1="24" y1="30" x2="24" y2="31" stroke="' + techColor + '" stroke-width="1.5"/>' +
+            '<polygon points="20,26 24,30 18,31" fill="' + techColor + '"/>' +
+            '<circle cx="24" cy="5"  r="1.5" fill="' + techColor + '"/>' +
+            '<circle cx="24" cy="31" r="1.5" fill="' + techColor + '"/>';
+        }
+
         // Title row
         const h5 = document.createElement('h5');
         h5.style.marginBottom = '2px';
@@ -8188,8 +8233,17 @@ function registerMessageHandlers() {
         p.style.color = '#aaa';
         p.style.marginBottom = '0';
 
-        div.appendChild(h5);
-        div.appendChild(p);
+        // Card inner layout: SVG symbol on the left, text (title + subtitle) on the right
+        const textCol = document.createElement('div');
+        textCol.style.cssText = 'min-width:0; flex:1;';
+        textCol.appendChild(h5);
+        textCol.appendChild(p);
+
+        div.style.display      = 'flex';
+        div.style.alignItems   = 'center';
+        div.style.gap          = '4px';
+        div.appendChild(svgEl);
+        div.appendChild(textCol);
         section.appendChild(div);
 
         // Click handler — adds transistor at canvas centre with saved properties

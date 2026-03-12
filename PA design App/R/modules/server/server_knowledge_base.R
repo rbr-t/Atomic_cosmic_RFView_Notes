@@ -293,20 +293,17 @@ serverKnowledgeBase <- function(input, output, session, state) {
       file.path(portfolio_dir, paste0(device$id, ".json")),
       pretty = TRUE, auto_unbox = TRUE)
 
-    # Push full updated portfolio to canvas palette
-    all_devices <- Filter(Negate(is.null),
-      lapply(list.files(portfolio_dir, pattern = "\\.json$", full.names = TRUE), function(f) {
-        tryCatch(jsonlite::read_json(f, simplifyVector = FALSE), error = function(e) NULL)
-      })
-    )
-    session$sendCustomMessage("updateDevicePortfolio", all_devices)
+    # Bump shared signal → server_device_lib's merged-push observer sends the
+    # full harmonised palette (portfolio + KB catalogue) to the canvas
+    if (!is.null(state$rv_lib_refresh))
+      isolate(state$rv_lib_refresh(state$rv_lib_refresh() + 1L))
 
-    # Signal device_lib module to refresh its unified table
+    # Also refresh the device-lib table
     if (!is.null(state$rv_portfolio_refresh))
       state$rv_portfolio_refresh(state$rv_portfolio_refresh() + 1)
 
     showNotification(
-      paste0(pn, " added to Device Library — available in PA Lineup canvas palette and 3.3 Device Library tab."),
+      paste0(pn, " permanently saved to portfolio — visible in PA Lineup canvas palette and 3.3 Device Library."),
       type = "message", duration = 5
     )
   })

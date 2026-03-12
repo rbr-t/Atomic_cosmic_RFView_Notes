@@ -21,6 +21,11 @@ initServerState <- function(input, output, session) {
   # Allows server_device_lib to refresh its table when knowledge_base module
   # triggers kb_copy_to_lineup without going through a shared input.
   rv_portfolio_refresh <- reactiveVal(0)
+
+  # Shared counter: bumped whenever the device portfolio changes (save/delete/edit
+  # in Guardrails, or KB-to-canvas). server_device_lib observes this to push the
+  # merged (portfolio + KB) device list to the canvas palette.
+  rv_lib_refresh <- reactiveVal(0L)
   
   # Helper function: Get user templates
   getUserTemplates <- function() {
@@ -142,6 +147,7 @@ initServerState <- function(input, output, session) {
   list(
     rv                    = rv,
     rv_portfolio_refresh  = rv_portfolio_refresh,
+    rv_lib_refresh        = rv_lib_refresh,
     lineup_components     = lineup_components,
     lineup_connections    = lineup_connections,
     lineup_calc_results   = lineup_calc_results,

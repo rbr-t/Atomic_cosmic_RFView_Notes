@@ -31,12 +31,11 @@ serverGuardrails <- function(input, output, session, state) {
   rv_lib_refresh <- reactiveVal(0)   # bumped on save, delete, edit
   rv_edit_id     <- reactiveVal(NULL) # stores id of device being edited
 
-  # ── On startup: push saved devices to canvas ─────────────────
+  # ── On startup: signal device_lib to push the merged (portfolio + KB) palette ─
+  # server_device_lib.R observes state$rv_lib_refresh and pushes the full
+  # harmonised list (user portfolio + all KB catalogue devices) to the canvas.
   observe({
-    devices <- loadDevicePortfolio("device_portfolio")
-    if (length(devices) > 0) {
-      session$sendCustomMessage("updateDevicePortfolio", devices)
-    }
+    isolate(state$rv_lib_refresh(state$rv_lib_refresh() + 1L))
   })
 
   # ── Reactive: all saved devices (re-fetched on save/delete/edit) ─
@@ -733,9 +732,8 @@ serverGuardrails <- function(input, output, session, state) {
     fname <- file.path(portfolio_dir, paste0(device$id, ".json"))
     jsonlite::write_json(device, fname, pretty = TRUE, auto_unbox = TRUE)
 
-    # Notify canvas about the full updated portfolio
-    all_devices <- loadDevicePortfolio(portfolio_dir)
-    session$sendCustomMessage("updateDevicePortfolio", all_devices)
+    # Signal device_lib to push the merged (portfolio + KB) palette
+    isolate(state$rv_lib_refresh(state$rv_lib_refresh() + 1L))
 
     status_colors <- c(ok = "#27ae60", warning = "#f39c12", error = "#e74c3c")
     sc <- status_colors[[device$validation_status]] %||% "#888"
@@ -817,9 +815,8 @@ serverGuardrails <- function(input, output, session, state) {
     fpath  <- file.path("device_portfolio", paste0(dev_id, ".json"))
     if (file.exists(fpath)) {
       file.remove(fpath)
-      updated <- loadDevicePortfolio("device_portfolio")
-      session$sendCustomMessage("updateDevicePortfolio", updated)
       rv_lib_refresh(rv_lib_refresh() + 1L)
+      isolate(state$rv_lib_refresh(state$rv_lib_refresh() + 1L))
       showNotification("Device removed from library.", type = "warning", duration = 3)
     }
   })
@@ -865,9 +862,8 @@ serverGuardrails <- function(input, output, session, state) {
     jsonlite::write_json(d, fpath, auto_unbox = TRUE, pretty = TRUE)
     removeModal()
     rv_edit_id(NULL)
-    updated <- loadDevicePortfolio("device_portfolio")
-    session$sendCustomMessage("updateDevicePortfolio", updated)
     rv_lib_refresh(rv_lib_refresh() + 1L)
+    isolate(state$rv_lib_refresh(state$rv_lib_refresh() + 1L))
     showNotification(paste0("'", d$label, "' updated."), type = "message", duration = 3)
   })
 
