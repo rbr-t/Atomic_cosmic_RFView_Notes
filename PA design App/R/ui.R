@@ -2459,30 +2459,75 @@ $(document).ready(function() {
       ),
       tabItem(tabName = "tech_device_lib",
         h2(icon("th-large"), " 3.3 Device Library"),
-        tabsetPanel(
-          tabPanel("Browse Devices",
-            h4("Transistor & Device Catalogue"),
-            div(class="callout callout-info",
-              p(icon("info-circle"), " Devices characterised and saved in the Transistor Library (5.1) appear here for cross-project reuse.")
-            ),
-            fluidRow(
-              column(3, selectInput("dev_lib_tech", "Technology",
-                choices = c("All", "GaN HEMT", "GaAs pHEMT", "LDMOS", "SiGe HBT"),
-                selected = "All")),
-              column(3, sliderInput("dev_lib_freq", "Frequency range (GHz)",
-                min=0.1, max=100, value=c(1,40), step=0.5)),
-              column(3, sliderInput("dev_lib_pout", "P_out density (W/mm)",
-                min=0.1, max=10, value=c(0.5,6), step=0.1))
-            ),
-            p(class="text-muted", "Device table with filter/sort/compare — under construction.")
+        p(style = "color:#aaa; margin-bottom:4px;",
+          "Unified view of", tags$strong("Knowledge Base"), " (manufacturer datasheets) and",
+          tags$strong("User-designed"), " devices (saved from 3.2 Guardrails).",
+          " Use ", tags$strong("'Add to Canvas'"), " on any KB device to place it in the PA Lineup palette.",
+          " For detailed impedance data, load-pull tables and app notes, visit the",
+          tags$a(href = "#",
+            onclick = "Shiny.setInputValue('sidebar_menu', 'util_knowledge', {priority:'event'}); return false;",
+            style = "color:#5bc0de;",
+            icon("book"), " Knowledge Base"),
+          " tab."
+        ),
+        p(style = "font-size:12px; color:#888;", textOutput("dl33_stats_text", inline = TRUE)),
+
+        fluidRow(
+          # ── Left: Filters ───────────────────────────────────────────────
+          column(3,
+            box(title = tagList(icon("filter"), " Filters"),
+              width = 12, status = "info", solidHeader = TRUE, collapsible = TRUE,
+
+              selectInput("dl33_filter_source", "Source",
+                choices  = c("All", "Knowledge Base", "User Designed"),
+                selected = "All", multiple = TRUE),
+
+              uiOutput("dl33_tech_filter_ui"),
+
+              hr(style = "margin:8px 0;"),
+              p(style = "font-size:11px; color:#888;",
+                icon("lightbulb"), " Hold ",
+                tags$kbd("Ctrl"), " (Win) or ", tags$kbd("Cmd"), " (Mac)",
+                " to select multiple rows for comparison."
+              ),
+              br(),
+              actionButton("dl33_compare_selected_btn", "Compare Selected",
+                class = "btn-info btn-block btn-sm", icon = icon("balance-scale"))
+            )
           ),
-          tabPanel("Device Detail",
-            h4("Selected Device — Parameters"),
-            p(class="text-muted", "Click a device in Browse to open detail view — under construction.")
-          ),
-          tabPanel("Compare",
-            h4("Side-by-side Device Comparison"),
-            p(class="text-muted", "Select 2–4 devices and compare fT, Pout, PAE, gain, VBR — under construction.")
+
+          # ── Right: Table + Tabset ────────────────────────────────────────
+          column(9,
+            tabsetPanel(id = "dl33_tabs",
+
+              # ── Browse tab ──────────────────────────────────────────────
+              tabPanel("Browse",
+                value = "dl33_browse",
+                br(),
+                box(width = 12, status = "primary",
+                  title = tagList(
+                    icon("table"), " All Devices",
+                    tags$span(class = "pull-right", style = "font-size:11px; font-weight:normal;",
+                      tags$span(style = "color:#5bc0de;", "■"), " KB  ",
+                      tags$span(style = "color:#5cb85c;", "■"), " User-designed"
+                    )
+                  ),
+                  solidHeader = TRUE,
+                  DT::DTOutput("dl33_device_table", height = "360px")
+                ),
+                box(width = 12, status = "default",
+                  title = tagList(icon("info-circle"), " Device Detail"),
+                  uiOutput("dl33_device_detail")
+                )
+              ),
+
+              # ── Compare tab ─────────────────────────────────────────────
+              tabPanel("Compare",
+                value = "dl33_compare",
+                br(),
+                uiOutput("dl33_compare_panel")
+              )
+            )
           )
         )
       ),
@@ -3187,7 +3232,7 @@ $(document).ready(function() {
               )
             ),
             fluidRow(
-              box(title = "Device Detail", width = 12, status = "default",
+              box(title = "Device Detail", width = 12, status = "primary",
                 solidHeader = TRUE,
                 uiOutput("kb_device_detail")
               )

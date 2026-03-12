@@ -220,20 +220,94 @@ serverKnowledgeBase <- function(input, output, session, state) {
     )
   })
 
-  # ── Lineup Canvas integration (stub — expand when canvas API is ready) ────
+  # ── Lineup Canvas integration — write KB device to device_portfolio/ ──────
   observeEvent(input$kb_copy_to_lineup, {
     dev_id <- selected_device_id()
     req(dev_id)
     raw <- kb_get_raw_device(dev_id, kb_root = "../data/kb")
     req(raw)
 
+    pn <- raw$part_number %||% dev_id
+
+    # Convert Pout: W → dBm (10·log10(W) + 30)
+    pout_w   <- suppressWarnings(as.numeric(raw$pout_w_cw %||% raw$pout_w_pulse %||% NA))
+    pout_dbm <- if (!is.null(pout_w) && !is.na(pout_w) && pout_w > 0) {
+      round(10 * log10(pout_w * 1000), 1)
+    } else {
+      suppressWarnings(as.numeric(raw$pout_dbm %||% 43))
+    }
+
+    # Convert freq: MHz → GHz (use test freq, else midpoint of band)
+    freq_mhz <- suppressWarnings(as.numeric(
+      raw$freq_test_mhz %||%
+      ((as.numeric(raw$freq_min_mhz %||% 2000) + as.numeric(raw$freq_max_mhz %||% 3000)) / 2)
+    ))
+    freq_ghz <- round(freq_mhz / 1000, 3)
+
+    # Map KB technology string to guardrails key
+    tech_key <- switch(raw$technology %||% "",
+      "LDMOS"   = "LDMOS",
+      "GaN-SiC" = "GaN_SiC",
+      "GaN-Si"  = "GaN_Si",
+      "GaAs"    = "GaAs_pHEMT",
+      raw$technology %||% "GaN_SiC"
+    )
+
+    device <- list(
+      id                    = paste0("kb_", gsub("[^a-zA-Z0-9]", "_", pn), "_",
+                                     format(Sys.time(), "%Y%m%d%H%M%S")),
+      label                 = pn,
+      notes                 = paste0("[KB] ", raw$manufacturer %||% "", " — ",
+                                     raw$knowledge_confidence %||% "medium", " confidence"),
+      technology            = tech_key,
+      tech_label            = trimws(paste(raw$technology %||% "", raw$generation %||% "")),
+      freq_ghz              = freq_ghz,
+      gain_db               = suppressWarnings(as.numeric(raw$gain_db %||% 15)),
+      pae_pct               = suppressWarnings(as.numeric(raw$drain_eff_pct %||% raw$pae_pct %||% 30)),
+      pout_dbm              = pout_dbm,
+      vdd                   = suppressWarnings(as.numeric(raw$vdd_v %||% 28)),
+      p1db_dbm              = pout_dbm - 2,
+      pout_density_w_per_mm = 0,
+      validation_status     = "ok",
+      source                = "knowledge_base",
+      kb_confidence         = raw$knowledge_confidence %||% "medium",
+      manufacturer          = raw$manufacturer %||% "",
+      saved_at              = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+      canvas_component = list(
+        type      = "transistor",
+        label     = pn,
+        technology = tech_key,
+        gain      = suppressWarnings(as.numeric(raw$gain_db %||% 15)),
+        pout      = pout_dbm,
+        p1db      = pout_dbm - 2,
+        pae       = suppressWarnings(as.numeric(raw$drain_eff_pct %||% raw$pae_pct %||% 30)),
+        vdd       = suppressWarnings(as.numeric(raw$vdd_v %||% 28)),
+        freq      = freq_ghz,
+        biasClass = "AB"
+      )
+    )
+
+    portfolio_dir <- "device_portfolio"
+    if (!dir.exists(portfolio_dir)) dir.create(portfolio_dir, recursive = TRUE)
+    jsonlite::write_json(device,
+      file.path(portfolio_dir, paste0(device$id, ".json")),
+      pretty = TRUE, auto_unbox = TRUE)
+
+    # Push full updated portfolio to canvas palette
+    all_devices <- Filter(Negate(is.null),
+      lapply(list.files(portfolio_dir, pattern = "\\.json$", full.names = TRUE), function(f) {
+        tryCatch(jsonlite::read_json(f, simplifyVector = FALSE), error = function(e) NULL)
+      })
+    )
+    session$sendCustomMessage("updateDevicePortfolio", all_devices)
+
+    # Signal device_lib module to refresh its unified table
+    if (!is.null(state$rv_portfolio_refresh))
+      state$rv_portfolio_refresh(state$rv_portfolio_refresh() + 1)
+
     showNotification(
-      paste0(raw$part_number,
-             " — canvas push coming in next release. For now, note: ",
-             "Pout=", raw$pout_w_cw %||% raw$pout_w_pulse %||% "?", " W",
-             ", Gain=", raw$gain_db %||% "?", " dB",
-             ", Vdd=", raw$vdd_v %||% "?", " V"),
-      type = "message", duration = 8
+      paste0(pn, " added to Device Library — available in PA Lineup canvas palette and 3.3 Device Library tab."),
+      type = "message", duration = 5
     )
   })
 

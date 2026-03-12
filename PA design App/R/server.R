@@ -41,6 +41,7 @@ source("modules/server/server_lp_viewer.R")
 source("knowledge_base/kb_loader.R")
 source("knowledge_base/kb_query.R")
 source("modules/server/server_knowledge_base.R")
+source("modules/server/server_device_lib.R")
 source("modules/server/server_settings.R")
 source("modules/server/server_reporting.R")
 
@@ -305,6 +306,7 @@ server <- function(input, output, session) {
   serverReporting(input, output, session, state)
   serverLpViewer(input, output, session, state)
   serverKnowledgeBase(input, output, session, state)
+  serverDeviceLib(input, output, session, state)
 
   # ── Session cleanup ──────────────────────────────────────────────────────
   onStop(function() {

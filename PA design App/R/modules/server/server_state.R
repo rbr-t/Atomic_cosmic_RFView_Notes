@@ -16,6 +16,11 @@ initServerState <- function(input, output, session) {
     canvas_names = c("Canvas 1", "Canvas 2", "Canvas 3", "Canvas 4",
                      "Canvas 5", "Canvas 6", "Canvas 7", "Canvas 8", "Canvas 9")
   )
+
+  # Shared counter: bumped whenever a device is written to device_portfolio/
+  # Allows server_device_lib to refresh its table when knowledge_base module
+  # triggers kb_copy_to_lineup without going through a shared input.
+  rv_portfolio_refresh <- reactiveVal(0)
   
   # Helper function: Get user templates
   getUserTemplates <- function() {
@@ -135,14 +140,15 @@ initServerState <- function(input, output, session) {
 
   # ── Return shared state list ────────────────────────────────────
   list(
-    rv                  = rv,
-    lineup_components   = lineup_components,
-    lineup_connections  = lineup_connections,
-    lineup_calc_results = lineup_calc_results,
-    canvas_data         = canvas_data,
-    active_canvas_index = active_canvas_index,
-    getUserTemplates    = getUserTemplates,
-    getCanvasCount      = getCanvasCount,
-    userTemplates       = userTemplates
+    rv                    = rv,
+    rv_portfolio_refresh  = rv_portfolio_refresh,
+    lineup_components     = lineup_components,
+    lineup_connections    = lineup_connections,
+    lineup_calc_results   = lineup_calc_results,
+    canvas_data           = canvas_data,
+    active_canvas_index   = active_canvas_index,
+    getUserTemplates      = getUserTemplates,
+    getCanvasCount        = getCanvasCount,
+    userTemplates         = userTemplates
   )
 }

@@ -186,10 +186,16 @@ kb_device_card <- function(dev) {
   # Accept both raw list (from JSON) and data.frame row
   if (is.data.frame(dev)) dev <- as.list(dev[1, ])
 
-  .v  <- function(x) { v <- dev[[x]]; if (is.null(v) || identical(v, "NA") || is.na(v)) "—" else as.character(v) }
+  .v  <- function(x) {
+    v <- dev[[x]]
+    if (is.null(v) || length(v) == 0) return("—")
+    if (length(v) == 1 && (identical(v, "NA") || isTRUE(is.na(v)))) return("—")
+    paste(as.character(v), collapse = "; ")
+  }
   .nv <- function(x, unit = "") {
     v <- dev[[x]]
-    if (is.null(v) || is.na(v) || v == "NA") return("—")
+    if (is.null(v) || length(v) == 0) return("—")
+    if (length(v) != 1 || isTRUE(is.na(v)) || identical(as.character(v), "NA")) return("—")
     paste0(round(as.numeric(v), 2), if (nzchar(unit)) paste0(" ", unit) else "")
   }
 

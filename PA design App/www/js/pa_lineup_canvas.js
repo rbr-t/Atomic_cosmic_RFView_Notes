@@ -8152,8 +8152,29 @@ function registerMessageHandlers() {
 
         // Title row
         const h5 = document.createElement('h5');
-        h5.textContent = dev.label || dev.id;
         h5.style.marginBottom = '2px';
+        h5.style.display = 'flex';
+        h5.style.alignItems = 'center';
+        h5.style.gap = '4px';
+
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = dev.label || dev.id;
+        h5.appendChild(labelSpan);
+
+        // Source badge: [KB] for knowledge_base, [Custom] for user-designed
+        if (dev.source) {
+          const badge = document.createElement('span');
+          if (dev.source === 'knowledge_base') {
+            badge.textContent = 'KB';
+            badge.style.cssText = 'font-size:9px; background:#1a3a5c; color:#5bc0de; padding:1px 4px; border-radius:2px; font-weight:600; flex-shrink:0;';
+            badge.title = 'From Knowledge Base (' + (dev.kb_confidence || 'medium') + ' confidence)';
+          } else {
+            badge.textContent = 'Custom';
+            badge.style.cssText = 'font-size:9px; background:#1a3a1a; color:#5cb85c; padding:1px 4px; border-radius:2px; font-weight:600; flex-shrink:0;';
+            badge.title = 'User-designed device';
+          }
+          h5.appendChild(badge);
+        }
 
         // Subtitle row
         const p = document.createElement('p');
