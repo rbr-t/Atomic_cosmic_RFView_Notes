@@ -45,11 +45,22 @@ source("modules/server/server_device_lib.R")
 source("modules/server/server_settings.R")
 source("modules/server/server_reporting.R")
 
+# ── RF CAD Tool plugin ────────────────────────────────────────────────────
+if (file.exists("../RF_CAD_Tool/modules/rf_cad_module.R")) {
+  source("../RF_CAD_Tool/modules/rf_cad_module.R")
+  .RF_CAD_AVAILABLE <- TRUE
+} else {
+  .RF_CAD_AVAILABLE <- FALSE
+}
+
 # ── Server function ───────────────────────────────────────────────────────
 server <- function(input, output, session) {
 
   # ── Initialise shared reactive state (rv, lineup reactives, helpers) ──
   state <- initServerState(input, output, session)
+
+  # ── RF CAD Tool module (registered once per session) ─────────────────────
+  if (.RF_CAD_AVAILABLE) rfCadServer("rfcad")
 
   # ── Utility Bar: top-header nav links → update sidebar tab ───────────────
   observeEvent(input$goto_utility_tab, {
@@ -651,6 +662,19 @@ server <- function(input, output, session) {
           icon("cog"), " Open Settings — Full View"
         )
       ),
+
+      # ── RF CAD Tool ────────────────────────────────────────────────────────
+      "rf_cad_tool" = if (.RF_CAD_AVAILABLE) {
+        rfCadUI("rfcad",
+          height  = "calc(100vh - 160px)",
+          compact = TRUE)
+      } else {
+        div(
+          style = "padding:20px; color:#aaa; text-align:center;",
+          icon("exclamation-triangle"),
+          " RF CAD Tool not found. Ensure RF_CAD_Tool/ is adjacent to PA design App/."
+        )
+      },
 
       # Fallback
       div(p("Panel not found."))
