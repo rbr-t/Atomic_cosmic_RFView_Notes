@@ -54,6 +54,24 @@
   overflow-x: auto;
 }
 
+.rfcad-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.rfcad-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
 .rfcad-toolbar-sep {
   width: 1px;
   height: 26px;
@@ -281,7 +299,8 @@
 }
 
 #rfcad_canvas,
-[id^="rfcad_canvas_"] {
+[id^="rfcad_canvas_"],
+.rfcad-canvas-container {
   display: block;
   width: 100%;
   height: 100%;
@@ -644,6 +663,13 @@
   background: var(--rfcad-accent, #00bcd4);
   color: #000;
   border-color: var(--rfcad-accent, #00bcd4);
+}
+
+/* Ruler tool button active state */
+.rfcad-ctrl-btn.rfcad-btn-ruler.active {
+  background: #00e5ff;
+  color: #000;
+  border-color: #00e5ff;
 }
 
 /* ─── Export dropdown ───────────────────────────────────────────────────── */

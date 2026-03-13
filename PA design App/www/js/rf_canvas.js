@@ -44,8 +44,8 @@
   const SEL_COLOR      = '#f5c518';
   const LABEL_COLOR    = '#e0e0e0';
   const ORIGIN_COLOR   = '#3a4a6a';
-  const GRID_MAJOR_CLR = '#252540';
-  const GRID_MINOR_CLR = '#1a1a30';
+  const GRID_MAJOR_CLR = '#2e3a5a';   // visible blue-gray
+  const GRID_MINOR_CLR = '#1e2840';   // dimmer sub-grid
   const COMP_COLORS    = {
     metal_top     : '#c8a84b',
     metal_bot     : '#7b9fc7',
@@ -80,6 +80,7 @@
       isDrawing   : false,
       drawStart   : null,
       drawPreview : null,
+      measurePts  : [],   // [{x,y}] ruler tool points (max 2)
       substrate   : { h: 0.254, er: 4.3, tand: 0.0027, t: 0.035 },
       freqGHz    : 2.4,
       defaults    : { W: 0.5, L: 5.0, gap: 0.2, layer: 'metal_top' }
@@ -356,6 +357,7 @@
       });
 
       switch (comp.type) {
+        case 'ms':
         case 'microstrip'  : buildMicrostrip(group, comp, color, isSel); break;
         case 'bend90'      : buildBend90(group, comp, color, isSel); break;
         case 'tee'         : buildTee(group, comp, color, isSel); break;
@@ -440,6 +442,9 @@
     }
 
     function addComponent(type, wx, wy) {
+      // Normalise palette alias types to canonical names
+      if (type === 'ms')         type = 'microstrip';
+      if (type === 'short_stub') type = 'short_stub';  // already canonical
       const sx = snapMm(wx);
       const sy = snapMm(wy);
       const abbr = { microstrip:'MS', bend90:'B90', tee:'TEE', coupled:'CPL', via:'VIA', port:'P', open_stub:'OS', short_stub:'SS' };
@@ -519,6 +524,8 @@
       state.isDrawing = false;
       state.drawStart = null;
       clearDrawPreview();
+      // Clear measurement when leaving ruler
+      if (toolName !== 'ruler') { state.measurePts = []; drawMeasureOverlay(); }
       stage.container().style.cursor = toolName === 'select' ? 'default' : 'crosshair';
       syncTool();
       // Update toolbar button highlights
@@ -534,6 +541,81 @@
         state.drawPreview = null;
         layers.ui.batchDraw();
       }
+    }
+
+    // ── Measurement overlay ────────────────────────────────────────────
+    function drawMeasureOverlay() {
+      // Remove existing measure nodes
+      layers.ui.getChildren(n => n.name() === 'measure').forEach(n => n.destroy());
+      const pts = state.measurePts;
+      const sc  = stage.scaleX();
+      if (pts.length === 0) { layers.ui.batchDraw(); return; }
+
+      // Draw start point
+      layers.ui.add(new Konva.Circle({
+        name: 'measure', x: mmToPx(pts[0].x), y: mmToPx(pts[0].y),
+        radius: 5 / sc, fill: '#00e5ff', stroke: '#fff',
+        strokeWidth: 1 / sc, listening: false
+      }));
+
+      if (pts.length < 2) { layers.ui.batchDraw(); return; }
+
+      const p1 = pts[0], p2 = pts[1];
+      const dx   = p2.x - p1.x, dy = p2.y - p1.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const ang  = (Math.atan2(dy, dx) * 180 / Math.PI).toFixed(1);
+
+      // Measurement line
+      layers.ui.add(new Konva.Line({
+        name: 'measure',
+        points: [mmToPx(p1.x), mmToPx(p1.y), mmToPx(p2.x), mmToPx(p2.y)],
+        stroke: '#00e5ff', strokeWidth: 1.5 / sc,
+        dash: [5 / sc, 3 / sc], listening: false
+      }));
+
+      // End point
+      layers.ui.add(new Konva.Circle({
+        name: 'measure', x: mmToPx(p2.x), y: mmToPx(p2.y),
+        radius: 5 / sc, fill: '#00e5ff', stroke: '#fff',
+        strokeWidth: 1 / sc, listening: false
+      }));
+
+      // Tick marks at ends
+      const perp = { x: -dy / dist, y: dx / dist };
+      const tk   = 4 / sc;
+      [p1, p2].forEach(p => {
+        layers.ui.add(new Konva.Line({
+          name: 'measure',
+          points: [
+            mmToPx(p.x + perp.x * tk), mmToPx(p.y + perp.y * tk),
+            mmToPx(p.x - perp.x * tk), mmToPx(p.y - perp.y * tk)
+          ],
+          stroke: '#00e5ff', strokeWidth: 1 / sc, listening: false
+        }));
+      });
+
+      // Distance + angle label
+      const mx  = (p1.x + p2.x) / 2;
+      const my  = (p1.y + p2.y) / 2;
+      const fs  = Math.max(8, 11 / sc);
+      const lbl = dist.toFixed(3) + ' mm  \u2220' + ang + '\u00b0';
+      layers.ui.add(new Konva.Rect({
+        name: 'measure',
+        x: mmToPx(mx) - (lbl.length * fs * 0.31),
+        y: mmToPx(my) - fs * 1.8,
+        width: lbl.length * fs * 0.62, height: fs * 1.5,
+        fill: 'rgba(0,0,30,0.78)', cornerRadius: 3, listening: false
+      }));
+      layers.ui.add(new Konva.Text({
+        name: 'measure',
+        x: mmToPx(mx) - (lbl.length * fs * 0.31),
+        y: mmToPx(my) - fs * 1.75,
+        width: lbl.length * fs * 0.62,
+        text: lbl, fontSize: fs, fill: '#00e5ff',
+        align: 'center', listening: false
+      }));
+
+      layers.ui.batchDraw();
     }
 
     function updateDrawPreview() {
@@ -703,7 +785,7 @@
 
         const pos = pointerMm();
 
-        if (state.tool === 'microstrip') {
+        if (state.tool === 'microstrip' || state.tool === 'ms') {
           if (!state.isDrawing) {
             state.isDrawing = true;
             state.drawStart = { x: snapMm(pos.x), y: snapMm(pos.y) };
@@ -724,6 +806,12 @@
             state.drawStart = null;
             clearDrawPreview();
           }
+        } else if (state.tool === 'ruler') {
+          // Measurement: collect up to 2 points, then display distance/angle
+          const snapped = { x: snapMm(pos.x), y: snapMm(pos.y) };
+          state.measurePts.push(snapped);
+          if (state.measurePts.length > 2) state.measurePts.shift();
+          drawMeasureOverlay();
         } else {
           // Single-click placement for all other tools
           addComponent(state.tool, pos.x, pos.y);
@@ -834,6 +922,33 @@ ${rects}</svg>`;
         stage.scale({ x: s, y: s });
         state.zoom = s / BASE_SCALE;
         drawGrid(); reRenderAll(); updateStatus(); syncZoom();
+      },
+      // Rotate selected component by deg
+      rotateSelected(deg) {
+        const comp = state.components.find(c => c.id === state.selectedId);
+        if (comp) {
+          comp.rotation = (comp.rotation + deg) % 360;
+          reRenderAll(); syncComponents();
+          syncSelected(state.components.find(c => c.id === state.selectedId));
+        }
+      },
+      // Clear all components
+      clearAll() {
+        state.components = []; state.selectedId = null; state.nextId = 1;
+        reRenderAll(); syncComponents(); updateStatus();
+      },
+      // Set grid size in mm
+      setGrid(sizeMm) {
+        state.gridSizeMm = sizeMm || 0.5;
+        drawGrid(); updateStatus();
+      },
+      // Enable/disable snap-to-grid
+      setSnap(enabled) {
+        state.snapEnabled = !!enabled;
+      },
+      // Clear ruler measurement
+      clearMeasure() {
+        state.measurePts = []; drawMeasureOverlay();
       },
       setFreq(f) {
         state.freqGHz = parseFloat(f) || 2.4;

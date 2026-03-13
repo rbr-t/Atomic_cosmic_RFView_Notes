@@ -13,8 +13,8 @@
 
 # ── Konva CDN (version-locked) ───────────────────────────────────────────────
 .KONVA_CDN      <- "https://unpkg.com/konva@9.3.14/konva.min.js"
-.THREE_CDN      <- "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"
-.ORBIT_CDN      <- "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/controls/OrbitControls.js"
+.THREE_CDN      <- "https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"
+.ORBIT_CDN      <- "https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"
 
 # ── Substrate material presets ───────────────────────────────────────────────
 .SUBSTRATE_PRESETS <- list(
@@ -146,6 +146,28 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
         id, id, id, id, id, id
       ),
       "\U0001f9ca 3D"
+    ),
+    tags$span(class = "rfcad-toolbar-sep"),
+    tags$button(
+      id    = paste0(id, "_btn_ruler"),
+      class = "rfcad-ctrl-btn rfcad-btn-ruler",
+      title = "Ruler: click two points to measure distance and angle",
+      onclick = sprintf(
+        "(function(){
+          var c=RFCAD.getCanvas('%s');
+          if(!c)return;
+          var btn=document.getElementById('%s_btn_ruler');
+          var active=!btn.classList.contains('active');
+          btn.classList.toggle('active',active);
+          document.querySelectorAll('.rfcad-btn-3d,.rfcad-tool-btn').forEach(function(b){
+            b.classList.remove('active');
+          });
+          if(active){ btn.classList.add('active'); c.setTool('ruler'); }
+          else { c.setTool('select'); }
+        })();",
+        id, id
+      ),
+      "\U0001f4cf Ruler"
     )
   )
 
@@ -364,17 +386,49 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
 
     tags$script(HTML(sprintf(
       "(function(){
+        /* ---- initial bootstrap (also works when tab is hidden) ---- */
         function initCanvas(){
           if(typeof RFCAD==='undefined'||typeof Konva==='undefined'){
             setTimeout(initCanvas,100); return;
           }
-          RFCAD.createCanvas('%s','%s','%s');
+          var el=document.getElementById('%s');
+          if(!el){ setTimeout(initCanvas,150); return; }
+          if(el.offsetWidth===0){ setTimeout(initCanvas,150); return; }
+          if(!RFCAD.canvases['%s']) {
+            RFCAD.canvases['%s'] = RFCAD.createCanvas('%s','%s','%s');
+          }
         }
         if(document.readyState==='loading'){
           document.addEventListener('DOMContentLoaded',initCanvas);
         } else { initCanvas(); }
+
+        /* ---- Shiny message handler (re-init after tab reveal) ---- */
+        Shiny.addCustomMessageHandler('rfcad_init', function(msg){
+          var el=document.getElementById(msg.containerId);
+          if(!el) return;
+          function tryInit(){
+            if(typeof RFCAD==='undefined'||typeof Konva==='undefined'){
+              setTimeout(tryInit,100); return;
+            }
+            if(el.offsetWidth===0){ setTimeout(tryInit,150); return; }
+            if(!RFCAD.canvases[msg.instanceId]) {
+              RFCAD.canvases[msg.instanceId] =
+                RFCAD.createCanvas(msg.containerId, msg.nsPrefix, msg.instanceId);
+            } else {
+              /* already exists but may have 0-size stage from hidden tab */
+              var c = RFCAD.canvases[msg.instanceId];
+              if(c && c.stage && c.stage.width()===0){
+                c.stage.width(el.offsetWidth);
+                c.stage.height(el.offsetHeight||500);
+                if(c.drawGrid) c.drawGrid();
+              }
+            }
+          }
+          tryInit();
+        });
       })();",
-      ns("rfcad_canvas"), id, id
+      ns("rfcad_canvas"),
+      id, id, ns("rfcad_canvas"), id, id
     )))
   )
 }
@@ -387,6 +441,17 @@ rfCadServer <- function(id) {
   moduleServer(id, function(input, output, session) {
 
     ns <- session$ns
+
+    # ── Robust canvas initialization (works inside hidden tabs) ──────────────
+    # The rfcad_init JS handler waits until offsetWidth > 0 before creating
+    # the Konva stage, making it safe when the RF CAD tab is initially hidden.
+    session$onFlushed(function() {
+      session$sendCustomMessage("rfcad_init", list(
+        instanceId  = id,
+        containerId = ns("rfcad_canvas"),
+        nsPrefix    = id
+      ))
+    }, once = TRUE)
 
     rv <- reactiveValues(
       components = list(),
@@ -706,8 +771,8 @@ rfCadServer <- function(id) {
           Layer  = comp$layer  %||% "metal_top",
           `W(mm)`= if (!is.na(W)) round(W, 4) else NA_real_,
           `L(mm)`= if (!is.na(L)) round(L, 4) else NA_real_,
-          `Z0(\u03a9)` = rf$Z0,
-          `\u03b8(\u00b0)` = theta,
+          "Z0(Ohm)"  = rf$Z0,
+          "Theta(deg)" = theta,
           check.names = FALSE, stringsAsFactors = FALSE
         )
       })
