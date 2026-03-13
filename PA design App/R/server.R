@@ -44,14 +44,7 @@ source("modules/server/server_knowledge_base.R")
 source("modules/server/server_device_lib.R")
 source("modules/server/server_settings.R")
 source("modules/server/server_reporting.R")
-
-# ── RF CAD Tool plugin ────────────────────────────────────────────────────
-if (file.exists("../RF_CAD_Tool/modules/rf_cad_module.R")) {
-  source("../RF_CAD_Tool/modules/rf_cad_module.R")
-  .RF_CAD_AVAILABLE <- TRUE
-} else {
-  .RF_CAD_AVAILABLE <- FALSE
-}
+source("modules/server/server_rf_cad.R")
 
 # ── Server function ───────────────────────────────────────────────────────
 server <- function(input, output, session) {
@@ -60,7 +53,7 @@ server <- function(input, output, session) {
   state <- initServerState(input, output, session)
 
   # ── RF CAD Tool module (registered once per session) ─────────────────────
-  if (.RF_CAD_AVAILABLE) rfCadServer("rfcad")
+  rfCadServer("rfcad")
 
   # ── Utility Bar: top-header nav links → update sidebar tab ───────────────
   observeEvent(input$goto_utility_tab, {
@@ -550,18 +543,9 @@ server <- function(input, output, session) {
             # \u2500\u2500 RF CAD Tool tab \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
             tabPanel(tagList(icon("drafting-compass"), " RF CAD"),
               div(style = "padding:4px 0 2px 0;",
-                if (.RF_CAD_AVAILABLE) {
-                  rfCadUI("rfcad",
-                    height  = "calc(100vh - 210px)",
-                    compact = TRUE)
-                } else {
-                  div(style = "padding:20px; color:#aaa; text-align:center;",
-                    icon("exclamation-triangle"),
-                    " RF CAD Tool not found.",
-                    tags$br(),
-                    tags$small("Ensure RF_CAD_Tool/ is present adjacent to PA design App/.")
-                  )
-                }
+                rfCadUI("rfcad",
+                  height  = "calc(100vh - 210px)",
+                  compact = TRUE)
               )
             )
           )
