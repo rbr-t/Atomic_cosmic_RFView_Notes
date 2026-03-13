@@ -545,12 +545,30 @@ server <- function(input, output, session) {
                   )
                 )
               )
+            ),
+
+            # \u2500\u2500 RF CAD Tool tab \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+            tabPanel(tagList(icon("drafting-compass"), " RF CAD"),
+              div(style = "padding:4px 0 2px 0;",
+                if (.RF_CAD_AVAILABLE) {
+                  rfCadUI("rfcad",
+                    height  = "calc(100vh - 210px)",
+                    compact = TRUE)
+                } else {
+                  div(style = "padding:20px; color:#aaa; text-align:center;",
+                    icon("exclamation-triangle"),
+                    " RF CAD Tool not found.",
+                    tags$br(),
+                    tags$small("Ensure RF_CAD_Tool/ is present adjacent to PA design App/.")
+                  )
+                }
+              )
             )
           )
         )
       ),
 
-      # ── Knowledge Base: full tool (was a search-stub) ─────────────────────
+      # \u2500\u2500 Knowledge Base: full tool (was a search-stub) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       "util_knowledge" = tagList(
         div(style = "padding:4px 0 10px 0;",
           p(style = "color:#aaa; font-size:12px; margin:0 0 8px 0;",
@@ -662,19 +680,6 @@ server <- function(input, output, session) {
           icon("cog"), " Open Settings — Full View"
         )
       ),
-
-      # ── RF CAD Tool ────────────────────────────────────────────────────────
-      "rf_cad_tool" = if (.RF_CAD_AVAILABLE) {
-        rfCadUI("rfcad",
-          height  = "calc(100vh - 160px)",
-          compact = TRUE)
-      } else {
-        div(
-          style = "padding:20px; color:#aaa; text-align:center;",
-          icon("exclamation-triangle"),
-          " RF CAD Tool not found. Ensure RF_CAD_Tool/ is adjacent to PA design App/."
-        )
-      },
 
       # Fallback
       div(p("Panel not found."))

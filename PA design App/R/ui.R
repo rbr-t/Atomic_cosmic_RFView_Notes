@@ -24,10 +24,6 @@ ui <- dashboardPage(
         icon("tools"), " RF Tools")
     ),
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "rf_cad_tool",
-        icon("drafting-compass"), " RF CAD")
-    ),
-    tags$li(class = "dropdown utility-nav",
       tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "util_agents",
         icon("robot"), " AI Agents")
     ),
