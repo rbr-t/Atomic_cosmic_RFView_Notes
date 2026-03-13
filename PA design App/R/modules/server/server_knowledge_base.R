@@ -177,7 +177,7 @@ serverKnowledgeBase <- function(input, output, session, state) {
     updateNumericInput(session, "smith_z_imag",  value = as.numeric(x_opt %||% 0))
     updateTextInput(  session, "smith_label",    value = raw$part_number %||% dev_id)
 
-    updateTabItems(session, "sidebar_menu", "smith_chart")
+    shinyjs::runjs('utilityDrawerOpen("rf_tools")')
 
     showNotification(
       paste0("Ropt for ", raw$part_number, " loaded into Smith Chart."),
@@ -211,7 +211,7 @@ serverKnowledgeBase <- function(input, output, session, state) {
     updateNumericInput(session, "smith_z_real",  value = zl_r)
     updateNumericInput(session, "smith_z_imag",  value = zl_x)
     updateTextInput(  session, "smith_label",    value = label_str)
-    updateTabItems(   session, "sidebar_menu",   "smith_chart")
+    shinyjs::runjs('utilityDrawerOpen("rf_tools")')
 
     showNotification(
       paste0("ZL = ", zl_r, if (zl_x >= 0) "+" else "", zl_x,

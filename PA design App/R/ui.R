@@ -16,12 +16,12 @@ ui <- dashboardPage(
         icon("database"), " Data Manager")
     ),
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "smith_chart",
-        icon("tools"), " RF Tools")
+      tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "rf_calc",
+        icon("calculator"), " RF Calculators")
     ),
     tags$li(class = "dropdown utility-nav",
-      tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "lp_viewer",
-        icon("chart-area"), " Load Pull")
+      tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "rf_tools",
+        icon("tools"), " RF Tools")
     ),
     tags$li(class = "dropdown utility-nav",
       tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "util_agents",
@@ -1934,7 +1934,7 @@ $(document).ready(function() {
             </ul>"),
             actionButton("goto_smith_chart_fp", "Open Smith Chart Tool",
               class = "btn-primary",
-              onclick = "Shiny.setInputValue('goto_utility_tab', 'smith_chart', {priority:'event'})")
+              onclick = "Shiny.setInputValue('goto_utility_tab', 'rf_tools', {priority:'event'})")
           )
         )
       ),

@@ -9,12 +9,12 @@
 var _drawerTab = null;
 
 var _drawerMeta = {
-  util_data:      { title: "Data Manager"    },
-  smith_chart:    { title: "RF Tools"        },
-  lp_viewer:      { title: "Load Pull Viewer" },
-  util_agents:    { title: "AI Agents"       },
-  util_knowledge: { title: "Knowledge Base"  },
-  settings:       { title: "Settings"        }
+  util_data:      { title: "Data Manager"      },
+  rf_calc:        { title: "RF Calculators"    },
+  rf_tools:       { title: "RF Tools"          },
+  util_agents:    { title: "AI Agents"         },
+  util_knowledge: { title: "Knowledge Base"    },
+  settings:       { title: "Settings"          }
 };
 
 // Open (or toggle closed) the drawer for a given panel name.
