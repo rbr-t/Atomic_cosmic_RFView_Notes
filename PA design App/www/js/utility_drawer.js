@@ -56,21 +56,23 @@ function utilityDrawerOpen(tabName) {
 
 function utilityDrawerClose() {
   var drawer = document.getElementById("utility-drawer");
-  if (drawer) drawer.classList.remove("open");
+  if (drawer) {
+    drawer.classList.remove("open");
+    drawer.classList.remove("drawer-full");  // reset expand state on close
+  }
   document.querySelectorAll(".utility-nav").forEach(function(el) {
     el.classList.remove("active-utility");
   });
   _drawerTab = null;
 }
 
-// Close drawer and navigate sidebar to the full tabItem for this panel.
-function utilityDrawerFullView() {
-  if (!_drawerTab) return;
-  var tab = _drawerTab;
-  utilityDrawerClose();
-  if (typeof Shiny !== "undefined" && Shiny.setInputValue) {
-    Shiny.setInputValue("goto_utility_tab", tab, { priority: "event" });
-  }
+// Toggle between 75 vw (default) and full-width (100 vw − sidebar) modes.
+function utilityDrawerToggleFull() {
+  var drawer = document.getElementById("utility-drawer");
+  if (!drawer) return;
+  var isExpanded = drawer.classList.toggle("drawer-full");
+  var btn = document.getElementById("drawer-full-btn");
+  if (btn) btn.textContent = isExpanded ? "\u25c4 Collapse" : "\u25ba Expand";
 }
 
 // Open the full app in a new browser tab with ?panel= pre-selected.
@@ -95,7 +97,7 @@ $(document).ready(function() {
   });
 
   // Drawer header button clicks
-  $(document).on("click", "#drawer-full-btn",   function(e) { e.stopPropagation(); utilityDrawerFullView(); });
+  $(document).on("click", "#drawer-full-btn",   function(e) { e.stopPropagation(); utilityDrawerToggleFull(); });
   $(document).on("click", "#drawer-popout-btn", function(e) { e.stopPropagation(); utilityDrawerPopout();  });
   $(document).on("click", "#drawer-close-btn",  function(e) { e.stopPropagation(); utilityDrawerClose();   });
 

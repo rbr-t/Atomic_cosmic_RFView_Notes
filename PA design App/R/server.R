@@ -93,64 +93,316 @@ server <- function(input, output, session) {
         )
       ),
 
-      # ── RF Tools (Smith Chart + converters) ───────────────────────────────
+      # ── RF Tools: full Smith Chart (was a mini-stub; now the complete tool) ──
       "smith_chart" = tagList(
-        p(style = "color:#aaa; font-size:12px; margin:0 0 12px 0;",
-          "Quick RF unit converters. Open Full View for the interactive Smith Chart."),
-        tags$div(class = "drawer-section-label", "dBm \u2194 mW"),
-        tags$div(class = "drawer-converter-card",
+        div(style = "padding:4px 0 10px 0;",
           fluidRow(
-            column(6,
-              tags$label("dBm"),
-              numericInput("drawer_dbm_in", NULL, value = 20, step = 1)
+            # ── Left control panel ─────────────────────────────────────────
+            column(3,
+              div(class = "well",
+                style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                h5(icon("crosshairs"), " Impedance Entry", style = "color:#f0f0f0; margin-top:0;"),
+                numericInput("smith_z0",    "Reference Z\u2080 (\u03a9)",   value = 50, min = 0.1, max = 1000, step = 1),
+                numericInput("smith_z_real","Z Real (\u03a9)",              value = 50, min = -2000, max = 2000),
+                numericInput("smith_z_imag","Z Imaginary (\u03a9)",         value = 25, min = -2000, max = 2000),
+                textInput("smith_label", "Point Label", value = "", placeholder = "e.g. Zin @ 2.4 GHz"),
+                fluidRow(
+                  column(6, actionButton("smith_add_point", "Add",
+                    icon = icon("plus"),  class = "btn-primary btn-block btn-sm")),
+                  column(6, actionButton("smith_clear", "Clear",
+                    icon = icon("trash"), class = "btn-warning btn-block btn-sm"))
+                ),
+                hr(),
+                h5(icon("sliders-h"), " Chart options", style = "color:#f0f0f0;"),
+                selectInput("smith_mode", "Display Mode",
+                  choices  = c("Impedance (Z)" = "Z", "Admittance (Y)" = "Y", "Both (Z+Y)" = "ZY"),
+                  selected = "Z"),
+                hr(),
+                h5(icon("calculator"), " Matching Network", style = "color:#f0f0f0;"),
+                selectInput("smith_match_type", "Network Type",
+                  choices = c("L-Section", "Pi-Network", "T-Network", "Single Stub", "Double Stub")),
+                actionButton("smith_design_match", "Synthesise",
+                  icon = icon("calculator"), class = "btn-success btn-block btn-sm"),
+                p(class = "text-muted", style = "font-size:11px; margin-top:8px;",
+                  "Select 2 points then click Synthesise to compute element values.")
+              )
             ),
-            column(6,
-              tags$label("mW"),
-              numericInput("drawer_mw_in",  NULL, value = 100, step = 1)
-            )
-          ),
-          uiOutput("drawer_rf_conv_result")
-        ),
-        tags$div(class = "drawer-section-label", "Frequency \u2194 Wavelength"),
-        tags$div(class = "drawer-converter-card",
-          fluidRow(
-            column(6,
-              tags$label("GHz"),
-              numericInput("drawer_freq_in", NULL, value = 2.4, step = 0.1, min = 0.001)
-            ),
-            column(6,
-              tags$label("Wavelength (mm)"),
-              uiOutput("drawer_wl_result")
+            # ── Smith Chart plot ────────────────────────────────────────────
+            column(9,
+              div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                h5(icon("chart-bar"), " Smith Chart (interactive \u2014 hover/click points)",
+                   style = "color:#f0f0f0; margin-top:0;"),
+                plotlyOutput("smith_chart_plot", height = "520px"),
+                hr(),
+                h5("Point Summary & Matching Network", style = "color:#f0f0f0;"),
+                verbatimTextOutput("smith_components")
+              )
             )
           )
-        ),
-        tags$a(class = "drawer-fullview-link",
-          onclick = "utilityDrawerFullView()",
-          icon("chart-bar"), " Open Smith Chart — Full View"
         )
       ),
 
-      # ── Load Pull Viewer ──────────────────────────────────────────────────
+      # ── Load Pull Viewer: full tool (was a quick-upload stub) ─────────────
       "lp_viewer" = tagList(
-        p(style = "color:#aaa; font-size:12px; margin:0 0 12px 0;",
-          "Load-pull / source-pull data viewer.",
-          " Upload SPL, MDF, AMCAD, Focus, Anteverta or MDIF files."),
-        tags$div(class = "drawer-section-label", "Quick upload"),
-        fileInput("drawer_lp_quick_upload", NULL,
-          multiple    = TRUE,
-          accept      = c(".spl",".lpt",".txt",".dat",
-                          ".mdf",".csv",".ant",".mdif"),
-          buttonLabel = icon("upload"),
-          placeholder = "Choose LP file\u2026"),
-        p(style = "color:#888; font-size:11px; margin-top:4px;",
-          "After uploading, open the full view to parse and visualise."),
-        tags$a(class = "drawer-fullview-link",
-          onclick = "utilityDrawerFullView()",
-          icon("chart-area"), " Open Load Pull Viewer — Full View"
+        div(style = "padding:4px 0 10px 0;",
+          p(style = "color:#aaa; font-size:12px; margin:0 0 10px 0;",
+            icon("chart-area"),
+            " Import and visualise load-pull / source-pull measurement files.",
+            " Formats: SPL, Focus Microwaves, Maury MDF, AMCAD, Anteverta-mw, ADS MDIF."),
+          tabsetPanel(id = "lp_tabs",
+
+            # ── Tab 1: Upload & Parse ────────────────────────────────────
+            tabPanel("Upload & Parse",
+              br(),
+              fluidRow(
+                column(4,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("File Import", style = "color:#f0f0f0; margin-top:0;"),
+                    fileInput("lp_upload", NULL,
+                      multiple    = TRUE,
+                      accept      = c(".spl",".lpt",".txt",".dat",".mdf",".csv",".ant",".mdif",".s2p"),
+                      buttonLabel = icon("upload"),
+                      placeholder = "No file selected"),
+                    selectInput("lp_format_override", "Format override",
+                      choices  = c("Auto-detect" = "auto", "SPL / Generic ASCII" = "spl",
+                                   "Focus Microwaves" = "focus", "Maury MDF" = "mdf",
+                                   "AMCAD" = "amcad", "Anteverta-mw" = "anteverta", "ADS MDIF" = "mdif"),
+                      selected = "auto"),
+                    actionButton("lp_parse_btn", "Parse file(s)",
+                      icon = icon("cog"), class = "btn-primary btn-block"),
+                    hr(),
+                    h5("Loaded datasets", style = "color:#f0f0f0;"),
+                    uiOutput("lp_dataset_list")
+                  )
+                ),
+                column(8,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("Parse Log", style = "color:#f0f0f0; margin-top:0;"),
+                    verbatimTextOutput("lp_parse_log"),
+                    hr(),
+                    h5("Parsed metadata", style = "color:#f0f0f0;"),
+                    verbatimTextOutput("lp_meta_preview")
+                  )
+                )
+              )
+            ),
+
+            # ── Tab 2: Smith Chart + Contours ────────────────────────────
+            tabPanel("Smith Chart",
+              br(),
+              fluidRow(
+                column(3,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("Contour controls", style = "color:#f0f0f0; margin-top:0;"),
+                    uiOutput("lp_dataset_selector"),
+                    hr(),
+                    checkboxGroupInput("lp_contour_vars", "Overlay contours",
+                      choices  = c("Pout (dBm)"="pout","PAE (%)"="pae","DE (%)"="de","Gain (dB)"="gain","Power (W)"="pdc"),
+                      selected = c("pout","pae")),
+                    sliderInput("lp_contour_levels", "No. of contour levels", min = 3, max = 12, value = 6, step = 1),
+                    hr(),
+                    selectInput("lp_pull_type", "Pull plane",
+                      choices = c("Load Pull"="load","Source Pull"="source"), selected = "load"),
+                    hr(),
+                    checkboxInput("lp_show_max_pae",   "Mark max-PAE point",    value = TRUE),
+                    checkboxInput("lp_show_max_pout",  "Mark max-Pout point",   value = TRUE),
+                    checkboxInput("lp_show_stability", "Show stability circles", value = FALSE)
+                  )
+                ),
+                column(9,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("Smith Chart \u2014 Load Pull Contours", style = "color:#f0f0f0; margin-top:0;"),
+                    plotlyOutput("lp_smith_plot", height = "500px")
+                  )
+                )
+              )
+            ),
+
+            # ── Tab 3: XY Performance ────────────────────────────────────
+            tabPanel("XY Performance",
+              br(),
+              fluidRow(
+                column(3,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("Plot controls", style = "color:#f0f0f0; margin-top:0;"),
+                    uiOutput("lp_xy_dataset_selector"),
+                    selectInput("lp_xy_x_var", "X axis",
+                      choices = c("Pout (dBm)"="pout_dbm","Pin (dBm)"="pin_dbm","Pavs (dBm)"="pavs_dbm")),
+                    checkboxGroupInput("lp_xy_y_vars", "Y axis traces",
+                      choices  = c("PAE (%)"="pae_pct","DE (%)"="de_pct","Gain (dB)"="gain_db","Pout (dBm)"="pout_dbm"),
+                      selected = c("pae_pct","gain_db")),
+                    hr(),
+                    sliderInput("lp_xy_pin_range", "Pin range (dBm)", min = -20, max = 50, value = c(-5, 35))
+                  )
+                ),
+                column(9,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("Gain / PAE / DE vs Power", style = "color:#f0f0f0; margin-top:0;"),
+                    plotlyOutput("lp_xy_plot", height = "460px")
+                  )
+                )
+              )
+            ),
+
+            # ── Tab 4: Nose Plot ────────────────────────────────────────
+            tabPanel("Nose Plot",
+              br(),
+              fluidRow(
+                column(3,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("Nose plot controls", style = "color:#f0f0f0; margin-top:0;"),
+                    uiOutput("lp_nose_dataset_selector"),
+                    checkboxInput("lp_nose_mark_opt", "Mark optimal point", value = TRUE),
+                    hr(),
+                    sliderInput("lp_backoff_db", "Back-off reference (dB)", min = 0, max = 12, value = 6, step = 0.5)
+                  )
+                ),
+                column(9,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("PAE vs Pout \u2014 Nose Plot / Trade-off", style = "color:#f0f0f0; margin-top:0;"),
+                    plotlyOutput("lp_nose_plot", height = "460px"),
+                    hr(),
+                    p(class = "text-muted", style = "font-size:11px;",
+                      "The optimal operating point balances maximum PAE against required output power.")
+                  )
+                )
+              )
+            ),
+
+            # ── Tab 5: Tabular Summary ───────────────────────────────────
+            tabPanel("Tabular",
+              br(),
+              div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                h5("Performance summary", style = "color:#f0f0f0; margin-top:0;"),
+                fluidRow(
+                  column(4, uiOutput("lp_table_dataset_selector")),
+                  column(4, sliderInput("lp_ppeak_backoff", "Ppeak back-off (dB)", min=0, max=12, value=6, step=0.5)),
+                  column(4, downloadButton("lp_table_csv", "Download CSV", class = "btn-default"))
+                ),
+                hr(),
+                h5("Performance at Ppeak (max Pout)", style = "color:#f0f0f0;"),
+                DT::DTOutput("lp_table_ppeak"),
+                hr(),
+                h5("Performance at Pavg (Ppeak \u2212 X dB back-off)", style = "color:#f0f0f0;"),
+                DT::DTOutput("lp_table_pavg")
+              )
+            ),
+
+            # ── Tab 6: Compare Devices ──────────────────────────────────
+            tabPanel("Compare",
+              br(),
+              fluidRow(
+                column(3,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("Comparison controls", style = "color:#f0f0f0; margin-top:0;"),
+                    uiOutput("lp_compare_selector"),
+                    hr(),
+                    selectInput("lp_compare_metric", "Contour metric",
+                      choices  = c("PAE (%)"="pae_pct","Pout (dBm)"="pout_dbm","Gain (dB)"="gain_db"),
+                      selected = "pae_pct"),
+                    checkboxInput("lp_compare_optimum", "Show optimal points", value = TRUE)
+                  )
+                ),
+                column(9,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("Multi-device Overlay", style = "color:#f0f0f0; margin-top:0;"),
+                    plotlyOutput("lp_compare_plot", height = "520px")
+                  )
+                )
+              )
+            ),
+
+            # ── Tab 7: LP Report ────────────────────────────────────────
+            tabPanel("LP Report",
+              br(),
+              fluidRow(
+                column(4,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("Report options", style = "color:#f0f0f0; margin-top:0;"),
+                    textInput("lp_rpt_title",    "Report title",     value = "Load Pull Report"),
+                    textInput("lp_rpt_engineer", "Engineer / Author", value = ""),
+                    textInput("lp_rpt_project",  "Project ref",       value = ""),
+                    hr(),
+                    checkboxGroupInput("lp_rpt_sections", "Include sections",
+                      choices  = c("Smith Chart contours"="smith","XY performance plots"="xy",
+                                   "Nose plot"="nose","Summary table"="table","Parsed metadata"="meta"),
+                      selected = c("smith","xy","nose","table")),
+                    hr(),
+                    downloadButton("lp_rpt_html",    "Download HTML Report",    class = "btn-success btn-block"),
+                    br(),
+                    downloadButton("lp_rpt_csv_all", "Download All Data (CSV)", class = "btn-default btn-block")
+                  )
+                ),
+                column(8,
+                  div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                    h5("Report preview", style = "color:#f0f0f0; margin-top:0;"),
+                    uiOutput("lp_rpt_preview")
+                  )
+                )
+              )
+            )
+          )
         )
       ),
 
-      # ── AI Agents ─────────────────────────────────────────────────────────
+      # ── Knowledge Base: full tool (was a search-stub) ─────────────────────
+      "util_knowledge" = tagList(
+        div(style = "padding:4px 0 10px 0;",
+          p(style = "color:#aaa; font-size:12px; margin:0 0 8px 0;",
+            icon("book"),
+            " Searchable library of RF power transistors: specifications, impedance data, app notes and design references.",
+            " Confidence: ",
+            tags$span(style="color:#2ca02c;font-weight:600;", "\u2713\u2713 high"),
+            " = datasheet verified \u00b7 ",
+            tags$span(style="color:#ff7f11;font-weight:600;", "\u2713 medium"),
+            " = training knowledge \u00b7 ",
+            tags$span(style="color:#d62728;font-weight:600;", "\u26a0 low"),
+            " = placeholder."
+          ),
+          verbatimTextOutput("kb_stats_text"),
+          fluidRow(
+            # ── Filter panel ───────────────────────────────────────────
+            column(3,
+              div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                h5(icon("filter"), " Filters", style = "color:#f0f0f0; margin-top:0;"),
+                textInput("kb_search_box", "Search",
+                  placeholder = "Part number, technology, tag\u2026"),
+                hr(),
+                uiOutput("kb_filter_mfr_ui"),
+                uiOutput("kb_filter_tech_ui"),
+                numericInput("kb_filter_freq_mhz", "Covers frequency (MHz)",
+                  value = NULL, min = 0.01, max = 50000, step = 1),
+                numericInput("kb_filter_pout_w", "Min Pout (W)",
+                  value = NULL, min = 0, max = 10000, step = 5),
+                selectInput("kb_filter_app", "Application",
+                  choices  = c("All", "cellular", "avionics", "ism", "broadcast",
+                               "defense", "medical", "radar", "5G", "4G"),
+                  selected = "All", multiple = TRUE),
+                selectInput("kb_filter_role", "Role in PA chain",
+                  choices  = c("All", "driver", "main", "peak", "combined"),
+                  selected = "All", multiple = TRUE),
+                hr(),
+                checkboxInput("kb_show_placeholders", "Show placeholder entries", value = FALSE),
+                actionButton("kb_clear_filters", "Clear all filters",
+                  icon = icon("times"), class = "btn-default btn-block btn-sm")
+              )
+            ),
+            # ── Devices + Detail ────────────────────────────────────────
+            column(9,
+              div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px; margin-bottom:10px;",
+                h5(icon("list"), " Devices", style = "color:#f0f0f0; margin-top:0;"),
+                DT::DTOutput("kb_device_table", height = "340px")
+              ),
+              div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                h5(icon("info-circle"), " Device Detail", style = "color:#f0f0f0; margin-top:0;"),
+                uiOutput("kb_device_detail")
+              )
+            )
+          )
+        )
+      ),
+
+      # ── Agents ───────────────────────────────────────────────────────────
       "util_agents" = tagList(
         p(style = "color:#aaa; font-size:12px; margin:0 0 12px 0;",
           "AI agent manager, prompt store and knowledge-augmented design assistant."),
@@ -174,39 +426,6 @@ server <- function(input, output, session) {
         tags$a(class = "drawer-fullview-link",
           onclick = "utilityDrawerFullView()",
           icon("robot"), " Open AI Agents — Full View"
-        )
-      ),
-
-      # ── Knowledge Base ────────────────────────────────────────────────────
-      "util_knowledge" = tagList(
-        p(style = "color:#aaa; font-size:12px; margin:0 0 12px 0;",
-          "Internal references, datasheets, application notes and IFX knowledge library."),
-        tags$div(class = "drawer-section-label", "Search"),
-        div(style = "display:flex; gap:6px; margin-bottom:12px;",
-          textInput("drawer_kb_search", NULL,
-            placeholder = "Search documents, notes\u2026"),
-          actionButton("drawer_kb_go", icon("search"), class = "btn-default btn-sm")
-        ),
-        tags$div(class = "drawer-section-label", "Categories"),
-        tags$div(class = "drawer-link-row",
-          tags$span(class = "drawer-link-icon", icon("microchip")),
-          tags$span("GaN / GaAs Technology")
-        ),
-        tags$div(class = "drawer-link-row",
-          tags$span(class = "drawer-link-icon", icon("chart-line")),
-          tags$span("PA Topologies & Classes")
-        ),
-        tags$div(class = "drawer-link-row",
-          tags$span(class = "drawer-link-icon", icon("thermometer-half")),
-          tags$span("Thermal Management")
-        ),
-        tags$div(class = "drawer-link-row",
-          tags$span(class = "drawer-link-icon", icon("book")),
-          tags$span("IFX Internal Notes")
-        ),
-        tags$a(class = "drawer-fullview-link",
-          onclick = "utilityDrawerFullView()",
-          icon("book"), " Open Knowledge Base — Full View"
         )
       ),
 

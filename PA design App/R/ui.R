@@ -91,14 +91,7 @@ ui <- dashboardPage(
 
       menuItem("6 · Lessons Learnt",  tabName = "lessons_learnt",  icon = icon("graduation-cap")),
       menuItem("7 · Reporting",       tabName = "reporting",        icon = icon("file-alt")),
-      menuItem("8 · App Download",    tabName = "app_download",     icon = icon("download")),
-
-      # ── TOOLS (hidden in sidebar — opened via top utility bar) ──────────────
-      tags$li(class = "header", "RF TOOLS"),
-      menuItem("Load Pull Viewer",  tabName = "lp_viewer",      icon = icon("chart-area")),
-      menuItem("Smith Chart",       tabName = "smith_chart",    icon = icon("chart-bar")),
-      tags$li(class = "header", "KNOWLEDGE"),
-      menuItem("Device Library",    tabName = "util_knowledge", icon = icon("book"))
+      menuItem("8 · App Download",    tabName = "app_download",     icon = icon("download"))
     )
   ),
   
@@ -201,10 +194,10 @@ $(document).ready(function() {
       tags$div(id = "utility-drawer-header",
         tags$span(id = "utility-drawer-icon",  class = "drawer-icon"),
         tags$span(id = "utility-drawer-title", "Utility Panel"),
-        # "Expand to full view" button
+        # "Expand to full width (100 % − sidebar)" toggle button
         tags$button(class = "drawer-hdr-btn", id = "drawer-full-btn",
-          title = "Open full screen view",
-          tags$i(class = "fa fa-expand-arrows-alt"), " Full View"
+          title = "Toggle full-width mode (edge to sidebar)",
+          tags$i(class = "fa fa-arrows-alt-h"), " Expand"
         ),
         # "Open in new tab" button
         tags$button(class = "drawer-hdr-btn", id = "drawer-popout-btn",
@@ -3177,117 +3170,9 @@ $(document).ready(function() {
         h2(icon("robot"), " AI Agents"),
         p("Under construction — agent manager, prompt store, external knowledge access.")
       ),
-      tabItem(tabName = "util_knowledge",
-        h2(icon("book"), " Device Knowledge Base"),
-        p(style = "color:#aaa; font-size:13px; margin-bottom:16px;",
-          "Searchable library of RF power transistors: specifications, impedance data, app notes and design references.",
-          " Devices flagged ", tags$span(style="color:#2ca02c;font-weight:600;", "\u2713\u2713 high"),
-          " confidence are verified against datasheets. ",
-          tags$span(style="color:#ff7f11;font-weight:600;", "\u2713 medium"),
-          " = strong training knowledge. ",
-          tags$span(style="color:#d62728;font-weight:600;", "\u26a0 low"),
-          " = placeholder — download the datasheet to complete."
-        ),
-        verbatimTextOutput("kb_stats_text"),
-
-        fluidRow(
-          # ── Filter sidebar ───────────────────────────────────────────────
-          box(title = "Filters", width = 3, status = "primary", solidHeader = TRUE,
-
-            textInput("kb_search_box", "Search",
-              placeholder = "Part number, technology, tag\u2026"),
-
-            hr(),
-            uiOutput("kb_filter_mfr_ui"),
-            uiOutput("kb_filter_tech_ui"),
-
-            numericInput("kb_filter_freq_mhz", "Covers frequency (MHz)",
-              value = NULL, min = 0.01, max = 50000, step = 1),
-
-            numericInput("kb_filter_pout_w", "Min Pout (W)",
-              value = NULL, min = 0, max = 10000, step = 5),
-
-            selectInput("kb_filter_app", "Application",
-              choices  = c("All", "cellular", "avionics", "ism", "broadcast",
-                           "defense", "medical", "radar", "5G", "4G"),
-              selected = "All", multiple = TRUE),
-
-            selectInput("kb_filter_role", "Role in PA chain",
-              choices  = c("All", "driver", "main", "peak", "combined"),
-              selected = "All", multiple = TRUE),
-
-            hr(),
-            checkboxInput("kb_show_placeholders", "Show placeholder entries",
-              value = FALSE),
-
-            actionButton("kb_clear_filters", "Clear all filters",
-              icon = icon("times"), class = "btn-default btn-block btn-sm")
-          ),
-
-          # ── Main panel ───────────────────────────────────────────────────
-          column(9,
-            fluidRow(
-              box(title = "Devices", width = 12, status = "info", solidHeader = TRUE,
-                DT::DTOutput("kb_device_table", height = "420px")
-              )
-            ),
-            fluidRow(
-              box(title = "Device Detail", width = 12, status = "primary",
-                solidHeader = TRUE,
-                uiOutput("kb_device_detail")
-              )
-            )
-          )
-        )
-      ),
-
-      # RF Tools: Smith Chart
-      tabItem(tabName = "smith_chart",
-        h2(icon("chart-bar"), " Smith Chart"),
-        fluidRow(
-          # ── Left control panel ─────────────────────────────────────────
-          box(
-            title = "Impedance Entry", width = 3,
-            status = "primary", solidHeader = TRUE,
-            numericInput("smith_z0",    "Reference Z\u2080 (\u03a9)",    value = 50,  min = 0.1, max = 1000, step = 1),
-            numericInput("smith_z_real","Z Real (\u03a9)",               value = 50,  min = -2000, max = 2000),
-            numericInput("smith_z_imag","Z Imaginary (\u03a9)",          value = 25,  min = -2000, max = 2000),
-            textInput(   "smith_label", "Point Label",                   value = "",  placeholder = "e.g. Zin @ 2.4 GHz"),
-            fluidRow(
-              column(6, actionButton("smith_add_point", "Add",
-                icon = icon("plus"),  class = "btn-primary btn-block btn-sm")),
-              column(6, actionButton("smith_clear",     "Clear",
-                icon = icon("trash"), class = "btn-warning btn-block btn-sm"))
-            ),
-            hr(),
-            h5(icon("sliders-h"), " Chart options"),
-            selectInput("smith_mode", "Display Mode",
-              choices = c("Impedance (Z)" = "Z", "Admittance (Y)" = "Y", "Both (Z+Y)" = "ZY"),
-              selected = "Z"),
-            hr(),
-            h5(icon("calculator"), " Matching Network"),
-            selectInput("smith_match_type", "Network Type",
-              choices = c("L-Section", "Pi-Network", "T-Network",
-                          "Single Stub", "Double Stub")),
-            actionButton("smith_design_match", "Synthesise",
-              icon = icon("calculator"), class = "btn-success btn-block btn-sm"),
-            p(class = "text-muted",
-              style = "font-size:11px; margin-top:8px;",
-              "Select 2 points then click Synthesise to compute element values.")
-          ),
-          # ── Smith Chart ────────────────────────────────────────────────
-          box(
-            title = "Smith Chart (interactive — hover/click points)",
-            width = 9, status = "info", solidHeader = TRUE,
-            plotlyOutput("smith_chart_plot", height = "560px"),
-            hr(),
-            h5("Point Summary & Matching Network"),
-            verbatimTextOutput("smith_components")
-          )
-        )
-      ),
-      
       # RF Tools: Converters
+      # (util_knowledge, smith_chart, lp_viewer tabItems removed — content lives
+      #  exclusively in the 75 %‑wide utility drawer to avoid duplicate Shiny IDs)
       tabItem(tabName = "rf_converters",
         h2("🔄 RF Unit Converters"),
         fluidRow(
@@ -3335,200 +3220,6 @@ $(document).ready(function() {
             numericInput("conv_s11_mag", "S11 Magnitude", value = 0.1, min = 0, max = 1, step = 0.01),
             numericInput("conv_s11_phase", "S11 Phase (degrees)", value = 0, min = -180, max = 180),
             verbatimTextOutput("conv_sparams_results")
-          )
-        )
-      ),
-
-      # ── RF Tools: Load Pull Viewer ─────────────────────────────────────────
-      tabItem(tabName = "lp_viewer",
-        h2(icon("chart-area"), " Load Pull Viewer"),
-        p(style = "color:#aaa; font-size:13px; margin-bottom:16px;",
-          "Import and visualise load-pull / source-pull measurement files.",
-          " Supported formats: SPL, Focus Microwaves, Maury MDF, AMCAD, Anteverta-mw, ADS MDIF."),
-
-        tabsetPanel(id = "lp_tabs",
-
-          # ── Tab 1: Upload & Parse ──────────────────────────────────────
-          tabPanel("Upload & Parse",
-            br(),
-            fluidRow(
-              box(title = "File Import", width = 4, status = "primary", solidHeader = TRUE,
-                fileInput("lp_upload", "Upload LP file(s)",
-                  multiple = TRUE,
-                  accept   = c(".spl",".lpt",".txt",".dat",
-                               ".mdf",".csv",".ant",".mdif",".s2p"),
-                  buttonLabel = icon("upload"),
-                  placeholder = "No file selected"),
-                selectInput("lp_format_override", "Format override",
-                  choices  = c("Auto-detect" = "auto",
-                               "SPL / Generic ASCII" = "spl",
-                               "Focus Microwaves"    = "focus",
-                               "Maury MDF"           = "mdf",
-                               "AMCAD"               = "amcad",
-                               "Anteverta-mw"        = "anteverta",
-                               "ADS MDIF"            = "mdif"),
-                  selected = "auto"),
-                actionButton("lp_parse_btn", "Parse file(s)",
-                  icon = icon("cog"), class = "btn-primary btn-block"),
-                hr(),
-                h5("Loaded datasets"),
-                uiOutput("lp_dataset_list")
-              ),
-              box(title = "Parse Log", width = 8, status = "info", solidHeader = TRUE,
-                verbatimTextOutput("lp_parse_log"),
-                hr(),
-                h5("Parsed metadata"),
-                verbatimTextOutput("lp_meta_preview")
-              )
-            )
-          ),
-
-          # ── Tab 2: Smith Chart + Contours ─────────────────────────────
-          tabPanel("Smith Chart",
-            br(),
-            fluidRow(
-              box(title = "Contour controls", width = 3, status = "primary", solidHeader = TRUE,
-                uiOutput("lp_dataset_selector"),
-                hr(),
-                checkboxGroupInput("lp_contour_vars",
-                  "Overlay contours",
-                  choices  = c("Pout (dBm)"="pout","PAE (%)"="pae",
-                               "DE (%)"="de","Gain (dB)"="gain",
-                               "Power (W)"="pdc"),
-                  selected = c("pout","pae")),
-                sliderInput("lp_contour_levels", "No. of contour levels",
-                  min = 3, max = 12, value = 6, step = 1),
-                hr(),
-                selectInput("lp_pull_type", "Pull plane",
-                  choices  = c("Load Pull"="load", "Source Pull"="source"),
-                  selected = "load"),
-                hr(),
-                checkboxInput("lp_show_max_pae",   "Mark max-PAE point",   value = TRUE),
-                checkboxInput("lp_show_max_pout",  "Mark max-Pout point",  value = TRUE),
-                checkboxInput("lp_show_stability", "Show stability circles",value = FALSE)
-              ),
-              box(title = "Smith Chart — Load Pull Contours",
-                  width = 9, status = "info", solidHeader = TRUE,
-                plotlyOutput("lp_smith_plot", height = "580px")
-              )
-            )
-          ),
-
-          # ── Tab 3: XY Plots ───────────────────────────────────────────
-          tabPanel("XY Plots",
-            br(),
-            fluidRow(
-              box(title = "XY plot controls", width = 3, status = "primary", solidHeader = TRUE,
-                uiOutput("lp_xy_dataset_selector"),
-                hr(),
-                checkboxGroupInput("lp_xy_y_vars",
-                  "Y-axis variables",
-                  choices  = c("Pout (dBm)"="pout_dbm",
-                               "Gain (dB)" ="gain_db",
-                               "PAE (%)"   ="pae_pct",
-                               "DE (%)"    ="de_pct"),
-                  selected = c("pout_dbm","pae_pct","gain_db")),
-                selectInput("lp_xy_x_var", "X-axis",
-                  choices  = c("Pin (dBm)"="pin_dbm",
-                               "Pout (dBm)"="pout_dbm"),
-                  selected = "pin_dbm")
-              ),
-              box(title = "Power / Efficiency / Gain vs. Drive Level",
-                  width = 9, status = "info", solidHeader = TRUE,
-                plotlyOutput("lp_xy_plot", height = "520px")
-              )
-            )
-          ),
-
-          # ── Tab 4: Nose Plot ──────────────────────────────────────────
-          tabPanel("Nose Plot",
-            br(),
-            fluidRow(
-              box(title = "Nose plot controls", width = 3, status = "primary", solidHeader = TRUE,
-                uiOutput("lp_nose_dataset_selector"),
-                checkboxInput("lp_nose_mark_opt", "Mark optimal point", value = TRUE),
-                sliderInput("lp_backoff_db", "Back-off reference (dB)",
-                  min = 0, max = 12, value = 6, step = 0.5)
-              ),
-              box(title = "PAE vs Pout — Nose Plot / Trade-off",
-                  width = 9, status = "info", solidHeader = TRUE,
-                plotlyOutput("lp_nose_plot", height = "480px"),
-                hr(),
-                p(class = "text-muted", style = "font-size:11px;",
-                  "The optimal operating point balances maximum PAE against required output power.",
-                  " Back-off reference sets the Ppeak line on the plot.")
-              )
-            )
-          ),
-
-          # ── Tab 5: Tabular Summary ────────────────────────────────────
-          tabPanel("Tabular",
-            br(),
-            fluidRow(
-              box(title = "Performance summary", width = 12, solidHeader = TRUE,
-                fluidRow(
-                  column(4, uiOutput("lp_table_dataset_selector")),
-                  column(4, sliderInput("lp_ppeak_backoff","Ppeak back-off (dB)",
-                           min=0, max=12, value=6, step=0.5)),
-                  column(4, downloadButton("lp_table_csv", "Download CSV",
-                           class = "btn-default"))
-                ),
-                hr(),
-                h5("Performance at", tags$b("Ppeak"), "(max Pout)"),
-                DTOutput("lp_table_ppeak"),
-                hr(),
-                h5("Performance at", tags$b("Pavg"), paste0("(Ppeak \u2212 ", "X dB back-off)")),
-                DTOutput("lp_table_pavg")
-              )
-            )
-          ),
-
-          # ── Tab 6: Compare Devices ────────────────────────────────────
-          tabPanel("Compare",
-            br(),
-            fluidRow(
-              box(title = "Comparison controls", width = 3, status = "primary", solidHeader = TRUE,
-                uiOutput("lp_compare_selector"),
-                hr(),
-                selectInput("lp_compare_metric", "Contour metric",
-                  choices  = c("PAE (%)"="pae_pct","Pout (dBm)"="pout_dbm","Gain (dB)"="gain_db"),
-                  selected = "pae_pct"),
-                checkboxInput("lp_compare_optimum", "Show optimal points", value = TRUE)
-              ),
-              box(title = "Multi-device Overlay", width = 9, status = "info", solidHeader = TRUE,
-                plotlyOutput("lp_compare_plot", height = "540px")
-              )
-            )
-          ),
-
-          # ── Tab 7: LP Report ──────────────────────────────────────────
-          tabPanel("LP Report",
-            br(),
-            fluidRow(
-              box(title = "Report options", width = 4, status = "primary", solidHeader = TRUE,
-                textInput("lp_rpt_title",    "Report title",     value = "Load Pull Report"),
-                textInput("lp_rpt_engineer", "Engineer / Author", value = ""),
-                textInput("lp_rpt_project",  "Project ref",       value = ""),
-                hr(),
-                checkboxGroupInput("lp_rpt_sections",
-                  "Include sections",
-                  choices  = c("Smith Chart contours"="smith",
-                               "XY performance plots"="xy",
-                               "Nose plot"           ="nose",
-                               "Summary table"       ="table",
-                               "Parsed metadata"     ="meta"),
-                  selected = c("smith","xy","nose","table")),
-                hr(),
-                downloadButton("lp_rpt_html", "Download HTML Report",
-                  class = "btn-success btn-block"),
-                br(),
-                downloadButton("lp_rpt_csv_all","Download All Data (CSV)",
-                  class = "btn-default btn-block")
-              ),
-              box(title = "Report preview", width = 8, status = "info", solidHeader = TRUE,
-                uiOutput("lp_rpt_preview")
-              )
-            )
           )
         )
       ),

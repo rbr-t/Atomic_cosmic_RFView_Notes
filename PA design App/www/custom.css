@@ -1378,12 +1378,16 @@ body.theme-light *[style*="color: var(--c-err)"]   { color: var(--c-err)  !impor
    UTILITY DRAWER — right-side sliding panel
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Drawer container */
+/* Drawer container — slides in from the right, 75 % of viewport width.
+   This keeps ~25 % of the main canvas visible for spatial context while
+   working with Smith Chart / LP Viewer / Knowledge Base. */
 #utility-drawer {
   position: fixed;
-  top: 50px;                       /* flush under the header bar   */
-  right: -400px;                   /* hidden off-screen by default  */
-  width: 380px;
+  top: 50px;                              /* flush under the header bar      */
+  right: calc(-75vw - 10px);             /* hidden off-screen by default     */
+  width: 75vw;                           /* 75 % of viewport width           */
+  min-width: 480px;                      /* never narrower than 480 px       */
+  max-width: calc(100vw - 240px);        /* never overruns the left sidebar  */
   height: calc(100vh - 50px);
   z-index: 2000;
   display: flex;
@@ -1393,7 +1397,15 @@ body.theme-light *[style*="color: var(--c-err)"]   { color: var(--c-err)  !impor
   box-shadow: -6px 0 24px rgba(0, 0, 0, 0.55);
   transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
-#utility-drawer.open { right: 0; }
+#utility-drawer.open        { right: 0; }
+/* Full-width mode — toggled by the expand button in the drawer header */
+#utility-drawer.drawer-full {
+  width: calc(100vw - 230px);            /* edge-to-edge from left sidebar   */
+  max-width: none;
+}
+/* Transition also applies to width changes */
+#utility-drawer { transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                               width 0.22s ease; }
 
 /* Drawer title bar */
 #utility-drawer-header {
