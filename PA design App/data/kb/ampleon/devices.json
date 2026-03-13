@@ -567,7 +567,7 @@
   },
 
   {
-    "_comment": "=== Confirmed from datasheet PDF BLP9G0722-20_9G0722-20G_datasheet.pdf Rev.3 Feb 2018 ===",
+    "_comment": "=== FULLY EXTRACTED from BLP9G0722-20_9G0722-20G_datasheet.pdf Rev.3 Feb 2018 (20pp). DC specs (Table 6), RF test specs (Table 7), 6-band W-CDMA app performance (Table 1), load-pull for BLP9G0722-20 flat-lead (Table 9) and BLP9G0722-20G gull-wing (Table 8), 3 PCB BOM (740/1800/2100 MHz, Rogers RO4350B), package dims SOT1482-1 and SOT1483-1, ESD CDM/HBM classification, ruggedness, pinning. ===",
     "device_id":   "ampleon_BLP9G0722-20",
     "part_number": "BLP9G0722-20",
     "manufacturer": "Ampleon",
@@ -616,6 +616,221 @@
       {"freq_mhz": 2110, "condition":"max_efficiency",  "zs_r":  7.3, "zs_x": -8.2, "zl_r":  1.5, "zl_x": -1.4, "pout_w": 30, "drain_eff_pct": 65.3, "gain_db": 19.9},
       {"freq_mhz": 2170, "condition":"max_efficiency",  "zs_r":  8.7, "zs_x": -6.8, "zl_r":  1.4, "zl_x": -1.6, "pout_w": 29, "drain_eff_pct": 69.3, "gain_db": 21.3}
     ],
+
+    "load_pull_table_20G": [
+      {"_note":"BLP9G0722-20G gull-wing variant — Table 8 in DS Rev.3. Ref plane: package lead tips, VDS=28V, IDq=180mA, at 3dB gain compression."},
+      {"freq_mhz":  740, "condition":"max_power",      "zs_r": 0.5, "zs_x":  0.1, "zl_r":10.6, "zl_x": -1.0, "pout_w":37, "drain_eff_pct":55.1, "gain_db":22.8},
+      {"freq_mhz":  880, "condition":"max_power",      "zs_r": 0.6, "zs_x": -1.4, "zl_r": 3.8, "zl_x":  2.0, "pout_w":49, "drain_eff_pct":70.9, "gain_db":22.8},
+      {"freq_mhz": 1810, "condition":"max_power",      "zs_r": 1.6, "zs_x": -5.5, "zl_r": 3.4, "zl_x": -1.0, "pout_w":43, "drain_eff_pct":62.2, "gain_db":19.0},
+      {"freq_mhz": 1840, "condition":"max_power",      "zs_r": 1.3, "zs_x": -5.8, "zl_r": 3.0, "zl_x": -1.2, "pout_w":43, "drain_eff_pct":62.7, "gain_db":19.1},
+      {"freq_mhz": 1880, "condition":"max_power",      "zs_r": 1.3, "zs_x": -6.2, "zl_r": 2.6, "zl_x": -1.5, "pout_w":42, "drain_eff_pct":61.2, "gain_db":18.7},
+      {"freq_mhz": 2110, "condition":"max_power",      "zs_r": 5.3, "zs_x": -9.6, "zl_r": 2.6, "zl_x": -2.5, "pout_w":41, "drain_eff_pct":58.2, "gain_db":17.7},
+      {"freq_mhz": 2170, "condition":"max_power",      "zs_r": 6.2, "zs_x": -8.1, "zl_r": 2.6, "zl_x": -2.5, "pout_w":41, "drain_eff_pct":60.4, "gain_db":18.2},
+      {"freq_mhz":  740, "condition":"max_efficiency", "zs_r": 0.5, "zs_x":  0.1, "zl_r": 6.0, "zl_x": 10.0, "pout_w":20, "drain_eff_pct":74.1, "gain_db":24.8},
+      {"freq_mhz":  880, "condition":"max_efficiency", "zs_r": 0.6, "zs_x": -1.4, "zl_r": 3.7, "zl_x":  5.9, "pout_w":26, "drain_eff_pct":82.7, "gain_db":24.7},
+      {"freq_mhz": 1810, "condition":"max_efficiency", "zs_r": 1.6, "zs_x": -5.5, "zl_r": 1.9, "zl_x":  0.2, "pout_w":31, "drain_eff_pct":70.9, "gain_db":20.9},
+      {"freq_mhz": 1840, "condition":"max_efficiency", "zs_r": 1.3, "zs_x": -5.8, "zl_r": 1.7, "zl_x":  0.0, "pout_w":29, "drain_eff_pct":69.8, "gain_db":21.3},
+      {"freq_mhz": 1880, "condition":"max_efficiency", "zs_r": 1.3, "zs_x": -6.2, "zl_r": 1.6, "zl_x": -0.2, "pout_w":28, "drain_eff_pct":69.8, "gain_db":21.3},
+      {"freq_mhz": 2110, "condition":"max_efficiency", "zs_r": 5.3, "zs_x": -9.6, "zl_r": 1.7, "zl_x": -1.5, "pout_w":32, "drain_eff_pct":65.6, "gain_db":19.5},
+      {"freq_mhz": 2170, "condition":"max_efficiency", "zs_r": 6.2, "zs_x": -8.1, "zl_r": 1.6, "zl_x": -1.7, "pout_w":30, "drain_eff_pct":65.9, "gain_db":20.2}
+    ],
+
+    "limiting_values": {
+      "vds_max_v":  65,
+      "vgs_min_v":  -5,
+      "vgs_max_v":  13,
+      "tstg_min_c": -65,
+      "tstg_max_c": 150,
+      "tj_max_c":   225,
+      "standard":   "IEC 60134 Absolute Maximum Rating System"
+    },
+
+    "thermal": {
+      "rth_jc_k_per_w": 1.1,
+      "conditions":     "Tcase=80\u00b0C, PL=3W"
+    },
+
+    "dc_characteristics": {
+      "test_conditions": "Tj=25\u00b0C unless otherwise specified",
+      "params": [
+        {"symbol":"V(BR)DSS", "parameter":"drain-source breakdown voltage",  "conditions":"VGS=0V; ID=0.3mA",                   "min":65,   "typ":null, "max":null,  "unit":"V"},
+        {"symbol":"VGS(th)",  "parameter":"gate-source threshold voltage",    "conditions":"VDS=10V; ID=30mA",                   "min":1.5,  "typ":2.0,  "max":null,  "unit":"V"},
+        {"symbol":"VGSq",     "parameter":"gate-source quiescent voltage",    "conditions":"VDS=28V; ID=180mA",                  "min":1.6,  "typ":2.1,  "max":2.6,   "unit":"V"},
+        {"symbol":"IDSS",     "parameter":"drain leakage current",            "conditions":"VGS=0V; VDS=28V",                    "min":null, "typ":null, "max":1.4,   "unit":"A"},
+        {"symbol":"IDSX",     "parameter":"drain cut-off current",            "conditions":"VGS=VGS(th)+3.75V",                  "min":null, "typ":6,    "max":null,  "unit":"A"},
+        {"symbol":"IGSS",     "parameter":"gate leakage current",             "conditions":"VGS=11V; VDS=0V",                    "min":null, "typ":null, "max":140,   "unit":"nA"},
+        {"symbol":"gfs",      "parameter":"forward transconductance",         "conditions":"VDS=10V; ID=30mA",                   "min":null, "typ":300,  "max":null,  "unit":"mS"},
+        {"symbol":"RDS(on)",  "parameter":"drain-source on-state resistance", "conditions":"VGS=VGS(th)+3.75V; ID=1.05A",       "min":null, "typ":500,  "max":null,  "unit":"m\u03a9"}
+      ]
+    },
+
+    "rf_characteristics": {
+      "test_conditions": "Pulsed CW; \u03b4=10%; tp=100\u03bcs; VDS=28V; IDq=180mA; Tcase=25\u00b0C; f=1842.5MHz",
+      "test_note": "Derivative functional RF test performed in production. Performance verified by design and characterisation in class-AB production board.",
+      "params": [
+        {"symbol":"Gp",      "parameter":"power gain",                     "conditions":"PL(AV)=35dBm", "min":17,   "typ":19,   "max":null, "unit":"dB"},
+        {"symbol":"\u03b7D",  "parameter":"drain efficiency",               "conditions":"PL(AV)=35dBm", "min":18,   "typ":22,   "max":null, "unit":"%"},
+        {"symbol":"RLin",    "parameter":"input return loss",              "conditions":"PL(AV)=35dBm", "min":null, "typ":10,   "max":-6,   "unit":"dB"},
+        {"symbol":"PL(1dB)", "parameter":"output power at 1dB compression","conditions":"",             "min":42.5, "typ":43.9, "max":null, "unit":"dBm"},
+        {"symbol":"PL(3dB)", "parameter":"output power at 3dB compression","conditions":"",             "min":43.0, "typ":44.3, "max":null, "unit":"dBm"}
+      ]
+    },
+
+    "application_performance": {
+      "test_conditions": "Tcase=25\u00b0C; IDq=180mA; class-AB demo board; gull-wing (BLP9G0722-20G). Test signal: 3GPP TM1; 64 DCHP; PAR=7.2dB at 0.01% CCDF.",
+      "signal": "1-carrier W-CDMA",
+      "rows": [
+        {"freq_min_mhz": 400,  "freq_max_mhz": 430,  "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":25.5, "de_pct":24, "acpr5m_dbc":-45},
+        {"freq_min_mhz": 728,  "freq_max_mhz": 768,  "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":23.0, "de_pct":22, "acpr5m_dbc":-45},
+        {"freq_min_mhz": 1805, "freq_max_mhz": 1880, "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":19.0, "de_pct":21, "acpr5m_dbc":-45},
+        {"freq_min_mhz": 2110, "freq_max_mhz": 2170, "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":18.0, "de_pct":21, "acpr5m_dbc":-45},
+        {"freq_min_mhz": 2300, "freq_max_mhz": 2400, "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":17.3, "de_pct":21, "acpr5m_dbc":-45},
+        {"freq_min_mhz": 2570, "freq_max_mhz": 2620, "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":16.0, "de_pct":20, "acpr5m_dbc":-45}
+      ]
+    },
+
+    "ruggedness": {
+      "vswr": 10,
+      "pout_cw_w": 20,
+      "test_freq_mhz": [728, 1805],
+      "vds_v": 28,
+      "board": "development board",
+      "note": "Capable of withstanding load mismatch corresponding to VSWR=10:1 through all phases"
+    },
+
+    "esd": {
+      "cdm_class":    "C2A",
+      "cdm_standard": "ANSI/ESDA/JEDEC JS-002",
+      "cdm_note":     "Passes 500V ESD pulse; fails after 750V",
+      "hbm_class":    "2",
+      "hbm_standard": "ANSI/ESDA/JEDEC JS-001",
+      "hbm_note":     "Passes 2000V ESD pulse; fails after 4000V"
+    },
+
+    "pinning": {
+      "pin1": "drain",
+      "pin2": "gate",
+      "pin3": "source (connected to exposed heatsink flange)"
+    },
+
+    "variants": [
+      {"type_number":"BLP9G0722-20",  "package":"SOT1482-1", "description":"plastic; heatsink small outline; 2 leads (flat gull-wing)"},
+      {"type_number":"BLP9G0722-20G", "package":"SOT1483-1", "description":"plastic; heatsink small outline; 2 leads (tall gull-wing)"}
+    ],
+
+    "package_dimensions": {
+      "SOT1482-1": {
+        "body_length_mm":          11.16,
+        "overall_width_mm":        10.67,
+        "body_height_mm":           1.57,
+        "lead_span_mm":             6.10,
+        "lead_width_mm":            4.95,
+        "exposed_heatsink_mm":   "9.65 x 10.67",
+        "compound_depth_mm_min":    3.8,
+        "compound_depth_mm_max":    4.5,
+        "flash_width_mm_min":       7.4,
+        "flash_width_mm_max":       8.7,
+        "coplanarity_leads_mm":     0.1,
+        "mold_protrusion_max_mm":   0.15,
+        "lead_plating":          "matte Tin (Sn)"
+      },
+      "SOT1483-1": {
+        "body_length_mm":          8.13,
+        "overall_width_mm":        10.67,
+        "body_height_mm":           1.57,
+        "standoff_min_mm":          0.43,
+        "standoff_max_mm":          0.63,
+        "lead_span_mm":             6.10,
+        "lead_width_mm":            4.95,
+        "exposed_heatsink_mm":   "9.65 x 10.67",
+        "compound_depth_mm_min":    3.8,
+        "compound_depth_mm_max":    4.5,
+        "flash_width_mm_min":       7.4,
+        "flash_width_mm_max":       8.7,
+        "mold_protrusion_max_mm":   0.15,
+        "lead_plating":          "matte Tin (Sn)"
+      }
+    },
+
+    "test_circuits": [
+      {
+        "freq_mhz":  740,
+        "pcb_substrate":      "Rogers RO4350B",
+        "pcb_thickness_mm":   0.508,
+        "pcb_size_mm":        "76.2 x 40",
+        "figure":             "Fig 2 in datasheet",
+        "bom": [
+          {"ref":"C1,C7,C8,C9",      "type":"MLCC",        "value":"10\u00b5F, 50V",  "vendor":"Murata"},
+          {"ref":"C2,C3,C10,C11",    "type":"MLCC",        "value":"36pF",         "vendor":"ATC 600F"},
+          {"ref":"C4,C5",            "type":"MLCC",        "value":"15pF",         "vendor":"ATC 600F"},
+          {"ref":"C6",               "type":"Electrolytic","value":"2200\u00b5F, 50V","vendor":""},
+          {"ref":"C12",              "type":"MLCC",        "value":"5.6pF",        "vendor":"ATC 600F"},
+          {"ref":"C13",              "type":"MLCC",        "value":"0.2pF",        "vendor":"ATC 600F"},
+          {"ref":"R1",               "type":"Resistor",    "value":"5.1\u03a9",       "vendor":"SMD 0805"}
+        ]
+      },
+      {
+        "freq_mhz":  1800,
+        "pcb_substrate":      "Rogers RO4350B",
+        "pcb_thickness_mm":   0.508,
+        "pcb_size_mm":        "76.2 x 40",
+        "figure":             "Fig 3 in datasheet",
+        "bom": [
+          {"ref":"C1,C9,C10",        "type":"MLCC",        "value":"10\u00b5F, 50V",  "vendor":"Murata"},
+          {"ref":"C2,C3,C11,C13",    "type":"MLCC",        "value":"12pF",         "vendor":"ATC 600F"},
+          {"ref":"C4,C5",            "type":"MLCC",        "value":"0.8pF",        "vendor":"ATC 600F"},
+          {"ref":"C6",               "type":"MLCC",        "value":"6.2pF",        "vendor":"ATC 600F"},
+          {"ref":"C7",               "type":"MLCC",        "value":"2pF",          "vendor":"ATC 600F"},
+          {"ref":"C8",               "type":"Electrolytic","value":"2200\u00b5F, 50V","vendor":""},
+          {"ref":"C12,C15",          "type":"MLCC",        "value":"0.3pF",        "vendor":"ATC 600F"},
+          {"ref":"C14",              "type":"MLCC",        "value":"2.2pF",        "vendor":"ATC 600F"},
+          {"ref":"C16",              "type":"MLCC",        "value":"0.3pF",        "vendor":"ATC 600F"},
+          {"ref":"R1",               "type":"Resistor",    "value":"5.1\u03a9",       "vendor":"SMD 0805"}
+        ]
+      },
+      {
+        "freq_mhz":  2100,
+        "pcb_substrate":      "Rogers RO4350B",
+        "pcb_thickness_mm":   0.508,
+        "pcb_size_mm":        "76.2 x 40",
+        "figure":             "Fig 4 in datasheet",
+        "bom": [
+          {"ref":"C1,C8",            "type":"MLCC",        "value":"10\u00b5F, 50V",  "vendor":"Murata"},
+          {"ref":"C2,C7,C10",        "type":"MLCC",        "value":"12pF",         "vendor":"ATC 600F"},
+          {"ref":"C3",               "type":"MLCC",        "value":"62pF",         "vendor":"ATC 600F"},
+          {"ref":"C4",               "type":"MLCC",        "value":"5.6pF",        "vendor":"ATC 600F"},
+          {"ref":"C5",               "type":"MLCC",        "value":"0.5pF",        "vendor":"ATC 600F"},
+          {"ref":"C6",               "type":"Electrolytic","value":"2200\u00b5F, 50V","vendor":""},
+          {"ref":"C9",               "type":"MLCC",        "value":"2.2pF",        "vendor":"ATC 600F"},
+          {"ref":"C11",              "type":"MLCC",        "value":"1.2pF",        "vendor":"ATC 600F"},
+          {"ref":"C12",              "type":"MLCC",        "value":"1.8pF",        "vendor":"ATC 600F"},
+          {"ref":"R1",               "type":"Resistor",    "value":"5.1\u03a9",       "vendor":"SMD 0805"}
+        ]
+      }
+    ],
+
+    "graphical_data": {
+      "note": "Digitized curve data not available — refer to figures in datasheet Rev.3. CW \u03b7D and Gp vs PL curves: Fig 5 (700MHz band), Fig 6 (1800MHz band), Fig 7 (2100MHz band). Pulsed-CW curves: Fig 8-10 (same bands). W-CDMA \u03b7D/Gp: Fig 11-13. ACPR5M vs PL: Fig 14 (700MHz), Fig 15 (1800MHz), Fig 16 (2100MHz). VDS=28V, IDq=180mA for all curves.",
+      "cw_curves": [
+        {"fig":"Fig 5",  "signal":"CW",         "freqs_mhz":[728,768],    "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
+        {"fig":"Fig 6",  "signal":"CW",         "freqs_mhz":[1805,1880],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
+        {"fig":"Fig 7",  "signal":"CW",         "freqs_mhz":[2110,2170],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"}
+      ],
+      "pulsed_cw_curves": [
+        {"fig":"Fig 8",  "signal":"Pulsed CW",  "freqs_mhz":[728,768],    "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
+        {"fig":"Fig 9",  "signal":"Pulsed CW",  "freqs_mhz":[1805,1880],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
+        {"fig":"Fig 10", "signal":"Pulsed CW",  "freqs_mhz":[2110,2170],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"}
+      ],
+      "wcdma_curves": [
+        {"fig":"Fig 11", "signal":"W-CDMA",     "freqs_mhz":[728,768],    "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
+        {"fig":"Fig 12", "signal":"W-CDMA",     "freqs_mhz":[1805,1880],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
+        {"fig":"Fig 13", "signal":"W-CDMA",     "freqs_mhz":[2110,2170],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
+        {"fig":"Fig 14", "signal":"W-CDMA ACPR","freqs_mhz":[728,768],    "axes":"ACPR5M(dBc) vs PL(W)"},
+        {"fig":"Fig 15", "signal":"W-CDMA ACPR","freqs_mhz":[1805,1880],  "axes":"ACPR5M(dBc) vs PL(W)"},
+        {"fig":"Fig 16", "signal":"W-CDMA ACPR","freqs_mhz":[2110,2170],  "axes":"ACPR5M(dBc) vs PL(W)"}
+      ]
+    },
+
     "s_params_available":  false,
     "spice_model_available": false,
     "ads_model_available": false,
@@ -632,7 +847,7 @@
     "knowledge_confidence": "high",
     "datasheet_file":       "Ampleon_portfolio/BLP9G0722-20/BLP9G0722-20_9G0722-20G_datasheet.pdf",
     "tags": ["broadband", "LDMOS", "LDMOS-Gen9", "28V", "20W", "100-2700MHz", "driver", "class-AB", "SOT1482", "cellular", "LTE", "W-CDMA", "GSM"],
-    "notes": "20 W broadband LDMOS driver for 100–2700 MHz PA line-ups. Tested at 1842.5 MHz class-AB. Has full multi-frequency load-pull impedance table (7 frequencies, 2 conditions) extracted from DS Rev.3. Gull-wing variant BLP9G0722-20G (SOT1483-1) has ~5% different lead impedances — see Table 8 in datasheet. PCB reference designs included in DS for 740 MHz, 1800 MHz, 2100 MHz."
+    "notes": "20 W broadband LDMOS driver for 100–2700 MHz PA line-ups. FULLY EXTRACTED from DS Rev.3 Feb 2018 (20pp): (1) DC characteristics — V(BR)DSS=65V min, VGS(th)=2V typ, RDS(on)=500m\u03a9 typ, gfs=300mS typ; (2) RF specs at 1842.5MHz — Gp=19dB typ (17dB min), \u03b7D=22% typ (18% min), P1dB=43.9dBm typ; (3) 6-band W-CDMA application performance 400MHz–2620MHz (Table 1); (4) Load-pull for flat-lead BLP9G0722-20 (Table 9) and gull-wing BLP9G0722-20G (Table 8), 7 frequencies, 2 conditions each; (5) 3 PCB reference BOM (740/1800/2100 MHz on Rogers RO4350B 0.508mm); (6) Package dims SOT1482-1 and SOT1483-1; (7) ESD: CDM C2A (500V) / HBM Class 2 (2000V); (8) Ruggedness: VSWR 10:1 CW at 28V 20W; (9) Figures: 6 CW+pulsed-CW \u03b7D/Gp curves, 3 W-CDMA \u03b7D/Gp curves, 3 ACPR5M curves."
   },
 
   {

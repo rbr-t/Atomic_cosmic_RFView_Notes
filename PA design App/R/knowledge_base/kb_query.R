@@ -241,10 +241,78 @@ kb_device_card <- function(dev) {
     } else "— (see datasheet)"
   }
 
-  tagList(
-    div(style = "padding:12px 0;",
+  # ── Build tab contents ────────────────────────────────────────────────────
+  imp_disabled <- if (imp_str == "— (see datasheet)") "disabled" else NULL
 
-      # Header
+  tab_overview <- tabPanel("Overview",
+    div(style = "padding:8px 0 4px 0;",
+      div(class = "kb-detail-section",
+        tags$b("Optimum Load Impedance (Ropt)"), br(),
+        span(style = "font-size:15px; color:#ff7f11; font-family:monospace;", imp_str), br(),
+        tags$small(style = "color:#666;", "Ref plane: ", .v("impedance_ref_plane"))
+      ),
+      div(class = "kb-detail-section",
+        tags$b("Supply / Bias"), br(),
+        span(style = "color:#aaa; font-size:12px;",
+          "Vdd = ", .nv("vdd_v", "V"),
+          {
+            vr <- dev[["vdd_range_v"]]
+            if (!is.null(vr) && length(vr) == 2)
+              span(style = "color:#666; font-size:11px;",
+                   paste0(" (", vr[[1]], "\u2013", vr[[2]], " V)"))
+            else NULL
+          },
+          "  |  Idq = ", .nv("idd_q_ma", "mA"))
+      ),
+      if (.v("topology") != "\u2014") div(class = "kb-detail-section",
+        tags$b("Topology"), br(),
+        span(style = "color:#aaa; font-size:12px;",
+             gsub(";", "  \u00b7  ", .v("topology")))),
+      div(class = "kb-detail-section",
+        tags$b("Applications"), br(),
+        span(style = "color:#aaa; font-size:12px;",
+          gsub(";", "  \u00b7  ", .v("application")))
+      ),
+      div(class = "kb-detail-section",
+        tags$b("Typical role in PA chain"), br(),
+        span(style = "color:#aaa; font-size:12px;",
+          gsub(";", "  \u00b7  ", .v("role")))
+      ),
+      if (.v("notes") != "\u2014") div(class = "kb-detail-section",
+        tags$b("Engineering notes"),
+        p(style = "color:#aaa; font-size:12px; margin-top:4px;", .v("notes"))),
+      div(class = "kb-detail-section",
+        tags$b("Datasheet"), br(), ds_link,
+        {
+          an <- dev[["app_notes"]]
+          if (!is.null(an) && length(an) > 0)
+            div(style = "margin-top:6px;",
+              tags$b(style = "font-size:12px;", "Application Notes"),
+              tags$ul(style = "padding-left:16px; margin:4px 0 0 0;",
+                lapply(an, function(a)
+                  tags$li(style = "font-size:11px;",
+                    tags$a(href = a$url %||% "#", target = "_blank",
+                           style = "color:#5bc0de;", a$title %||% "App Note"))
+                )
+              )
+            )
+        }
+      ),
+      div(style = "display:flex; gap:8px; margin-top:16px;",
+        actionButton("kb_send_to_smith", "Load Ropt \u2192 Smith Chart",
+          icon = icon("bullseye"), class = "btn-primary btn-sm",
+          disabled = imp_disabled),
+        actionButton("kb_copy_to_lineup", "Add to Lineup Canvas",
+          icon = icon("plus"), class = "btn-default btn-sm")
+      )
+    )
+  )
+
+  # ── Assemble tabset card ──────────────────────────────────────────────────
+  tagList(
+    div(style = "padding:10px 0 0 0;",
+
+      # ── Persistent header (always visible above tabs) ───────────────────
       div(style = "display:flex; align-items:flex-start; gap:10px; margin-bottom:12px;",
         div(style = "flex:1;",
           h4(style = "margin:0; color:#f0f0f0; font-size:18px;", .v("part_number")),
@@ -259,64 +327,24 @@ kb_device_card <- function(dev) {
         )
       ),
 
-      # Performance row
-      div(style = "display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px;",
+      # ── Key metrics strip (always visible) ─────────────────────────────
+      div(style = "display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:14px;",
         .stat_box("Frequency", freq_str),
         .stat_box("Output Power", pout_str),
         .stat_box("Gain", paste0(.nv("gain_db"), " dB")),
         .stat_box("DE / PAE", paste0(.nv("drain_eff_pct"), " / ", .nv("pae_pct"), " %"))
       ),
 
-      # Impedance
-      div(class = "kb-detail-section",
-        tags$b("Optimum Load Impedance (Ropt)"), br(),
-        span(style = "font-size:15px; color:#ff7f11; font-family:monospace;", imp_str), br(),
-        tags$small(style = "color:#666;", "Ref plane: ", .v("impedance_ref_plane"))
-      ),
-
-      # Multi-frequency load-pull table (if available in raw list)
-      .render_lp_table(dev),
-
-
-      div(class = "kb-detail-section",
-        tags$b("Applications"), br(),
-        span(style = "color:#aaa; font-size:12px;",
-          gsub(";", "  \u00b7  ", .v("application")))
-      ),
-
-      div(class = "kb-detail-section",
-        tags$b("Typical role in PA chain"), br(),
-        span(style = "color:#aaa; font-size:12px;",
-          gsub(";", "  \u00b7  ", .v("role")))
-      ),
-
-      # Supply
-      div(class = "kb-detail-section",
-        tags$b("Supply / Bias"), br(),
-        span(style = "color:#aaa; font-size:12px;",
-          "Vdd = ", .nv("vdd_v", "V"), "  |  Idq = ", .nv("idd_q_ma", "mA"))
-      ),
-
-      # Notes
-      if (.v("notes") != "—") {
-        div(class = "kb-detail-section",
-          tags$b("Engineering notes"),
-          p(style = "color:#aaa; font-size:12px; margin-top:4px;", .v("notes"))
-        )
-      },
-
-      # Links
-      div(class = "kb-detail-section",
-        tags$b("Datasheet"), br(), ds_link
-      ),
-
-      # Action buttons
-      div(style = "display:flex; gap:8px; margin-top:14px;",
-        actionButton("kb_send_to_smith", "Load Ropt \u2192 Smith Chart",
-          icon = icon("bullseye"), class = "btn-primary btn-sm",
-          disabled = if (imp_str == "— (see datasheet)") "disabled" else NULL),
-        actionButton("kb_copy_to_lineup", "Add to Lineup Canvas",
-          icon = icon("plus"), class = "btn-default btn-sm")
+      # ── Tabset ──────────────────────────────────────────────────────────
+      tabsetPanel(
+        type = "tabs",
+        id   = "kb_dev_card_tabs",
+        tab_overview,
+        tabPanel("DC Specs",        .render_dc_table(dev)),
+        tabPanel("RF Performance",  .render_rf_tab(dev)),
+        tabPanel("Impedance / LP",  .render_lp_section(dev)),
+        tabPanel("Test PCBs / BOM", .render_bom_tab(dev)),
+        tabPanel("Package & ESD",   .render_package_tab(dev))
       )
     )
   )
@@ -330,13 +358,15 @@ kb_device_card <- function(dev) {
   )
 }
 
-# Render the multi-frequency load-pull table from the raw device list.
-# Each row has a JavaScript "Send to Smith" icon that fires Shiny.setInputValue.
-.render_lp_table <- function(dev) {
-  lp <- dev[["load_pull_table"]]
+# Render a single load-pull impedance table.
+# lp_data: list of row lists (pass NULL to read dev[["load_pull_table"]]).
+# variant_label: text shown in the section header (e.g. "BLP9G0722-20 (flat lead)").
+.render_lp_table <- function(dev, lp_data = NULL, variant_label = NULL) {
+  lp <- if (!is.null(lp_data)) lp_data else dev[["load_pull_table"]]
+  # strip metadata rows (those without numeric freq_mhz)
+  lp <- Filter(function(r) !is.null(r$freq_mhz) && !is.na(suppressWarnings(as.numeric(r$freq_mhz))), lp)
   if (is.null(lp) || length(lp) == 0) return(NULL)
 
-  # Build table rows for the two conditions
   .make_rows <- function(condition_filter, header_label) {
     rows <- Filter(function(r) identical(r$condition, condition_filter), lp)
     if (length(rows) == 0) return(NULL)
@@ -353,7 +383,6 @@ kb_device_card <- function(dev) {
       zl_str <- paste0(zl_r, if (zl_x >= 0) "+" else "", zl_x, "j")
       zs_str <- paste0(zs_r, if (zs_x >= 0) "+" else "", zs_x, "j")
 
-      # JSON payload for Shiny.setInputValue
       js_payload <- sprintf(
         '{\"freq\":%s,\"zl_r\":%s,\"zl_x\":%s,\"zs_r\":%s,\"zs_x\":%s,\"condition\":\"%s\"}',
         freq, zl_r, zl_x, zs_r, zs_x, condition_filter
@@ -364,10 +393,9 @@ kb_device_card <- function(dev) {
           style  = "cursor:pointer; color:#ff7f11; font-size:13px;",
           title  = "Send ZL to Smith Chart",
           onclick = paste0("Shiny.setInputValue('kb_lp_row_click',", js_payload, ",{priority:'event'});"),
-          "\u21d2"  # ⇒ arrow icon
+          "\u21d2"
         )
       )
-
       tags$tr(
         tags$td(style = "padding:2px 6px; color:#f0f0f0;",      freq),
         tags$td(style = "padding:2px 6px; font-family:monospace; font-size:11px; color:#ff7f11;", zl_str),
@@ -378,28 +406,30 @@ kb_device_card <- function(dev) {
         send_btn
       )
     })
-
     tagList(
-      tags$tr(
-        tags$th(colspan = 7,
-          style = "background:#1a1a2a; color:#888; font-size:10px; text-transform:uppercase; padding:3px 6px; letter-spacing:0.5px;",
-          header_label)
-      ),
+      tags$tr(tags$th(colspan = 7,
+        style = "background:#1a1a2a; color:#888; font-size:10px; text-transform:uppercase; padding:3px 6px; letter-spacing:0.5px;",
+        header_label)),
       do.call(tagList, row_tags)
     )
   }
 
+  header_text <- if (!is.null(variant_label) && nzchar(variant_label))
+    paste("Load-Pull Table \u2014", variant_label)
+  else
+    "Multi-frequency Load-Pull Table"
+
   div(class = "kb-detail-section",
-    tags$b("Multi-frequency Load-Pull Table"),
+    tags$b(header_text),
     tags$small(style = "color:#666; margin-left:8px;",
-      " — ZL / ZS at package lead tips, VDS=28V IDq=180mA, P3dB"),
+      " \u2014 ZL / ZS at package lead tips, VDS=28V IDq=180mA, P3dB"),
     div(style = "overflow-x:auto; margin-top:6px;",
       tags$table(
         style = paste0("width:100%; border-collapse:collapse; font-size:12px;",
                        " background:#141420; border-radius:4px; overflow:hidden;"),
         tags$thead(
           tags$tr(
-            lapply(c("f (MHz)", "ZL (Ω)", "ZS (Ω)", "Pout (W)", "ηD (%)", "Gp (dB)", ""),
+            lapply(c("f (MHz)", "ZL (\u03a9)", "ZS (\u03a9)", "Pout (W)", "\u03b7D (%)", "Gp (dB)", ""),
               function(h) tags$th(style = "padding:4px 6px; background:#1e1e2e; color:#888; font-weight:600; text-align:left;", h)
             )
           )
@@ -413,6 +443,434 @@ kb_device_card <- function(dev) {
     tags$small(style = "color:#555;",
       "\u21d2 Click the arrow to send ZL to the Smith Chart tool.")
   )
+}
+
+# Render both load-pull variants (flat-lead Table 9 + gull-wing Table 8)
+.render_lp_section <- function(dev) {
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+  lp_flat    <- dev[["load_pull_table"]]
+  lp_gull    <- dev[["load_pull_table_20G"]]
+  pn         <- dev[["part_number"]] %||% ""
+  pn_g       <- paste0(pn, "G")
+
+  has_flat <- !is.null(lp_flat) && length(Filter(function(r) !is.null(r$freq_mhz), lp_flat)) > 0
+  has_gull <- !is.null(lp_gull) && length(Filter(function(r) !is.null(r$freq_mhz), lp_gull)) > 0
+
+  if (!has_flat && !has_gull) {
+    return(div(style = "padding:12px; color:#666; font-style:italic; font-size:12px;",
+      "Load-pull impedance data not available for this device."))
+  }
+
+  div(style = "padding:8px 0;",
+    if (has_flat)
+      .render_lp_table(dev, lp_data = lp_flat,
+        variant_label = paste0(pn, " (SOT1482-1 \u2014 flat lead)")),
+    if (has_gull)
+      div(style = "margin-top:16px;",
+        .render_lp_table(dev, lp_data = lp_gull,
+          variant_label = paste0(pn_g, " (SOT1483-1 \u2014 gull-wing)")))
+  )
+}
+
+# Render DC characteristics table
+.render_dc_table <- function(dev) {
+  dc <- dev[["dc_characteristics"]]
+  if (is.null(dc) || is.null(dc$params) || length(dc$params) == 0) {
+    return(div(style = "padding:12px; color:#666; font-style:italic; font-size:12px;",
+      "DC characteristic data not available for this device."))
+  }
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+  cond_str <- dc$test_conditions %||% ""
+
+  .mc <- function(v, style_extra = "") {
+    disp <- if (is.null(v) || isTRUE(is.na(v))) "\u2014"
+            else as.character(v)
+    tags$td(style = paste0("padding:4px 8px; border-bottom:1px solid #1e1e2e;", style_extra), disp)
+  }
+
+  rows <- lapply(dc$params, function(p) {
+    tags$tr(
+      tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; font-family:monospace; font-size:12px; color:#ff7f11; font-weight:600; white-space:nowrap;", p$symbol %||% ""),
+      tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#f0f0f0; font-size:12px;", p$parameter %||% ""),
+      tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#888; font-size:11px;", p$conditions %||% ""),
+      .mc(p$min, " color:#5bc0de; font-size:12px; text-align:right;"),
+      .mc(p$typ, " color:#f0f0f0; font-size:12px; font-weight:600; text-align:right;"),
+      .mc(p$max, " color:#5bc0de; font-size:12px; text-align:right;"),
+      tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#888; font-size:11px;", p$unit %||% "")
+    )
+  })
+
+  div(style = "padding:8px 0;",
+    if (nzchar(cond_str))
+      div(style = "background:#1a1a2a; border-left:3px solid #4472C4; padding:6px 10px; margin-bottom:10px; font-size:11px; color:#888;",
+          "\u2139\ufe0f Conditions: ", cond_str),
+    div(style = "overflow-x:auto;",
+      tags$table(
+        style = "width:100%; border-collapse:collapse; font-size:12px; background:#141420; border-radius:4px;",
+        tags$thead(tags$tr(lapply(
+          c("Symbol", "Parameter", "Conditions", "Min", "Typ", "Max", "Unit"),
+          function(h) tags$th(style = "padding:5px 8px; background:#1e1e2e; color:#888; font-weight:600; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;", h)
+        ))),
+        tags$tbody(do.call(tagList, rows))
+      )
+    ),
+    div(style = "margin-top:8px; font-size:11px; color:#555;",
+      "Not tested in production unless noted. Refer to datasheet Table 6.")
+  )
+}
+
+# Render RF Performance tab: production RF test + multi-frequency app performance
+.render_rf_tab <- function(dev) {
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+
+  # Section 1: Production RF test
+  rf <- dev[["rf_characteristics"]]
+  rf_section <- if (!is.null(rf) && !is.null(rf$params) && length(rf$params) > 0) {
+    cond <- rf$test_conditions %||% ""
+    note <- rf$test_note %||% ""
+    rows_rf <- lapply(rf$params, function(p) {
+      .td <- function(v, sty = "") {
+        disp <- if (is.null(v) || isTRUE(is.na(v))) "\u2014" else as.character(v)
+        tags$td(style = paste0("padding:4px 8px; border-bottom:1px solid #1e1e2e; text-align:right;", sty), disp)
+      }
+      tags$tr(
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; font-family:monospace; color:#ff7f11; font-weight:600; font-size:12px;", p$symbol %||% ""),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#f0f0f0; font-size:12px;", p$parameter %||% ""),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#888; font-size:11px;", p$conditions %||% ""),
+        .td(p$min, " color:#5bc0de; font-size:12px;"),
+        .td(p$typ, " color:#f0f0f0; font-weight:600; font-size:12px;"),
+        .td(p$max, " color:#5bc0de; font-size:12px;"),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#888; font-size:11px;", p$unit %||% "")
+      )
+    })
+    tagList(
+      h5(style = "color:#f0f0f0; margin:0 0 6px 0; font-size:13px; font-weight:600;",
+        icon("flask"), " Production RF Test \u2014 Table 7"),
+      if (nzchar(cond))
+        div(style = "background:#1a1a2a; border-left:3px solid #4472C4; padding:6px 10px; margin-bottom:6px; font-size:11px; color:#888;", cond),
+      if (nzchar(note))
+        div(style = "font-size:11px; color:#777; margin-bottom:8px; font-style:italic;", note),
+      div(style = "overflow-x:auto;",
+        tags$table(
+          style = "width:100%; border-collapse:collapse; background:#141420; border-radius:4px;",
+          tags$thead(tags$tr(lapply(
+            c("Symbol", "Parameter", "Conditions", "Min", "Typ", "Max", "Unit"),
+            function(h) tags$th(style = "padding:5px 8px; background:#1e1e2e; color:#888; font-weight:600; text-align:left; font-size:11px; letter-spacing:0.5px;", h)
+          ))),
+          tags$tbody(do.call(tagList, rows_rf))
+        )
+      ),
+      div(style = "margin-top:6px; font-size:11px; color:#555;", "Refer to datasheet Table 7.")
+    )
+  } else {
+    tagList(
+      h5(style = "color:#f0f0f0; font-size:13px;", "RF Specifications (summary)"),
+      div(style = "font-size:12px; color:#aaa; line-height:1.8;",
+        tags$table(style = "width:auto;",
+          tags$tr(tags$td(style="padding:2px 6px; font-weight:600;", "Gain (typ):"),  tags$td(paste0(dev$gain_db %||% "\u2014", " dB"))),
+          tags$tr(tags$td(style="padding:2px 6px; font-weight:600;", "\u03b7D (typ):"), tags$td(paste0(dev$drain_eff_pct %||% "\u2014", " %"))),
+          tags$tr(tags$td(style="padding:2px 6px; font-weight:600;", "P1dB (typ):"), tags$td(paste0(dev$p1db_dbm %||% "\u2014", " dBm"))),
+          tags$tr(tags$td(style="padding:2px 6px; font-weight:600;", "P3dB (typ):"), tags$td(paste0(dev$p3db_dbm %||% "\u2014", " dBm")))
+        )
+      )
+    )
+  }
+
+  # Section 2: Multi-frequency W-CDMA application performance
+  ap <- dev[["application_performance"]]
+  ap_section <- if (!is.null(ap) && !is.null(ap$rows) && length(ap$rows) > 0) {
+    ap_cond <- ap$test_conditions %||% ""
+    ap_sig  <- ap$signal %||% "RF"
+    ap_rows <- lapply(ap$rows, function(r) {
+      freq_s <- paste0(r$freq_min_mhz, "\u2013", r$freq_max_mhz, " MHz")
+      acpr   <- if (!is.null(r$acpr5m_dbc) && !is.na(r$acpr5m_dbc)) paste0(r$acpr5m_dbc, " dBc") else "\u2014"
+      tags$tr(
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#f0f0f0; font-weight:600;", freq_s),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#aaa;",     r$vds_v %||% "28"),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#aaa;",     r$pl_av_dbm %||% "\u2014"),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#ff7f11; font-weight:600;", paste0(r$gp_db, " dB")),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#ff7f11; font-weight:600;", paste0(r$de_pct, " %")),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#aaa;",     acpr)
+      )
+    })
+    tagList(
+      h5(style = "color:#f0f0f0; margin:18px 0 6px 0; font-size:13px; font-weight:600;",
+        icon("chart-bar"), " Multi-frequency Application Performance \u2014 Table 1 (", ap_sig, ")"),
+      if (nzchar(ap_cond))
+        div(style = "background:#1a1a2a; border-left:3px solid #ff7f11; padding:6px 10px; margin-bottom:8px; font-size:11px; color:#888;", ap_cond),
+      div(style = "overflow-x:auto;",
+        tags$table(
+          style = "width:100%; border-collapse:collapse; background:#141420; border-radius:4px;",
+          tags$thead(tags$tr(lapply(
+            c("Freq Band", "Vds (V)", "PL(AV) (dBm)", "Gp (dB)", "\u03b7D (%)", "ACPR5M (dBc)"),
+            function(h) tags$th(style = "padding:5px 8px; background:#1e1e2e; color:#888; font-weight:600; text-align:left; font-size:11px;", h)
+          ))),
+          tags$tbody(do.call(tagList, ap_rows))
+        )
+      ),
+      div(style = "margin-top:6px; font-size:11px; color:#555;",
+        "[1] 3GPP TM1; 64 DCHP; PAR=7.2dB at 0.01% CCDF. Typical values at Tcase=25\u00b0C.")
+    )
+  } else NULL
+
+  div(style = "padding:8px 0;", rf_section, ap_section)
+}
+
+# Render Test PCBs / BOM tab
+.render_bom_tab <- function(dev) {
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+  circs <- dev[["test_circuits"]]
+  if (is.null(circs) || length(circs) == 0) {
+    return(div(style = "padding:12px; color:#666; font-style:italic; font-size:12px;",
+      "Reference PCB designs not available for this device."))
+  }
+
+  circ_sections <- lapply(circs, function(c) {
+    freq_str  <- paste0(c$freq_mhz, " MHz")
+    pcb_info  <- paste0(c$pcb_substrate %||% "", ", ", c$pcb_thickness_mm %||% "", " mm thick",
+                        if (!is.null(c$pcb_size_mm)) paste0(", ", c$pcb_size_mm, " mm board") else "")
+    fig_ref   <- c$figure %||% ""
+    bom       <- c$bom %||% list()
+
+    bom_rows <- lapply(bom, function(b) {
+      tags$tr(
+        tags$td(style = "padding:3px 8px; border-bottom:1px solid #1a1a2a; font-family:monospace; font-size:11px; color:#f0f0f0; white-space:nowrap;", b$ref %||% ""),
+        tags$td(style = "padding:3px 8px; border-bottom:1px solid #1a1a2a; color:#aaa; font-size:12px;", b$type %||% ""),
+        tags$td(style = "padding:3px 8px; border-bottom:1px solid #1a1a2a; color:#ff7f11; font-size:12px; font-weight:600;", b$value %||% ""),
+        tags$td(style = "padding:3px 8px; border-bottom:1px solid #1a1a2a; color:#666; font-size:11px;", b$vendor %||% "")
+      )
+    })
+
+    div(style = "margin-bottom:20px;",
+      h5(style = "color:#f0f0f0; font-size:13px; font-weight:600; margin:0 0 4px 0; border-left:3px solid #ff7f11; padding-left:8px;",
+        icon("microchip"), " Test Circuit \u2014 ", freq_str),
+      div(style = "font-size:11px; color:#888; margin-bottom:8px;",
+        icon("server"), " PCB: ", pcb_info,
+        if (nzchar(fig_ref)) span(style = "margin-left:10px; color:#666;", "\u2014 ", fig_ref) else NULL
+      ),
+      div(style = "overflow-x:auto;",
+        tags$table(
+          style = "width:100%; border-collapse:collapse; background:#141420; border-radius:4px;",
+          tags$thead(tags$tr(lapply(
+            c("Ref Designator", "Type", "Value", "Vendor / Notes"),
+            function(h) tags$th(style = "padding:4px 8px; background:#1e1e2e; color:#888; font-weight:600; text-align:left; font-size:11px;", h)
+          ))),
+          tags$tbody(do.call(tagList, bom_rows))
+        )
+      )
+    )
+  })
+
+  div(style = "padding:8px 0;",
+    div(style = "background:#1a1a2a; border-left:3px solid #666; padding:6px 10px; margin-bottom:14px; font-size:11px; color:#888;",
+      icon("info-circle"), " All three reference designs use Ampleon BLP9G0722-20G (gull-wing). Schematics in datasheet Figs 2\u20134. Default bias: VDS=28V, IDq=180mA, class-AB."),
+    do.call(tagList, circ_sections)
+  )
+}
+
+# Render Package & ESD tab: variants, dimensions, pinning, ESD, ruggedness, graphical data
+.render_package_tab <- function(dev) {
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+
+  .kv_row <- function(k, v, vc = "#aaa") tags$tr(
+    tags$td(style = "padding:3px 8px; border-bottom:1px solid #1a1a2a; color:#888; font-size:12px; font-weight:600; width:45%;", k),
+    tags$td(style = paste0("padding:3px 8px; border-bottom:1px solid #1a1a2a; font-size:12px; color:", vc, ";"), v)
+  )
+  .section_table <- function(...) {
+    tags$table(style = "width:100%; border-collapse:collapse; background:#141420; border-radius:4px; margin-bottom:4px;",
+               tags$tbody(...))
+  }
+
+  # ── Variants ──────────────────────────────────────────────────────────────
+  variants_section <- {
+    vars <- dev[["variants"]] %||% list()
+    if (length(vars) == 0) NULL else {
+      vrows <- lapply(vars, function(v)
+        tags$tr(
+          tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; font-family:monospace; color:#ff7f11; font-weight:600; font-size:12px;", v$type_number %||% ""),
+          tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#aaa; font-size:12px;", v$package %||% ""),
+          tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#888; font-size:11px;", v$description %||% "")
+        )
+      )
+      div(style = "margin-bottom:14px;",
+        h5(style = "color:#f0f0f0; font-size:13px; font-weight:600; margin:0 0 6px 0;",
+           icon("box"), " Ordering Variants"),
+        div(style = "overflow-x:auto;",
+          tags$table(
+            style = "width:100%; border-collapse:collapse; background:#141420; border-radius:4px;",
+            tags$thead(tags$tr(lapply(c("Type Number", "Package", "Description"), function(h)
+              tags$th(style = "padding:5px 8px; background:#1e1e2e; color:#888; font-weight:600; text-align:left; font-size:11px;", h)))),
+            tags$tbody(do.call(tagList, vrows))
+          )
+        )
+      )
+    }
+  }
+
+  # ── Pinning ────────────────────────────────────────────────────────────────
+  pins_section <- {
+    pin <- dev[["pinning"]] %||% list()
+    if (length(pin) == 0 && !is.null(dev[["package_note"]])) NULL else {
+      div(style = "margin-bottom:14px;",
+        h5(style = "color:#f0f0f0; font-size:13px; font-weight:600; margin:0 0 6px 0;",
+           icon("project-diagram"), " Pinning (SOT1482-1 / SOT1483-1)"),
+        div(style = "font-family:monospace; font-size:12px; background:#141420; border-radius:4px; padding:10px 14px; line-height:1.9;",
+          if (!is.null(pin$pin1)) div(span(style = "color:#ff7f11; font-weight:600;", "Pin 1: "), span(style = "color:#f0f0f0;", pin$pin1)) else NULL,
+          if (!is.null(pin$pin2)) div(span(style = "color:#ff7f11; font-weight:600;", "Pin 2: "), span(style = "color:#f0f0f0;", pin$pin2)) else NULL,
+          if (!is.null(pin$pin3)) div(span(style = "color:#ff7f11; font-weight:600;", "Pin 3: "), span(style = "color:#f0f0f0;", pin$pin3)) else NULL,
+          div(style = "margin-top:6px; font-size:11px; color:#555;",
+              "sym112 \u2014 refer to datasheet pinning diagram (Table 2)."),
+          div(style = "margin-top:4px; font-size:11px; color:#888;",
+              dev[["package_note"]] %||% "")
+        )
+      )
+    }
+  }
+
+  # ── Package dimensions ────────────────────────────────────────────────────
+  dims_section <- {
+    pd <- dev[["package_dimensions"]] %||% list()
+    if (length(pd) == 0) NULL else {
+      pkg_tables <- lapply(names(pd), function(pkg_name) {
+        d <- pd[[pkg_name]]
+        rows <- list(
+          if (!is.null(d$body_length_mm))   .kv_row("Body length",           paste0(d$body_length_mm, " mm")),
+          if (!is.null(d$overall_width_mm)) .kv_row("Overall width",         paste0(d$overall_width_mm, " mm")),
+          if (!is.null(d$body_height_mm))   .kv_row("Body height",           paste0(d$body_height_mm, " mm")),
+          if (!is.null(d$lead_span_mm))     .kv_row("Lead pitch/span",       paste0(d$lead_span_mm, " mm")),
+          if (!is.null(d$lead_width_mm))    .kv_row("Lead width",            paste0(d$lead_width_mm, " mm")),
+          if (!is.null(d$exposed_heatsink_mm)) .kv_row("Exposed heatsink",   paste0(d$exposed_heatsink_mm, " mm")),
+          if (!is.null(d$standoff_min_mm))  .kv_row("Stand-off (min/max)",   paste0(d$standoff_min_mm, "\u2013", d$standoff_max_mm, " mm")),
+          if (!is.null(d$coplanarity_leads_mm)) .kv_row("Lead coplanarity \u2264", paste0(d$coplanarity_leads_mm, " mm")),
+          if (!is.null(d$mold_protrusion_max_mm)) .kv_row("Mold protrusion \u2264", paste0(d$mold_protrusion_max_mm, " mm/side")),
+          if (!is.null(d$lead_plating))     .kv_row("Lead plating",          d$lead_plating)
+        )
+        rows <- Filter(Negate(is.null), rows)
+        div(style = "margin-bottom:12px; flex:1; min-width:220px;",
+          h6(style = "color:#5bc0de; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 4px 0;", pkg_name),
+          .section_table(do.call(tagList, rows))
+        )
+      })
+      div(style = "margin-bottom:14px;",
+        h5(style = "color:#f0f0f0; font-size:13px; font-weight:600; margin:0 0 8px 0;",
+           icon("ruler"), " Package Dimensions"),
+        div(style = "display:flex; gap:12px; flex-wrap:wrap;",
+          do.call(tagList, pkg_tables))
+      )
+    }
+  }
+
+  # ── ESD ───────────────────────────────────────────────────────────────────
+  esd_section <- {
+    esd <- dev[["esd"]] %||% list()
+    lv  <- dev[["limiting_values"]] %||% list()
+    th  <- dev[["thermal"]] %||% list()
+    rug <- dev[["ruggedness"]] %||% list()
+
+    esd_rows <- list()
+    if (!is.null(esd$cdm_class)) esd_rows <- c(esd_rows, list(
+      tags$tr(
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#f0f0f0; font-size:12px;", "CDM (Charged Device Model)"),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#ff7f11; font-weight:600; font-size:12px;", paste0("Class ", esd$cdm_class)),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#888; font-size:11px;", paste0(esd$cdm_standard %||% "", " \u2014 ", esd$cdm_note %||% ""))
+      )
+    ))
+    if (!is.null(esd$hbm_class)) esd_rows <- c(esd_rows, list(
+      tags$tr(
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#f0f0f0; font-size:12px;", "HBM (Human Body Model)"),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#ff7f11; font-weight:600; font-size:12px;", paste0("Class ", esd$hbm_class)),
+        tags$td(style = "padding:4px 8px; border-bottom:1px solid #1e1e2e; color:#888; font-size:11px;", paste0(esd$hbm_standard %||% "", " \u2014 ", esd$hbm_note %||% ""))
+      )
+    ))
+
+    lv_table <- if (!is.null(lv$vds_max_v)) {
+      .section_table(
+        .kv_row("VDS max",           paste0(lv$vds_max_v, " V"),     "#f0f0f0"),
+        .kv_row("VGS range",         paste0(lv$vgs_min_v %||% "\u2014", " to +", lv$vgs_max_v %||% "\u2014", " V"), "#f0f0f0"),
+        .kv_row("Storage temp (Tstg)", paste0(lv$tstg_min_c %||% "\u2014", " to ", lv$tstg_max_c %||% "\u2014", " \u00b0C"), "#f0f0f0"),
+        .kv_row("Junction temp (Tj max)", paste0(lv$tj_max_c %||% "\u2014", " \u00b0C"), "#f44"),
+        if (!is.null(lv$standard)) .kv_row("Standard", lv$standard, "#666") else NULL
+      )
+    } else NULL
+
+    th_kv <- if (!is.null(th$rth_jc_k_per_w))
+      .kv_row(paste0("Rth(j-c) \u2014 ", th$conditions %||% ""), paste0(th$rth_jc_k_per_w, " K/W"), "#ff7f11")
+    else NULL
+
+    rug_note <- if (!is.null(rug$vswr))
+      div(style = "background:#1a1a2a; border-left:3px solid #27ae60; padding:6px 10px; font-size:11px; color:#aaa; margin-top:8px;",
+        icon("shield-alt"), " Ruggedness: VSWR ", rug$vswr, ":1 through all phases at ",
+        "VDS=", rug$vds_v %||% "28", "V, Pout=", rug$pout_cw_w %||% "20", "W CW, tested at ",
+        paste(rug$test_freq_mhz %||% list(), collapse=" and "), " MHz on ", rug$board %||% "demo board"
+      )
+    else NULL
+
+    div(style = "margin-bottom:14px;",
+      if (length(esd_rows) > 0) tagList(
+        h5(style = "color:#f0f0f0; font-size:13px; font-weight:600; margin:0 0 6px 0;",
+           icon("shield-alt"), " ESD Sensitivity (Table 13)"),
+        div(style = "background:#1d0808; border:1px solid #e74c3c; border-radius:3px; padding:6px 10px; margin-bottom:8px; font-size:11px; color:#e74c3c;",
+          icon("exclamation-triangle"), " This device is sensitive to ElectroStatic Discharge (ESD). Handle with ESD precautions per ANSI/ESD S20.20, IEC/ST 61340-5, or JESD625-A."),
+        div(style = "overflow-x:auto;",
+          tags$table(
+            style = "width:100%; border-collapse:collapse; background:#141420; border-radius:4px;",
+            tags$thead(tags$tr(lapply(c("ESD Model", "Class", "Standard / Note"), function(h)
+              tags$th(style = "padding:5px 8px; background:#1e1e2e; color:#888; font-weight:600; text-align:left; font-size:11px;", h)))),
+            tags$tbody(do.call(tagList, esd_rows))
+          )
+        )
+      ) else NULL,
+      if (!is.null(lv_table)) tagList(
+        h5(style = "color:#f0f0f0; font-size:13px; font-weight:600; margin:14px 0 6px 0;",
+           icon("exclamation-triangle"), " Absolute Maximum Ratings (Table 4)"),
+        lv_table
+      ) else NULL,
+      if (!is.null(th_kv)) tagList(
+        h5(style = "color:#f0f0f0; font-size:13px; font-weight:600; margin:14px 0 6px 0;",
+           icon("thermometer-half"), " Thermal Characteristics (Table 5)"),
+        .section_table(th_kv)
+      ) else NULL,
+      rug_note
+    )
+  }
+
+  # ── Graphical data index ──────────────────────────────────────────────────
+  gd_section <- {
+    gd <- dev[["graphical_data"]] %||% list()
+    if (is.null(gd$note) && is.null(gd$cw_curves)) NULL else {
+      all_curves <- c(gd$cw_curves %||% list(),
+                      gd$pulsed_cw_curves %||% list(),
+                      gd$wcdma_curves %||% list())
+      curve_rows <- if (length(all_curves) > 0) {
+        lapply(all_curves, function(cv) tags$tr(
+          tags$td(style = "padding:2px 8px; border-bottom:1px solid #1a1a2a; color:#ff7f11; font-size:11px; font-weight:600;", cv$fig %||% ""),
+          tags$td(style = "padding:2px 8px; border-bottom:1px solid #1a1a2a; color:#aaa; font-size:11px;", cv$signal %||% ""),
+          tags$td(style = "padding:2px 8px; border-bottom:1px solid #1a1a2a; color:#888; font-size:11px;",
+            paste(unlist(cv$freqs_mhz), collapse=" / "), " MHz"),
+          tags$td(style = "padding:2px 8px; border-bottom:1px solid #1a1a2a; color:#666; font-size:11px;", cv$axes %||% "")
+        ))
+      } else list()
+
+      div(style = "margin-top:14px;",
+        h5(style = "color:#f0f0f0; font-size:13px; font-weight:600; margin:0 0 6px 0;",
+           icon("chart-line"), " Available Performance Curves (DS figures)"),
+        if (nchar(gd$note %||% "") > 0)
+          div(style = "font-size:11px; color:#888; margin-bottom:8px; font-style:italic;", gd$note),
+        if (length(curve_rows) > 0)
+          div(style = "overflow-x:auto;",
+            tags$table(
+              style = "width:100%; border-collapse:collapse; background:#141420; border-radius:4px;",
+              tags$thead(tags$tr(lapply(c("Figure", "Signal", "Frequencies", "Axes"), function(h)
+                tags$th(style = "padding:4px 8px; background:#1e1e2e; color:#888; font-weight:600; text-align:left; font-size:11px;", h)))),
+              tags$tbody(do.call(tagList, curve_rows))
+            )
+          )
+        else NULL
+      )
+    }
+  }
+
+  div(style = "padding:8px 0;", variants_section, pins_section, dims_section, esd_section, gd_section)
 }
 
 # ── Convenience wrappers ──────────────────────────────────────────────────────
