@@ -173,10 +173,16 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
       numericInput(ns("sub_t"),    NULL, value = 0.035, min = 0,    max = 1,   step = 0.001),
       tags$span(class = "rfcad-prop-unit", "mm")
     ),
+    div(class = "rfcad-prop-row",
+      tags$label(class = "rfcad-prop-label", "Freq"),
+      numericInput(ns("freq_ghz"), NULL, value = 2.4,  min = 0.1,  max = 100, step = 0.1),
+      tags$span(class = "rfcad-prop-unit", "GHz")
+    ),
 
     tags$hr(style = "border-color:#2a2a3a; margin:8px 0;"),
     div(class = "rfcad-panel-header rfcad-panel-subheader", "Selected Component"),
     uiOutput(ns("rfcad_props")),
+    div(id = paste0("rfcad_rf_params_", id), class = "rfcad-rf-params-wrapper"),
 
     tags$hr(style = "border-color:#2a2a3a; margin:8px 0;"),
     div(class = "rfcad-panel-header rfcad-panel-subheader", "Design"),
@@ -188,6 +194,7 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
     singleton(tags$head(
       tags$script(src = .KONVA_CDN),
       tags$script(src = js_path),
+      tags$script(src = "js/rf_calc_lib.js"),
       tags$link(rel = "stylesheet", href = css_path)
     )),
 
@@ -270,7 +277,14 @@ rfCadServer <- function(id) {
       )
       rv$substrate <- sub
       session$sendCustomMessage("rfcad_update_substrate",
-        list(instanceId = id, substrate = sub))
+        list(instanceId = id, h = sub$h, er = sub$er, tand = sub$tanD, t = sub$t))
+    })
+
+    # Push frequency to canvas (Phase 2)
+    observe({
+      req(!is.null(input$freq_ghz))
+      session$sendCustomMessage("rfcad_set_freq",
+        list(instanceId = id, freq_GHz = input$freq_ghz %||% 2.4))
     })
 
     # Receive components from JS

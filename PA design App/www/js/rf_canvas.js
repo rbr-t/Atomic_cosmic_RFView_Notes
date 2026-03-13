@@ -79,6 +79,7 @@
       drawStart   : null,
       drawPreview : null,
       substrate   : { h: 0.254, er: 4.3, tand: 0.0027, t: 0.035 },
+      freqGHz    : 2.4,
       defaults    : { W: 0.5, L: 5.0, gap: 0.2, layer: 'metal_top' }
     };
 
@@ -464,12 +465,22 @@
       const comp = state.components.find(c => c.id === id) || null;
       syncSelected(comp);
       updateStatus();
+      // Phase 2: update RF params display
+      if (typeof rfCalc !== 'undefined') {
+        rfCalc.updateDisplay(
+          'rfcad_rf_params_' + state.instanceId,
+          comp, state.substrate, state.freqGHz
+        );
+      }
     }
 
     function deselectAll() {
       state.selectedId = null;
       reRenderAll();
       syncSelected(null);
+      if (typeof rfCalc !== 'undefined') {
+        rfCalc.updateDisplay('rfcad_rf_params_' + state.instanceId, null, null, null);
+      }
     }
 
     function deleteSelected() {
@@ -771,6 +782,16 @@
       getState      : () => state,
       updateParam,
       updateStatus,
+      setFreq(f) {
+        state.freqGHz = parseFloat(f) || 2.4;
+        const comp = state.components.find(c => c.id === state.selectedId) || null;
+        if (typeof rfCalc !== 'undefined') {
+          rfCalc.updateDisplay(
+            'rfcad_rf_params_' + state.instanceId,
+            comp, state.substrate, state.freqGHz
+          );
+        }
+      },
       // Direct param update from Shiny
       handleShinyMsg(type, msg) {
         switch (type) {
@@ -783,7 +804,24 @@
             if (msg.snapEnabled !== undefined) state.snapEnabled = msg.snapEnabled;
             if (msg.gridVisible !== undefined) state.gridVisible = msg.gridVisible;
             drawGrid(); break;
-          case 'rfcad_update_substrate': Object.assign(state.substrate, msg); break;
+          case 'rfcad_update_substrate':
+            Object.assign(state.substrate, msg);
+            // Refresh RF params if a component is selected
+            if (typeof rfCalc !== 'undefined') {
+              const comp = state.components.find(c => c.id === state.selectedId) || null;
+              rfCalc.updateDisplay(
+                'rfcad_rf_params_' + state.instanceId,
+                comp, state.substrate, state.freqGHz
+              );
+            }
+            break;
+          case 'rfcad_set_freq':
+            state.freqGHz = parseFloat(msg.freq_GHz) || 2.4;
+            { const selComp = state.components.find(c => c.id === state.selectedId) || null;
+              if (typeof rfCalc !== 'undefined')
+                rfCalc.updateDisplay('rfcad_rf_params_' + state.instanceId, selComp, state.substrate, state.freqGHz);
+            }
+            break;
           case 'rfcad_fit_view'        : fitToContent(); break;
           case 'rfcad_zoom_in'         :
             { const s = Math.min(stage.scaleX() * 1.3, BASE_SCALE * 30); stage.scale({ x: s, y: s }); state.zoom = s / BASE_SCALE; drawGrid(); reRenderAll(); updateStatus(); syncZoom(); } break;
@@ -805,7 +843,7 @@
     'rfcad_init', 'rfcad_set_tool', 'rfcad_update_param', 'rfcad_load_design',
     'rfcad_clear', 'rfcad_set_grid', 'rfcad_update_substrate', 'rfcad_fit_view',
     'rfcad_zoom_in', 'rfcad_zoom_out', 'rfcad_delete_selected', 'rfcad_rotate_selected',
-    'rfcad_export_json'
+    'rfcad_export_json', 'rfcad_set_freq'
   ];
 
   function registerShinyHandlers() {

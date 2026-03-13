@@ -519,3 +519,62 @@
   color: var(--rfcad-text-dim);
   line-height: 1.5;
 }
+
+/* ── Phase 2: RF Params Display ────────────────────────────────── */
+.rfcad-rf-params-wrapper {
+  padding: 4px 0 0 0;
+  border-top: 1px solid var(--rfcad-border);
+  margin-top: 4px;
+  min-height: 20px;
+}
+
+.rfcad-rf-section {
+  padding: 4px 8px 2px 8px;
+}
+
+.rfcad-rf-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--rfcad-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 3px;
+}
+
+.rfcad-rf-row {
+  display: flex;
+  align-items: baseline;
+  padding: 1px 0;
+  line-height: 1.35;
+}
+
+.rfcad-rf-label {
+  width: 70px;
+  min-width: 70px;
+  font-size: 10px;
+  color: var(--rfcad-text-dim);
+}
+
+.rfcad-rf-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rfcad-text);
+  font-family: monospace;
+}
+
+.rfcad-rf-value.rfcad-warn   { color: #e09060; }
+.rfcad-rf-value.rfcad-accent { color: var(--rfcad-accent); }
+
+.rfcad-rf-unit {
+  font-size: 9px;
+  color: var(--rfcad-text-dim);
+  margin-left: 2px;
+  font-weight: 400;
+}
+
+.rfcad-rf-placeholder {
+  font-size: 10px;
+  color: #555;
+  font-style: italic;
+  padding: 4px 8px;
+}
