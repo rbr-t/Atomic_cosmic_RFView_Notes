@@ -222,9 +222,10 @@
     if (!comp) { el.innerHTML = '<div class="rfcad-rf-placeholder">Select a component to see RF parameters.</div>'; return; }
 
     const sub  = substrate || {};
+    const mat  = (comp && comp.mat && Object.keys(comp.mat).length > 0) ? comp.mat : {};
     const p    = comp.params || {};
-    const er   = sub.er   || 4.4;
-    const tanD = sub.tanD || sub.tand || 0.002;   // accept both cases
+    const er   = mat.er   || sub.er   || 4.4;
+    const tanD = mat.tanD || sub.tanD || sub.tand || 0.002;
     const h    = sub.h    || 0.5;
     const t    = sub.t    || 0.035;
     const f    = freqGHz  || null;

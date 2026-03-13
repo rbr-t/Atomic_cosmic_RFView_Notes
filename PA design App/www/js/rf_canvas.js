@@ -47,11 +47,13 @@
   const GRID_MAJOR_CLR = '#252540';
   const GRID_MINOR_CLR = '#1a1a30';
   const COMP_COLORS    = {
-    metal_top : '#c8a84b',
-    metal_bot : '#7b9fc7',
-    via       : '#d4d4d4',
-    port      : '#ff6b6b',
-    default   : '#c8a84b'
+    metal_top     : '#c8a84b',
+    metal_bot     : '#7b9fc7',
+    metal_inner_1 : '#8fcf70',
+    metal_inner_2 : '#c878c8',
+    via           : '#d4d4d4',
+    port          : '#ff6b6b',
+    default       : '#c8a84b'
   };
 
   // ── Factory: create one canvas instance ───────────────────────────────
@@ -782,6 +784,57 @@
       getState      : () => state,
       updateParam,
       updateStatus,
+      // Alias used by toolbar Export button (matches convention in toolbar onclick)
+      exportJSON() { return getDesignJSON(); },
+      // Export canvas as SVG data-URL using Konva's built-in toDataURL
+      exportSVG() {
+        try {
+          // Konva stage.toDataURL does not produce SVG natively;
+          // build a minimal SVG from component bounding boxes instead.
+          const comps  = state.components;
+          if (!comps || comps.length === 0) return null;
+          const SCALE  = state.gridSizeMm || 1; // mm per logical unit
+          const pad    = 5;
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          comps.forEach(c => {
+            const W = (c.params && c.params.W) ? +c.params.W : 1;
+            const L = (c.params && c.params.L) ? +c.params.L : 10;
+            minX = Math.min(minX, c.x - L / 2);
+            maxX = Math.max(maxX, c.x + L / 2);
+            minY = Math.min(minY, c.y - W / 2);
+            maxY = Math.max(maxY, c.y + W / 2);
+          });
+          const vw = maxX - minX + pad * 2;
+          const vh = maxY - minY + pad * 2;
+          const COMP_COL = { metal_top:'#c8a84b', metal_bot:'#7b9fc7',
+                             metal_inner_1:'#8fcf70', metal_inner_2:'#c878c8' };
+          let rects = '';
+          comps.forEach(c => {
+            const W   = (c.params && c.params.W) ? +c.params.W : 1;
+            const L   = (c.params && c.params.L) ? +c.params.L : 10;
+            const col = COMP_COL[c.layer] || '#c8a84b';
+            const rx  = c.x - minX + pad - L / 2;
+            const ry  = c.y - minY + pad - W / 2;
+            rects += `<rect x="${rx.toFixed(3)}" y="${ry.toFixed(3)}" ` +
+                     `width="${L.toFixed(3)}" height="${W.toFixed(3)}" ` +
+                     `fill="${col}" stroke="#333" stroke-width="0.05" ` +
+                     `transform="rotate(${c.rotation||0},${(c.x-minX+pad).toFixed(3)},${(c.y-minY+pad).toFixed(3)})" />\n`;
+          });
+          const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vw.toFixed(3)} ${vh.toFixed(3)}"
+     width="${(vw*10).toFixed(0)}" height="${(vh*10).toFixed(0)}">
+  <rect width="100%" height="100%" fill="#1a1a2e"/>
+${rects}</svg>`;
+          return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        } catch(e) { console.error('exportSVG:', e); return null; }
+      },
+      // Zoom by a scale factor
+      zoomBy(factor) {
+        const s = Math.min(Math.max(stage.scaleX() * factor, BASE_SCALE * 0.05), BASE_SCALE * 30);
+        stage.scale({ x: s, y: s });
+        state.zoom = s / BASE_SCALE;
+        drawGrid(); reRenderAll(); updateStatus(); syncZoom();
+      },
       setFreq(f) {
         state.freqGHz = parseFloat(f) || 2.4;
         const comp = state.components.find(c => c.id === state.selectedId) || null;
@@ -796,7 +849,30 @@
       handleShinyMsg(type, msg) {
         switch (type) {
           case 'rfcad_set_tool'        : setTool(msg.tool); break;
-          case 'rfcad_update_param'    : updateParam(msg.id, msg.param, msg.value); break;
+          case 'rfcad_update_param': {
+            const cid  = msg.componentId || msg.id;
+            const comp = state.components.find(c => c.id === cid);
+            if (comp) {
+              if (msg.name     !== undefined) comp.name     = msg.name;
+              if (msg.rotation !== undefined) comp.rotation = +msg.rotation;
+              if (msg.layer    !== undefined) comp.layer    = msg.layer;
+              if (msg.mat      !== undefined) comp.mat      = msg.mat;
+              if (msg.params && typeof msg.params === 'object') Object.assign(comp.params, msg.params);
+              // also accept flat {param, value} for programmatic use
+              if (msg.param !== undefined) {
+                if (msg.param.startsWith('params.')) comp.params[msg.param.slice(7)] = isNaN(+msg.value) ? msg.value : +msg.value;
+                else comp[msg.param] = isNaN(+msg.value) ? msg.value : +msg.value;
+              }
+              reRenderAll(); syncComponents();
+              const up = state.components.find(c => c.id === cid);
+              if (up) {
+                syncSelected(up);
+                if (typeof rfCalc !== 'undefined')
+                  rfCalc.updateDisplay('rfcad_rf_params_' + state.instanceId, up, state.substrate, state.freqGHz);
+              }
+            }
+            break;
+          }
           case 'rfcad_load_design'     : loadDesignJSON(msg.json); break;
           case 'rfcad_clear'           : state.components = []; state.selectedId = null; state.nextId = 1; reRenderAll(); syncComponents(); break;
           case 'rfcad_set_grid'        :
@@ -877,6 +953,22 @@
   // ── Bootstrap ─────────────────────────────────────────────────────────
   function bootstrap() {
     registerShinyHandlers();
+
+    // Download trigger: server asks JS to click a Shiny downloadButton
+    if (typeof Shiny !== 'undefined') {
+      Shiny.addCustomMessageHandler('rfcad_trigger_download', function(msg) {
+        // msg.url = output ID; msg.filename = suggested filename (hint only)
+        var anchor = document.createElement('a');
+        anchor.href     = 'session/' + msg.url + '/dataobj/' + msg.filename +
+                          '?w=&rand=' + Math.floor(Math.random() * 1e9);
+        anchor.download  = msg.filename;
+        anchor.style.display = 'none';
+        document.body.appendChild(anchor);
+        anchor.click();
+        setTimeout(function() { document.body.removeChild(anchor); }, 2000);
+      });
+    }
+
     // For standalone (non-Shiny) use: auto-init if rfcad_canvas exists
     if (typeof Shiny === 'undefined') {
       const el = document.getElementById('rfcad_canvas');

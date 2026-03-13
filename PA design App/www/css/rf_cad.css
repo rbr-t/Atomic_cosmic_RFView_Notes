@@ -578,3 +578,106 @@
   font-style: italic;
   padding: 4px 8px;
 }
+
+/* ── Phase 4: Compact property tabs + layer indicators ─────── */
+.rfcad-properties .nav-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 4px 6px 2px 6px;
+  padding: 0;
+}
+.rfcad-properties .nav-pills > li { margin: 0; }
+.rfcad-properties .nav-pills > li > a {
+  padding: 2px 9px;
+  font-size: 10px;
+  line-height: 1.6;
+  border-radius: 3px;
+  color: var(--rfcad-text-dim);
+  background: var(--rfcad-bg-card);
+  border: 1px solid var(--rfcad-border);
+  transition: background 0.15s, color 0.15s;
+}
+.rfcad-properties .nav-pills > li > a:hover {
+  background: var(--rfcad-border-hi);
+  color: var(--rfcad-text);
+}
+.rfcad-properties .nav-pills > li.active > a,
+.rfcad-properties .nav-pills > li.active > a:hover,
+.rfcad-properties .nav-pills > li.active > a:focus {
+  background: var(--rfcad-accent);
+  color: #1a1400;
+  border-color: var(--rfcad-accent);
+}
+.rfcad-properties .tab-content { padding: 0; }
+.rfcad-properties .tab-pane    { padding: 0; }
+
+/* Layer swatch in select option (visual cue via CSS — select text colour) */
+.rfcad-properties .selectize-input,
+.rfcad-properties select {
+  font-size: 10px;
+}
+
+/* Miter checkbox row */
+.rfcad-properties .checkbox { margin: 2px 0; font-size: 10px; color: var(--rfcad-text-dim); }
+.rfcad-properties .checkbox label { font-size: 10px; }
+
+/* Material override panel */
+.rfcad-mat-note {
+  font-size: 9px;
+  color: var(--rfcad-text-dim);
+  font-style: italic;
+  padding: 2px 8px 4px 8px;
+}
+
+/* ─── 3D viewer ─────────────────────────────────────────────────────────── */
+.rfcad-3d-container {
+  width: 100%;
+  height: 100%;
+  background: #0d0d1e;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* 3D toggle button active state */
+.rfcad-ctrl-btn.rfcad-btn-3d.active {
+  background: var(--rfcad-accent, #00bcd4);
+  color: #000;
+  border-color: var(--rfcad-accent, #00bcd4);
+}
+
+/* ─── Export dropdown ───────────────────────────────────────────────────── */
+.rfcad-export-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.rfcad-export-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 9999;
+  min-width: 160px;
+  background: #1e1e2e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  padding: 4px 0;
+}
+
+.rfcad-export-item {
+  display: block;
+  padding: 6px 14px;
+  font-size: 11px;
+  color: var(--rfcad-text, #c8c8d8);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.rfcad-export-item:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  text-decoration: none;
+}
