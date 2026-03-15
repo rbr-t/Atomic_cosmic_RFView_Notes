@@ -79,7 +79,11 @@ function utilityDrawerToggleFull() {
 function utilityDrawerPopout() {
   if (!_drawerTab) return;
   var base = window.location.href.split("?")[0].split("#")[0];
-  window.open(base + "?panel=" + encodeURIComponent(_drawerTab), "_blank");
+  window.open(
+    base + "?panel=" + encodeURIComponent(_drawerTab) + "&standalone=1",
+    "_blank",
+    "width=1280,height=820,menubar=no,toolbar=no,location=no,status=no,resizable=yes"
+  );
 }
 
 // -----------------------------------------------------------------------------

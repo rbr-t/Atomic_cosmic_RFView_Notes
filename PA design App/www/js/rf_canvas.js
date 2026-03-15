@@ -148,8 +148,54 @@
       }
     }
 
+    // ── Session persistence (localStorage) ────────────────────────────
+    const SESSION_KEY = 'rfcad_session_' + (instanceId || 'default');
+
+    function sessionSave() {
+      try {
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          components : state.components,
+          substrate  : state.substrate,
+          freqGHz    : state.freqGHz,
+          nextId     : state.nextId,
+          defaults   : state.defaults,
+          stageX     : stage.x(),
+          stageY     : stage.y(),
+          stageScale : stage.scaleX()
+        }));
+      } catch(e) { /* storage quota exceeded — silently ignore */ }
+    }
+
+    function sessionLoad() {
+      try {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        state.components = data.components  || [];
+        state.nextId     = data.nextId      || 1;
+        if (data.substrate) Object.assign(state.substrate, data.substrate);
+        if (data.freqGHz)   state.freqGHz = data.freqGHz;
+        if (data.defaults)  Object.assign(state.defaults, data.defaults);
+        if (data.stageScale) {
+          stage.scale({ x: data.stageScale, y: data.stageScale });
+          state.zoom = data.stageScale / BASE_SCALE;
+        }
+        if (data.stageX !== undefined) stage.position({ x: data.stageX, y: data.stageY });
+        reRenderAll();
+        drawGrid();
+        updateStatus();
+        // Notify Shiny — non-blocking
+        setTimeout(() => syncComponents(), 400);
+        return true;
+      } catch(e) {
+        console.error('[RFCAD] sessionLoad error:', e);
+        return false;
+      }
+    }
+
     function syncComponents() {
       shinySend('rfcad_components', JSON.stringify(state.components));
+      sessionSave();
     }
 
     function syncSelected(comp) {
@@ -706,7 +752,101 @@
         renderComponent(c);
       });
       layers.comp.batchDraw();
+      drawResizeHandles();   // add L/W handles for selected component
       layers.ui.batchDraw();
+    }
+
+    // ── Resize handles for selected component ─────────────────────────
+    function drawResizeHandles() {
+      if (!state.selectedId) return;
+      const comp = state.components.find(c => c.id === state.selectedId);
+      if (!comp) return;
+
+      const hasLW = ['microstrip','ms','bend90','tee','coupled',
+                     'open_stub','short_stub','rect_shape'].includes(comp.type);
+      const hasR  = ['circle_shape','via'].includes(comp.type);
+      if (!hasLW && !hasR) return;
+
+      const group = layers.comp.findOne('#' + comp.id);
+      if (!group) return;
+
+      const sc = stage.scaleX();
+      const hr = 6 / sc;
+
+      function makeHandle(x, y, fill, cursor, onDragMove, onDragEnd) {
+        const absPos = group.getAbsoluteTransform().point({ x, y });
+        const h = new Konva.Circle({
+          x: absPos.x, y: absPos.y, radius: hr,
+          fill: fill, stroke: '#111', strokeWidth: 1 / sc,
+          draggable: true, hitStrokeWidth: 10 / sc, listening: true
+        });
+        h.on('mouseenter', () => { stage.container().style.cursor = cursor; });
+        h.on('mouseleave', () => {
+          stage.container().style.cursor = state.tool === 'select' ? 'default' : 'crosshair';
+        });
+        h.on('dragmove',  onDragMove);
+        h.on('dragend',   onDragEnd);
+        layers.ui.add(h);
+        return h;
+      }
+
+      const finishResize = () => { reRenderAll(); syncComponents(); };
+
+      if (hasLW) {
+        const L = mmToPx(comp.params.L || 5);
+        const W = mmToPx(comp.params.W || 0.5);
+
+        // Yellow: right-end handle → changes L
+        makeHandle(L, 0, SEL_COLOR, 'ew-resize', function() {
+          const c = state.components.find(cc => cc.id === state.selectedId);
+          if (!c) return;
+          const inv   = group.getAbsoluteTransform().copy().invert();
+          const local = inv.point({ x: this.x(), y: this.y() });
+          c.params.L  = Math.max(0.01, snapMm(pxToMm(local.x)));
+          // Refresh just the component shape without destroying handles yet
+          const existing = layers.comp.findOne('#' + c.id);
+          if (existing) existing.destroy();
+          renderComponent(c);
+          layers.comp.batchDraw();
+          // Re-snap handle to actual new endpoint
+          const tf    = layers.comp.findOne('#' + c.id);
+          if (tf) { const p = tf.getAbsoluteTransform().point({ x: mmToPx(c.params.L), y: 0 }); this.x(p.x); this.y(p.y); }
+          layers.ui.batchDraw();
+        }, finishResize);
+
+        // Green: bottom-center handle → changes W
+        makeHandle(L / 2, W / 2, '#4caf50', 'ns-resize', function() {
+          const c = state.components.find(cc => cc.id === state.selectedId);
+          if (!c) return;
+          const inv   = group.getAbsoluteTransform().copy().invert();
+          const local = inv.point({ x: this.x(), y: this.y() });
+          c.params.W  = Math.max(0.001, snapMm(Math.abs(pxToMm(local.y)) * 2));
+          const existing = layers.comp.findOne('#' + c.id);
+          if (existing) existing.destroy();
+          renderComponent(c);
+          layers.comp.batchDraw();
+          layers.ui.batchDraw();
+        }, finishResize);
+      }
+
+      if (hasR) {
+        const r = mmToPx(comp.params.radius || (comp.params.pad || 0.5) / 2);
+        // Cyan: right-edge handle → changes radius
+        makeHandle(r, 0, '#00bcd4', 'ew-resize', function() {
+          const c = state.components.find(cc => cc.id === state.selectedId);
+          if (!c) return;
+          const inv   = group.getAbsoluteTransform().copy().invert();
+          const local = inv.point({ x: this.x(), y: this.y() });
+          const newR  = Math.max(0.01, snapMm(pxToMm(Math.hypot(local.x, local.y))));
+          if (c.params.radius !== undefined) c.params.radius = newR;
+          if (c.params.pad    !== undefined) c.params.pad    = snapMm(newR * 2);
+          const existing = layers.comp.findOne('#' + c.id);
+          if (existing) existing.destroy();
+          renderComponent(c);
+          layers.comp.batchDraw();
+          layers.ui.batchDraw();
+        }, finishResize);
+      }
     }
 
     // ── Component CRUD ─────────────────────────────────────────────────
@@ -1215,14 +1355,41 @@
       });
 
       stage.on('mousedown touchstart', (e) => {
-        if (e.evt.button === 1 || spaceDown) {
+        // Middle button, Space+drag, or Pan tool → pan
+        if (e.evt.button === 1 || spaceDown || state.tool === 'pan') {
           stage.draggable(true);
           state.isPanning = true;
           stage.container().style.cursor = 'grabbing';
           return;
         }
-        if (e.evt.button === 2) return;
+        // Right button → pan (like lineup canvas right-drag)
+        if (e.evt.button === 2) {
+          stage.draggable(true);
+          state.isPanning = true;
+          stage.container().style.cursor = 'grabbing';
+          e.evt.preventDefault();
+          return;
+        }
+        // Select tool + drag on background → pan after 4px threshold
+        if (state.tool === 'select' && e.target === stage) {
+          const startPos = stage.getPointerPosition();
+          const _onMove = () => {
+            const cur = stage.getPointerPosition();
+            if (!cur || !startPos) return;
+            const d = Math.hypot(cur.x - startPos.x, cur.y - startPos.y);
+            if (d > 4 && !state.isPanning) {
+              stage.draggable(true);
+              state.isPanning = true;
+              stage.container().style.cursor = 'grabbing';
+            }
+          };
+          stage.on('mousemove.pandetect', _onMove);
+          stage.on('mouseup.pandetect',   () => { stage.off('mousemove.pandetect'); stage.off('mouseup.pandetect'); });
+        }
       });
+
+      // Prevent context menu on right-click (used for pan)
+      stage.container().addEventListener('contextmenu', e => e.preventDefault());
 
       stage.on('mouseup touchend', () => {
         if (state.isPanning) {
@@ -1473,8 +1640,17 @@
           return;
         }
 
-        // ── Single-click placement for RF component tools ──────────────
-        addComponent(tool, pos.x, pos.y);
+        // ── Single-click placement for RF component tools only ────────
+        // Non-RF tool names (pan, select, ruler, etc.) must NOT be placed
+        const RF_PLACE_TOOLS = new Set([
+          'microstrip', 'ms', 'bend90', 'tee', 'coupled',
+          'via', 'port', 'open_stub', 'short_stub'
+        ]);
+        if (RF_PLACE_TOOLS.has(tool)) {
+          addComponent(tool, pos.x, pos.y);
+        }
+        // All other tools (pan, chamfer, fillet, label, angle_dim, schematic…)
+        // are handled by their own cases above and do nothing on a blind click.
       });
     }
 
@@ -1506,7 +1682,10 @@
     // ── Go! ────────────────────────────────────────────────────────────
     drawGrid();
     bindEvents();
-    updateStatus();
+    // Restore last session first; fall back to empty canvas
+    if (!sessionLoad()) {
+      updateStatus();
+    }
 
     // Resize observer
     if (window.ResizeObserver) {
@@ -1591,11 +1770,22 @@ ${rects}</svg>`;
           syncSelected(state.components.find(c => c.id === state.selectedId));
         }
       },
-      // Clear all components
+      // Clear all components and session
       clearAll() {
+        try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
         state.components = []; state.selectedId = null; state.nextId = 1;
         reRenderAll(); syncComponents(); updateStatus();
       },
+      // New session: same as clearAll but with user intent (keeps session key clear)
+      clearSession() {
+        try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+        state.components = []; state.selectedId = null; state.nextId = 1;
+        reRenderAll(); updateStatus();
+      },
+      // Explicitly save current state to localStorage
+      saveSession() { sessionSave(); },
+      // Reload from localStorage (useful after external edits)
+      loadSession()  { return sessionLoad(); },
       // Set grid size in mm
       setGrid(sizeMm) {
         state.gridSizeMm = sizeMm || 0.5;

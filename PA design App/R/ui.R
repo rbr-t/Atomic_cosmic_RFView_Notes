@@ -104,6 +104,7 @@ ui <- dashboardPage(
       tags$script(src = "https://d3js.org/d3.v7.min.js"),
       tags$script(src = "js/pa_lineup_canvas.js"),
       tags$script(src = "js/utility_drawer.js"),
+      tags$script(src = "js/standalone.js"),
       tags$style(HTML("
         /* Hardcoded fallbacks removed — all theming now in custom.css */
       ")),

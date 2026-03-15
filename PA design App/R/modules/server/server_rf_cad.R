@@ -271,6 +271,13 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
     .tb_btn("\u2717", "Clear", "Clear all components",
       sprintf("if(confirm('Clear all components?')){var c=RFCAD.getCanvas('%s');if(c)c.clearAll();}", id)
     ),
+    # New Session
+    .tb_btn("\u2b1c", "New", "Start a new blank session (clears saved state)",
+      sprintf(
+        "if(confirm('Start new session? Current design will be lost.')){var c=RFCAD.getCanvas('%s');if(c)c.clearSession();}",
+        id
+      )
+    ),
     .tb_sep(),
     # Export dropdown
     div(class = "rfcad-export-wrap",
@@ -322,6 +329,10 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
         id, id, id, ns("rfcad_canvas")
       ),
       tool = "expand"
+    ),
+    # Pop-out in a standalone window (no sidebar/header)
+    .tb_btn("\u29c9", "New Tab", "Open RF CAD in a standalone window",
+      "window.open(location.href.split('?')[0]+'?rfcad_standalone=1','_blank','width=1400,height=860,menubar=no,toolbar=no,location=no,status=no,resizable=yes');"
     )
   )
 
