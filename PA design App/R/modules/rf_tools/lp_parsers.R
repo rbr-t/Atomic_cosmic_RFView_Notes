@@ -57,6 +57,7 @@ parse_lp_file <- function(filepath, format_override = "auto") {
     switch(fmt,
       spl       = parse_spl(lines, filepath),
       focus     = parse_focus(lines, filepath),
+      lpcwave   = parse_lpcwave(lines, filepath),
       mdf       = parse_mdf(lines, filepath),
       amcad     = parse_amcad(lines, filepath),
       anteverta = parse_anteverta(lines, filepath),
@@ -76,17 +77,27 @@ parse_lp_file <- function(filepath, format_override = "auto") {
 
 #' Detect the format of a load-pull file from its first ~25 lines.
 detect_lp_format <- function(lines) {
+  n_lines <- length(lines)
+  head10  <- lines[seq_len(min(10, n_lines))]
+  nz_lines <- lines[nzchar(trimws(lines))]
   hd <- paste(
-    toupper(trimws(lines[nzchar(trimws(lines))][seq_len(min(25, sum(nzchar(trimws(lines)))))]))
-    , collapse = "\n"
+    toupper(trimws(nz_lines[seq_len(min(50, length(nz_lines)))])),
+    collapse = "\n"
   )
-  if (grepl("BEGIN MDIF|END MDIF",                  hd)) return("mdif")
-  if (grepl("MDF_VERSION|BEGIN SWEEP",               hd)) return("mdf")
-  if (grepl("AMCAD",                                 hd)) return("amcad")
-  if (grepl("ANTEVERTA",                             hd)) return("anteverta")
-  if (grepl("#SOURCE PULL|#LOAD PULL|CCMT|#FORMAT",  hd)) return("focus")
-  if (any(grepl("^!", lines[seq_len(min(10, length(lines)))]))) return("spl")
-  if (any(grepl(",",   lines[seq_len(min(10, length(lines)))]))) return("amcad")
+  # Focus LPCWAVE: has "# NNN" point-block markers AND column header in !-comment
+  if (any(grepl("^#[[:space:]]*[0-9]+", head10)) ||
+      grepl("POINT[[:space:]]+GAMMA[[:space:]]+PHASE", hd))
+    return("lpcwave")
+  if (grepl("BEGIN MDIF|END MDIF",                   hd)) return("mdif")
+  # ALPS / Maury MDF: BEGIN Sweep (case-insensitive) or VAR with (real)/(string) types
+  if (grepl("MDF_VERSION|BEGIN SWEEP|BEGIN SWEEP",    hd) ||
+      grepl("VAR.*\\(REAL\\)|\\(STRING\\)",           hd, ignore.case = TRUE))
+    return("mdf")
+  if (grepl("AMCAD",                                  hd)) return("amcad")
+  if (grepl("ANTEVERTA",                              hd)) return("anteverta")
+  if (grepl("#SOURCE PULL|#LOAD PULL|CCMT|#FORMAT",   hd)) return("focus")
+  if (any(grepl("^!", head10))) return("spl")
+  if (any(grepl(",",  head10))) return("amcad")
   "spl"  # safe fallback
 }
 
@@ -111,11 +122,13 @@ parse_spl <- function(lines, filepath) {
   meta_raw      <- lines[comment_lines]
   non_comment   <- lines[!comment_lines]
 
-  # TRUE when every whitespace-split token looks like a column name
+  # TRUE when every whitespace-split token looks like a column name.
+  # Deliberately excludes '.' from allowed chars so filename-like tokens
+  # (e.g. "AI1330...spl_1.840GHz.tdp") are not mistaken for column headers.
   .is_col_hdr <- function(ln) {
-    toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+    toks <- strsplit(trimws(ln), "[[:space:]\t]+")[[1]]
     length(toks) >= 2 &&
-      all(grepl("^[A-Za-z_][A-Za-z0-9_%().]*$", toks))
+      all(grepl("^[A-Za-z_][A-Za-z0-9_%()]*$", toks))
   }
 
   # Find the first non-blank non-comment line that passes .is_col_hdr
@@ -130,7 +143,24 @@ parse_spl <- function(lines, filepath) {
   if (is.na(hdr_idx))
     return(.lp_err("spl", filepath, "Could not locate column header row"))
 
-  col_names <- toupper(strsplit(trimws(non_comment[hdr_idx]), "[[:space:]]+")[[1]])
+  raw_col_names <- strsplit(trimws(non_comment[hdr_idx]), "[[:space:]]+")[[1]]
+
+  # Focus SPL encodes complex gammas as a single column name (e.g. gamma_src1)
+  # but stores TWO consecutive numbers (real, imag) per point.  Detect these
+  # columns by name pattern and expand: gamma_* → gamma_*_RE + gamma_*_IM
+  .expand_gamma_cols <- function(names_vec) {
+    out <- character(0)
+    for (nm in names_vec) {
+      if (grepl("^gamma_", nm, ignore.case = TRUE) &&
+          !grepl("_(re|im|real|imag|r|i)$", nm, ignore.case = TRUE)) {
+        out <- c(out, paste0(nm, "_re"), paste0(nm, "_im"))
+      } else {
+        out <- c(out, nm)
+      }
+    }
+    out
+  }
+  col_names <- toupper(.expand_gamma_cols(raw_col_names))
 
   # --- Metadata: comment lines + pre-header "Freq = X GHz" lines --------------
   meta <- .parse_comment_meta(meta_raw)
@@ -179,8 +209,9 @@ parse_spl <- function(lines, filepath) {
       next
     }
 
-    # Any line containing a letter is section info / key=value — skip
-    if (grepl("[A-Za-z]", ln)) next
+    # Any line containing letters that cannot appear in numeric values
+    # (allow e/E for scientific notation like 1.838e+002, but block everything else)
+    if (grepl("[A-DF-Za-df-z]", ln)) next
 
     # Parse numeric tokens
     vals <- suppressWarnings(as.numeric(strsplit(ln, "[[:space:]]+")[[1]]))
@@ -254,58 +285,205 @@ parse_focus <- function(lines, filepath) {
   list(success = TRUE, meta = meta, points = .normalise_df(df, meta))
 }
 
-# ── Format 3: Maury MDF ───────────────────────────────────────────────────────
+# ── Format 3: Maury / ALPS MDF (BEGIN Sweep variant) ─────────────────────────
 
 parse_mdf <- function(lines, filepath) {
-  # Key-value header until BEGIN SWEEP, then column names, then data, END SWEEP
-  in_data  <- FALSE
-  hdr_done <- FALSE
-  col_names <- NULL
+  # Supports two MDF sub-variants:
+  #   a) Classic: MDF_VERSION header, BEGIN SWEEP / END SWEEP block (case-insensitive)
+  #   b) ALPS export: VAR GRE(real)=..., BEGIN Sweep, header line starting with %,
+  #      data rows end with a quoted string column (stripped before parsing)
+  in_data      <- FALSE
+  hdr_done     <- FALSE
+  col_names    <- NULL
   data_rows_raw <- character(0)
-  meta_kv   <- list()
+  meta_kv      <- list()
 
   for (ln in lines) {
-    ln_up <- toupper(trimws(ln))
-    if (grepl("^BEGIN[[:space:]]+SWEEP|^BEGIN[[:space:]]+DATA", ln_up)) {
+    ln_t  <- trimws(ln)
+    ln_up <- toupper(ln_t)
+
+    # Skip pure comment lines
+    if (grepl("^[!]", ln_t)) next
+
+    if (grepl("^BEGIN[[:space:]]+(SWEEP|DATA)", ln_up)) {
       in_data <- TRUE; next
     }
-    if (grepl("^END[[:space:]]+SWEEP|^END[[:space:]]+DATA", ln_up)) {
+    if (grepl("^END[[:space:]]+(SWEEP|DATA)", ln_up)) {
       in_data <- FALSE; next
     }
+
     if (!in_data) {
-      # Key-value pairs: KEY VALUE or KEY = VALUE
-      kv <- regmatches(ln, regexpr("^([A-Za-z_][A-Za-z0-9_]*)\\s*=?\\s*(.+)$", ln, perl = TRUE))
+      # VAR NAME(type) = value  — collect as meta
+      if (grepl("^VAR[[:space:]]", ln_up)) {
+        m <- regmatches(ln_t,
+          regexpr("^VAR[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)\\s*\\([^)]*\\)\\s*=\\s*(.+)$",
+                  ln_t, perl = TRUE))
+        if (length(m) == 1) {
+          pts   <- strsplit(trimws(gsub("VAR[[:space:]]+|\\([^)]*\\)|=", " ", m)),
+                            "[[:space:]]+")[[1]]
+          pts   <- pts[nzchar(pts)]
+          if (length(pts) >= 2)
+            meta_kv[[tolower(pts[1])]] <- paste(pts[-1], collapse = " ")
+        }
+        next
+      }
+      # KEY = VALUE or KEY VALUE
+      kv <- regmatches(ln_t,
+        regexpr("^([A-Za-z_][A-Za-z0-9_]*)\\s*=?\\s*(.+)$", ln_t, perl = TRUE))
       if (length(kv) == 1) {
         parts <- strsplit(trimws(gsub("=", " ", kv)), "[[:space:]]+")[[1]]
-        if (length(parts) >= 2) meta_kv[[tolower(parts[1])]] <- paste(parts[-1], collapse = " ")
+        if (length(parts) >= 2)
+          meta_kv[[tolower(parts[1])]] <- paste(parts[-1], collapse = " ")
       }
       next
     }
-    # Inside data block
-    if (!hdr_done && grepl("[A-Za-z]", ln) && !grepl("^[[:space:]]*[!#]", ln)) {
-      col_names <- toupper(strsplit(trimws(ln), "[[:space:]]+")[[1]])
-      hdr_done  <- TRUE
-      next
+
+    # Inside data block ───────────────────────────────────────────────────
+    # Header line: starts with % (ALPS) or is a classic alpha-token header line
+    if (!hdr_done && (grepl("^%", ln_t) || (grepl("^[A-Za-z_]", ln_t) &&
+                                              !grepl("^[!#]", ln_t)))) {
+      # Strip leading % and strip trailing (type) annotations like (real) / (string)
+      hdr_clean <- trimws(sub("^%", "", ln_t))
+      hdr_clean <- gsub("\\([^)]*\\)", "", hdr_clean)   # remove (real)/(string)
+      col_tokens <- strsplit(trimws(hdr_clean), "[[:space:]]+")[[1]]
+      col_tokens <- col_tokens[nzchar(col_tokens)]
+      if (length(col_tokens) >= 2) {
+        col_names <- toupper(col_tokens)
+        hdr_done  <- TRUE
+        next
+      }
     }
-    if (hdr_done && nzchar(trimws(ln)))
-      data_rows_raw <- c(data_rows_raw, ln)
+
+    if (hdr_done && nzchar(ln_t)) {
+      # Strip trailing quoted-string column (e.g. "filename")
+      ln_stripped <- gsub('"[^"]*"', "", ln_t)
+      ln_stripped <- trimws(ln_stripped)
+      if (nzchar(ln_stripped))
+        data_rows_raw <- c(data_rows_raw, ln_stripped)
+    }
   }
 
   if (is.null(col_names) || length(data_rows_raw) == 0)
     return(.lp_err("mdf", filepath, "Could not find data block or column headers"))
 
+  # Strip string-type columns from col_names (ALPS has FNAME at end)
+  # Keep only those columns that map to numeric positions
   mat <- do.call(rbind, lapply(data_rows_raw, function(r) {
     vals <- strsplit(trimws(r), "[[:space:]]+")[[1]]
     suppressWarnings(as.numeric(vals[seq_len(min(length(vals), length(col_names)))]))
   }))
+  # Drop all-NA columns (non-numeric / string-typed columns, e.g. ALPS FNAME)
+  if (!is.null(mat) && nrow(mat) > 0) {
+    orig_ncol  <- ncol(mat)
+    keep       <- apply(mat, 2, function(col) !all(is.na(col)))
+    mat        <- mat[, keep, drop = FALSE]
+    col_names_used <- col_names[seq_len(orig_ncol)][keep]
+  } else {
+    col_names_used <- col_names
+  }
   mat <- mat[complete.cases(mat), , drop = FALSE]
-  if (nrow(mat) == 0)
+  if (is.null(mat) || nrow(mat) == 0)
     return(.lp_err("mdf", filepath, "No numeric rows in data block"))
 
   df <- as.data.frame(mat, stringsAsFactors = FALSE)
-  names(df) <- col_names[seq_len(ncol(df))]
+  names(df) <- col_names_used
 
   meta <- c(meta_kv, .kv_to_meta(meta_kv))
+  list(success = TRUE, meta = meta, points = .normalise_df(df, meta))
+}
+
+# ── Format 3b: Focus Microwaves LPCWAVE ──────────────────────────────────────
+# Structure:
+#   ! comment block with header line:
+#     "Point  Gamma  Phase[deg]  Psource[dBm]  PinWaves[dBm] ..."
+#   !---------- separator
+#   # NNN  <gamma_mag>  <gamma_phase_deg>   <- load-point descriptor
+#       data row 1 (space-separated numerics, same cols as header minus Point/Gamma/Phase)
+#       data row 2
+#       ...
+#   # NNN  ...  <- next load point
+#
+# The data rows contain: Psource PinWaves PoutWaves GainWavesTrd V2 I2 I1 DE ...
+# N/A values are treated as NA.
+
+parse_lpcwave <- function(lines, filepath) {
+  # Find the column header: inside !-comments, contains "Point" and "Gamma"
+  hdr_line <- NULL
+  for (ln in lines) {
+    clean <- trimws(sub("^[!]+[[:space:]]*", "", ln))
+    if (grepl("^Point[[:space:]]+Gamma", clean, ignore.case = TRUE)) {
+      hdr_line <- clean
+      break
+    }
+  }
+  if (is.null(hdr_line))
+    return(.lp_err("lpcwave", filepath, "Could not find column header in comments"))
+
+  # Parse column names — strip [unit] bracketed suffixes for clean names
+  raw_cols  <- strsplit(trimws(hdr_line), "[[:space:]]+")[[1]]
+  col_names <- toupper(gsub("\\[[^]]*\\]", "", raw_cols))  # strip [deg], [dBm] etc.
+  col_names <- trimws(col_names)
+  col_names <- col_names[nzchar(col_names)]
+
+  # Point, Gamma, Phase are load-point descriptors stored in # lines — drop them
+  # from the per-row data (they appear as the first 3 cols; rows don't include them)
+  data_col_names <- col_names[-(1:3)]   # skip Point, Gamma, Phase
+  n_data_cols    <- length(data_col_names)
+
+  # Collect metadata from !-comments
+  meta_raw <- lines[grepl("^[[:space:]]*!", lines)]
+  meta     <- .parse_comment_meta(meta_raw)
+
+  # Parse data: current load-point gamma (mag, phase_deg)
+  cur_gamma_mag  <- NA_real_
+  cur_gamma_ang  <- NA_real_
+  rows_list      <- list()
+
+  for (ln in lines) {
+    ln_t <- trimws(ln)
+    if (!nzchar(ln_t) || grepl("^!", ln_t)) next
+
+    # Load-point descriptor: # NNN  gamma_mag  gamma_phase_deg
+    # Format: "# 001  0.293  109.2"  => parts = ["#", "001", "0.293", "109.2"]
+    if (grepl("^#", ln_t)) {
+      parts <- strsplit(ln_t, "[[:space:]]+")[[1]]
+      if (length(parts) >= 4) {
+        cur_gamma_mag <- suppressWarnings(as.numeric(parts[3]))
+        cur_gamma_ang <- suppressWarnings(as.numeric(parts[4]))
+      } else if (length(parts) == 3) {
+        # Fallback: no point number, just "# mag phase"
+        cur_gamma_mag <- suppressWarnings(as.numeric(parts[2]))
+        cur_gamma_ang <- suppressWarnings(as.numeric(parts[3]))
+      }
+      next
+    }
+
+    # Data row: replace N/A tokens with NA and parse numerics
+    ln_clean <- gsub("N/A", "NA", ln_t, ignore.case = TRUE)
+    vals     <- suppressWarnings(
+      as.numeric(strsplit(trimws(ln_clean), "[[:space:]]+")[[1]])
+    )
+    if (length(vals) < 2) next
+
+    # Pad / truncate to expected column count
+    if (length(vals) > n_data_cols) vals <- vals[seq_len(n_data_cols)]
+    if (length(vals) < n_data_cols) vals <- c(vals, rep(NA_real_, n_data_cols - length(vals)))
+
+    # Prepend Gamma_re and Gamma_im derived from load-point descriptor
+    g_ang_rad <- (cur_gamma_ang %||% 0) * pi / 180
+    g_re      <- (cur_gamma_mag %||% NA) * cos(g_ang_rad)
+    g_im      <- (cur_gamma_mag %||% NA) * sin(g_ang_rad)
+    rows_list <- c(rows_list, list(c(g_re, g_im, vals)))
+  }
+
+  if (length(rows_list) == 0)
+    return(.lp_err("lpcwave", filepath, "No data rows parsed"))
+
+  mat <- do.call(rbind, rows_list)
+  df  <- as.data.frame(mat, stringsAsFactors = FALSE)
+  # Column layout: GL_R, GL_I, then data_col_names
+  names(df) <- c("GL_R", "GL_I", data_col_names)
+
   list(success = TRUE, meta = meta, points = .normalise_df(df, meta))
 }
 
@@ -497,15 +675,40 @@ parse_mdif <- function(lines, filepath) {
 
   # Frequency
   FREQ = "freq_ghz", `FREQ(GHZ)` = "freq_ghz", FREQUENCY = "freq_ghz",
+  FRQ  = "freq_ghz",
 
-  # Focus Power Sweep Plan columns
+  # Focus Power Sweep Plan SPL columns (gamma_src1 / gamma_ld1 expand to _RE/_IM)
+  GAMMA_SRC1_RE = "gs_r", GAMMA_SRC1_IM = "gs_i",
+  GAMMA_LD1_RE  = "gl_r", GAMMA_LD1_IM  = "gl_i",
+  # Legacy single-value aliases (kept for backwards compat if not expanded)
   GAMMA_SRC1 = "gs_r", GAMMA_LD1 = "gl_r",
+  # ALPS MDF column names
+  GAMMA_SRC1_RE_VAL = "gs_r", GAMMA_SRC1_IM_VAL = "gs_i",
+  GAMMA_LD1_RE_VAL  = "gl_r", GAMMA_LD1_IM_VAL  = "gl_i",
+  GSRE = "gs_r", GSIM = "gs_i",
+  GLRE = "gl_r", GLIM = "gl_i",
+  # ALPS additional
+  BO = "pin_dbm",
   PIN_AVAIL_DBM = "pin_dbm",
   GT_DB = "gain_db",
+  POUT_DBM = "pout_dbm",
   IQ_OUT_MA = "idc_ma", IOUT_MA = "idc_ma",
   VQ_IN_V = "vdc_v",
-  `EFF_%` = "de_pct", EFF_COL = "de_pct",
-  PDIS = "pdc_w"
+  `EFF_%` = "de_pct", EFF_COL = "de_pct", EFF_ = "de_pct",
+  PDIS = "pdc_w", POUTW = "pout_w",
+  # LPCWAVE column names
+  PINWAVES = "pin_dbm",
+  POUTWAVES = "pout_dbm",
+  GAINWAVESTRD = "gain_db",
+  GAINWAVESPWR = "gp_db",
+  V2 = "vdc_v", I2 = "idc_ma",
+  `DE_VNA_PA_SCOPEEQN` = "de_pct",
+  PSOURCE = "pavs_dbm",
+  # Simple tab-separated export columns (S4_Peak.txt style)
+  POUTW_COMPRCON = "pout_w",
+  PAE_COMPRCON   = "pae_pct",
+  POUT_DBM_COMPRCON = "pout_dbm",
+  GT_DB_COMPRCON    = "gain_db"
 )
 
 .normalise_df <- function(df, meta) {
@@ -514,8 +717,9 @@ parse_mdif <- function(lines, filepath) {
   # Rename columns via alias table
   for (alias in names(.COL_ALIASES)) {
     canon <- .COL_ALIASES[[alias]]
-    if (alias %in% names(df) && !canon %in% names(df)) {
-      names(df)[names(df) == alias] <- canon
+    up_alias <- toupper(alias)
+    if (up_alias %in% names(df) && !canon %in% names(df)) {
+      names(df)[names(df) == up_alias] <- canon
     }
   }
 
@@ -533,6 +737,11 @@ parse_mdif <- function(lines, filepath) {
     df$gs_i  <- df$gs_mag * sin(ang_rad)
   }
 
+  # LPCWAVE: |GL@F0| and phase in degrees → Cartesian (already done in parse_lpcwave
+  # but some Focus formats may also use these patterns)
+  if ("GL_R" %in% names(df)) names(df)[names(df) == "GL_R"] <- "gl_r"
+  if ("GL_I" %in% names(df)) names(df)[names(df) == "GL_I"] <- "gl_i"
+
   # mA → A
   if ("idc_ma" %in% names(df) && !"idc_a" %in% names(df))
     df$idc_a <- df$idc_ma / 1000
@@ -541,6 +750,12 @@ parse_mdif <- function(lines, filepath) {
   if (!"pdc_w" %in% names(df) && all(c("idc_a","vdc_v") %in% names(df)))
     df$pdc_w <- df$idc_a * df$vdc_v
 
+  # dBm → Watts conversions
+  if (!"pout_w" %in% names(df) && "pout_dbm" %in% names(df))
+    df$pout_w <- 10^((df$pout_dbm - 30) / 10)
+  if (!"pin_w" %in% names(df) && "pin_dbm" %in% names(df))
+    df$pin_w  <- 10^((df$pin_dbm  - 30) / 10)
+
   # Add freq from meta if missing per-row
   if (!"freq_ghz" %in% names(df)) {
     fq <- suppressWarnings(as.numeric(meta$freq_ghz %||% NA))
@@ -548,7 +763,8 @@ parse_mdif <- function(lines, filepath) {
   }
 
   # Ensure canonical columns exist (NA if not available)
-  canonical <- c("gl_r","gl_i","gs_r","gs_i","pout_dbm","pin_dbm",
+  canonical <- c("gl_r","gl_i","gs_r","gs_i",
+                 "pout_dbm","pout_w","pin_dbm","pin_w",
                  "gain_db","pae_pct","de_pct","idc_a","vdc_v","pdc_w","freq_ghz")
   for (cn in canonical) if (!cn %in% names(df)) df[[cn]] <- NA_real_
 

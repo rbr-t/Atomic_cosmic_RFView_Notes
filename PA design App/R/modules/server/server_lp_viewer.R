@@ -293,11 +293,12 @@ serverLpViewer <- function(input, output, session, state) {
     }
 
     var_meta <- list(
-      pout = list(col = "pout_dbm", label = "Pout (dBm)", color = "#ff7f11"),
-      pae  = list(col = "pae_pct",  label = "PAE (%)",    color = "#1f77b4"),
-      de   = list(col = "de_pct",   label = "DE (%)",     color = "#2ca02c"),
-      gain = list(col = "gain_db",  label = "Gain (dB)",  color = "#9467bd"),
-      pdc  = list(col = "pdc_w",    label = "Pdc (W)",    color = "#d62728")
+      pout   = list(col = "pout_dbm", label = "Pout (dBm)", color = "#ff7f11"),
+      pae    = list(col = "pae_pct",  label = "PAE (%)",    color = "#1f77b4"),
+      de     = list(col = "de_pct",   label = "DE (%)",     color = "#2ca02c"),
+      gain   = list(col = "gain_db",  label = "Gain (dB)",  color = "#9467bd"),
+      pdc    = list(col = "pdc_w",    label = "Pdc (W)",    color = "#d62728"),
+      pout_w = list(col = "pout_w",   label = "Pout (W)",   color = "#ffaa44")
     )
 
     if (length(sel_ids) > 0 && length(vars) > 0) {
@@ -470,7 +471,12 @@ serverLpViewer <- function(input, output, session, state) {
     id  <- input$lp_sel_nose
     df  <- .get_df(id)
 
-    if (is.null(df) || !all(c("pout_dbm", "pae_pct") %in% names(df))) {
+    use_watts <- isTRUE(input$lp_nose_pout_unit == "w")
+    x_col     <- if (use_watts) "pout_w" else "pout_dbm"
+    x_label   <- if (use_watts) "Pout (W)" else "Pout (dBm)"
+    x_fmt     <- if (use_watts) "%.4f W" else "%.1f dBm"
+
+    if (is.null(df) || !all(c(x_col, "pae_pct") %in% names(df))) {
       return(plot_ly() %>% layout(
         paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
         title = list(text = "No data — select a dataset",
@@ -478,8 +484,8 @@ serverLpViewer <- function(input, output, session, state) {
       ))
     }
 
-    ok   <- !is.na(df$pout_dbm) & !is.na(df$pae_pct)
-    pout <- df$pout_dbm[ok]
+    ok   <- !is.na(df[[x_col]]) & !is.na(df$pae_pct)
+    pout <- df[[x_col]][ok]
     pae  <- df$pae_pct[ok]
 
     p <- plot_ly() %>%
@@ -492,7 +498,7 @@ serverLpViewer <- function(input, output, session, state) {
           colorbar  = list(title     = "PAE (%)",
                            tickfont  = list(color = "#aaa"))
         ),
-        hovertext = sprintf("Pout=%.1f dBm, PAE=%.1f%%", pout, pae),
+        hovertext = sprintf(paste0("Pout=", x_fmt, ", PAE=%.1f%%"), pout, pae),
         hoverinfo = "text",
         name      = "LP data"
       )
@@ -503,7 +509,7 @@ serverLpViewer <- function(input, output, session, state) {
       p  <- p %>% add_trace(
         type = "scatter", mode = "markers+text",
         x    = pout[bi], y = pae[bi],
-        text = sprintf("%.1f dBm / %.1f%%", pout[bi], pae[bi]),
+        text = sprintf(paste0(x_fmt, " / %.1f%%"), pout[bi], pae[bi]),
         textposition = "top right",
         textfont  = list(color = "#ff7f11", size = 11),
         marker    = list(color = "#ff7f11", size = 14, symbol = "star",
@@ -512,9 +518,9 @@ serverLpViewer <- function(input, output, session, state) {
       )
     }
 
-    # Back-off reference line
+    # Back-off reference line (only meaningful on dBm axis)
     bo <- as.numeric(input$lp_backoff_db %||% 6)
-    if (length(pout) > 0) {
+    if (length(pout) > 0 && !use_watts) {
       max_po <- max(pout, na.rm = TRUE)
       ymax   <- max(pae,  na.rm = TRUE) * 1.12
       p <- p %>% add_trace(
@@ -529,7 +535,7 @@ serverLpViewer <- function(input, output, session, state) {
     p %>% layout(
       paper_bgcolor = "#1b1b2b",
       plot_bgcolor  = "#1b1b2b",
-      xaxis  = list(title = "Pout (dBm)", color = "#aaa",
+      xaxis  = list(title = x_label, color = "#aaa",
                     showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
       yaxis  = list(title = "PAE (%)",    color = "#aaa",
                     showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
