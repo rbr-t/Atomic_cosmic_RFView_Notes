@@ -322,7 +322,17 @@ server <- function(input, output, session) {
                           actionButton("lp_parse_btn", "Parse file(s)",
                             icon = icon("cog"), class = "btn-primary btn-block"),
                           hr(),
-                          h5("Loaded datasets", style = "color:#f0f0f0;"),
+                          div(
+                            style = "display:flex; align-items:baseline;
+                                     justify-content:space-between;
+                                     margin-bottom:6px;",
+                            h5("Loaded datasets",
+                               style = "color:#f0f0f0; margin:0;"),
+                            actionButton("lp_clear_all_btn", "Clear all",
+                              class = "btn btn-danger",
+                              style = "padding:2px 10px; font-size:11px;
+                                       line-height:1.6; border-radius:3px;")
+                          ),
                           uiOutput("lp_dataset_list")
                         )
                       ),

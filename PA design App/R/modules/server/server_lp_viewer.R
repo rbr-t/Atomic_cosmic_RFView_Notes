@@ -182,23 +182,56 @@ serverLpViewer <- function(input, output, session, state) {
       r          <- ds[[id]]
       ok         <- isTRUE(r$success)
       status_col <- if (ok) "#2ca02c" else "#d62728"
-      status_txt <- if (ok) paste0("OK · ", nrow(r$points), " pts") else "Failed"
+      status_txt <- if (ok) paste0("OK \u00b7 ", nrow(r$points), " pts") else "Failed"
       freq_str   <- r$meta[["freq_ghz"]] %||% "?"
+      # Escape single-quotes so the JS string literal is safe
+      safe_id    <- gsub("'", "\\\\'", id)
 
       div(style = paste0("padding:5px 0; border-bottom:1px solid #2a2a3a;",
                          " display:flex; align-items:center; gap:6px;"),
         div(style = paste0("width:8px; height:8px; border-radius:50%;",
                            " background:", status_col, "; flex-shrink:0;")),
-        div(style = "flex:1 1 auto; overflow:hidden;",
+        div(style = "flex:1 1 auto; overflow:hidden; min-width:0;",
           tags$strong(style = "color:#ddd; font-size:12px;", r$filename),
           br(),
           tags$small(style = "color:#888;",
             r$format, " \u00b7 freq: ", freq_str, " GHz")),
         div(style = paste0("color:", status_col,
-                           "; font-size:11px; flex-shrink:0;"),
-          status_txt)
+                           "; font-size:11px; flex-shrink:0; margin-right:2px;"),
+          status_txt),
+        tags$button(
+          class   = "btn btn-xs",
+          style   = paste0("background:transparent; border:1px solid #5a2a2a;",
+                           " color:#e77; padding:1px 6px; font-size:12px;",
+                           " line-height:1.4; flex-shrink:0; cursor:pointer;"),
+          title   = "Remove this dataset",
+          onclick = sprintf(
+            "Shiny.setInputValue('lp_del_trigger','%s',{priority:'event'});",
+            safe_id),
+          HTML("&times;")
+        )
       )
     }))
+  })
+
+  # ── Per-row delete ─────────────────────────────────────────────────────────
+  observeEvent(input$lp_del_trigger, {
+    del_id  <- input$lp_del_trigger
+    current <- lp_datasets()
+    if (!del_id %in% names(current)) return()
+    fname   <- current[[del_id]]$filename
+    current[[del_id]] <- NULL
+    lp_datasets(current)
+    lp_log(c(lp_log(),
+      paste0("Removed dataset: ", fname),
+      paste0("\u2500\u2500\u2500 Total datasets in memory: ",
+             length(current), " \u2500\u2500\u2500")))
+  })
+
+  # ── Clear all datasets ─────────────────────────────────────────────────────
+  observeEvent(input$lp_clear_all_btn, {
+    lp_datasets(list())
+    lp_log(character())
   })
 
   # ── Dataset selector helper ─────────────────────────────────────────────
