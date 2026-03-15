@@ -23,7 +23,7 @@
   --rfcad-danger:     #e05050;
   /* Toolbar row height (compact) */
   --rfcad-tb-row-h:   34px;
-  --rfcad-palette-w:  88px;
+  --rfcad-palette-w:  120px;
   --rfcad-props-w:    240px;
   --rfcad-status-h:   24px;
 }
@@ -236,7 +236,7 @@
   border: 1px solid var(--rfcad-border);
   border-radius: 4px;
   background: var(--rfcad-bg-card);
-  color: var(--rfcad-text-dim);
+  color: var(--rfcad-text);      /* brighter — was text-dim */
   cursor: pointer;
   font-size: 10px;
   font-weight: 500;
@@ -298,7 +298,7 @@
   border: 1px solid var(--rfcad-border);
   border-radius: 4px;
   background: var(--rfcad-bg-card);
-  color: var(--rfcad-text-dim);
+  color: var(--rfcad-text);    /* brighter — was text-dim */
   cursor: pointer;
   font-size: 12px;
   display: flex; align-items: center; justify-content: center;
@@ -371,13 +371,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: calc(100% - 8px);
-  margin: 2px 4px;
-  padding: 6px 2px;
+  width: auto;          /* grid controls width */
+  margin: 0;
+  padding: 5px 2px;
   background: var(--rfcad-bg-card);
   border: 1px solid var(--rfcad-border);
   border-radius: 5px;
-  color: var(--rfcad-text-dim);
+  color: var(--rfcad-text);   /* brighter — was text-dim */
   cursor: pointer;
   font-size: 9px;
   font-weight: 500;
@@ -418,6 +418,14 @@
 .rfcad-icon-cpl   { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 16'%3E%3Crect x='0' y='0' width='40' height='5' fill='%23c8a84b' rx='1'/%3E%3Crect x='0' y='11' width='40' height='5' fill='%237b9fc7' rx='1'/%3E%3C/svg%3E") center/contain no-repeat; height: 24px; width: 36px; }
 .rfcad-icon-via   { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='8' fill='%23c8a84b'/%3E%3Ccircle cx='10' cy='10' r='4' fill='%23888'/%3E%3Ccircle cx='10' cy='10' r='2' fill='%23111'/%3E%3C/svg%3E") center/contain no-repeat; height: 24px; width: 24px; }
 .rfcad-icon-port  { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 16'%3E%3Cpolygon points='8,2 0,8 8,14' fill='%23ff6b6b'/%3E%3Crect x='8' y='6' width='16' height='4' fill='%23c8a84b'/%3E%3C/svg%3E") center/contain no-repeat; height: 24px; width: 24px; }
+
+/* ── Palette 2-column grid ───────────────────────────────── */
+.rfcad-palette-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 4px;
+}
 
 /* ── Canvas area ────────────────────────────────────────────── */
 .rfcad-canvas-wrapper {

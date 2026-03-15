@@ -92,6 +92,11 @@
       layerLocked  : {}
     };
 
+    // ── Undo / Redo history ────────────────────────────────────────────────
+    const MAX_HIST = 50;
+    const _hist    = [];
+    let   _histIdx = -1;
+
     // ── Konva primitives ───────────────────────────────────────────────
     const w = container.offsetWidth  || 900;
     const h = container.offsetHeight || 600;
@@ -721,7 +726,14 @@
       const isPtsBased = ['line','polyline','arc_shape','polygon_shape',
                           'dim_h','dim_v','dim_align','leader'].includes(comp.type);
       group.on('click tap', () => selectComponent(comp.id));
-      group.on('dragstart', () => selectComponent(comp.id));
+      group.on('dragstart', (e) => {
+        // Block drag in any tool other than select
+        if (state.tool !== 'select') { e.target.stopDrag(); return; }
+        // Lightweight selection — avoid reRenderAll which would destroy this node
+        state.selectedId = comp.id;
+        syncSelected(comp);
+        updateStatus();
+      });
       group.on('dragmove',  () => updateStatus());
       group.on('dragend', () => {
         const sx = snapMm(pxToMm(group.x()));
@@ -735,8 +747,9 @@
             c.pts = c.pts.map(p => ({ x: p.x + dx, y: p.y + dy }));
           }
         }
+        pushHistory();
+        reRenderAll();   // update selection rect after drop
         syncComponents();
-        layers.comp.batchDraw();
       });
 
       layers.comp.add(group);
@@ -794,7 +807,7 @@
         return h;
       }
 
-      const finishResize = () => { reRenderAll(); syncComponents(); };
+      const finishResize = () => { reRenderAll(); pushHistory(); syncComponents(); };
 
       if (hasLW) {
         const L = mmToPx(comp.params.L || 5);
@@ -916,6 +929,7 @@
       state.components.push(comp);
       reRenderAll();
       selectComponent(comp.id);
+      pushHistory();
       syncComponents();
       return comp;
     }
@@ -939,6 +953,7 @@
       state.components.push(comp);
       reRenderAll();
       selectComponent(comp.id);
+      pushHistory();
       syncComponents();
       return comp;
     }
@@ -963,11 +978,51 @@
       }
     }
 
+    // ── History helpers (undo / redo) ──────────────────────────────────────
+    function pushHistory() {
+      _hist.splice(_histIdx + 1);          // discard redo branch
+      _hist.push(JSON.stringify({ components: state.components, nextId: state.nextId }));
+      if (_hist.length > MAX_HIST) _hist.shift();
+      _histIdx = _hist.length - 1;
+      _updateUndoRedo();
+    }
+
+    function undo() {
+      if (_histIdx <= 0) return;
+      _histIdx--;
+      _applySnap(_hist[_histIdx]);
+    }
+
+    function redo() {
+      if (_histIdx >= _hist.length - 1) return;
+      _histIdx++;
+      _applySnap(_hist[_histIdx]);
+    }
+
+    function _applySnap(json) {
+      const s = JSON.parse(json);
+      state.components = s.components;
+      if (s.nextId) state.nextId = s.nextId;
+      state.selectedId = null;
+      reRenderAll();
+      syncComponents();
+      _updateUndoRedo();
+    }
+
+    function _updateUndoRedo() {
+      const sel = '#' + state.instanceId + '_tb [data-tool="';
+      const u   = document.querySelector(sel + 'undo"]');
+      const r   = document.querySelector(sel + 'redo"]');
+      if (u) u.disabled = (_histIdx <= 0);
+      if (r) r.disabled = (_histIdx >= _hist.length - 1);
+    }
+
     function deleteSelected() {
       if (!state.selectedId) return;
       state.components = state.components.filter(c => c.id !== state.selectedId);
       state.selectedId = null;
       reRenderAll();
+      pushHistory();
       syncComponents();
     }
 
@@ -986,6 +1041,7 @@
         comp[paramKey] = isNaN(+value) ? value : +value;
       }
       reRenderAll();
+      pushHistory();
       syncComponents();
       const updated = state.components.find(c => c.id === id);
       if (updated) syncSelected(updated);
@@ -1315,6 +1371,10 @@
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
         if (e.code === 'Space') { spaceDown = true; stage.container().style.cursor = 'grab'; }
         if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { state.shiftDown = true; }
+
+        // Ctrl+Z = undo, Ctrl+Y / Ctrl+Shift+Z = redo
+        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+        if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyY' || (e.code === 'KeyZ' && e.shiftKey))) { e.preventDefault(); redo(); return; }
 
         // Backspace: undo last vertex in polyline/polygon
         if (e.code === 'Backspace') {
@@ -1731,6 +1791,8 @@
     if (!sessionLoad()) {
       updateStatus();
     }
+    // Seed history with the current (loaded or empty) state
+    pushHistory();
 
     // Resize observer — guard against zero-dimension resize (e.g. hidden tab)
     if (window.ResizeObserver) {
@@ -1759,6 +1821,9 @@
       getState      : () => state,
       updateParam,
       updateStatus,
+      // Undo / Redo
+      undo,
+      redo,
       // Alias used by toolbar Export button (matches convention in toolbar onclick)
       exportJSON() { return getDesignJSON(); },
       // Export canvas as SVG data-URL using Konva's built-in toDataURL

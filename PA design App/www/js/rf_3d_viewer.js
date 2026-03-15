@@ -204,12 +204,18 @@
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
-  function render(designJSON, containerId) {
+  function render(designJSON, containerId, _retries) {
     const THREE = global.THREE;
     if (!THREE) { console.error('[RF3D] Three.js not loaded'); return; }
 
     const container = document.getElementById(containerId);
-    if (!container) return;
+    if (!container) { console.error('[RF3D] container not found:', containerId); return; }
+
+    // Container not yet laid out — retry up to 8 times (every 200 ms = 1.6s max)
+    if ((container.offsetWidth === 0 || container.offsetHeight === 0) && (_retries || 0) < 8) {
+      setTimeout(function() { render(designJSON, containerId, (_retries || 0) + 1); }, 200);
+      return;
+    }
 
     // Dispose previous scene for this container
     clear(containerId);

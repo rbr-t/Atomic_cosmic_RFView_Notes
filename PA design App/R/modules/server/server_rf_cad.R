@@ -61,7 +61,7 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
 
   # Assets served from the app's own www/ (standard Shiny path)
   # Version suffix forces browser to bypass cache after file updates.
-  js_path  <- "js/rf_canvas.js?v=20260316"
+  js_path  <- "js/rf_canvas.js?v=20260317"
   css_path <- "css/rf_cad.css"
 
   # ── Shared JS helper: set active tool button ────────────────────────────
@@ -151,6 +151,13 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
   # ── Row 3: Modification Tools ────────────────────────────────────────────
   tb_row3 <- div(class = "rfcad-tb-row",
     div(class = "rfcad-tb-group-label", "Modify"),
+    .tb_btn("\u21a9", "Undo", "Undo last action (Ctrl+Z)",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.undo();", id),
+      tool = "undo"),
+    .tb_btn("\u21aa", "Redo", "Redo (Ctrl+Y)",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.redo();", id),
+      tool = "redo"),
+    .tb_sep(),
     .tb_btn("\u2715",     "Delete",   "Delete selected (Del)",
       sprintf("var c=RFCAD.getCanvas('%s');if(c)c.deleteSelected();", id)),
     .tb_btn("\u21bb",     "Rot+45",   "Rotate +45\u00b0 (R)",
@@ -349,6 +356,8 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
     )
   })
 
+  palette_grid <- div(class = "rfcad-palette-grid", palette_btns)
+
   # ── Layer Panel (floating, toggled by Layers button) ─────────────────────
   layer_defs <- list(
     list(id="metal_top",     color="#c8a84b", label="Metal Top",   locked=FALSE),
@@ -501,7 +510,7 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
       tags$script(src = .ORBIT_CDN),
       tags$script(src = js_path),
       tags$script(src = "js/rf_calc_lib.js"),
-      tags$script(src = "js/rf_3d_viewer.js?v=20260316"),
+      tags$script(src = "js/rf_3d_viewer.js?v=20260317"),
       tags$link(rel = "stylesheet", href = css_path)
     )),
 
@@ -527,7 +536,7 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
           # Left palette sidebar (quick-access RF components)
           div(class = "rfcad-palette",
             div(class = "rfcad-panel-header", "Components"),
-            palette_btns
+            palette_grid
           ),
 
           # Canvas area — layer panel floats inside this
@@ -537,8 +546,8 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
             div(id = paste0(id, "_2d_wrap"), style = "width:100%;height:100%;",
               div(id = ns("rfcad_canvas"), class = "rfcad-canvas-container")
             ),
-            # 3D canvas (hidden by default)
-            div(id = paste0(id, "_3d_wrap"), style = "width:100%;height:100%;display:none;",
+            # 3D canvas (hidden by default, absolutely fills wrapper)
+            div(id = paste0(id, "_3d_wrap"), style = "position:absolute;inset:0;display:none;",
               div(id = paste0(id, "_3d_canvas"), class = "rfcad-3d-container")
             )
           ),
