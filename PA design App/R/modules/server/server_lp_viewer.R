@@ -107,6 +107,52 @@ serverLpViewer <- function(input, output, session, state) {
   PALETTE <- c("#ff7f11", "#1f77b4", "#2ca02c", "#d62728",
                "#9467bd", "#8c564b", "#e377c2", "#17becf")
 
+  # ── Helpers ────────────────────────────────────────────────────────────────
+  # Truncate long filenames for legend labels (max n visible chars)
+  .short_name <- function(s, n = 24) {
+    if (nchar(s) > n) paste0(substr(s, 1, n), "\u2026") else s
+  }
+
+  # Gamma-grid cache: stored as result$interp_cache[[var_key]][[pull_key]]
+  # each element: list(xi, yi, zm) — computed once on parse
+  .precompute_interp <- function(df, nx = 40, ny = 40) {
+    var_map <- list(
+      pout   = "pout_dbm", pae  = "pae_pct",  de    = "de_pct",
+      gain   = "gain_db",  pdc  = "pdc_w",    pout_w = "pout_w"
+    )
+    cache <- list()
+    for (pull_key in c("load", "source")) {
+      xv_all <- if (pull_key == "load") df$gl_r else df$gs_r
+      yv_all <- if (pull_key == "load") df$gl_i else df$gs_i
+      if (is.null(xv_all) || all(is.na(xv_all))) next
+      for (vname in names(var_map)) {
+        col <- var_map[[vname]]
+        if (!col %in% names(df)) next
+        zv_all <- df[[col]]
+        ok     <- !is.na(xv_all) & !is.na(yv_all) & !is.na(zv_all) &
+                  (xv_all^2 + yv_all^2) <= 1.02
+        xv <- xv_all[ok]; yv <- yv_all[ok]; zv <- zv_all[ok]
+        if (length(xv) < 6) next
+        key <- paste0(pull_key, ":", vname)
+        tryCatch({
+          xi <- seq(min(xv) - 0.01, max(xv) + 0.01, length.out = nx)
+          yi <- seq(min(yv) - 0.01, max(yv) + 0.01, length.out = ny)
+          xy_key <- paste(round(xv, 4), round(yv, 4))
+          dup    <- duplicated(xy_key)
+          res    <- akima::interp(xv[!dup], yv[!dup], zv[!dup],
+                                  xo = xi, yo = yi, linear = TRUE, extrap = FALSE)
+          zm <- res$z
+          for (ii in seq_along(xi))
+            for (jj in seq_along(yi))
+              if (!is.finite(zm[ii, jj]) ||
+                  xi[ii]^2 + yi[jj]^2 > 1.005) zm[ii, jj] <- NA
+          cache[[key]] <- list(xi = xi, yi = yi, zm = zm)
+        }, error = function(e) NULL)
+      }
+    }
+    cache
+  }
+
   # ── Parse on button click ──────────────────────────────────────────────────
   observeEvent(input$lp_parse_btn, {
     req(input$lp_upload)
@@ -120,12 +166,18 @@ serverLpViewer <- function(input, output, session, state) {
       log   <- c(log, paste0("[", i, "] Parsing: ", fname, " ..."))
 
       result          <- parse_lp_file(fpath, format_override = fmt)
-      result$filename <- fname          # preserve user-facing name
+      result$filename <- fname
 
       if (isTRUE(result$success)) {
         npts <- nrow(result$points)
         log  <- c(log,
           sprintf("    OK  (%s)  %d measurement points parsed", result$format, npts))
+        # Pre-compute interpolation cache for instant Smith chart rendering
+        if (requireNamespace("akima", quietly = TRUE) && npts >= 6) {
+          log <- c(log, "    Pre-computing contour grids...")
+          result$interp_cache <- .precompute_interp(result$points)
+          log <- c(log, paste0("    Cached ", length(result$interp_cache), " grids."))
+        }
       } else {
         log <- c(log, paste0("    ERROR: ", result$error))
       }
@@ -273,13 +325,14 @@ serverLpViewer <- function(input, output, session, state) {
 
   # ── Smith Chart with LP contours ──────────────────────────────────────────
   output$lp_smith_plot <- renderPlotly({
-    ds       <- lp_datasets()
-    sel_ids  <- input$lp_sel_smith
-    pull     <- input$lp_pull_type    %||% "load"
-    vars     <- input$lp_contour_vars
-    n_lev    <- input$lp_contour_levels %||% 6
-    show_pae <- isTRUE(input$lp_show_max_pae)
-    show_po  <- isTRUE(input$lp_show_max_pout)
+    ds        <- lp_datasets()
+    sel_ids   <- input$lp_dataset_selector
+    pull      <- input$lp_pull_type    %||% "load"
+    vars      <- input$lp_contour_vars
+    n_lev     <- input$lp_contour_levels %||% 6
+    show_pae  <- isTRUE(input$lp_show_max_pae)
+    show_po   <- isTRUE(input$lp_show_max_pout)
+    zoom_data <- isTRUE(input$lp_smith_zoom_data)
 
     grid <- build_smith_grid()
     p    <- plot_ly()
@@ -293,24 +346,28 @@ serverLpViewer <- function(input, output, session, state) {
     }
 
     var_meta <- list(
-      pout   = list(col = "pout_dbm", label = "Pout (dBm)", color = "#ff7f11"),
-      pae    = list(col = "pae_pct",  label = "PAE (%)",    color = "#1f77b4"),
-      de     = list(col = "de_pct",   label = "DE (%)",     color = "#2ca02c"),
-      gain   = list(col = "gain_db",  label = "Gain (dB)",  color = "#9467bd"),
-      pdc    = list(col = "pdc_w",    label = "Pdc (W)",    color = "#d62728"),
-      pout_w = list(col = "pout_w",   label = "Pout (W)",   color = "#ffaa44")
+      pout   = list(col = "pout_dbm", label = "Pout(dBm)", color = "#ff7f11"),
+      pae    = list(col = "pae_pct",  label = "PAE(%)",    color = "#1f77b4"),
+      de     = list(col = "de_pct",   label = "DE(%)",     color = "#2ca02c"),
+      gain   = list(col = "gain_db",  label = "Gain(dB)",  color = "#9467bd"),
+      pdc    = list(col = "pdc_w",    label = "Pdc(W)",    color = "#d62728"),
+      pout_w = list(col = "pout_w",   label = "Pout(W)",   color = "#ffaa44")
     )
+
+    # Collect data bounds for zoom-to-data feature
+    all_xv <- c(); all_yv <- c()
+    colorbar_x <- 1.02   # start position; shift right per colorbar
 
     if (length(sel_ids) > 0 && length(vars) > 0) {
       for (id in sel_ids) {
-        df <- .get_df(id)
+        df    <- .get_df(id)
         if (is.null(df)) next
+        r     <- ds[[id]]
+        fname <- .short_name(r$filename)
 
         xv_all <- if (pull == "load") df$gl_r else df$gs_r
         yv_all <- if (pull == "load") df$gl_i else df$gs_i
         if (is.null(xv_all) || all(is.na(xv_all))) next
-
-        fname <- ds[[id]]$filename
 
         for (v in vars) {
           vm  <- var_meta[[v]]
@@ -321,64 +378,72 @@ serverLpViewer <- function(input, output, session, state) {
                 (xv_all^2 + yv_all^2) <= 1.02
           xv <- xv_all[ok]; yv <- yv_all[ok]; zv <- zv_all[ok]
           if (length(xv) < 4) next
+          all_xv <- c(all_xv, xv); all_yv <- c(all_yv, yv)
 
-          interp_ok <- FALSE
-          if (requireNamespace("akima", quietly = TRUE) && length(xv) >= 6) {
+          # Short legend: "Gain(dB) [short_filename]"
+          leg_name <- paste0(vm$label, " [", fname, "]")
+
+          # Try cache first, then on-the-fly interpolation
+          cache_key  <- paste0(pull, ":", v)
+          cached     <- r$interp_cache[[cache_key]]
+          interp_ok  <- FALSE
+
+          if (!is.null(cached)) {
+            xi <- cached$xi; yi <- cached$yi; zm <- cached$zm
+            interp_ok <- TRUE
+          } else if (requireNamespace("akima", quietly = TRUE) && length(xv) >= 6) {
             tryCatch({
-              nx <- 50; ny <- 50
-              xi <- seq(min(xv) - 0.02, max(xv) + 0.02, length.out = nx)
-              yi <- seq(min(yv) - 0.02, max(yv) + 0.02, length.out = ny)
-
-              # akima requires unique-ish (x,y) pairs
+              nx <- 40; ny <- 40
+              xi <- seq(min(xv) - 0.01, max(xv) + 0.01, length.out = nx)
+              yi <- seq(min(yv) - 0.01, max(yv) + 0.01, length.out = ny)
               xy_key <- paste(round(xv, 4), round(yv, 4))
               dup    <- duplicated(xy_key)
               res    <- akima::interp(xv[!dup], yv[!dup], zv[!dup],
                                       xo = xi, yo = yi,
                                       linear = TRUE, extrap = FALSE)
-              zm    <- res$z
-              # Mask outside unit circle
+              zm <- res$z
               for (ii in seq_along(xi))
                 for (jj in seq_along(yi))
                   if (!is.finite(zm[ii, jj]) ||
                       xi[ii]^2 + yi[jj]^2 > 1.005) zm[ii, jj] <- NA
-
-              p <- p %>% add_contour(
-                x          = xi, y = yi, z = t(zm),
-                ncontours  = as.integer(n_lev),
-                showscale  = FALSE,
-                colorscale = list(c(0, vm$color), c(1, vm$color)),
-                contours   = list(coloring = "lines",
-                                  showlabels = TRUE,
-                                  labelfont  = list(color = vm$color,
-                                                    size  = 9)),
-                line       = list(color = vm$color, width = 1.2),
-                name       = paste0(vm$label, " [", fname, "]"),
-                showlegend = TRUE
-              )
               interp_ok <- TRUE
             }, error = function(e) NULL)
           }
 
-          if (!interp_ok) {
-            # Fallback: scatter with coloured size markers
-            p <- p %>% add_trace(
-              type      = "scatter",
-              mode      = "markers",
-              x         = xv, y = yv,
-              marker    = list(
-                color     = zv,
-                colorscale = "Viridis",
-                size      = 7,
-                showscale = TRUE,
-                colorbar  = list(title = vm$label,
-                                 tickfont = list(color = "#aaa"),
-                                 x = 1.15)
+          if (interp_ok) {
+            p <- p %>% add_contour(
+              x          = xi, y = yi, z = t(zm),
+              ncontours  = as.integer(n_lev),
+              showscale  = TRUE,
+              colorscale = list(c(0, "#111"), c(1, vm$color)),
+              colorbar   = list(
+                title    = vm$label,
+                x        = colorbar_x,
+                len      = 0.6,
+                tickfont = list(color = "#aaa", size = 9),
+                titlefont = list(color = vm$color, size = 10)
               ),
-              hovertext = sprintf("%s: %.2f", vm$label, zv),
-              hoverinfo = "text",
-              name      = paste0(vm$label, " [", fname, "]"),
+              contours   = list(coloring   = "lines",
+                                showlabels = TRUE,
+                                labelfont  = list(color = vm$color, size = 9)),
+              line       = list(color = vm$color, width = 1.2),
+              name       = leg_name,
               showlegend = TRUE
             )
+            colorbar_x <- colorbar_x + 0.13
+          } else {
+            p <- p %>% add_trace(
+              type   = "scatter", mode = "markers",
+              x      = xv, y = yv,
+              marker = list(color = zv, colorscale = "Viridis", size = 7,
+                            showscale  = TRUE,
+                            colorbar   = list(title = vm$label, x = colorbar_x,
+                                             tickfont = list(color = "#aaa"))),
+              hovertext = sprintf("%s: %.2f", vm$label, zv),
+              hoverinfo = "text",
+              name = leg_name, showlegend = TRUE
+            )
+            colorbar_x <- colorbar_x + 0.13
           }
 
           # Max markers
@@ -386,7 +451,7 @@ serverLpViewer <- function(input, output, session, state) {
             best <- which.max(zv)
             p <- p %>% add_trace(type = "scatter", mode = "markers+text",
               x = xv[best], y = yv[best],
-              text = sprintf("Pout=%.1f", zv[best]),
+              text = sprintf("%.1f dBm", zv[best]),
               textposition = "top right",
               marker = list(color = "#ff7f11", size = 14, symbol = "star",
                             line = list(color = "white", width = 1.5)),
@@ -396,7 +461,7 @@ serverLpViewer <- function(input, output, session, state) {
             best <- which.max(zv)
             p <- p %>% add_trace(type = "scatter", mode = "markers+text",
               x = xv[best], y = yv[best],
-              text = sprintf("PAE=%.1f%%", zv[best]),
+              text = sprintf("%.1f%%", zv[best]),
               textposition = "top right",
               marker = list(color = "#1f77b4", size = 14, symbol = "diamond",
                             line = list(color = "white", width = 1.5)),
@@ -406,18 +471,33 @@ serverLpViewer <- function(input, output, session, state) {
       } # dataset loop
     }
 
-    p %>% layout(do.call(.smith_layout, list(
+    # Axis range: zoom to data or full chart
+    ax_range <- if (zoom_data && length(all_xv) > 0) {
+      pad <- 0.08
+      list(c(min(all_xv) - pad, max(all_xv) + pad),
+           c(min(all_yv) - pad, max(all_yv) + pad))
+    } else {
+      list(c(-1.25, 1.25), c(-1.25, 1.25))
+    }
+
+    base_layout <- do.call(.smith_layout, list(
       title_txt = paste0(
         if (pull == "load") "Load Pull" else "Source Pull",
         " \u2014 Smith Chart Contours"),
-      xl = paste0("Real(\u0393_", if (pull == "load") "L" else "S", ")"),
-      yl = paste0("Imag(\u0393_", if (pull == "load") "L" else "S", ")")
-    )))
+      xl = paste0("Re(\u0393_", if (pull == "load") "L" else "S", ")"),
+      yl = paste0("Im(\u0393_", if (pull == "load") "L" else "S", ")")
+    ))
+    base_layout$xaxis$range <- ax_range[[1]]
+    base_layout$yaxis$range <- ax_range[[2]]
+    base_layout$margin <- list(l = 50, r = max(80, 80 + (colorbar_x - 1.02) / 0.13 * 60),
+                               t = 50, b = 50)
+
+    p %>% layout(base_layout)
   })
 
-  # ── XY Performance Plot ────────────────────────────────────────────────────
+  # ── XY Performance Plot (dual Y-axis: power/gain on Y1, PAE/DE on Y2) ─────
   output$lp_xy_plot <- renderPlotly({
-    id     <- input$lp_sel_xy
+    id     <- input$lp_xy_dataset_selector
     df     <- .get_df(id)
     y_vars <- input$lp_xy_y_vars
     x_var  <- input$lp_xy_x_var %||% "pin_dbm"
@@ -430,53 +510,75 @@ serverLpViewer <- function(input, output, session, state) {
       ))
     }
 
+    # Efficiency variables go on Y2 (right axis)
+    EFF_VARS <- c("pae_pct", "de_pct")
+
     xv <- df[[x_var]]
     p  <- plot_ly()
+    y1_labels <- c(); y2_labels <- c(); i_col <- 1L
 
-    for (i in seq_along(y_vars)) {
-      v  <- y_vars[i]
+    for (v in y_vars) {
       if (!v %in% names(df)) next
-      yv <- df[[v]]
-      ok <- !is.na(xv) & !is.na(yv)
-      p  <- p %>% add_trace(
-        type   = "scatter",
-        mode   = "lines+markers",
-        x      = xv[ok], y  = yv[ok],
-        name   = gsub("_", " ", v),
-        line   = list(color = PALETTE[(i - 1) %% length(PALETTE) + 1]),
-        marker = list(color = PALETTE[(i - 1) %% length(PALETTE) + 1],
-                      size = 5)
+      yv    <- df[[v]]
+      ok    <- !is.na(xv) & !is.na(yv)
+      col   <- PALETTE[(i_col - 1L) %% length(PALETTE) + 1L]
+      i_col <- i_col + 1L
+      on_y2 <- v %in% EFF_VARS
+      lbl   <- switch(v,
+        pae_pct  = "PAE (%)",  de_pct  = "DE (%)",
+        gain_db  = "Gain (dB)", pout_dbm = "Pout (dBm)",
+        pout_w   = "Pout (W)",  pin_dbm  = "Pin (dBm)",
+        gsub("_", " ", v))
+      if (on_y2) y2_labels <- c(y2_labels, lbl)
+      else       y1_labels <- c(y1_labels, lbl)
+      p <- p %>% add_trace(
+        type   = "scatter", mode = "lines+markers",
+        x      = xv[ok], y = yv[ok],
+        yaxis  = if (on_y2) "y2" else "y",
+        name   = lbl,
+        line   = list(color = col, dash = if (on_y2) "dot" else "solid"),
+        marker = list(color = col, size = 5,
+                      symbol = if (on_y2) "circle-open" else "circle")
       )
     }
+
+    y1_title <- if (length(y1_labels) > 0) paste(y1_labels, collapse = " / ") else "Value"
+    y2_title <- if (length(y2_labels) > 0) paste(y2_labels, collapse = " / ") else "Efficiency (%)"
 
     p %>% layout(
       paper_bgcolor = "#1b1b2b",
       plot_bgcolor  = "#1b1b2b",
       xaxis  = list(title = gsub("_", " ", x_var), color = "#aaa",
-                    showgrid = TRUE,
-                    gridcolor = "rgba(100,100,100,0.25)"),
-      yaxis  = list(title = "Performance", color = "#aaa",
-                    showgrid = TRUE,
-                    gridcolor = "rgba(100,100,100,0.25)"),
-      legend = list(font = list(color = "#aaa"),
-                    bgcolor = "rgba(0,0,0,0.30)"),
-      title  = list(text = "XY Performance Plot",
-                    font = list(color = "#eee", size = 14)),
-      font   = list(color = "#aaa")
+                    showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
+      yaxis  = list(title = y1_title, color = "#aaa",
+                    showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
+      yaxis2 = list(title = y2_title, color = "#aaa",
+                    overlaying = "y", side = "right", showgrid = FALSE,
+                    zeroline = FALSE),
+      legend = list(font = list(color = "#aaa"), bgcolor = "rgba(0,0,0,0.30)"),
+      title  = list(text = "XY Performance", font = list(color = "#eee", size = 14)),
+      font   = list(color = "#aaa"),
+      margin = list(l = 60, r = 70, t = 50, b = 60)
     )
   })
 
-  # ── Nose Plot (PAE vs Pout) ────────────────────────────────────────────────
+  # ── Tradeoff / Nose Plot — configurable dual-axis ─────────────────────────
+  # Shows all LP measurement points. Y1 and Y2 are user-selectable.
+  # Default: X = Pout(dBm), Y1 = Gain(dB), Y2 = PAE(%)
   output$lp_nose_plot <- renderPlotly({
-    id  <- input$lp_sel_nose
-    df  <- .get_df(id)
+    id     <- input$lp_nose_dataset_selector
+    df     <- .get_df(id)
+    x_var  <- input$lp_nose_x_var  %||% "pout_dbm"
+    y1_var <- input$lp_nose_y1_var %||% "gain_db"
+    y2_var <- input$lp_nose_y2_var %||% "pae_pct"
 
-    use_watts <- isTRUE(input$lp_nose_pout_unit == "w")
-    x_col     <- if (use_watts) "pout_w" else "pout_dbm"
-    x_label   <- if (use_watts) "Pout (W)" else "Pout (dBm)"
-    x_fmt     <- if (use_watts) "%.4f W" else "%.1f dBm"
+    # Human-readable axis labels
+    .ax_lbl <- function(v) switch(v,
+      pout_dbm = "Pout (dBm)", pout_w  = "Pout (W)",  pin_dbm = "Pin (dBm)",
+      gain_db  = "Gain (dB)",  pae_pct = "PAE (%)",   de_pct  = "DE (%)",
+      gsub("_", " ", v))
 
-    if (is.null(df) || !all(c(x_col, "pae_pct") %in% names(df))) {
+    if (is.null(df)) {
       return(plot_ly() %>% layout(
         paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
         title = list(text = "No data — select a dataset",
@@ -484,72 +586,118 @@ serverLpViewer <- function(input, output, session, state) {
       ))
     }
 
-    ok   <- !is.na(df[[x_col]]) & !is.na(df$pae_pct)
-    pout <- df[[x_col]][ok]
-    pae  <- df$pae_pct[ok]
-
-    p <- plot_ly() %>%
-      add_trace(
-        type      = "scatter", mode = "markers",
-        x         = pout, y = pae,
-        marker    = list(
-          color     = pae, colorscale = "Viridis",
-          size      = 7,   showscale = TRUE,
-          colorbar  = list(title     = "PAE (%)",
-                           tickfont  = list(color = "#aaa"))
-        ),
-        hovertext = sprintf(paste0("Pout=", x_fmt, ", PAE=%.1f%%"), pout, pae),
-        hoverinfo = "text",
-        name      = "LP data"
-      )
-
-    # Mark optimal PAE point
-    if (isTRUE(input$lp_nose_mark_opt) && length(pae) > 0) {
-      bi <- which.max(pae)
-      p  <- p %>% add_trace(
-        type = "scatter", mode = "markers+text",
-        x    = pout[bi], y = pae[bi],
-        text = sprintf(paste0(x_fmt, " / %.1f%%"), pout[bi], pae[bi]),
-        textposition = "top right",
-        textfont  = list(color = "#ff7f11", size = 11),
-        marker    = list(color = "#ff7f11", size = 14, symbol = "star",
-                         line = list(color = "white", width = 1.5)),
-        name      = "Max PAE", showlegend = TRUE
-      )
+    # Sort by X for a clean line
+    if (x_var %in% names(df)) {
+      ord <- order(df[[x_var]], na.last = NA)
+      df  <- df[ord, , drop = FALSE]
     }
 
-    # Back-off reference line (only meaningful on dBm axis)
+    xv  <- if (x_var %in% names(df)) df[[x_var]] else NULL
+    y1v <- if (y1_var %in% names(df)) df[[y1_var]] else NULL
+    y2v <- if (y2_var %in% names(df)) df[[y2_var]] else NULL
+
+    if (is.null(xv)) {
+      return(plot_ly() %>% layout(
+        paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
+        title = list(text = paste0("Column '", x_var, "' not found in dataset"),
+                     font = list(color = "#aaa"))))
+    }
+
+    p <- plot_ly()
+
+    # Y1 trace (left axis)
+    if (!is.null(y1v)) {
+      ok1 <- !is.na(xv) & !is.na(y1v)
+      p <- p %>% add_trace(
+        type   = "scatter", mode = "lines+markers",
+        x      = xv[ok1], y = y1v[ok1],
+        yaxis  = "y",
+        name   = .ax_lbl(y1_var),
+        line   = list(color = "#ff7f11", width = 2),
+        marker = list(color = "#ff7f11", size = 5)
+      )
+      # Mark max-PAE / max-Gain point
+      if (isTRUE(input$lp_nose_mark_opt) && sum(ok1) > 0) {
+        bi <- which.max(y1v[ok1])
+        p  <- p %>% add_trace(
+          type = "scatter", mode = "markers+text",
+          x = xv[ok1][bi], y = y1v[ok1][bi],
+          text = sprintf("%.2f", y1v[ok1][bi]),
+          textposition = "top right",
+          textfont = list(color = "#ffcc80", size = 11),
+          marker   = list(color = "#ff7f11", size = 13, symbol = "star",
+                          line = list(color = "white", width = 1.5)),
+          yaxis = "y", name = paste0("Max ", .ax_lbl(y1_var)), showlegend = TRUE
+        )
+      }
+    }
+
+    # Y2 trace (right axis)
+    if (!is.null(y2v)) {
+      ok2 <- !is.na(xv) & !is.na(y2v)
+      p <- p %>% add_trace(
+        type   = "scatter", mode = "lines+markers",
+        x      = xv[ok2], y = y2v[ok2],
+        yaxis  = "y2",
+        name   = .ax_lbl(y2_var),
+        line   = list(color = "#1f77b4", width = 2, dash = "dot"),
+        marker = list(color = "#1f77b4", size = 5, symbol = "circle-open")
+      )
+      # Mark optimal Y2 point
+      if (isTRUE(input$lp_nose_mark_opt) && sum(ok2) > 0) {
+        bi <- which.max(y2v[ok2])
+        p  <- p %>% add_trace(
+          type = "scatter", mode = "markers+text",
+          x = xv[ok2][bi], y = y2v[ok2][bi],
+          text = sprintf("%.2f", y2v[ok2][bi]),
+          textposition = "top left",
+          textfont = list(color = "#7ec8e3", size = 11),
+          marker   = list(color = "#1f77b4", size = 13, symbol = "diamond",
+                          line = list(color = "white", width = 1.5)),
+          yaxis = "y2", name = paste0("Max ", .ax_lbl(y2_var)), showlegend = TRUE
+        )
+      }
+    }
+
+    # Back-off reference line on X axis (when X is dBm-type)
     bo <- as.numeric(input$lp_backoff_db %||% 6)
-    if (length(pout) > 0 && !use_watts) {
-      max_po <- max(pout, na.rm = TRUE)
-      ymax   <- max(pae,  na.rm = TRUE) * 1.12
+    if (!is.null(xv) && x_var %in% c("pout_dbm", "pin_dbm") && bo > 0) {
+      max_x <- max(xv, na.rm = TRUE)
       p <- p %>% add_trace(
         type = "scatter", mode = "lines",
-        x    = c(max_po - bo, max_po - bo), y = c(0, ymax),
+        x    = c(max_x - bo, max_x - bo), y = c(0, 1),
+        yaxis = "y", xaxis = "x",
         line = list(color = "#d62728", dash = "dash", width = 1.5),
-        name = paste0("-", bo, " dB back-off"),
-        showlegend = TRUE
+        visible = "legendonly",
+        name = paste0("-", bo, " dB back-off")
       )
     }
 
     p %>% layout(
       paper_bgcolor = "#1b1b2b",
       plot_bgcolor  = "#1b1b2b",
-      xaxis  = list(title = x_label, color = "#aaa",
+      xaxis  = list(title = .ax_lbl(x_var), color = "#aaa",
                     showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
-      yaxis  = list(title = "PAE (%)",    color = "#aaa",
-                    showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
-      legend = list(font = list(color = "#aaa"),
-                    bgcolor = "rgba(0,0,0,0.30)"),
-      title  = list(text = "Nose Plot \u2014 PAE vs Pout",
+      yaxis  = list(title = if (!is.null(y1v)) .ax_lbl(y1_var) else "",
+                    color = "#ff7f11",
+                    showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)",
+                    tickfont = list(color = "#ff7f11")),
+      yaxis2 = list(title = if (!is.null(y2v)) .ax_lbl(y2_var) else "",
+                    color = "#1f77b4",
+                    overlaying = "y", side = "right",
+                    showgrid = FALSE, zeroline = FALSE,
+                    tickfont = list(color = "#1f77b4")),
+      legend = list(font = list(color = "#aaa"), bgcolor = "rgba(0,0,0,0.30)"),
+      title  = list(text = "Tradeoff Plot",
                     font = list(color = "#eee", size = 14)),
-      font   = list(color = "#aaa")
+      font   = list(color = "#aaa"),
+      margin = list(l = 65, r = 70, t = 50, b = 60)
     )
   })
 
   # ── Tabular: Ppeak (max Pout) ─────────────────────────────────────────────
   output$lp_table_ppeak <- DT::renderDT({
-    id  <- input$lp_sel_table
+    id  <- input$lp_table_dataset_selector
     df  <- .get_df(id)
     if (is.null(df) || !"pout_dbm" %in% names(df)) return(data.frame())
     bi  <- which.max(df$pout_dbm)
@@ -561,7 +709,7 @@ serverLpViewer <- function(input, output, session, state) {
 
   # ── Tabular: Pavg (Ppeak − N dB) ─────────────────────────────────────────
   output$lp_table_pavg <- DT::renderDT({
-    id  <- input$lp_sel_table
+    id  <- input$lp_table_dataset_selector
     df  <- .get_df(id)
     if (is.null(df) || !"pout_dbm" %in% names(df)) return(data.frame())
     bo      <- as.numeric(input$lp_ppeak_backoff %||% 6)
@@ -586,7 +734,7 @@ serverLpViewer <- function(input, output, session, state) {
   output$lp_table_csv <- downloadHandler(
     filename = function() paste0("lp_data_", Sys.Date(), ".csv"),
     content  = function(file) {
-      df <- .get_df(input$lp_sel_table)
+      df <- .get_df(input$lp_table_dataset_selector)
       write.csv(if (is.null(df)) data.frame() else df,
                 file, row.names = FALSE)
     }
@@ -594,7 +742,7 @@ serverLpViewer <- function(input, output, session, state) {
 
   # ── Comparison plot ────────────────────────────────────────────────────────
   output$lp_compare_plot <- renderPlotly({
-    sel    <- input$lp_sel_compare
+    sel    <- input$lp_compare_selector
     ds     <- lp_datasets()
     metric <- input$lp_compare_metric %||% "pae_pct"
 

@@ -375,7 +375,8 @@ server <- function(input, output, session) {
                           hr(),
                           checkboxInput("lp_show_max_pae",   "Mark max-PAE point",    value = TRUE),
                           checkboxInput("lp_show_max_pout",  "Mark max-Pout point",   value = TRUE),
-                          checkboxInput("lp_show_stability", "Show stability circles", value = FALSE)
+                          checkboxInput("lp_show_stability", "Show stability circles", value = FALSE),
+                          checkboxInput("lp_smith_zoom_data", "Zoom to data region",   value = FALSE)
                         )
                       ),
                       column(9,
@@ -436,12 +437,30 @@ server <- function(input, output, session) {
                       column(3,
                         div(class = "well",
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                          h5("Nose plot controls", style = "color:#f0f0f0; margin-top:0;"),
+                          h5("Tradeoff plot controls", style = "color:#f0f0f0; margin-top:0;"),
                           uiOutput("lp_nose_dataset_selector"),
-                          radioButtons("lp_nose_pout_unit", "Pout units",
-                            choices  = c("dBm" = "dbm", "W" = "w"),
-                            selected = "dbm", inline = TRUE),
-                          checkboxInput("lp_nose_mark_opt", "Mark optimal point",
+                          hr(),
+                          selectInput("lp_nose_x_var", "X axis",
+                            choices = c(
+                              "Pout (dBm)" = "pout_dbm",
+                              "Pin (dBm)"  = "pin_dbm",
+                              "Pout (W)"   = "pout_w"),
+                            selected = "pout_dbm"),
+                          selectInput("lp_nose_y1_var", "Y1 axis (left, solid)",
+                            choices = c(
+                              "Gain (dB)"  = "gain_db",
+                              "Pout (dBm)" = "pout_dbm",
+                              "PAE (%)"    = "pae_pct",
+                              "DE (%)"     = "de_pct",
+                              "Pout (W)"   = "pout_w"),
+                            selected = "gain_db"),
+                          selectInput("lp_nose_y2_var", "Y2 axis (right, dotted)",
+                            choices = c(
+                              "PAE (%)"   = "pae_pct",
+                              "DE (%)"    = "de_pct",
+                              "Gain (dB)" = "gain_db"),
+                            selected = "pae_pct"),
+                          checkboxInput("lp_nose_mark_opt", "Mark optimal points",
                             value = TRUE),
                           hr(),
                           sliderInput("lp_backoff_db", "Back-off reference (dB)",
@@ -451,12 +470,12 @@ server <- function(input, output, session) {
                       column(9,
                         div(class = "well",
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                          h5("PAE vs Pout \u2014 Nose Plot / Trade-off",
+                          h5("Tradeoff Plot \u2014 Gain / PAE / DE vs Pout",
                             style = "color:#f0f0f0; margin-top:0;"),
                           plotlyOutput("lp_nose_plot", height = "460px"),
                           hr(),
                           p(class = "text-muted", style = "font-size:11px;",
-                            "The optimal operating point balances maximum PAE against required output power.")
+                            "Configure X, Y1 (left axis), and Y2 (right axis) independently. Points are sorted by X.")
                         )
                       )
                     )
