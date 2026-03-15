@@ -1363,11 +1363,16 @@
         if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { state.shiftDown = false; }
       });
 
+      // Flag to suppress the click event that Konva always fires after a
+      // mousedown, even when isPanning is already reset to false by mouseup.
+      let _panClick = false;
+
       stage.on('mousedown touchstart', (e) => {
         // Middle button, Space+drag, or Pan tool → pan
         if (e.evt.button === 1 || spaceDown || state.tool === 'pan') {
           stage.draggable(true);
           state.isPanning = true;
+          _panClick = true;    // mark: next click must be ignored
           stage.container().style.cursor = 'grabbing';
           return;
         }
@@ -1375,6 +1380,7 @@
         if (e.evt.button === 2) {
           stage.draggable(true);
           state.isPanning = true;
+          _panClick = true;
           stage.container().style.cursor = 'grabbing';
           e.evt.preventDefault();
           return;
@@ -1450,13 +1456,20 @@
 
       // Click to place / draw
       stage.on('click tap', (e) => {
-        if (state.isPanning) return;
+        // isPanning may already be false here (mouseup resets it before click fires).
+        // Use the _panClick flag as the authoritative guard.
+        if (state.isPanning || _panClick) { _panClick = false; return; }
         // Ignore dblclick second click
         if (e.evt.detail === 2) return;
 
         const isBackground = e.target === stage;
         const pos = pointerMm();
         const tool = state.tool;
+
+        // Passive tools — NEVER create components on click
+        if (tool === 'pan' || tool === 'chamfer' || tool === 'fillet' ||
+            tool === 'schematic' || tool === 'angle_dim' || tool === 'label' ||
+            tool === '3d' || tool === 'layers' || tool === 'expand') return;
 
         if (tool === 'select') {
           if (isBackground) deselectAll();

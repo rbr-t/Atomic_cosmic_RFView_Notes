@@ -60,7 +60,8 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
   ns <- NS(id)
 
   # Assets served from the app's own www/ (standard Shiny path)
-  js_path  <- "js/rf_canvas.js"
+  # Version suffix forces browser to bypass cache after file updates.
+  js_path  <- "js/rf_canvas.js?v=20260315"
   css_path <- "css/rf_cad.css"
 
   # ── Shared JS helper: set active tool button ────────────────────────────
