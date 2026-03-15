@@ -332,7 +332,7 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
     ),
     # Pop-out in a standalone window (no sidebar/header)
     .tb_btn("\u29c9", "New Tab", "Open RF CAD in a standalone window",
-      "window.open(location.href.split('?')[0]+'?rfcad_standalone=1','_blank','width=1400,height=860,menubar=no,toolbar=no,location=no,status=no,resizable=yes');"
+      "window.open(location.href.split('?')[0]+'?panel=rf_tools&rfcad=1&standalone=1','_blank','width=1400,height=860,menubar=no,toolbar=no,location=no,status=no,resizable=yes');"
     )
   )
 

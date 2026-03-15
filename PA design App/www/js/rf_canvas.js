@@ -773,10 +773,14 @@
       const sc = stage.scaleX();
       const hr = 6 / sc;
 
-      function makeHandle(x, y, fill, cursor, onDragMove, onDragEnd) {
-        const absPos = group.getAbsoluteTransform().point({ x, y });
+      function makeHandle(lx, ly, fill, cursor, onDragMove, onDragEnd) {
+        // Convert group-local (lx, ly) → layer coordinates (same space as layers.ui)
+        const rot = group.rotation() * Math.PI / 180;
+        const cos = Math.cos(rot), sin = Math.sin(rot);
+        const hx = group.x() + lx * cos - ly * sin;
+        const hy = group.y() + lx * sin + ly * cos;
         const h = new Konva.Circle({
-          x: absPos.x, y: absPos.y, radius: hr,
+          x: hx, y: hy, radius: hr,
           fill: fill, stroke: '#111', strokeWidth: 1 / sc,
           draggable: true, hitStrokeWidth: 10 / sc, listening: true
         });
@@ -800,17 +804,19 @@
         makeHandle(L, 0, SEL_COLOR, 'ew-resize', function() {
           const c = state.components.find(cc => cc.id === state.selectedId);
           if (!c) return;
-          const inv   = group.getAbsoluteTransform().copy().invert();
-          const local = inv.point({ x: this.x(), y: this.y() });
-          c.params.L  = Math.max(0.01, snapMm(pxToMm(local.x)));
-          // Refresh just the component shape without destroying handles yet
+          const rot2 = group.rotation() * Math.PI / 180;
+          const cos2 = Math.cos(rot2), sin2 = Math.sin(rot2);
+          // Convert layer coords → group-local via inverse rotation
+          const dx = this.x() - group.x(), dy = this.y() - group.y();
+          const localX = dx * cos2 + dy * sin2;   // project onto component axis
+          c.params.L  = Math.max(0.01, snapMm(pxToMm(localX)));
           const existing = layers.comp.findOne('#' + c.id);
           if (existing) existing.destroy();
           renderComponent(c);
           layers.comp.batchDraw();
-          // Re-snap handle to actual new endpoint
-          const tf    = layers.comp.findOne('#' + c.id);
-          if (tf) { const p = tf.getAbsoluteTransform().point({ x: mmToPx(c.params.L), y: 0 }); this.x(p.x); this.y(p.y); }
+          // Re-snap handle to actual endpoint
+          this.x(group.x() + mmToPx(c.params.L) * cos2);
+          this.y(group.y() + mmToPx(c.params.L) * sin2);
           layers.ui.batchDraw();
         }, finishResize);
 
@@ -818,9 +824,12 @@
         makeHandle(L / 2, W / 2, '#4caf50', 'ns-resize', function() {
           const c = state.components.find(cc => cc.id === state.selectedId);
           if (!c) return;
-          const inv   = group.getAbsoluteTransform().copy().invert();
-          const local = inv.point({ x: this.x(), y: this.y() });
-          c.params.W  = Math.max(0.001, snapMm(Math.abs(pxToMm(local.y)) * 2));
+          const rot2 = group.rotation() * Math.PI / 180;
+          const cos2 = Math.cos(rot2), sin2 = Math.sin(rot2);
+          const dx = this.x() - group.x(), dy = this.y() - group.y();
+          // W = 2 × perpendicular distance (project onto [-sin,cos] axis)
+          const localY = -dx * sin2 + dy * cos2;
+          c.params.W  = Math.max(0.001, snapMm(Math.abs(pxToMm(localY)) * 2));
           const existing = layers.comp.findOne('#' + c.id);
           if (existing) existing.destroy();
           renderComponent(c);
@@ -835,9 +844,9 @@
         makeHandle(r, 0, '#00bcd4', 'ew-resize', function() {
           const c = state.components.find(cc => cc.id === state.selectedId);
           if (!c) return;
-          const inv   = group.getAbsoluteTransform().copy().invert();
-          const local = inv.point({ x: this.x(), y: this.y() });
-          const newR  = Math.max(0.01, snapMm(pxToMm(Math.hypot(local.x, local.y))));
+          // Distance from group origin = radius (no rotation needed for circles)
+          const dx = this.x() - group.x(), dy = this.y() - group.y();
+          const newR  = Math.max(0.01, snapMm(pxToMm(Math.hypot(dx, dy))));
           if (c.params.radius !== undefined) c.params.radius = newR;
           if (c.params.pad    !== undefined) c.params.pad    = snapMm(newR * 2);
           const existing = layers.comp.findOne('#' + c.id);
@@ -1400,6 +1409,16 @@
         }
       });
 
+      // Reset pan state even when mouseup fires outside the canvas
+      window.addEventListener('mouseup', () => {
+        if (state.isPanning) {
+          stage.draggable(false);
+          state.isPanning = false;
+          stage.container().style.cursor = state.tool === 'select' ? 'default' : 'crosshair';
+          drawGrid();
+        }
+      });
+
       stage.on('mousemove touchmove', () => {
         updateStatus();
         if (state.isDrawing || state.polyPts.length > 0 || state.arcPts.length > 0) {
@@ -1444,7 +1463,13 @@
           return;
         }
 
-        if (!isBackground && !['polyline', 'polygon', 'arc'].includes(tool)) return;
+        // Drawing/placement tools work regardless of target (background OR shape)
+        const DRAW_TOOLS = new Set([
+          'microstrip','ms','bend90','tee','coupled','via','port','open_stub','short_stub',
+          'line','rect','circle','polyline','polygon','arc',
+          'dim_h','dim_v','dim_align','text','leader','ruler'
+        ]);
+        if (!isBackground && !DRAW_TOOLS.has(tool)) return;
 
         // ── Microstrip (2-click draw) ──────────────────────────────────
         if (tool === 'microstrip' || tool === 'ms') {
@@ -1687,13 +1712,17 @@
       updateStatus();
     }
 
-    // Resize observer
+    // Resize observer — guard against zero-dimension resize (e.g. hidden tab)
     if (window.ResizeObserver) {
       new ResizeObserver(() => {
-        stage.width(container.offsetWidth);
-        stage.height(container.offsetHeight);
-        drawGrid();
-        reRenderAll();
+        const w = container.offsetWidth;
+        const h = container.offsetHeight;
+        if (w > 0 && h > 0) {
+          stage.width(w);
+          stage.height(h);
+          drawGrid();
+          reRenderAll();
+        }
       }).observe(container);
     }
 

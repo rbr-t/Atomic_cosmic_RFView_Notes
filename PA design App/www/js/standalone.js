@@ -28,9 +28,8 @@
       'body, .wrapper { overflow: hidden; background: #0f0f1a !important; }',
     ].join('\n');
 
-    if (!rfcadMode) {
-      /* Utility drawer fills the entire window in non-rfcad standalone */
-      style.textContent += [
+    /* Utility drawer fills the entire window in all standalone modes */
+    style.textContent += [
         '#utility-drawer {',
         '  position: fixed !important; inset: 0 !important;',
         '  width: 100vw !important; height: 100vh !important;',
@@ -42,7 +41,7 @@
         '#utility-drawer-body { flex: 1 1 auto; overflow: auto; }',
         '#drawer-full-btn, #drawer-close-btn { display: none !important; }',
       ].join('\n');
-    }
+
 
     var inject = function () {
       (document.head || document.documentElement).appendChild(style);
@@ -61,6 +60,23 @@
       if (typeof utilityDrawerOpen === 'function') {
         opened = true;
         utilityDrawerOpen(panel);
+        // If ?rfcad=1 is also set, auto-click the RF CAD tab inside the drawer
+        if (params.get('rfcad') === '1') {
+          var tabAttempts = 0;
+          var tryRfcadTab = function () {
+            tabAttempts++;
+            if (tabAttempts > 30) return;
+            var tabs = document.querySelectorAll('.nav-tabs a, .nav-pills a, [role="tab"]');
+            for (var i = 0; i < tabs.length; i++) {
+              if (/rf\s*cad/i.test(tabs[i].textContent)) {
+                tabs[i].click();
+                return;
+              }
+            }
+            setTimeout(tryRfcadTab, 500);
+          };
+          setTimeout(tryRfcadTab, 1000);
+        }
       } else {
         setTimeout(tryOpen, 250);
       }
@@ -72,29 +88,40 @@
     }
   }
 
-  // ── Auto-navigate to RF CAD tab ───────────────────────────────────────
+  // ── Auto-navigate: open rf_tools drawer and click RF CAD tab ──────────────
   if (rfcadMode) {
-    var navigated = false;
-    var tryNav = function () {
-      if (navigated) return;
-      // Look for "RF CAD" tab link in Bootstrap nav pills / tabs
-      var candidates = document.querySelectorAll('.nav a, .nav button, [role="tab"]');
-      for (var i = 0; i < candidates.length; i++) {
-        if (/rf\s*cad/i.test(candidates[i].textContent)) {
-          navigated = true;
-          candidates[i].click();
-          return;
-        }
+    // RF CAD lives inside the utility drawer (rf_tools panel), not the main nav.
+    // Open the drawer first, then poll for the RF CAD Bootstrap tab link.
+    var openedRfcad = false, rfcadTabDone = false, rfcadOpenAttempts = 0;
+    var tryOpenRfTools = function () {
+      rfcadOpenAttempts++;
+      if (openedRfcad || rfcadOpenAttempts > 40) return;
+      if (typeof utilityDrawerOpen === 'function') {
+        openedRfcad = true;
+        utilityDrawerOpen('rf_tools');
+        var tabAttempts = 0;
+        var tryClickRfcadTab = function () {
+          tabAttempts++;
+          if (rfcadTabDone || tabAttempts > 30) return;
+          var tabs = document.querySelectorAll('.nav-tabs a, .nav-pills a, [role="tab"]');
+          for (var i = 0; i < tabs.length; i++) {
+            if (/rf\s*cad/i.test(tabs[i].textContent)) {
+              rfcadTabDone = true;
+              tabs[i].click();
+              return;
+            }
+          }
+          setTimeout(tryClickRfcadTab, 500);
+        };
+        setTimeout(tryClickRfcadTab, 1000); // allow Shiny to render drawer content
+      } else {
+        setTimeout(tryOpenRfTools, 250);
       }
-      // Fallback: Shiny tabsetPanel by data-value
-      var byVal = document.querySelector('[data-value*="rf_cad"], [data-value*="rfcad"]');
-      if (byVal) { navigated = true; byVal.click(); return; }
-      setTimeout(tryNav, 300);
     };
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', function () { setTimeout(tryNav, 600); });
+      document.addEventListener('DOMContentLoaded', function () { setTimeout(tryOpenRfTools, 400); });
     } else {
-      setTimeout(tryNav, 600);
+      setTimeout(tryOpenRfTools, 400);
     }
   }
 })();
