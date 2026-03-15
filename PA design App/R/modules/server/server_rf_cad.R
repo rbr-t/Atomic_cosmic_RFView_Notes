@@ -63,242 +63,374 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
   js_path  <- "js/rf_canvas.js"
   css_path <- "css/rf_cad.css"
 
-  # ── Component palette buttons ───────────────────────────────────────────
-  palette_items <- list(
-    list(type = "ms",         label = "Microstrip",   icon = "\u2500"),
-    list(type = "bend90",     label = "Bend 90\u00b0",icon = "\u231d"),
-    list(type = "tee",        label = "T-Junction",   icon = "\u22a5"),
-    list(type = "coupled",    label = "Coupled",      icon = "\u2016"),
-    list(type = "via",        label = "GND Via",      icon = "\u25cf"),
-    list(type = "port",       label = "RF Port",      icon = "\u25c6"),
-    list(type = "open_stub",  label = "Open Stub",    icon = "\u2a10"),
-    list(type = "short_stub", label = "Short Stub",   icon = "\u23da")
+  # ── Shared JS helper: set active tool button ────────────────────────────
+  # Called by every tool button so only one is highlighted at a time
+  .tool_js <- function(toolName) sprintf(
+    "(function(){
+      var c=RFCAD.getCanvas('%s');if(!c)return;
+      c.setTool('%s');
+      document.querySelectorAll('#%s_tb [data-tool]').forEach(function(b){
+        b.classList.toggle('active', b.dataset.tool==='%s');
+      });
+    })();",
+    id, toolName, id, toolName
   )
 
-  palette_btns <- lapply(palette_items, function(item) {
+  # ── Helper: make a toolbar button ───────────────────────────────────────
+  .tb_btn <- function(icon, label, title, onclick, extra_class = "", tool = NULL, btn_id = NULL) {
+    args <- list(
+      class   = paste("rfcad-tb-btn", extra_class),
+      title   = title,
+      onclick = onclick
+    )
+    if (!is.null(tool))   args[["data-tool"]] <- tool
+    if (!is.null(btn_id)) args[["id"]]        <- btn_id
+    do.call(tags$button, c(args, list(
+      tags$span(class = "rfcad-tb-icon", icon),
+      tags$span(class = "rfcad-tb-label", label)
+    )))
+  }
+
+  .tb_sep <- function() tags$span(class = "rfcad-tb-sep")
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # TOOLBAR ROWS
+  # ═══════════════════════════════════════════════════════════════════════
+
+  # ── Row 1: Drafting / Drawing Tools ─────────────────────────────────────
+  tb_row1 <- div(class = "rfcad-tb-row",
+    div(class = "rfcad-tb-group-label", "Drafting"),
+    .tb_btn("\u25b6", "Select",   "Select / Move (V)",          .tool_js("select"),    tool = "select"),
+    .tb_btn("\u270b", "Pan",      "Pan canvas (Space+drag)",    .tool_js("pan"),       tool = "pan"),
+    .tb_sep(),
+    .tb_btn("\u2500", "Line",     "Draw single line segment",   .tool_js("line"),      tool = "line"),
+    .tb_btn("\u299a", "Polyline", "Draw polyline (dbl-click end)", .tool_js("polyline"),  tool = "polyline"),
+    .tb_btn("\u25e0", "Arc",      "3-point arc",                .tool_js("arc"),       tool = "arc"),
+    .tb_btn("\u25ad", "Rect",     "Draw rectangle",             .tool_js("rect"),      tool = "rect"),
+    .tb_btn("\u25cb", "Circle",   "Draw circle",                .tool_js("circle"),    tool = "circle"),
+    .tb_btn("\u2b21", "Polygon",  "Draw polygon",               .tool_js("polygon"),   tool = "polygon"),
+    .tb_sep(),
+    .tb_btn("\U0001f4cf", "Ruler", "Measure distance + angle",
+      sprintf(
+        "(function(){
+          var c=RFCAD.getCanvas('%s');if(!c)return;
+          var btns=document.querySelectorAll('#%s_tb [data-tool]');
+          btns.forEach(function(b){b.classList.remove('active');});
+          var me=document.querySelector('#%s_tb [data-tool=ruler]');
+          var wasActive=me&&me.classList.contains('active');
+          if(!wasActive){if(me)me.classList.add('active');c.setTool('ruler');}
+          else{c.clearMeasure();c.setTool('select');}
+        })();",
+        id, id, id
+      ),
+      tool = "ruler"
+    ),
+    .tb_btn("\u2220", "AngleDim", "Angle dimension annotation", .tool_js("angle_dim"), tool = "angle_dim"),
+    .tb_btn("\U0001f4dd", "Text",  "Place text annotation",      .tool_js("text"),      tool = "text")
+  )
+
+  # ── Row 2: RF Components ─────────────────────────────────────────────────
+  rf_comp_items <- list(
+    list(type="ms",         icon="\u2500", label="MS",      title="Microstrip line (2-click draw)"),
+    list(type="bend90",     icon="\u231d", label="Bend",    title="90\u00b0 bend / miter"),
+    list(type="tee",        icon="\u22a5", label="T-Jct",   title="T-Junction"),
+    list(type="coupled",    icon="\u2016", label="Coupled", title="Edge-coupled lines"),
+    list(type="via",        icon="\u25cf", label="Via",     title="GND via (drill+pad)"),
+    list(type="port",       icon="\u25c6", label="Port",    title="RF Port (numbered)"),
+    list(type="open_stub",  icon="\u2a10", label="OStub",   title="Open-ended stub"),
+    list(type="short_stub", icon="\u23da", label="SStub",   title="Short/GND stub")
+  )
+  tb_row2 <- div(class = "rfcad-tb-row",
+    div(class = "rfcad-tb-group-label", "RF Components"),
+    lapply(rf_comp_items, function(it)
+      .tb_btn(it$icon, it$label, it$title, .tool_js(it$type), tool = it$type)
+    )
+  )
+
+  # ── Row 3: Modification Tools ────────────────────────────────────────────
+  tb_row3 <- div(class = "rfcad-tb-row",
+    div(class = "rfcad-tb-group-label", "Modify"),
+    .tb_btn("\u2715",     "Delete",   "Delete selected (Del)",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.deleteSelected();", id)),
+    .tb_btn("\u21bb",     "Rot+45",   "Rotate +45\u00b0 (R)",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.rotateSelected(45);", id)),
+    .tb_btn("\u21ba",     "Rot-45",   "Rotate -45\u00b0",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.rotateSelected(-45);", id)),
+    .tb_btn("\u2194",     "MirrorH",  "Mirror horizontal",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.mirrorSelected('h');", id)),
+    .tb_btn("\u2195",     "MirrorV",  "Mirror vertical",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.mirrorSelected('v');", id)),
+    .tb_sep(),
+    .tb_btn("\U0001f4cb", "Copy",     "Copy selected (Ctrl+C)",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.copySelected();", id)),
+    .tb_btn("\u2397",     "Array",    "Rectangular array of selected",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.arraySelected();", id)),
+    .tb_btn("\u25a1",     "Offset",   "Offset selected shape outward",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.offsetSelected();", id)),
+    .tb_sep(),
+    .tb_btn("\u2692",     "Chamfer",  "Chamfer selected corner",
+      .tool_js("chamfer"), tool = "chamfer"),
+    .tb_btn("\u25dc",     "Fillet",   "Fillet (round) selected corner",
+      .tool_js("fillet"),  tool = "fillet")
+  )
+
+  # ── Row 4: Annotation Tools ───────────────────────────────────────────────
+  tb_row4 <- div(class = "rfcad-tb-row",
+    div(class = "rfcad-tb-group-label", "Annotation"),
+    .tb_btn("\u21a6",     "DimH",     "Horizontal dimension",    .tool_js("dim_h"),    tool = "dim_h"),
+    .tb_btn("\u21a7",     "DimV",     "Vertical dimension",      .tool_js("dim_v"),    tool = "dim_v"),
+    .tb_btn("\u21d7",     "DimAngld", "Aligned dimension",       .tool_js("dim_align"),tool = "dim_align"),
+    .tb_btn("\u2934",     "Leader",   "Leader with annotation",  .tool_js("leader"),   tool = "leader"),
+    .tb_btn("\u25a6",     "Label",    "Place component label",   .tool_js("label"),    tool = "label"),
+    .tb_sep(),
+    .tb_btn("\U0001f4cb", "BOM",      "Bill of Materials & Revisions",
+      sprintf("Shiny.setInputValue('%s', Math.random(), {priority:'event'});",
+              paste0(id, "-show_bom_rev")))
+  )
+
+  # ── Row 5: View / Layer / File Controls ──────────────────────────────────
+  tb_row5 <- div(class = "rfcad-tb-row rfcad-tb-row-view",
+    div(class = "rfcad-tb-group-label", "View"),
+    .tb_btn("+",          "ZoomIn",  "Zoom in (scroll)",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.zoomBy(1.25);", id)),
+    .tb_btn("\u2212",      "ZoomOut", "Zoom out",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.zoomBy(0.8);", id)),
+    .tb_btn("\u26f6",      "Fit",     "Fit content to view (F)",
+      sprintf("var c=RFCAD.getCanvas('%s');if(c)c.fitToContent();", id)),
+    .tb_sep(),
+    # 3D toggle
+    .tb_btn("\U0001f9ca", "3D", "Toggle 3D view",
+      sprintf(
+        "(function(){
+          var w2=document.getElementById('%s_2d_wrap'),w3=document.getElementById('%s_3d_wrap');
+          var is3d=w3.style.display!=='none';
+          if(is3d){w2.style.display='';w3.style.display='none';}
+          else{w2.style.display='none';w3.style.display='';
+            var c=RFCAD.getCanvas('%s');var j=c?c.exportJSON():'{}';
+            if(typeof RF3D!=='undefined')RF3D.render(j,'%s_3d_canvas');}
+          document.querySelector('#%s_tb [data-tool=\'3d\']').classList.toggle('active',!is3d);
+        })();",
+        id, id, id, id, id
+      ),
+      tool = "3d"
+    ),
+    .tb_sep(),
+    # Layer panel toggle
+    .tb_btn("\u25a3", "Layers", "Toggle layer panel",
+      sprintf(
+        "(function(){
+          var lp=document.getElementById('%s_layer_panel');
+          if(!lp)return;
+          var vis=lp.style.display==='block';
+          lp.style.display=vis?'none':'block';
+          document.querySelector('#%s_tb [data-tool=\'layers\']').classList.toggle('active',!vis);
+        })();",
+        id, id
+      ),
+      tool = "layers"
+    ),
+    .tb_sep(),
+    # Grid selector (inline in row)
+    tags$span(class = "rfcad-tb-inline-label", "Grid:"),
+    tags$select(
+      id       = ns("grid_size"),
+      class    = "rfcad-tb-select",
+      onchange = sprintf("var c=RFCAD.getCanvas('%s');if(c)c.setGrid(parseFloat(this.value));", id),
+      tags$option(value="0.1",  "0.1mm"),
+      tags$option(value="0.25", "0.25mm"),
+      tags$option(value="0.5",  selected="selected", "0.5mm"),
+      tags$option(value="1.0",  "1mm"),
+      tags$option(value="2.0",  "2mm")
+    ),
+    tags$label(
+      class = "rfcad-tb-snap-label",
+      title = "Snap to grid",
+      tags$input(
+        type="checkbox", id=ns("snap_grid"), checked="checked",
+        onchange=sprintf("var c=RFCAD.getCanvas('%s');if(c)c.setSnap(this.checked);", id)
+      ),
+      "Snap"
+    ),
+    .tb_sep(),
+    # Save
+    .tb_btn("\U0001f4be", "Save", "Save design to JSON",
+      sprintf(
+        "var c=RFCAD.getCanvas('%s');if(c){var d=c.exportJSON();Shiny.setInputValue('%s',d,{priority:'event'});}",
+        id, ns("save_trigger")
+      )
+    ),
+    # Clear
+    .tb_btn("\u2717", "Clear", "Clear all components",
+      sprintf("if(confirm('Clear all components?')){var c=RFCAD.getCanvas('%s');if(c)c.clearAll();}", id)
+    ),
+    .tb_sep(),
+    # Export dropdown
+    div(class = "rfcad-export-wrap",
+      tags$button(
+        class   = "rfcad-tb-btn rfcad-export-btn",
+        onclick = sprintf(
+          "(function(){var m=document.getElementById('%s_export_menu');m.style.display=m.style.display==='block'?'none':'block';})();",
+          id
+        ),
+        tags$span(class="rfcad-tb-icon", "\U0001f4e4"),
+        tags$span(class="rfcad-tb-label", "Export\u25be")
+      ),
+      div(id = paste0(id, "_export_menu"), class = "rfcad-export-menu",
+        tags$a(class="rfcad-export-item", href="#",
+          onclick=sprintf(
+            "(function(){var c=RFCAD.getCanvas('%s');if(!c){alert('No canvas');return false;}var url=c.exportSVG();if(!url){alert('SVG not available');return false;}var a=document.createElement('a');a.href=url;a.download='%s_design.svg';a.click();document.getElementById('%s_export_menu').style.display='none';return false;})();",
+            id,id,id),
+          "\U0001f5bc SVG"
+        ),
+        tags$a(class="rfcad-export-item", href="#",
+          onclick=sprintf(
+            "(function(){var c=RFCAD.getCanvas('%s');if(!c){alert('No canvas');return false;}var j=c.exportJSON();Shiny.setInputValue('%s',{json:j,fmt:'dxf',ts:Date.now()},{priority:'event'});document.getElementById('%s_export_menu').style.display='none';return false;})();",
+            id,paste0(id,"-export_trigger"),id),
+          "\U0001f4d0 DXF"
+        ),
+        tags$a(class="rfcad-export-item", href="#",
+          onclick=sprintf(
+            "(function(){var c=RFCAD.getCanvas('%s');if(!c){alert('No canvas');return false;}var j=c.exportJSON();Shiny.setInputValue('%s',{json:j,fmt:'gerber',ts:Date.now()},{priority:'event'});document.getElementById('%s_export_menu').style.display='none';return false;})();",
+            id,paste0(id,"-export_trigger"),id),
+          "\U0001f9ff Gerber"
+        )
+      )
+    ),
+    .tb_sep(),
+    # Expand toggle
+    .tb_btn("\u26f6", "Expand", "Expand RF CAD to 95% of screen (hides sidebar)",
+      sprintf(
+        "(function(){
+          var wrap=document.getElementById('%s_outer');
+          if(!wrap)return;
+          var expanded=wrap.classList.toggle('rfcad-expanded');
+          document.querySelector('#%s_tb [data-tool=\'expand\']').classList.toggle('active',expanded);
+          var c=RFCAD.getCanvas('%s');
+          setTimeout(function(){
+            var el=document.getElementById('%s');
+            if(el&&c&&c.stage){c.stage.width(el.offsetWidth);c.stage.height(el.offsetHeight);c.drawGrid();}
+          },320);
+        })();",
+        id, id, id, ns("rfcad_canvas")
+      ),
+      tool = "expand"
+    )
+  )
+
+  # ── Component palette (left sidebar) ─────────────────────────────────────
+  palette_btns <- lapply(rf_comp_items, function(item) {
     tags$button(
       class       = "rfcad-palette-btn",
       `data-type` = item$type,
-      title       = item$label,
-      onclick     = sprintf(
-        "var c=RFCAD.getCanvas('%s');if(c)c.setTool('%s');", id, item$type
-      ),
+      title       = item$title,
+      onclick     = .tool_js(item$type),
       tags$span(class = "rfcad-palette-icon", item$icon),
       tags$span(class = "rfcad-palette-label", item$label)
     )
   })
 
-  # ── Toolbar ─────────────────────────────────────────────────────────────
-  toolbar_left <- tagList(
-    tags$button(
-      class = "rfcad-tool-btn", id = ns("btn_select"), title = "Select (V)",
-      onclick = sprintf("var c=RFCAD.getCanvas('%s');if(c)c.setTool('select');", id),
-      "\u25b6 Select"
-    ),
-    tags$span(class = "rfcad-toolbar-sep"),
-    tags$button(
-      class = "rfcad-ctrl-btn", title = "Delete selected (Del)",
-      onclick = sprintf("var c=RFCAD.getCanvas('%s');if(c)c.deleteSelected();", id),
-      "\ud83d\uddd1 Del"
-    ),
-    tags$button(
-      class = "rfcad-ctrl-btn", title = "Rotate 45\u00b0 (R)",
-      onclick = sprintf("var c=RFCAD.getCanvas('%s');if(c)c.rotateSelected(45);", id),
-      "\u21bb Rot"
-    ),
-    tags$span(class = "rfcad-toolbar-sep"),
-    tags$button(
-      class = "rfcad-ctrl-btn", title = "Zoom In",
-      onclick = sprintf("var c=RFCAD.getCanvas('%s');if(c)c.zoomBy(1.25);", id),
-      "+ Zoom"
-    ),
-    tags$button(
-      class = "rfcad-ctrl-btn", title = "Zoom Out",
-      onclick = sprintf("var c=RFCAD.getCanvas('%s');if(c)c.zoomBy(0.8);", id),
-      "\u2212 Zoom"
-    ),
-    tags$button(
-      class = "rfcad-ctrl-btn", title = "Fit to content (F)",
-      onclick = sprintf("var c=RFCAD.getCanvas('%s');if(c)c.fitToContent();", id),
-      "\u26f6 Fit"
-    ),
-    tags$span(class = "rfcad-toolbar-sep"),
-    tags$button(
-      id    = paste0(id, "_btn_3d"),
-      class = "rfcad-ctrl-btn rfcad-btn-3d",
-      title = "Toggle 3D view",
-      onclick = sprintf(
-        "(function(){
-          var wrap2d = document.getElementById('%s_2d_wrap');
-          var wrap3d = document.getElementById('%s_3d_wrap');
-          var is3d   = wrap3d.style.display !== 'none';
-          if(is3d) {
-            wrap2d.style.display=''; wrap3d.style.display='none';
-            document.getElementById('%s_btn_3d').classList.remove('active');
-          } else {
-            wrap2d.style.display='none'; wrap3d.style.display='';
-            document.getElementById('%s_btn_3d').classList.add('active');
-            var c=RFCAD.getCanvas('%s');
-            var json=c?c.exportJSON():'{}';
-            if(typeof RF3D!=='undefined') RF3D.render(json,'%s_3d_canvas');
-          }
-        })();",
-        id, id, id, id, id, id
-      ),
-      "\U0001f9ca 3D"
-    ),
-    tags$span(class = "rfcad-toolbar-sep"),
-    tags$button(
-      id    = paste0(id, "_btn_ruler"),
-      class = "rfcad-ctrl-btn rfcad-btn-ruler",
-      title = "Ruler: click two points to measure distance and angle",
-      onclick = sprintf(
-        "(function(){
-          var c=RFCAD.getCanvas('%s');
-          if(!c)return;
-          var btn=document.getElementById('%s_btn_ruler');
-          var active=!btn.classList.contains('active');
-          btn.classList.toggle('active',active);
-          document.querySelectorAll('.rfcad-btn-3d,.rfcad-tool-btn').forEach(function(b){
-            b.classList.remove('active');
-          });
-          if(active){ btn.classList.add('active'); c.setTool('ruler'); }
-          else { c.setTool('select'); }
-        })();",
-        id, id
-      ),
-      "\U0001f4cf Ruler"
-    )
+  # ── Layer Panel (floating, toggled by Layers button) ─────────────────────
+  layer_defs <- list(
+    list(id="metal_top",     color="#c8a84b", label="Metal Top",   locked=FALSE),
+    list(id="metal_bot",     color="#7b9fc7", label="Metal Bot",   locked=FALSE),
+    list(id="metal_inner_1", color="#8fcf70", label="Inner 1",     locked=FALSE),
+    list(id="metal_inner_2", color="#c878c8", label="Inner 2",     locked=FALSE),
+    list(id="substrate",     color="#4a8a4a", label="Substrate",   locked=TRUE),
+    list(id="silkscreen",    color="#ffffff", label="Silkscreen",  locked=FALSE),
+    list(id="drc",           color="#ff4444", label="DRC / Errors",locked=TRUE)
   )
-
-  toolbar_right <- tagList(
-    tags$span(style = "color:#aaa; font-size:11px; margin-right:4px;", "Grid:"),
-    tags$select(
-      id       = ns("grid_size"),
-      class    = "rfcad-select-sm",
-      onchange = sprintf(
-        "var c=RFCAD.getCanvas('%s');if(c)c.setGrid(parseFloat(this.value));", id
-      ),
-      tags$option(value = "0.1",  "0.1 mm"),
-      tags$option(value = "0.25", "0.25 mm"),
-      tags$option(value = "0.5",  selected = "selected", "0.5 mm"),
-      tags$option(value = "1.0",  "1.0 mm"),
-      tags$option(value = "2.0",  "2.0 mm")
-    ),
-    tags$label(
-      class = "rfcad-snap-label",
-      title = "Snap to grid",
-      tags$input(
-        type     = "checkbox",
-        id       = ns("snap_grid"),
-        checked  = "checked",
-        onchange = sprintf(
-          "var c=RFCAD.getCanvas('%s');if(c)c.setSnap(this.checked);", id
-        )
-      ),
-      "Snap"
-    ),
-    tags$span(class = "rfcad-toolbar-sep"),
-    tags$button(
-      class = "rfcad-ctrl-btn", title = "Save design",
-      onclick = sprintf(
-        "var c=RFCAD.getCanvas('%s');if(c){var d=c.exportJSON();Shiny.setInputValue('%s',d,{priority:'event'});}",
-        id, ns("save_trigger")
-      ),
-      "\ud83d\udcbe Save"
-    ),
-    tags$button(
-      class = "rfcad-ctrl-btn", title = "Clear canvas",
-      onclick = sprintf(
-        "if(confirm('Clear all components?')){var c=RFCAD.getCanvas('%s');if(c)c.clearAll();}",
-        id
-      ),
-      "\u2715 Clear"
-    ),
-    tags$span(class = "rfcad-toolbar-sep"),
-    tags$button(
-      class = "rfcad-ctrl-btn", title = "Bill of Materials & Revisions",
-      onclick = sprintf("Shiny.setInputValue('%s', Math.random(), {priority:'event'});",
-                        paste0(id, "-show_bom_rev")),
-      "\U0001f4cb BOM"
-    ),
-    tags$span(class = "rfcad-toolbar-sep"),
-    # Export dropdown
-    div(class = "rfcad-export-wrap",
+  layer_rows <- lapply(layer_defs, function(ly) {
+    div(class = "rfcad-layer-row",
+      # Eye (visibility) toggle
       tags$button(
-        class = "rfcad-ctrl-btn rfcad-export-btn",
+        class   = "rfcad-layer-eye active",
+        id      = sprintf("%s_lyr_eye_%s", id, ly$id),
+        title   = "Toggle layer visibility",
+        `data-layer` = ly$id,
         onclick = sprintf(
           "(function(){
-            var m=document.getElementById('%s_export_menu');
-            m.style.display=m.style.display==='block'?'none':'block';
-          })();",
-          id
+            var btn=this; btn.classList.toggle('active');
+            var vis=btn.classList.contains('active');
+            var c=RFCAD.getCanvas('%s');
+            if(c) c.setLayerVisible('%s', vis);
+          }).call(this);",
+          id, ly$id
         ),
-        "\U0001f4e4 Export \u25be"
+        "\U0001f441"
       ),
-      div(id = paste0(id, "_export_menu"), class = "rfcad-export-menu",
-        # SVG — pure client-side download
-        tags$a(
-          class = "rfcad-export-item",
-          href  = "#",
-          onclick = sprintf(
-            "(function(){
-              var c=RFCAD.getCanvas('%s');
-              if(!c){alert('No canvas');return false;}
-              var url=c.exportSVG();
-              if(!url){alert('SVG not available');return false;}
-              var a=document.createElement('a');
-              a.href=url; a.download='%s_design.svg'; a.click();
-              document.getElementById('%s_export_menu').style.display='none';
-              return false;
-            })();",
-            id, id, id
-          ),
-          "\U0001f5bc SVG (client)"
+      # Lock toggle
+      tags$button(
+        class   = if(ly$locked) "rfcad-layer-lock active" else "rfcad-layer-lock",
+        id      = sprintf("%s_lyr_lock_%s", id, ly$id),
+        title   = "Toggle layer lock",
+        `data-layer` = ly$id,
+        onclick = sprintf(
+          "(function(){
+            var btn=this; btn.classList.toggle('active');
+            var locked=btn.classList.contains('active');
+            var c=RFCAD.getCanvas('%s');
+            if(c) c.setLayerLocked('%s', locked);
+          }).call(this);",
+          id, ly$id
         ),
-        # DXF — server download
-        tags$a(
-          class = "rfcad-export-item",
-          id    = paste0(id, "_dl_dxf"),
-          href  = "#",
-          onclick = sprintf(
-            "(function(){
-              var c=RFCAD.getCanvas('%s');
-              if(!c){alert('No canvas');return false;}
-              var j=c.exportJSON();
-              Shiny.setInputValue('%s',{json:j,fmt:'dxf',ts:Date.now()},{priority:'event'});
-              document.getElementById('%s_export_menu').style.display='none';
-              return false;
-            })();",
-            id, paste0(id, "-export_trigger"), id
-          ),
-          "\U0001f4d0 DXF"
+        if(ly$locked) "\U0001f512" else "\U0001f513"
+      ),
+      # Color swatch
+      tags$span(
+        class = "rfcad-layer-swatch",
+        style = sprintf("background:%s;", ly$color)
+      ),
+      # Layer name (click to set as active draw layer)
+      tags$button(
+        class   = if(ly$id == "metal_top") "rfcad-layer-name active" else "rfcad-layer-name",
+        id      = sprintf("%s_lyr_name_%s", id, ly$id),
+        title   = "Set as active draw layer",
+        onclick = sprintf(
+          "(function(){
+            document.querySelectorAll('#%s_layer_panel .rfcad-layer-name').forEach(function(b){
+              b.classList.remove('active');
+            });
+            this.classList.add('active');
+            var c=RFCAD.getCanvas('%s');
+            if(c) c.setActiveLayer('%s');
+          }).call(this);",
+          id, id, ly$id
         ),
-        # Gerber — server download
-        tags$a(
-          class = "rfcad-export-item",
-          href  = "#",
-          onclick = sprintf(
-            "(function(){
-              var c=RFCAD.getCanvas('%s');
-              if(!c){alert('No canvas');return false;}
-              var j=c.exportJSON();
-              Shiny.setInputValue('%s',{json:j,fmt:'gerber',ts:Date.now()},{priority:'event'});
-              document.getElementById('%s_export_menu').style.display='none';
-              return false;
-            })();",
-            id, paste0(id, "-export_trigger"), id
-          ),
-          "\U0001f9ff Gerber (GTL)"
-        )
+        ly$label
       )
     )
+  })
+
+  layer_panel <- div(
+    id    = paste0(id, "_layer_panel"),
+    class = "rfcad-layer-panel",
+    style = "display:none;",
+    div(class = "rfcad-layer-panel-header",
+      "\u25a3 Layers",
+      tags$button(
+        class   = "rfcad-layer-panel-close",
+        onclick = sprintf(
+          "document.getElementById('%s_layer_panel').style.display='none';
+           document.querySelector('#%s_tb [data-tool=layers]').classList.remove('active');",
+          id, id
+        ),
+        "\u00d7"
+      )
+    ),
+    do.call(div, c(list(class = "rfcad-layer-list"), layer_rows))
   )
 
   # ── Properties panel ─────────────────────────────────────────────────────
   props_panel <- div(
     class = "rfcad-properties",
-    div(class = "rfcad-panel-header", "Properties"),
+    div(class = "rfcad-panel-header", "Properties",
+      # Mini layer active-layer indicator
+      tags$span(id = paste0(id, "_active_layer_badge"),
+        class = "rfcad-active-layer-badge",
+        style = "background:#c8a84b; color:#111;",
+        "Metal Top"
+      )
+    ),
 
     div(class = "rfcad-panel-header rfcad-panel-subheader", "Substrate"),
     div(class = "rfcad-prop-row",
@@ -353,35 +485,57 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
       tags$link(rel = "stylesheet", href = css_path)
     )),
 
+    # Outer wrapper carries the rfcad-expanded class for 95% expand mode
     div(
-      class = if (compact) "rfcad-app-wrapper rfcad-compact" else "rfcad-app-wrapper",
-      style = sprintf("height:%s;", height),
+      id    = paste0(id, "_outer"),
+      class = if (compact) "rfcad-outer rfcad-compact" else "rfcad-outer",
 
-      div(class = "rfcad-toolbar",
-        div(class = "rfcad-toolbar-left",  toolbar_left),
-        div(class = "rfcad-toolbar-right", toolbar_right)
-      ),
+      div(
+        class = "rfcad-app-wrapper",
+        style = sprintf("height:%s;", height),
 
-      div(class = "rfcad-body",
-        div(class = "rfcad-palette",
-          div(class = "rfcad-panel-header", "Components"),
-          palette_btns
+        # ── Multi-row toolbar band ──────────────────────────────────────
+        div(id = paste0(id, "_tb"), class = "rfcad-tb-band",
+          tb_row1,
+          tb_row2,
+          tb_row3,
+          tb_row4,
+          tb_row5
         ),
-        div(class = "rfcad-canvas-wrapper",
-          # 2D canvas (default visible)
-          div(id = paste0(id, "_2d_wrap"), style = "width:100%;height:100%;",
-            div(id = ns("rfcad_canvas"), class = "rfcad-canvas-container")
+
+        div(class = "rfcad-body",
+          # Left palette sidebar (quick-access RF components)
+          div(class = "rfcad-palette",
+            div(class = "rfcad-panel-header", "Components"),
+            palette_btns
           ),
-          # 3D canvas (default hidden, Three.js renders into this)
-          div(id = paste0(id, "_3d_wrap"), style = "width:100%;height:100%;display:none;",
-            div(id = paste0(id, "_3d_canvas"), class = "rfcad-3d-container")
-          )
-        ),
-        props_panel
-      ),
 
-      div(id = paste0("rfcad_status_", id), class = "rfcad-statusbar",
-        "Loading canvas\u2026")
+          # Canvas area — layer panel floats inside this
+          div(class = "rfcad-canvas-wrapper",
+            layer_panel,
+            # 2D canvas
+            div(id = paste0(id, "_2d_wrap"), style = "width:100%;height:100%;",
+              div(id = ns("rfcad_canvas"), class = "rfcad-canvas-container")
+            ),
+            # 3D canvas (hidden by default)
+            div(id = paste0(id, "_3d_wrap"), style = "width:100%;height:100%;display:none;",
+              div(id = paste0(id, "_3d_canvas"), class = "rfcad-3d-container")
+            )
+          ),
+
+          props_panel
+        ),
+
+        div(id = paste0("rfcad_status_", id), class = "rfcad-statusbar",
+          tags$span(id = paste0(id, "_status_tool"),  class = "rfcad-statusbar-tool",  "Select"),
+          tags$span(class = "rfcad-statusbar-sep", "|"),
+          tags$span(id = paste0(id, "_status_layer"), class = "rfcad-statusbar-layer", "Metal Top"),
+          tags$span(class = "rfcad-statusbar-sep", "|"),
+          tags$span(id = paste0(id, "_status_coords"), class = "rfcad-statusbar-coords", "(0.000, 0.000) mm"),
+          tags$span(class = "rfcad-statusbar-sep", "|"),
+          tags$span(id = paste0(id, "_status_info"),  class = "rfcad-statusbar-info",  "Ready")
+        )
+      )
     ),
 
     tags$script(HTML(sprintf(

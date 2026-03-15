@@ -416,7 +416,12 @@
     function reRenderAll() {
       layers.comp.destroyChildren();
       layers.ui.destroyChildren();
-      state.components.forEach(c => renderComponent(c));
+      state.components.forEach(c => {
+        // Skip components on hidden layers
+        const vis = state.layerVisibility;
+        if (vis && c.layer && vis[c.layer] === false) return;
+        renderComponent(c);
+      });
       layers.comp.batchDraw();
       layers.ui.batchDraw();
     }
@@ -950,6 +955,97 @@ ${rects}</svg>`;
       clearMeasure() {
         state.measurePts = []; drawMeasureOverlay();
       },
+
+      // ── Layer management ───────────────────────────────────────
+      setLayerVisible(layerId, visible) {
+        state.layerVisibility = state.layerVisibility || {};
+        state.layerVisibility[layerId] = !!visible;
+        reRenderAll();
+      },
+      setLayerLocked(layerId, locked) {
+        state.layerLocked = state.layerLocked || {};
+        state.layerLocked[layerId] = !!locked;
+      },
+      setActiveLayer(layerId) {
+        state.defaults = state.defaults || {};
+        state.defaults.layer = layerId;
+        const LAYER_NAMES = {
+          metal_top: 'Metal Top', metal_bot: 'Metal Bot',
+          metal_inner_1: 'Inner 1', metal_inner_2: 'Inner 2',
+          substrate: 'Substrate', silkscreen: 'Silkscreen', drc: 'DRC'
+        };
+        const LAYER_COLORS = {
+          metal_top: '#c8a84b', metal_bot: '#7b9fc7',
+          metal_inner_1: '#8fcf70', metal_inner_2: '#c878c8',
+          substrate: '#4a8a4a', silkscreen: '#eeeeee', drc: '#f44444'
+        };
+        // Update active-layer badge in properties header
+        const badge = document.getElementById(state.instanceId + '_active_layer_badge');
+        if (badge) {
+          badge.textContent = LAYER_NAMES[layerId] || layerId;
+          badge.style.background = LAYER_COLORS[layerId] || '#555';
+          badge.style.color = '#000';
+        }
+        // Update layer name buttons in layer panel
+        const panel = document.getElementById(state.instanceId + '_layer_panel');
+        if (panel) {
+          panel.querySelectorAll('.rfcad-layer-name').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.layer === layerId);
+          });
+        }
+        // Update status bar layer segment
+        const layerSpan = document.getElementById(state.instanceId + '_status_layer');
+        if (layerSpan) layerSpan.textContent = LAYER_NAMES[layerId] || layerId;
+      },
+
+      // ── Modify: mirror, copy, array, offset ───────────────────
+      mirrorSelected(axis) {
+        const comp = state.components.find(c => c.id === state.selectedId);
+        if (!comp) return;
+        if (axis === 'h') {
+          comp.scaleX = (comp.scaleX || 1) * -1;
+        } else {
+          comp.scaleY = (comp.scaleY || 1) * -1;
+        }
+        reRenderAll(); syncComponents();
+      },
+      copySelected() {
+        const comp = state.components.find(c => c.id === state.selectedId);
+        if (!comp) return;
+        const copy = JSON.parse(JSON.stringify(comp));
+        copy.id   = 'c' + Date.now() + Math.random().toString(36).slice(2, 6);
+        copy.x   += (state.gridSizeMm || 1) * 4;
+        copy.y   += (state.gridSizeMm || 1) * 4;
+        copy.name = comp.name + '_copy';
+        state.components.push(copy);
+        reRenderAll(); selectComponent(copy.id); syncComponents();
+      },
+      arraySelected() {
+        const comp = state.components.find(c => c.id === state.selectedId);
+        if (!comp) return;
+        const cols = parseInt(window.prompt('Columns:', '3') || '0', 10);
+        const rows = parseInt(window.prompt('Rows:',    '3') || '0', 10);
+        const dx   = parseFloat(window.prompt('X spacing (mm):', '5') || '0');
+        const dy   = parseFloat(window.prompt('Y spacing (mm):', '5') || '0');
+        if (!cols || !rows) return;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (r === 0 && c === 0) continue;
+            const copy = JSON.parse(JSON.stringify(comp));
+            copy.id   = 'c' + Date.now() + '_' + r + '_' + c;
+            copy.x    = comp.x + c * dx;
+            copy.y    = comp.y + r * dy;
+            copy.name = comp.name + '_' + r + '_' + c;
+            state.components.push(copy);
+          }
+        }
+        reRenderAll(); syncComponents();
+      },
+      offsetSelected() {
+        // Path offsetting — available in Commit 2 (full drawing engine)
+        console.info('[RFCAD] offsetSelected: coming in Commit 2');
+      },
+
       setFreq(f) {
         state.freqGHz = parseFloat(f) || 2.4;
         const comp = state.components.find(c => c.id === state.selectedId) || null;
