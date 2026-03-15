@@ -230,7 +230,15 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
       tool = "layers"
     ),
     .tb_sep(),
-    # Grid selector (inline in row)
+    # Schematic / Symbol mode toggle
+    .tb_btn("\u25a1\u2082", "Schematic", "Toggle schematic symbol mode",
+      sprintf(
+        "(function(){var c=RFCAD.getCanvas('%s');if(c)c.toggleSymbolMode();})();",
+        id
+      ),
+      tool = "schematic"
+    ),
+    .tb_sep(),
     tags$span(class = "rfcad-tb-inline-label", "Grid:"),
     tags$select(
       id       = ns("grid_size"),

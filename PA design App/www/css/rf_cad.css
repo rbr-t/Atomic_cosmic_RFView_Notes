@@ -256,6 +256,41 @@
   border-color: var(--rfcad-accent);
   color: var(--rfcad-accent);
 }
+
+/* Schematic / symbol-mode button — teal accent when active */
+.rfcad-tool-btn[data-tool="schematic"].active {
+  background: rgba(0, 188, 212, 0.18);
+  border-color: #00bcd4;
+  color: #00bcd4;
+  box-shadow: 0 0 6px rgba(0, 188, 212, 0.45);
+}
+
+/* Banner badge shown when symbol mode is on */
+.rfcad-symbol-mode-badge {
+  display: none;
+  position: absolute;
+  top: 3px; right: 6px;
+  background: #00bcd4;
+  color: #000;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  z-index: 10;
+}
+.rfcad-symbol-mode-on .rfcad-symbol-mode-badge {
+  display: inline-block;
+}
+
+/* Drawing hint row in status bar */
+.rfcad-status-hint {
+  color: #80deea;
+  font-style: italic;
+  font-size: 10px;
+  margin-left: 8px;
+}
 .rfcad-ctrl-btn {
   min-width: 30px;
   height: 30px;
