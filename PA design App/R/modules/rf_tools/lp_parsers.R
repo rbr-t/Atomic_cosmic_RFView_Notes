@@ -93,33 +93,128 @@ detect_lp_format <- function(lines) {
 # ── Format 1: Generic SPL (Focus Microwaves simple export & generic ASCII) ────
 
 parse_spl <- function(lines, filepath) {
-  # Lines starting with ! are comments / metadata.
-  # First non-comment, non-empty line is the column header.
+  # Focus Power Sweep Plan (and generic SPL) format:
+  #
+  # - Lines starting with ! are comments / metadata.
+  # - Non-comment metadata precedes the actual column header:
+  #     "Number of Frequencies = 1", "VAR=<...>", "User params: 3", etc.
+  # - The actual column header is the FIRST non-blank, non-comment line whose
+  #   every whitespace-delimited token looks like a column name: starts with a
+  #   letter or _, may contain letters/digits/_%.(  but NOT '=', ':', or pure
+  #   numbers.  E.g. "valid gamma_src1 gamma_ld1 Freq Pin_avail_dBm ..."
+  # - After the header, "Freq = X.X GHz" section separators mark new frequency
+  #   blocks in multi-frequency files.
+  # - Data rows are all-numeric; rows where the VALID column == 0 are skipped.
+  # - Single-token rows (zero-padding) are discarded.
+
   comment_lines <- grepl("^[[:space:]]*!", lines)
   meta_raw      <- lines[comment_lines]
-  data_lines    <- lines[!comment_lines & nzchar(trimws(lines))]
+  non_comment   <- lines[!comment_lines]
 
-  if (length(data_lines) < 2)
-    return(.lp_err("spl", filepath, "No data rows found after comments"))
+  # TRUE when every whitespace-split token looks like a column name
+  .is_col_hdr <- function(ln) {
+    toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+    length(toks) >= 2 &&
+      all(grepl("^[A-Za-z_][A-Za-z0-9_%().]*$", toks))
+  }
 
-  # Header is first non-empty, non-comment line
-  hdr_line  <- data_lines[1]
-  data_rows <- data_lines[-1]
+  # Find the first non-blank non-comment line that passes .is_col_hdr
+  hdr_idx <- NA_integer_
+  for (i in seq_along(non_comment)) {
+    if (nzchar(trimws(non_comment[i])) && .is_col_hdr(non_comment[i])) {
+      hdr_idx <- i
+      break
+    }
+  }
 
+  if (is.na(hdr_idx))
+    return(.lp_err("spl", filepath, "Could not locate column header row"))
+
+  col_names <- toupper(strsplit(trimws(non_comment[hdr_idx]), "[[:space:]]+")[[1]])
+
+  # --- Metadata: comment lines + pre-header "Freq = X GHz" lines --------------
   meta <- .parse_comment_meta(meta_raw)
-  col_names <- toupper(strsplit(trimws(hdr_line), "[[:space:]]+")[[1]])
 
-  mat <- do.call(rbind, lapply(data_rows, function(r) {
-    vals <- strsplit(trimws(r), "[[:space:]]+")[[1]]
-    if (length(vals) != length(col_names)) return(NULL)
-    suppressWarnings(as.numeric(vals))
-  }))
-  mat <- mat[!is.na(rowSums(mat)), , drop = FALSE]
-  if (nrow(mat) == 0)
+  .parse_freq_line <- function(ln) {
+    nums   <- regmatches(ln, gregexpr("[0-9]+\\.?[0-9]*", ln))[[1]]
+    unit_m <- regmatches(ln, regexpr("(GHz|MHz|kHz)", ln,
+                                     perl = TRUE, ignore.case = TRUE))
+    unit <- if (length(unit_m) == 1) tolower(unit_m) else "ghz"
+    num  <- suppressWarnings(as.numeric(nums[1]))
+    if (is.na(num)) return(NA_real_)
+    if (unit == "mhz") num <- num / 1000
+    if (unit == "khz") num <- num / 1e6
+    num
+  }
+
+  pre_hdr <- non_comment[seq_len(hdr_idx - 1)]
+  for (ln in pre_hdr) {
+    if (grepl("^[[:space:]]*Freq[[:space:]]*=", ln, ignore.case = TRUE)) {
+      fq <- .parse_freq_line(ln)
+      if (!is.na(fq)) meta$freq_ghz <- fq
+    }
+  }
+
+  # --- Parse data rows -------------------------------------------------------
+  cur_freq  <- suppressWarnings(as.numeric(meta$freq_ghz %||% NA))
+  n_cols    <- length(col_names)
+  valid_col <- which(col_names == "VALID")   # row-validity flag column
+  rows_list <- list()
+
+  after_hdr <- if ((hdr_idx + 1) <= length(non_comment))
+                 non_comment[(hdr_idx + 1):length(non_comment)]
+               else character(0)
+
+  for (ln in after_hdr) {
+    ln <- trimws(ln)
+    if (!nzchar(ln)) next
+
+    # Repeated column header (multi-block files) — skip
+    if (.is_col_hdr(ln)) next
+
+    # Section separator: "Freq = X.X GHz" — update current frequency context
+    if (grepl("^[[:space:]]*Freq[[:space:]]*=", ln, ignore.case = TRUE)) {
+      fq <- .parse_freq_line(ln)
+      if (!is.na(fq)) cur_freq <- fq
+      next
+    }
+
+    # Any line containing a letter is section info / key=value — skip
+    if (grepl("[A-Za-z]", ln)) next
+
+    # Parse numeric tokens
+    vals <- suppressWarnings(as.numeric(strsplit(ln, "[[:space:]]+")[[1]]))
+    if (any(is.na(vals))) next
+
+    # Skip single-token rows (zero-padding, stray values)
+    if (length(vals) < 2) next
+
+    # Skip rows where the VALID flag column == 0
+    if (length(valid_col) > 0 &&
+        !is.na(vals[valid_col[1]]) && vals[valid_col[1]] == 0) next
+
+    # Truncate or pad to n_cols
+    if (length(vals) > n_cols) {
+      vals <- vals[seq_len(n_cols)]
+    } else if (length(vals) < n_cols) {
+      vals <- c(vals, rep(NA_real_, n_cols - length(vals)))
+    }
+
+    rows_list <- c(rows_list, list(vals))
+  }
+
+  if (length(rows_list) == 0)
     return(.lp_err("spl", filepath, "Could not parse any numeric rows"))
 
-  df <- as.data.frame(mat, stringsAsFactors = FALSE)
+  mat <- do.call(rbind, rows_list)
+  df  <- as.data.frame(mat, stringsAsFactors = FALSE)
   names(df) <- col_names
+
+  # Drop the VALID column — row-validity flag, not a measurement
+  if ("VALID" %in% names(df)) df[["VALID"]] <- NULL
+
+  # Store last observed freq in meta as fallback for .normalise_df
+  if (is.null(meta$freq_ghz)) meta$freq_ghz <- cur_freq
 
   list(success = TRUE, meta = meta, points = .normalise_df(df, meta))
 }
@@ -401,7 +496,16 @@ parse_mdif <- function(lines, filepath) {
   PDC = "pdc_w", `PDC(W)` = "pdc_w", PDC_W = "pdc_w",
 
   # Frequency
-  FREQ = "freq_ghz", `FREQ(GHZ)` = "freq_ghz", FREQUENCY = "freq_ghz"
+  FREQ = "freq_ghz", `FREQ(GHZ)` = "freq_ghz", FREQUENCY = "freq_ghz",
+
+  # Focus Power Sweep Plan columns
+  GAMMA_SRC1 = "gs_r", GAMMA_LD1 = "gl_r",
+  PIN_AVAIL_DBM = "pin_dbm",
+  GT_DB = "gain_db",
+  IQ_OUT_MA = "idc_ma", IOUT_MA = "idc_ma",
+  VQ_IN_V = "vdc_v",
+  `EFF_%` = "de_pct", EFF_COL = "de_pct",
+  PDIS = "pdc_w"
 )
 
 .normalise_df <- function(df, meta) {

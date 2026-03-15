@@ -4,6 +4,9 @@
 # Sourced once at startup before ui/server are built.
 # ============================================================
 
+# Allow uploads up to 200 MB (default Shiny limit is 5 MB)
+options(shiny.maxRequestSize = 200 * 1024^2)
+
 library(shiny)
 library(shinydashboard)
 library(shinyjs)
