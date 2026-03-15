@@ -1395,6 +1395,7 @@
             if (d > 4 && !state.isPanning) {
               stage.draggable(true);
               state.isPanning = true;
+              _panClick = true;   // suppress the click that fires after drag ends
               stage.container().style.cursor = 'grabbing';
             }
           };
@@ -1425,8 +1426,14 @@
         }
       });
 
-      stage.on('mousemove touchmove', () => {
+      stage.on('mousemove touchmove', (e) => {
         updateStatus();
+        // In select mode hover over background → show grab cursor hint
+        if (state.tool === 'select' && !state.isPanning && e.target === stage) {
+          stage.container().style.cursor = 'grab';
+        } else if (state.tool === 'select' && !state.isPanning && e.target !== stage) {
+          stage.container().style.cursor = 'default';
+        }
         if (state.isDrawing || state.polyPts.length > 0 || state.arcPts.length > 0) {
           updateDrawPreview();
         }

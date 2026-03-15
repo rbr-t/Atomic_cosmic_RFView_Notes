@@ -61,7 +61,7 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
 
   # Assets served from the app's own www/ (standard Shiny path)
   # Version suffix forces browser to bypass cache after file updates.
-  js_path  <- "js/rf_canvas.js?v=20260315"
+  js_path  <- "js/rf_canvas.js?v=20260316"
   css_path <- "css/rf_cad.css"
 
   # ── Shared JS helper: set active tool button ────────────────────────────
@@ -208,7 +208,7 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
           if(is3d){w2.style.display='';w3.style.display='none';}
           else{w2.style.display='none';w3.style.display='';
             var c=RFCAD.getCanvas('%s');var j=c?c.exportJSON():'{}';
-            if(typeof RF3D!=='undefined')RF3D.render(j,'%s_3d_canvas');}
+            if(typeof RF3D!=='undefined'){(function(json,cid){setTimeout(function(){RF3D.render(json,cid);},120);})(j,'%s_3d_canvas');}}
           document.querySelector('#%s_tb [data-tool=\'3d\']').classList.toggle('active',!is3d);
         })();",
         id, id, id, id, id
@@ -501,7 +501,7 @@ rfCadUI <- function(id, height = "600px", compact = FALSE) {
       tags$script(src = .ORBIT_CDN),
       tags$script(src = js_path),
       tags$script(src = "js/rf_calc_lib.js"),
-      tags$script(src = "js/rf_3d_viewer.js"),
+      tags$script(src = "js/rf_3d_viewer.js?v=20260316"),
       tags$link(rel = "stylesheet", href = css_path)
     )),
 

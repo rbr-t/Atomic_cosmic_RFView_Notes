@@ -261,9 +261,11 @@
       const ro = new ResizeObserver(() => {
         const nW = container.offsetWidth;
         const nH = container.offsetHeight;
-        camera.aspect = nW / nH;
-        camera.updateProjectionMatrix();
-        renderer.setSize(nW, nH);
+        if (nW > 0 && nH > 0) {
+          camera.aspect = nW / nH;
+          camera.updateProjectionMatrix();
+          renderer.setSize(nW, nH);
+        }
       });
       ro.observe(container);
       scenes[containerId] = { renderer, scene, camera, controls, animId, ro };
