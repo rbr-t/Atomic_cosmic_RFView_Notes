@@ -113,6 +113,30 @@ serverLpViewer <- function(input, output, session, state) {
     if (nchar(s) > n) paste0(substr(s, 1, n), "\u2026") else s
   }
 
+  # Gamma (Cartesian) → impedance (Z = Z0*(1+Γ)/(1-Γ))
+  .gamma_to_z <- function(gr, gi, z0 = 50) {
+    denom <- (1 - gr)^2 + gi^2
+    r     <- z0 * (1 - gr^2 - gi^2) / denom
+    x     <- z0 * 2 * gi            / denom
+    list(r = r, x = x)
+  }
+
+  # Find MXP (max Pout), MXE (max PAE/DE), MXG (max Gain) row indices.
+  # Returns named list of scalar row indices (or NA).
+  .find_optima <- function(df) {
+    idx <- function(col) {
+      if (!col %in% names(df)) return(NA_integer_)
+      v <- df[[col]]
+      if (all(is.na(v))) return(NA_integer_)
+      which.max(v)
+    }
+    list(
+      MXP = idx("pout_dbm"),
+      MXE = if (!is.na(idx("pae_pct"))) idx("pae_pct") else idx("de_pct"),
+      MXG = idx("gain_db")
+    )
+  }
+
   # Gamma-grid cache: stored as result$interp_cache[[var_key]][[pull_key]]
   # each element: list(xi, yi, zm) — computed once on parse
   .precompute_interp <- function(df, nx = 40, ny = 40) {
@@ -153,38 +177,56 @@ serverLpViewer <- function(input, output, session, state) {
     cache
   }
 
-  # ── Parse on button click ──────────────────────────────────────────────────
+  # ── Parse on button click (with progress bar) ──────────────────────────────
   observeEvent(input$lp_parse_btn, {
     req(input$lp_upload)
     fmt     <- input$lp_format_override %||% "auto"
     current <- lp_datasets()
     log     <- character()
+    n_files <- nrow(input$lp_upload)
+    has_akima <- requireNamespace("akima", quietly = TRUE)
 
-    for (i in seq_len(nrow(input$lp_upload))) {
-      fpath <- input$lp_upload$datapath[i]
-      fname <- input$lp_upload$name[i]
-      log   <- c(log, paste0("[", i, "] Parsing: ", fname, " ..."))
+    # Each file: 2 steps (parse + cache), total steps = n_files * 2
+    n_steps <- n_files * 2L
+    step    <- 0L
 
-      result          <- parse_lp_file(fpath, format_override = fmt)
-      result$filename <- fname
+    withProgress(message = "Loading LP files", value = 0, {
+      for (i in seq_len(n_files)) {
+        fpath <- input$lp_upload$datapath[i]
+        fname <- input$lp_upload$name[i]
+        log   <- c(log, paste0("[", i, "] Parsing: ", fname, " ..."))
 
-      if (isTRUE(result$success)) {
-        npts <- nrow(result$points)
-        log  <- c(log,
-          sprintf("    OK  (%s)  %d measurement points parsed", result$format, npts))
-        # Pre-compute interpolation cache for instant Smith chart rendering
-        if (requireNamespace("akima", quietly = TRUE) && npts >= 6) {
-          log <- c(log, "    Pre-computing contour grids...")
-          result$interp_cache <- .precompute_interp(result$points)
-          log <- c(log, paste0("    Cached ", length(result$interp_cache), " grids."))
+        step <- step + 1L
+        setProgress(step / n_steps,
+                    detail = paste0("Parsing ", i, "/", n_files, ": ",
+                                    .short_name(fname, 30)))
+
+        result          <- parse_lp_file(fpath, format_override = fmt)
+        result$filename <- fname
+
+        if (isTRUE(result$success)) {
+          npts <- nrow(result$points)
+          log  <- c(log,
+            sprintf("    OK  (%s)  %d measurement points parsed", result$format, npts))
+
+          step <- step + 1L
+          setProgress(step / n_steps,
+                      detail = paste0("Caching grids ", i, "/", n_files))
+
+          if (has_akima && npts >= 6) {
+            log <- c(log, "    Pre-computing contour grids...")
+            result$interp_cache <- .precompute_interp(result$points)
+            log <- c(log, paste0("    Cached ", length(result$interp_cache), " grids."))
+          }
+        } else {
+          step <- step + 1L   # skip cache step
+          log  <- c(log, paste0("    ERROR: ", result$error))
         }
-      } else {
-        log <- c(log, paste0("    ERROR: ", result$error))
-      }
 
-      id            <- make.names(fname, unique = FALSE)
-      current[[id]] <- result
-    }
+        id            <- make.names(fname, unique = FALSE)
+        current[[id]] <- result
+      }
+    })
 
     lp_datasets(current)
     lp_log(c(log, "",
@@ -358,6 +400,15 @@ serverLpViewer <- function(input, output, session, state) {
     all_xv <- c(); all_yv <- c()
     colorbar_x <- 1.02   # start position; shift right per colorbar
 
+    # Optimum marker config
+    OPT_CFG <- list(
+      MXP = list(col = "pout_dbm", sym = "star",    color = "#ff7f11", label = "MXP"),
+      MXE = list(col = "pae_pct",  sym = "diamond",  color = "#1f77b4", label = "MXE"),
+      MXG = list(col = "gain_db",  sym = "triangle-up", color = "#2ca02c", label = "MXG")
+    )
+    show_opt <- isTRUE(input$lp_show_optima %||% TRUE)
+    show_h2  <- isTRUE(input$lp_show_harmonics)
+
     if (length(sel_ids) > 0 && length(vars) > 0) {
       for (id in sel_ids) {
         df    <- .get_df(id)
@@ -415,7 +466,7 @@ serverLpViewer <- function(input, output, session, state) {
               x          = xi, y = yi, z = t(zm),
               ncontours  = as.integer(n_lev),
               showscale  = TRUE,
-              colorscale = list(c(0, "#111"), c(1, vm$color)),
+              colorscale = list(list(0, "#111111"), list(1, vm$color)),
               colorbar   = list(
                 title    = vm$label,
                 x        = colorbar_x,
@@ -468,6 +519,51 @@ serverLpViewer <- function(input, output, session, state) {
               name = "Max PAE", showlegend = FALSE)
           }
         } # vars loop
+
+        # ── Optimum points: MXP, MXE, MXG (always shown by default) ──────────
+        if (show_opt) {
+          opt <- .find_optima(df)
+          for (oname in names(OPT_CFG)) {
+            bi <- opt[[oname]]
+            if (is.na(bi)) next
+            cfg <- OPT_CFG[[oname]]
+            if (!cfg$col %in% names(df)) next
+            ox <- xv_all[bi]; oy <- yv_all[bi]; oz <- df[[cfg$col]][bi]
+            if (any(is.na(c(ox, oy)))) next
+            p <- p %>% add_trace(
+              type = "scatter", mode = "markers+text",
+              x = ox, y = oy,
+              text = sprintf("%s\n%.1f", oname, oz),
+              textposition = "top center",
+              textfont = list(color = cfg$color, size = 10),
+              marker = list(color = cfg$color, size = 16,
+                            symbol = cfg$sym,
+                            line = list(color = "white", width = 1.5)),
+              name = paste0(oname, " [", fname, "]"), showlegend = TRUE
+            )
+          }
+        }
+
+        # ── 2nd / 3rd harmonic impedance clusters ─────────────────────────────
+        if (show_h2) {
+          for (harm in list(
+              list(r = "gl2_r", i = "gl2_i", label = "2H", color = "#e377c2"),
+              list(r = "gl3_r", i = "gl3_i", label = "3H", color = "#17becf")
+          )) {
+            if (!all(c(harm$r, harm$i) %in% names(df))) next
+            hx <- df[[harm$r]]; hy <- df[[harm$i]]
+            ok_h <- !is.na(hx) & !is.na(hy)
+            if (sum(ok_h) == 0) next
+            p <- p %>% add_trace(
+              type = "scatter", mode = "markers",
+              x = hx[ok_h], y = hy[ok_h],
+              marker = list(color = harm$color, size = 5,
+                            symbol = "x", opacity = 0.7),
+              name = paste0(harm$label, "Γ_L [", fname, "]"),
+              showlegend = TRUE, hoverinfo = "none"
+            )
+          }
+        }
       } # dataset loop
     }
 
@@ -562,9 +658,9 @@ serverLpViewer <- function(input, output, session, state) {
     )
   })
 
-  # ── Tradeoff / Nose Plot — configurable dual-axis ─────────────────────────
-  # Shows all LP measurement points. Y1 and Y2 are user-selectable.
-  # Default: X = Pout(dBm), Y1 = Gain(dB), Y2 = PAE(%)
+  # ── Tradeoff / Nose Plot — all measured impedances coloured by metric ───
+  # Each LP measurement point is plotted as a scatter on the Smith chart plane
+  # with colour = selected metric, giving the classic "scatter cloud" nose/tradeoff view.
   output$lp_nose_plot <- renderPlotly({
     id     <- input$lp_nose_dataset_selector
     df     <- .get_df(id)
@@ -586,13 +682,143 @@ serverLpViewer <- function(input, output, session, state) {
       ))
     }
 
-    # Sort by X for a clean line
+    # ─ Layout mode: Smith-scatter vs XY dual-axis ──────────────────────────────
+    # "Smith-scatter" mode: X=Re(Γ_L), Y=Im(Γ_L), colour = x_var metric
+    # This is the standard trade-off / nose chart display
+    use_smith <- isTRUE(input$lp_nose_smith_mode %||% TRUE)
+    pull      <- input$lp_pull_type %||% "load"
+
+    if (use_smith) {
+      # Retrieve Gamma columns
+      xv_all <- if (pull == "load") df$gl_r else df$gs_r
+      yv_all <- if (pull == "load") df$gl_i else df$gs_i
+
+      if (is.null(xv_all) || all(is.na(xv_all))) {
+        return(plot_ly() %>% layout(
+          paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
+          title = list(text = "No Γ data — check Pull plane setting",
+                       font = list(color = "#aaa"))))
+      }
+
+      # Colour the scatter by x_var (metric)
+      col_var   <- x_var
+      col_label <- .ax_lbl(col_var)
+      cv <- if (col_var %in% names(df)) df[[col_var]] else rep(NA_real_, nrow(df))
+
+      ok <- !is.na(xv_all) & !is.na(yv_all) & !is.na(cv) &
+            (xv_all^2 + yv_all^2) <= 1.02
+      xv <- xv_all[ok]; yv <- yv_all[ok]; cv_ok <- cv[ok]
+
+      # Build Smith grid background
+      grid <- build_smith_grid()
+      p    <- plot_ly()
+      for (tr in grid) {
+        p <- p %>% add_trace(
+          type = "scatter", mode = "lines",
+          x = tr$x, y = tr$y, line = tr$line,
+          hoverinfo = "none", showlegend = FALSE, name = tr$name
+        )
+      }
+
+      hover_txt <- sprintf(
+        paste0(col_label, ": %.2f<br>Re(Γ): %.3f<br>Im(Γ): %.3f"),
+        cv_ok, xv, yv
+      )
+
+      p <- p %>% add_trace(
+        type      = "scatter", mode = "markers",
+        x         = xv, y = yv,
+        marker    = list(
+          color     = cv_ok,
+          colorscale = "Jet",
+          size      = 8,
+          showscale = TRUE,
+          colorbar  = list(title = col_label,
+                           tickfont = list(color = "#aaa"),
+                           titlefont = list(color = "#aaa"))
+        ),
+        hovertext = hover_txt,
+        hoverinfo = "text",
+        name      = col_label
+      )
+
+      # Optimum markers: MXP, MXE, MXG
+      if (isTRUE(input$lp_nose_mark_opt)) {
+        opt <- .find_optima(df)
+        OPT_CFG_N <- list(
+          MXP = list(col = "pout_dbm", sym = "star",       color = "#ff7f11"),
+          MXE = list(col = "pae_pct",  sym = "diamond",    color = "#1f77b4"),
+          MXG = list(col = "gain_db",  sym = "triangle-up",color = "#2ca02c")
+        )
+        for (oname in names(OPT_CFG_N)) {
+          bi <- opt[[oname]]
+          if (is.na(bi)) next
+          cfg <- OPT_CFG_N[[oname]]
+          if (!cfg$col %in% names(df)) next
+          odf <- df[bi, ]
+          ox  <- if (pull == "load") odf$gl_r else odf$gs_r
+          oy  <- if (pull == "load") odf$gl_i else odf$gs_i
+          ov  <- odf[[cfg$col]]
+          if (any(is.na(c(ox, oy)))) next
+          p <- p %>% add_trace(
+            type = "scatter", mode = "markers+text",
+            x = ox, y = oy,
+            text = sprintf("%s\n%.2f", oname, ov),
+            textposition = "top center",
+            textfont = list(color = cfg$color, size = 11),
+            marker = list(color = cfg$color, size = 16, symbol = cfg$sym,
+                          line = list(color = "white", width = 2)),
+            name = oname, showlegend = TRUE
+          )
+        }
+      }
+
+      # Harmonic impedance scatter (2H, 3H)
+      for (harm in list(
+          list(r = "gl2_r", i = "gl2_i", label = "\u0393_L 2H", color = "#e377c2"),
+          list(r = "gl3_r", i = "gl3_i", label = "\u0393_L 3H", color = "#17becf")
+      )) {
+        if (!all(c(harm$r, harm$i) %in% names(df))) next
+        hx <- df[[harm$r]]; hy <- df[[harm$i]]
+        ok_h <- !is.na(hx) & !is.na(hy)
+        if (sum(ok_h) == 0) next
+        p <- p %>% add_trace(
+          type = "scatter", mode = "markers",
+          x = hx[ok_h], y = hy[ok_h],
+          marker = list(color = harm$color, size = 6, symbol = "x", opacity = 0.8),
+          name = harm$label, showlegend = TRUE, hoverinfo = "none"
+        )
+      }
+
+      ax_r <- if (isTRUE(input$lp_smith_zoom_data) && length(xv) > 0) {
+        pad <- 0.08
+        list(c(min(xv) - pad, max(xv) + pad), c(min(yv) - pad, max(yv) + pad))
+      } else {
+        list(c(-1.25, 1.25), c(-1.25, 1.25))
+      }
+
+      return(p %>% layout(
+        paper_bgcolor = "#1b1b2b", plot_bgcolor  = "#1b1b2b",
+        xaxis  = list(title = paste0("Re(\u0393", if (pull=="load") "_L" else "_S", ")"),
+                      range = ax_r[[1]], zeroline = FALSE, showgrid = FALSE,
+                      color = "#aaa", scaleanchor = "y", scaleratio = 1),
+        yaxis  = list(title = paste0("Im(\u0393", if (pull=="load") "_L" else "_S", ")"),
+                      range = ax_r[[2]], zeroline = FALSE, showgrid = FALSE,
+                      color = "#aaa"),
+        legend = list(font = list(color = "#aaa"), bgcolor = "rgba(0,0,0,0.30)"),
+        title  = list(text = paste0("Tradeoff / Nose Plot — coloured by ", col_label),
+                      font = list(color = "#eee", size = 14)),
+        font   = list(color = "#aaa"),
+        margin = list(l = 50, r = 110, t = 50, b = 50)
+      ))
+    } # end Smith-scatter mode
+
+    # ─ XY dual-axis fallback (when Smith mode is unchecked) ───────────────────
     if (x_var %in% names(df)) {
       ord <- order(df[[x_var]], na.last = NA)
       df  <- df[ord, , drop = FALSE]
     }
-
-    xv  <- if (x_var %in% names(df)) df[[x_var]] else NULL
+    xv  <- if (x_var  %in% names(df)) df[[x_var]]  else NULL
     y1v <- if (y1_var %in% names(df)) df[[y1_var]] else NULL
     y2v <- if (y2_var %in% names(df)) df[[y2_var]] else NULL
 
@@ -604,19 +830,15 @@ serverLpViewer <- function(input, output, session, state) {
     }
 
     p <- plot_ly()
-
-    # Y1 trace (left axis)
     if (!is.null(y1v)) {
       ok1 <- !is.na(xv) & !is.na(y1v)
-      p <- p %>% add_trace(
-        type   = "scatter", mode = "lines+markers",
-        x      = xv[ok1], y = y1v[ok1],
-        yaxis  = "y",
-        name   = .ax_lbl(y1_var),
-        line   = list(color = "#ff7f11", width = 2),
+      p   <- p %>% add_trace(
+        type = "scatter", mode = "lines+markers",
+        x = xv[ok1], y = y1v[ok1], yaxis = "y",
+        name = .ax_lbl(y1_var),
+        line = list(color = "#ff7f11", width = 2),
         marker = list(color = "#ff7f11", size = 5)
       )
-      # Mark max-PAE / max-Gain point
       if (isTRUE(input$lp_nose_mark_opt) && sum(ok1) > 0) {
         bi <- which.max(y1v[ok1])
         p  <- p %>% add_trace(
@@ -625,25 +847,21 @@ serverLpViewer <- function(input, output, session, state) {
           text = sprintf("%.2f", y1v[ok1][bi]),
           textposition = "top right",
           textfont = list(color = "#ffcc80", size = 11),
-          marker   = list(color = "#ff7f11", size = 13, symbol = "star",
-                          line = list(color = "white", width = 1.5)),
+          marker = list(color = "#ff7f11", size = 13, symbol = "star",
+                        line = list(color = "white", width = 1.5)),
           yaxis = "y", name = paste0("Max ", .ax_lbl(y1_var)), showlegend = TRUE
         )
       }
     }
-
-    # Y2 trace (right axis)
     if (!is.null(y2v)) {
       ok2 <- !is.na(xv) & !is.na(y2v)
-      p <- p %>% add_trace(
-        type   = "scatter", mode = "lines+markers",
-        x      = xv[ok2], y = y2v[ok2],
-        yaxis  = "y2",
-        name   = .ax_lbl(y2_var),
-        line   = list(color = "#1f77b4", width = 2, dash = "dot"),
+      p   <- p %>% add_trace(
+        type = "scatter", mode = "lines+markers",
+        x = xv[ok2], y = y2v[ok2], yaxis = "y2",
+        name = .ax_lbl(y2_var),
+        line = list(color = "#1f77b4", width = 2, dash = "dot"),
         marker = list(color = "#1f77b4", size = 5, symbol = "circle-open")
       )
-      # Mark optimal Y2 point
       if (isTRUE(input$lp_nose_mark_opt) && sum(ok2) > 0) {
         bi <- which.max(y2v[ok2])
         p  <- p %>% add_trace(
@@ -652,44 +870,38 @@ serverLpViewer <- function(input, output, session, state) {
           text = sprintf("%.2f", y2v[ok2][bi]),
           textposition = "top left",
           textfont = list(color = "#7ec8e3", size = 11),
-          marker   = list(color = "#1f77b4", size = 13, symbol = "diamond",
-                          line = list(color = "white", width = 1.5)),
+          marker = list(color = "#1f77b4", size = 13, symbol = "diamond",
+                        line = list(color = "white", width = 1.5)),
           yaxis = "y2", name = paste0("Max ", .ax_lbl(y2_var)), showlegend = TRUE
         )
       }
     }
-
-    # Back-off reference line on X axis (when X is dBm-type)
     bo <- as.numeric(input$lp_backoff_db %||% 6)
-    if (!is.null(xv) && x_var %in% c("pout_dbm", "pin_dbm") && bo > 0) {
+    if (!is.null(xv) && x_var %in% c("pout_dbm","pin_dbm") && bo > 0) {
       max_x <- max(xv, na.rm = TRUE)
       p <- p %>% add_trace(
         type = "scatter", mode = "lines",
-        x    = c(max_x - bo, max_x - bo), y = c(0, 1),
-        yaxis = "y", xaxis = "x",
+        x = c(max_x - bo, max_x - bo), y = c(0, 1),
+        yaxis = "y",
         line = list(color = "#d62728", dash = "dash", width = 1.5),
         visible = "legendonly",
         name = paste0("-", bo, " dB back-off")
       )
     }
-
     p %>% layout(
-      paper_bgcolor = "#1b1b2b",
-      plot_bgcolor  = "#1b1b2b",
-      xaxis  = list(title = .ax_lbl(x_var), color = "#aaa",
+      paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
+      xaxis  = list(title = .ax_lbl(x_var),  color = "#aaa",
                     showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
       yaxis  = list(title = if (!is.null(y1v)) .ax_lbl(y1_var) else "",
                     color = "#ff7f11",
                     showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)",
                     tickfont = list(color = "#ff7f11")),
       yaxis2 = list(title = if (!is.null(y2v)) .ax_lbl(y2_var) else "",
-                    color = "#1f77b4",
-                    overlaying = "y", side = "right",
+                    color = "#1f77b4", overlaying = "y", side = "right",
                     showgrid = FALSE, zeroline = FALSE,
                     tickfont = list(color = "#1f77b4")),
       legend = list(font = list(color = "#aaa"), bgcolor = "rgba(0,0,0,0.30)"),
-      title  = list(text = "Tradeoff Plot",
-                    font = list(color = "#eee", size = 14)),
+      title  = list(text = "Tradeoff Plot", font = list(color = "#eee", size = 14)),
       font   = list(color = "#aaa"),
       margin = list(l = 65, r = 70, t = 50, b = 60)
     )
@@ -721,6 +933,48 @@ serverLpViewer <- function(input, output, session, state) {
   }, options = list(dom = "t", scrollX = TRUE, pageLength = 1),
      class   = "compact cell-border", rownames = FALSE)
 
+  # ── Tabular: Optimum operating points (MXP / MXE / MXG) with impedances ──
+  output$lp_table_optima <- DT::renderDT({
+    id <- input$lp_table_dataset_selector
+    df <- .get_df(id)
+    if (is.null(df)) return(data.frame())
+
+    opt  <- .find_optima(df)
+    rows <- list()
+
+    for (oname in c("MXP", "MXE", "MXG")) {
+      bi <- opt[[oname]]
+      if (is.na(bi)) next
+      row  <- df[bi, , drop = FALSE]
+
+      gl_r <- if ("gl_r" %in% names(row)) row$gl_r else NA_real_
+      gl_i <- if ("gl_i" %in% names(row)) row$gl_i else NA_real_
+      gs_r <- if ("gs_r" %in% names(row)) row$gs_r else NA_real_
+      gs_i <- if ("gs_i" %in% names(row)) row$gs_i else NA_real_
+      zl   <- .gamma_to_z(gl_r, gl_i)
+      zs   <- .gamma_to_z(gs_r, gs_i)
+
+      rec <- data.frame(
+        Point    = oname,
+        Pout_dBm = round(if ("pout_dbm" %in% names(row)) row$pout_dbm else NA_real_, 2),
+        Gain_dB  = round(if ("gain_db"  %in% names(row)) row$gain_db  else NA_real_, 2),
+        PAE_pct  = round(if ("pae_pct"  %in% names(row)) row$pae_pct  else NA_real_, 2),
+        DE_pct   = round(if ("de_pct"   %in% names(row)) row$de_pct   else NA_real_, 2),
+        Freq_GHz = round(if ("freq_ghz" %in% names(row)) row$freq_ghz else NA_real_, 4),
+        Gamma_L  = sprintf("%.3f %+.3fj", gl_r, gl_i),
+        ZL_Ohm   = sprintf("%.2f %+.2fj", round(zl$r, 2), round(zl$x, 2)),
+        Gamma_S  = sprintf("%.3f %+.3fj", gs_r, gs_i),
+        ZS_Ohm   = sprintf("%.2f %+.2fj", round(zs$r, 2), round(zs$x, 2)),
+        stringsAsFactors = FALSE
+      )
+      rows[[oname]] <- rec
+    }
+
+    if (length(rows) == 0) return(data.frame())
+    do.call(rbind, rows)
+  }, options = list(dom = "t", scrollX = TRUE, pageLength = 5),
+     class   = "compact cell-border", rownames = FALSE)
+
   .clean_dt_row <- function(row) {
     # Keep only non-all-NA columns; round numerics
     non_empty <- names(row)[sapply(row, function(c) !all(is.na(c)))]
@@ -739,6 +993,102 @@ serverLpViewer <- function(input, output, session, state) {
                 file, row.names = FALSE)
     }
   )
+
+  # ── AM-PM / AM-AM vs Pout ───────────────────────────────────────────────────
+  output$lp_ampm_plot <- renderPlotly({
+    id    <- input$lp_xy_dataset_selector   # reuse XY selector
+    df    <- .get_df(id)
+    x_var <- input$lp_ampm_x_var %||% "pout_dbm"
+
+    .ax_lbl2 <- function(v) switch(v,
+      pout_dbm = "Pout (dBm)", pin_dbm = "Pin (dBm)", pout_w = "Pout (W)",
+      gsub("_", " ", v))
+
+    empty_plot <- function(msg)
+      plot_ly() %>% layout(
+        paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
+        title = list(text = msg, font = list(color = "#aaa")))
+
+    if (is.null(df)) return(empty_plot("No data — select a dataset"))
+
+    has_ampm <- "am_pm" %in% names(df) && !all(is.na(df$am_pm))
+    has_gain <- "gain_db" %in% names(df) && !all(is.na(df$gain_db))
+
+    if (!has_ampm && !has_gain) {
+      return(empty_plot("No AM-PM or Gain data found in this dataset"))
+    }
+
+    # Sort by X
+    if (x_var %in% names(df)) {
+      ord <- order(df[[x_var]], na.last = NA)
+      df  <- df[ord, , drop = FALSE]
+    }
+    xv <- df[[x_var]]
+    p  <- plot_ly()
+
+    # AM-AM: Gain (dB) vs Pout — left Y axis (linear gain compression)
+    if (has_gain) {
+      yv <- df$gain_db
+      ok <- !is.na(xv) & !is.na(yv)
+      p  <- p %>% add_trace(
+        type = "scatter", mode = "lines+markers",
+        x = xv[ok], y = yv[ok], yaxis = "y",
+        name = "Gain (dB) — AM-AM",
+        line   = list(color = "#ff7f11", width = 2),
+        marker = list(color = "#ff7f11", size = 5)
+      )
+      # Mark 1dB compression point
+      if (sum(ok) > 2) {
+        g_lin  <- max(yv[ok][seq_len(min(3, sum(ok)))], na.rm = TRUE)
+        g_comp <- g_lin - 1
+        ci     <- which(yv[ok] <= g_comp)
+        if (length(ci) > 0) {
+          ci1 <- ci[1]
+          p   <- p %>% add_trace(
+            type = "scatter", mode = "markers+text",
+            x = xv[ok][ci1], y = yv[ok][ci1],
+            text = sprintf("P1dB\n%.1f dBm", xv[ok][ci1]),
+            textposition = "top right",
+            textfont = list(color = "#ff7f11", size = 10),
+            marker = list(color = "#ff7f11", size = 12, symbol = "circle",
+                          line = list(color = "white", width = 2)),
+            yaxis = "y", name = "P1dB", showlegend = TRUE
+          )
+        }
+      }
+    }
+
+    # AM-PM: phase distortion vs Pout — right Y axis
+    if (has_ampm) {
+      yv2 <- df$am_pm
+      ok2 <- !is.na(xv) & !is.na(yv2)
+      p   <- p %>% add_trace(
+        type = "scatter", mode = "lines+markers",
+        x = xv[ok2], y = yv2[ok2], yaxis = "y2",
+        name = "AM-PM (°)",
+        line   = list(color = "#1f77b4", width = 2, dash = "dot"),
+        marker = list(color = "#1f77b4", size = 5, symbol = "circle-open")
+      )
+    }
+
+    p %>% layout(
+      paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
+      xaxis  = list(title = .ax_lbl2(x_var), color = "#aaa",
+                    showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
+      yaxis  = list(title = "Gain (dB)", color = "#ff7f11",
+                    showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)",
+                    tickfont = list(color = "#ff7f11")),
+      yaxis2 = list(title = "AM-PM (°)", color = "#1f77b4",
+                    overlaying = "y", side = "right",
+                    showgrid = FALSE, zeroline = FALSE,
+                    tickfont = list(color = "#1f77b4")),
+      legend = list(font = list(color = "#aaa"), bgcolor = "rgba(0,0,0,0.30)"),
+      title  = list(text = "AM-AM / AM-PM vs Pout",
+                    font = list(color = "#eee", size = 14)),
+      font   = list(color = "#aaa"),
+      margin = list(l = 65, r = 70, t = 50, b = 60)
+    )
+  })
 
   # ── Comparison plot ────────────────────────────────────────────────────────
   output$lp_compare_plot <- renderPlotly({

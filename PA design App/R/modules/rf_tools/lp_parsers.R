@@ -762,13 +762,43 @@ parse_mdif <- function(lines, filepath) {
     df$freq_ghz <- fq
   }
 
+  # Harmonic aliases: keep 2nd/3rd harmonic impedance columns if present
+  harm_aliases <- list(
+    gl2_r = c("GL2_R","GL_2H_R","GAMMA_L2_RE","GL2RE","GAMMAL2_R"),
+    gl2_i = c("GL2_I","GL_2H_I","GAMMA_L2_IM","GL2IM","GAMMAL2_I"),
+    gl3_r = c("GL3_R","GL_3H_R","GAMMA_L3_RE","GL3RE","GAMMAL3_R"),
+    gl3_i = c("GL3_I","GL_3H_I","GAMMA_L3_IM","GL3IM","GAMMAL3_I"),
+    gs2_r = c("GS2_R","GS_2H_R","GAMMA_S2_RE","GS2RE"),
+    gs2_i = c("GS2_I","GS_2H_I","GAMMA_S2_IM","GS2IM"),
+    gs3_r = c("GS3_R","GS_3H_R","GAMMA_S3_RE","GS3RE"),
+    gs3_i = c("GS3_I","GS_3H_I","GAMMA_S3_IM","GS3IM"),
+    # Phase distortion
+    am_pm  = c("AM_PM","AMPM","PHASE_DIST","PHASE_OUT","S21_PHASE_DIFF",
+               "DPHASE","DELTA_PHASE"),
+    pout_fund_dbm = c("POUT_FUND","POUT_FUNDAMENTAL","POUT_F1"),
+    pout_h2_dbm   = c("POUT_H2","POUT_2H","P2H","POUT_2ND"),
+    pout_h3_dbm   = c("POUT_H3","POUT_3H","P3H","POUT_3RD")
+  )
+  for (canon in names(harm_aliases)) {
+    if (!canon %in% names(df)) {
+      for (alias in harm_aliases[[canon]]) {
+        if (alias %in% names(df)) {
+          names(df)[names(df) == alias] <- canon
+          break
+        }
+      }
+    }
+  }
+
   # Ensure canonical columns exist (NA if not available)
   canonical <- c("gl_r","gl_i","gs_r","gs_i",
                  "pout_dbm","pout_w","pin_dbm","pin_w",
                  "gain_db","pae_pct","de_pct","idc_a","vdc_v","pdc_w","freq_ghz")
   for (cn in canonical) if (!cn %in% names(df)) df[[cn]] <- NA_real_
 
-  df[, canonical, drop = FALSE]
+  # Keep canonical + any harmonic/extra columns that survived (drop nothing useful)
+  extra <- setdiff(names(df), canonical)
+  df[, c(canonical, extra), drop = FALSE]
 }
 
 # ── Metadata helpers ──────────────────────────────────────────────────────────

@@ -373,8 +373,13 @@ server <- function(input, output, session) {
                             choices  = c("Load Pull" = "load", "Source Pull" = "source"),
                             selected = "load"),
                           hr(),
-                          checkboxInput("lp_show_max_pae",   "Mark max-PAE point",    value = TRUE),
-                          checkboxInput("lp_show_max_pout",  "Mark max-Pout point",   value = TRUE),
+                          strong("Optimal markers", style = "color:#ccc; font-size:12px;"),
+                          checkboxInput("lp_show_optima",    "Show MXP/MXE/MXG markers", value = TRUE),
+                          checkboxInput("lp_show_max_pae",   "Contour: mark max-PAE",    value = TRUE),
+                          checkboxInput("lp_show_max_pout",  "Contour: mark max-Pout",   value = TRUE),
+                          hr(),
+                          strong("Overlays", style = "color:#ccc; font-size:12px;"),
+                          checkboxInput("lp_show_harmonics", "Show 2H/3H \u0393 points",  value = FALSE),
                           checkboxInput("lp_show_stability", "Show stability circles", value = FALSE),
                           checkboxInput("lp_smith_zoom_data", "Zoom to data region",   value = FALSE)
                         )
@@ -440,7 +445,16 @@ server <- function(input, output, session) {
                           h5("Tradeoff plot controls", style = "color:#f0f0f0; margin-top:0;"),
                           uiOutput("lp_nose_dataset_selector"),
                           hr(),
-                          selectInput("lp_nose_x_var", "X axis",
+                          strong("Display mode", style = "color:#ccc; font-size:12px;"),
+                          checkboxInput("lp_nose_smith_mode",
+                            "Smith-scatter (colour by X metric)",
+                            value = TRUE),
+                          checkboxInput("lp_nose_mark_opt", "Mark MXP/MXE/MXG",
+                            value = TRUE),
+                          hr(),
+                          strong("Smith-scatter: colour metric (= X axis)",
+                            style = "color:#ccc; font-size:12px;"),
+                          selectInput("lp_nose_x_var", "Colour / X axis",
                             choices = c(
                               "Pout (dBm)" = "pout_dbm",
                               "Pin (dBm)"  = "pin_dbm",
@@ -460,8 +474,25 @@ server <- function(input, output, session) {
                               "DE (%)"    = "de_pct",
                               "Gain (dB)" = "gain_db"),
                             selected = "pae_pct"),
-                          checkboxInput("lp_nose_mark_opt", "Mark optimal points",
+                          checkboxInput("lp_nose_mark_opt", "Mark MXP/MXE/MXG",
                             value = TRUE),
+                          hr(),
+                          strong("XY-mode axes (Smith mode off)",
+                            style = "color:#888; font-size:11px;"),
+                          selectInput("lp_nose_y1_var", "Y1 axis (left, solid)",
+                            choices = c(
+                              "Gain (dB)"  = "gain_db",
+                              "Pout (dBm)" = "pout_dbm",
+                              "PAE (%)"    = "pae_pct",
+                              "DE (%)"     = "de_pct",
+                              "Pout (W)"   = "pout_w"),
+                            selected = "gain_db"),
+                          selectInput("lp_nose_y2_var", "Y2 axis (right, dotted)",
+                            choices = c(
+                              "PAE (%)"   = "pae_pct",
+                              "DE (%)"    = "de_pct",
+                              "Gain (dB)" = "gain_db"),
+                            selected = "pae_pct"),
                           hr(),
                           sliderInput("lp_backoff_db", "Back-off reference (dB)",
                             min = 0, max = 12, value = 6, step = 0.5)
@@ -470,18 +501,48 @@ server <- function(input, output, session) {
                       column(9,
                         div(class = "well",
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                          h5("Tradeoff Plot \u2014 Gain / PAE / DE vs Pout",
+                          h5("Tradeoff / Nose Plot",
                             style = "color:#f0f0f0; margin-top:0;"),
-                          plotlyOutput("lp_nose_plot", height = "460px"),
+                          plotlyOutput("lp_nose_plot", height = "500px"),
                           hr(),
                           p(class = "text-muted", style = "font-size:11px;",
-                            "Configure X, Y1 (left axis), and Y2 (right axis) independently. Points are sorted by X.")
+                            "Smith-scatter mode: all pull points plotted in \u0393-plane, coloured by metric. ",
+                            "XY mode: sorted line plot with configurable dual Y axes.")
                         )
                       )
                     )
                   ),
 
-                  # ── Tab 5: Tabular Summary ───────────────────────────
+                  # ── Tab 5: AM-PM / AM-AM ─────────────────────────────
+                  tabPanel("AM-PM / AM-AM",
+                    br(),
+                    fluidRow(
+                      column(3,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                          h5("AM-PM / AM-AM controls", style = "color:#f0f0f0; margin-top:0;"),
+                          uiOutput("lp_xy_dataset_selector"),
+                          hr(),
+                          selectInput("lp_ampm_x_var", "X axis",
+                            choices = c(
+                              "Pout (dBm)" = "pout_dbm",
+                              "Pin (dBm)"  = "pin_dbm",
+                              "Pout (W)"   = "pout_w"),
+                            selected = "pout_dbm")
+                        )
+                      ),
+                      column(9,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                          h5("AM-AM (Gain dB) \u2014 left axis \u00a0|\u00a0 AM-PM (\u00b0) \u2014 right axis",
+                            style = "color:#f0f0f0; margin-top:0;"),
+                          plotlyOutput("lp_ampm_plot", height = "460px")
+                        )
+                      )
+                    )
+                  ),
+
+                  # ── Tab 6: Tabular Summary ───────────────────────────
                   tabPanel("Tabular",
                     br(),
                     div(class = "well",
@@ -494,6 +555,12 @@ server <- function(input, output, session) {
                         column(4, downloadButton("lp_table_csv", "Download CSV",
                           class = "btn-default"))
                       ),
+                      hr(),
+                      h5("Optimal operating points: MXP / MXE / MXG",
+                        style = "color:#f0f0f0;"),
+                      p(class = "text-muted", style = "font-size:11px;",
+                        "MXP = max Pout, MXE = max PAE, MXG = max Gain. Z = 50\u00d7(1+\u0393)/(1-\u0393)."),
+                      DT::DTOutput("lp_table_optima"),
                       hr(),
                       h5("Performance at Ppeak (max Pout)", style = "color:#f0f0f0;"),
                       DT::DTOutput("lp_table_ppeak"),
