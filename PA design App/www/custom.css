@@ -1580,3 +1580,42 @@ body.theme-light *[style*="color: var(--c-err)"]   { color: var(--c-err)  !impor
 .dataTable th, .dataTable td {
   font-size: 12px !important;
 }
+
+/* ── Prevent long filenames from overflowing sidebar input controls ──────── */
+/* selectInput: constrain the selectize rendered input box */
+.shiny-input-container .selectize-input,
+.shiny-input-container select {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+/* The selectize single-value text blob */
+.shiny-input-container .selectize-input .item,
+.shiny-input-container .selectize-input input {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+}
+/* checkboxGroupInput / radioButtons – label text beside each checkbox */
+.shiny-input-container .checkbox label,
+.shiny-input-container .radio label {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+/* Sidebar well columns: hard clip so nothing bleeds into plot area */
+.col-sm-3 .well,
+.col-md-3 .well,
+[class*="col-"][class*="-3"] .well {
+  overflow: hidden !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+/* Also clip shiny-input-container itself */
+.col-sm-3 .shiny-input-container,
+.col-md-3 .shiny-input-container {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}

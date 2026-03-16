@@ -528,7 +528,7 @@ server <- function(input, output, session) {
                               "Pout (dBm)" = "pout_dbm",
                               "Pin (dBm)"  = "pin_dbm",
                               "Pout (W)"   = "pout_w"),
-                            selected = "pout_dbm")
+                            selected = "pin_dbm")
                         )
                       ),
                       column(9,

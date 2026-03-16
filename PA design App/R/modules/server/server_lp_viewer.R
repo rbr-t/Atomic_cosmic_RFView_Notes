@@ -332,7 +332,11 @@ serverLpViewer <- function(input, output, session, state) {
   .dataset_choices <- reactive({
     ds <- lp_datasets()
     if (length(ds) == 0) return(character(0))
-    setNames(names(ds), sapply(ds, `[[`, "filename"))
+    # Truncate display labels so they fit in the sidebar column without
+    # overflowing into the adjacent plot area
+    ids    <- names(ds)
+    labels <- vapply(ds, function(r) .short_name(r$filename, 26L), character(1))
+    setNames(ids, labels)
   })
 
   .make_selector <- function(output_id, label = "Dataset",
@@ -342,10 +346,14 @@ serverLpViewer <- function(input, output, session, state) {
       if (length(ch) == 0)
         return(p(style = "color:#888; font-size:12px;",
                  "Load datasets first."))
-      if (multiple)
-        checkboxGroupInput(output_id, label, choices = ch, selected = ch[1])
-      else
-        selectInput(output_id, label, choices = ch, selected = ch[1])
+      # Wrap in a container that enforces overflow:hidden on the element
+      div(style = "max-width:100%; overflow:hidden;",
+        if (multiple)
+          checkboxGroupInput(output_id, label, choices = ch, selected = ch[1])
+        else
+          selectInput(output_id, label, choices = ch, selected = ch[1],
+                      width = "100%")
+      )
     })
   }
 
@@ -998,7 +1006,7 @@ serverLpViewer <- function(input, output, session, state) {
   output$lp_ampm_plot <- renderPlotly({
     id    <- input$lp_xy_dataset_selector   # reuse XY selector
     df    <- .get_df(id)
-    x_var <- input$lp_ampm_x_var %||% "pout_dbm"
+    x_var <- input$lp_ampm_x_var %||% "pin_dbm"
 
     .ax_lbl2 <- function(v) switch(v,
       pout_dbm = "Pout (dBm)", pin_dbm = "Pin (dBm)", pout_w = "Pout (W)",
@@ -1033,7 +1041,7 @@ serverLpViewer <- function(input, output, session, state) {
       p  <- p %>% add_trace(
         type = "scatter", mode = "lines+markers",
         x = xv[ok], y = yv[ok], yaxis = "y",
-        name = "Gain (dB) — AM-AM",
+        name = "AM-AM (dB)",
         line   = list(color = "#ff7f11", width = 2),
         marker = list(color = "#ff7f11", size = 5)
       )
@@ -1075,7 +1083,7 @@ serverLpViewer <- function(input, output, session, state) {
       paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
       xaxis  = list(title = .ax_lbl2(x_var), color = "#aaa",
                     showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
-      yaxis  = list(title = "Gain (dB)", color = "#ff7f11",
+      yaxis  = list(title = "AM-AM (dB)", color = "#ff7f11",
                     showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)",
                     tickfont = list(color = "#ff7f11")),
       yaxis2 = list(title = "AM-PM (°)", color = "#1f77b4",
@@ -1083,7 +1091,7 @@ serverLpViewer <- function(input, output, session, state) {
                     showgrid = FALSE, zeroline = FALSE,
                     tickfont = list(color = "#1f77b4")),
       legend = list(font = list(color = "#aaa"), bgcolor = "rgba(0,0,0,0.30)"),
-      title  = list(text = "AM-AM / AM-PM vs Pout",
+      title  = list(text = paste0("AM-AM / AM-PM vs ", .ax_lbl2(x_var)),
                     font = list(color = "#eee", size = 14)),
       font   = list(color = "#aaa"),
       margin = list(l = 65, r = 70, t = 50, b = 60)
@@ -1192,74 +1200,378 @@ serverLpViewer <- function(input, output, session, state) {
                          gsub("<", "&lt;",
                          gsub(">", "&gt;", as.character(x))))
 
+      fmt1 <- function(x) ifelse(is.na(x), "\u2014", sprintf("%.2f", x))
+
+      # ── Serialize a plotly figure to a self-contained <div>+<script> block ──
+      div_count <- 0L
+      plot_div <- function(p, height = "460px") {
+        div_count <<- div_count + 1L
+        did  <- paste0("lp_fig_", div_count)
+        b    <- plotly::plotly_build(p)
+        jd   <- jsonlite::toJSON(b$x$data,   auto_unbox = TRUE,
+                                 null = "null", na = "null", force = TRUE)
+        jl   <- jsonlite::toJSON(b$x$layout, auto_unbox = TRUE,
+                                 null = "null", na = "null", force = TRUE)
+        paste0(
+          "<div id='", did, "' style='width:100%;height:", height,
+          ";margin-bottom:20px;'></div>\n",
+          "<script>(function(){\n",
+          "  Plotly.newPlot('", did, "',", jd, ",", jl,
+          ",{responsive:true,displayModeBar:true});\n",
+          "})();</script>\n"
+        )
+      }
+
+      # ── MXP/MXE/MXG summary HTML table ────────────────────────────────────
+      optima_html <- function(df) {
+        opt     <- .find_optima(df)
+        has_gl  <- all(c("gl_r", "gl_i") %in% names(df))
+        has_gs  <- all(c("gs_r", "gs_i") %in% names(df))
+        rows    <- ""
+        for (oname in c("MXP", "MXE", "MXG")) {
+          bi <- opt[[oname]]
+          if (is.na(bi)) next
+          row <- df[bi, , drop = FALSE]
+          zl  <- if (has_gl) {
+            zz <- .gamma_to_z(row$gl_r, row$gl_i)
+            sprintf("%.1f%+.1fj\u03a9", zz$r, zz$x)
+          } else "\u2014"
+          zs  <- if (has_gs) {
+            zz <- .gamma_to_z(row$gs_r, row$gs_i)
+            sprintf("%.1f%+.1fj\u03a9", zz$r, zz$x)
+          } else "\u2014"
+          bg  <- switch(oname,
+            MXP = "#fff3e0", MXE = "#e3f2fd", MXG = "#e8f5e9", "#fff")
+          rows <- paste0(rows,
+            "<tr style='background:", bg, ";'>",
+            "<td style='font-weight:700;padding:5px 10px;'>", oname, "</td>",
+            "<td style='padding:5px 10px;'>", fmt1(row$pout_dbm), " dBm</td>",
+            "<td style='padding:5px 10px;'>", fmt1(row$gain_db),  " dB</td>",
+            "<td style='padding:5px 10px;'>", fmt1(row$pae_pct),  " %</td>",
+            "<td style='padding:5px 10px;'>", fmt1(row$de_pct),   " %</td>",
+            "<td style='padding:5px 10px;'>", fmt1(row$pin_dbm),  " dBm</td>",
+            "<td style='padding:5px 10px;'>", zl, "</td>",
+            "<td style='padding:5px 10px;'>", zs, "</td>",
+            "</tr>"
+          )
+        }
+        paste0(
+          "<table style='border-collapse:collapse;width:100%;margin:10px 0;'>",
+          "<thead><tr style='background:#e0e0e0;'>",
+          "<th style='padding:5px 10px;border:1px solid #bbb;'>Optimum</th>",
+          "<th style='padding:5px 10px;border:1px solid #bbb;'>Pout</th>",
+          "<th style='padding:5px 10px;border:1px solid #bbb;'>Gain</th>",
+          "<th style='padding:5px 10px;border:1px solid #bbb;'>PAE</th>",
+          "<th style='padding:5px 10px;border:1px solid #bbb;'>DE</th>",
+          "<th style='padding:5px 10px;border:1px solid #bbb;'>Pin</th>",
+          "<th style='padding:5px 10px;border:1px solid #bbb;'>Z_L</th>",
+          "<th style='padding:5px 10px;border:1px solid #bbb;'>Z_S</th>",
+          "</tr></thead>",
+          "<tbody>", rows, "</tbody></table>"
+        )
+      }
+
+      # ── Build Smith chart plotly figure ────────────────────────────────────
+      build_smith_fig <- function(r, df) {
+        grid <- build_smith_grid()
+        p    <- plot_ly()
+        for (tr in grid)
+          p <- p %>% add_trace(type = "scatter", mode = "lines",
+            x = tr$x, y = tr$y, line = tr$line,
+            hoverinfo = "none", showlegend = FALSE, name = tr$name)
+
+        vm_list <- list(
+          pout = list(col = "pout_dbm", label = "Pout (dBm)", color = "#ff7f11"),
+          pae  = list(col = "pae_pct",  label = "PAE (%)",    color = "#1f77b4")
+        )
+        xv_gl <- df$gl_r;  yv_gl <- df$gl_i
+        ok_xy <- !is.na(xv_gl) & !is.na(yv_gl)
+        cbx   <- 1.02
+
+        for (v in names(vm_list)) {
+          vm  <- vm_list[[v]]
+          if (!vm$col %in% names(df)) next
+          zv  <- df[[vm$col]]
+          ok  <- ok_xy & !is.na(zv) & (xv_gl^2 + yv_gl^2) <= 1.02
+          xv  <- xv_gl[ok]; yv <- yv_gl[ok]; zv <- zv[ok]
+          if (length(xv) < 4) next
+
+          cached <- r$interp_cache[[paste0("load:", v)]]
+          if (!is.null(cached)) {
+            p <- p %>% add_contour(
+              x = cached$xi, y = cached$yi, z = t(cached$zm),
+              ncontours = 6L, showscale = TRUE,
+              colorscale = list(list(0, "#111111"), list(1, vm$color)),
+              colorbar   = list(title = vm$label, x = cbx, len = 0.6,
+                                tickfont  = list(color = "#aaa", size = 9),
+                                titlefont = list(color = vm$color, size = 10)),
+              contours   = list(coloring = "lines", showlabels = TRUE,
+                                labelfont = list(color = vm$color, size = 9)),
+              line       = list(color = vm$color, width = 1.2),
+              name = vm$label, showlegend = TRUE)
+          } else {
+            p <- p %>% add_trace(type = "scatter", mode = "markers",
+              x = xv, y = yv,
+              marker = list(color = zv, colorscale = "Viridis", size = 7,
+                            showscale = TRUE,
+                            colorbar = list(title = vm$label, x = cbx,
+                                            tickfont = list(color = "#aaa"))),
+              name = vm$label, showlegend = TRUE)
+          }
+          cbx <- cbx + 0.13
+        }
+
+        # MXP / MXE / MXG markers
+        opt      <- .find_optima(df)
+        OPT_CFG  <- list(
+          MXP = list(col="pout_dbm", sym="star",       color="#ff7f11", label="MXP"),
+          MXE = list(col="pae_pct",  sym="diamond",    color="#1f77b4", label="MXE"),
+          MXG = list(col="gain_db",  sym="triangle-up",color="#2ca02c", label="MXG"))
+        for (oname in names(OPT_CFG)) {
+          bi  <- opt[[oname]]
+          if (is.na(bi)) next
+          cfg <- OPT_CFG[[oname]]
+          if (!cfg$col %in% names(df)) next
+          ox <- xv_gl[bi]; oy <- yv_gl[bi]; oz <- df[[cfg$col]][bi]
+          if (any(is.na(c(ox, oy)))) next
+          p <- p %>% add_trace(type = "scatter", mode = "markers+text",
+            x = ox, y = oy,
+            text = sprintf("%s\n%.1f", oname, oz),
+            textposition = "top center",
+            textfont = list(color = cfg$color, size = 10),
+            marker   = list(color = cfg$color, size = 16, symbol = cfg$sym,
+                            line = list(color = "white", width = 1.5)),
+            name = cfg$label, showlegend = TRUE)
+        }
+
+        sl <- .smith_layout(
+          title_txt = paste0("Load Pull \u2014 Smith Chart (", .short_name(r$filename, 30L), ")"),
+          xl = "Re(\u0393_L)", yl = "Im(\u0393_L)")
+        sl$margin <- list(l = 55, r = max(80, 80 + (cbx - 1.02) / 0.13 * 60), t = 50, b = 50)
+        p %>% layout(sl)
+      }
+
+      # ── Build XY performance figure ────────────────────────────────────────
+      build_xy_fig <- function(r, df) {
+        xv   <- df$pin_dbm %||% seq_len(nrow(df))
+        EFF  <- c("pae_pct", "de_pct")
+        VARS <- intersect(c("gain_db", "pae_pct", "de_pct", "pout_dbm"), names(df))
+        PAL  <- c("#ff7f11", "#1f77b4", "#2ca02c", "#9467bd")
+        p    <- plot_ly(); y1_lbl <- c(); y2_lbl <- c(); icol <- 1L
+        for (v in VARS) {
+          yv  <- df[[v]]; ok <- !is.na(xv) & !is.na(yv)
+          cl  <- PAL[(icol - 1L) %% length(PAL) + 1L]; icol <- icol + 1L
+          on2 <- v %in% EFF
+          lbl <- switch(v, gain_db="Gain (dB)", pae_pct="PAE (%)",
+                         de_pct="DE (%)", pout_dbm="Pout (dBm)", gsub("_"," ",v))
+          if (on2) y2_lbl <- c(y2_lbl, lbl) else y1_lbl <- c(y1_lbl, lbl)
+          p <- p %>% add_trace(type = "scatter", mode = "lines+markers",
+            x = xv[ok], y = yv[ok],
+            yaxis = if (on2) "y2" else "y", name = lbl,
+            line   = list(color = cl, dash = if (on2) "dot" else "solid"),
+            marker = list(color = cl, size = 5))
+        }
+        p %>% layout(
+          paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
+          xaxis  = list(title = "Pin (dBm)", color = "#aaa",
+                        showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
+          yaxis  = list(title = paste(y1_lbl, collapse = " / ") %||% "Value",
+                        color = "#aaa",
+                        showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
+          yaxis2 = list(title = paste(y2_lbl, collapse = " / ") %||% "Efficiency (%)",
+                        color = "#aaa", overlaying = "y", side = "right",
+                        showgrid = FALSE, zeroline = FALSE),
+          legend = list(font = list(color = "#aaa"), bgcolor = "rgba(0,0,0,0.30)"),
+          title  = list(text = paste0("XY Performance \u2014 ", .short_name(r$filename, 30L)),
+                        font = list(color = "#eee", size = 14)),
+          font   = list(color = "#aaa"),
+          margin = list(l = 65, r = 75, t = 50, b = 60))
+      }
+
+      # ── Build Nose/Tradeoff scatter figure ─────────────────────────────────
+      build_nose_fig <- function(r, df) {
+        has_gl <- !is.null(df$gl_r) && !all(is.na(df$gl_r))
+        if (has_gl) {
+          grid <- build_smith_grid(); p <- plot_ly()
+          for (tr in grid)
+            p <- p %>% add_trace(type = "scatter", mode = "lines",
+              x = tr$x, y = tr$y, line = tr$line,
+              hoverinfo = "none", showlegend = FALSE, name = tr$name)
+          cv  <- df$pout_dbm %||% rep(NA_real_, nrow(df))
+          ok  <- !is.na(df$gl_r) & !is.na(df$gl_i) & !is.na(cv) &
+                 (df$gl_r^2 + df$gl_i^2) <= 1.02
+          p   <- p %>% add_trace(type = "scatter", mode = "markers",
+            x = df$gl_r[ok], y = df$gl_i[ok],
+            marker = list(color = cv[ok], colorscale = "Jet", size = 8,
+                          showscale = TRUE,
+                          colorbar = list(title = "Pout (dBm)",
+                                          tickfont  = list(color = "#aaa"),
+                                          titlefont = list(color = "#aaa"))),
+            name = "Pout (dBm)")
+          sl <- .smith_layout(
+            title_txt = paste0("Tradeoff \u2014 Pout vs \u0393_L (", .short_name(r$filename,28L),")"),
+            xl = "Re(\u0393_L)", yl = "Im(\u0393_L)")
+          p %>% layout(sl)
+        } else if (!is.null(df$pout_dbm)) {
+          # XY fallback: Gain + PAE vs Pout
+          p    <- plot_ly()
+          VARS <- list(list(v="gain_db", l="Gain (dB)", c="#ff7f11", y2=FALSE),
+                       list(v="pae_pct", l="PAE (%)",   c="#1f77b4", y2=TRUE))
+          for (vv in VARS) {
+            if (!vv$v %in% names(df)) next
+            yv <- df[[vv$v]]; ok <- !is.na(df$pout_dbm) & !is.na(yv)
+            p <- p %>% add_trace(type = "scatter", mode = "lines+markers",
+              x = df$pout_dbm[ok], y = yv[ok],
+              yaxis = if (vv$y2) "y2" else "y",
+              name = vv$l, line = list(color = vv$c, dash = if (vv$y2) "dot" else "solid"),
+              marker = list(color = vv$c, size = 5))
+          }
+          p %>% layout(
+            paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
+            xaxis  = list(title = "Pout (dBm)", color = "#aaa",
+                          showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
+            yaxis  = list(title = "Gain (dB)", color = "#aaa",
+                          showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
+            yaxis2 = list(title = "PAE (%)", color = "#aaa",
+                          overlaying = "y", side = "right", showgrid = FALSE),
+            legend = list(font = list(color = "#aaa"), bgcolor = "rgba(0,0,0,0.30)"),
+            title  = list(text = paste0("Tradeoff \u2014 ", .short_name(r$filename, 28L)),
+                          font = list(color = "#eee", size = 14)),
+            font   = list(color = "#aaa"),
+            margin = list(l = 65, r = 75, t = 50, b = 60))
+        } else NULL
+      }
+
+      # ── Build AM-AM / AM-PM figure ─────────────────────────────────────────
+      build_ampm_fig <- function(r, df) {
+        xv       <- df$pin_dbm %||% df$pout_dbm
+        has_gain <- "gain_db" %in% names(df) && !all(is.na(df$gain_db))
+        has_ampm <- "am_pm"   %in% names(df) && !all(is.na(df$am_pm))
+        if (is.null(xv) || (!has_gain && !has_ampm)) return(NULL)
+        p <- plot_ly()
+        if (has_gain) {
+          yv <- df$gain_db; ok <- !is.na(xv) & !is.na(yv)
+          p  <- p %>% add_trace(type = "scatter", mode = "lines+markers",
+            x = xv[ok], y = yv[ok], yaxis = "y", name = "AM-AM (dB)",
+            line = list(color = "#ff7f11", width = 2), marker = list(color = "#ff7f11", size = 5))
+        }
+        if (has_ampm) {
+          yv2 <- df$am_pm; ok2 <- !is.na(xv) & !is.na(yv2)
+          p   <- p %>% add_trace(type = "scatter", mode = "lines+markers",
+            x = xv[ok2], y = yv2[ok2], yaxis = "y2", name = "AM-PM (\u00b0)",
+            line   = list(color = "#1f77b4", width = 2, dash = "dot"),
+            marker = list(color = "#1f77b4", size = 5, symbol = "circle-open"))
+        }
+        x_lbl <- if (!is.null(df$pin_dbm)) "Pin (dBm)" else "Pout (dBm)"
+        p %>% layout(
+          paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
+          xaxis  = list(title = x_lbl, color = "#aaa",
+                        showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
+          yaxis  = list(title = "AM-AM (dB)", color = "#ff7f11",
+                        showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)",
+                        tickfont = list(color = "#ff7f11")),
+          yaxis2 = list(title = "AM-PM (\u00b0)", color = "#1f77b4",
+                        overlaying = "y", side = "right", showgrid = FALSE,
+                        tickfont = list(color = "#1f77b4")),
+          legend = list(font = list(color = "#aaa"), bgcolor = "rgba(0,0,0,0.30)"),
+          title  = list(text = paste0("AM-AM / AM-PM \u2014 ", .short_name(r$filename, 28L)),
+                        font = list(color = "#eee", size = 14)),
+          font   = list(color = "#aaa"),
+          margin = list(l = 65, r = 75, t = 50, b = 60))
+      }
+
+      # ── Assemble report body ──────────────────────────────────────────────
+      body <- ""
+      for (id in names(ds)) {
+        r  <- ds[[id]]
+        ok <- isTRUE(r$success)
+        df <- if (ok) r$points else NULL
+
+        body <- paste0(body,
+          "<hr style='margin:28px 0; border-color:#ccc;'/>",
+          "<h2>", esc(r$filename),
+          "  <span class='", if (ok) "badge-ok" else "badge-err", "'>",
+          if (ok) "OK" else "failed", "</span></h2>")
+        if (!ok) next
+
+        # Summary table
+        if ("table" %in% sections)
+          body <- paste0(body, "<h3>Optimum Points Summary</h3>", optima_html(df))
+
+        # Parsed metadata
+        if ("meta" %in% sections && length(r$meta) > 0) {
+          rows <- paste0(
+            "<tr><td style='font-weight:600;padding:4px 12px 4px 6px;'>",
+            esc(names(r$meta)), "</td><td style='padding:4px 6px;'>",
+            esc(as.character(unlist(r$meta))), "</td></tr>", collapse = "")
+          body <- paste0(body,
+            "<h3>Metadata</h3>",
+            "<table style='border-collapse:collapse;width:auto;margin:8px 0;'>",
+            "<thead><tr><th style='padding:4px 12px 4px 6px;border-bottom:2px solid #ccc;",
+            "text-align:left;'>Key</th>",
+            "<th style='padding:4px 6px;border-bottom:2px solid #ccc;",
+            "text-align:left;'>Value</th></tr></thead><tbody>",
+            rows, "</tbody></table>")
+        }
+
+        has_gl <- !is.null(df$gl_r) && !all(is.na(df$gl_r))
+
+        # Smith chart
+        if ("smith" %in% sections && has_gl)
+          body <- paste0(body, "<h3>Smith Chart \u2014 Pout &amp; PAE Contours</h3>",
+                         plot_div(build_smith_fig(r, df)))
+
+        # XY performance
+        if ("xy" %in% sections)
+          body <- paste0(body, "<h3>XY Performance</h3>",
+                         plot_div(build_xy_fig(r, df)))
+
+        # Nose / Tradeoff
+        if ("nose" %in% sections) {
+          p_nose <- build_nose_fig(r, df)
+          if (!is.null(p_nose))
+            body <- paste0(body, "<h3>Tradeoff / Nose Chart</h3>",
+                           plot_div(p_nose))
+        }
+
+        # AM-AM / AM-PM (always included when data is present)
+        p_am <- build_ampm_fig(r, df)
+        if (!is.null(p_am))
+          body <- paste0(body, "<h3>AM-AM / AM-PM</h3>", plot_div(p_am))
+      }
+
+      # ── Page header + CDN script ──────────────────────────────────────────
       hdr <- paste0(
         "<!DOCTYPE html><html lang='en'><head>",
         "<meta charset='UTF-8'>",
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>",
         "<title>", esc(title), "</title>",
+        "<script src='https://cdn.plot.ly/plotly-2.35.2.min.js' charset='utf-8'></script>",
         "<style>",
         "body{font-family:Arial,sans-serif;line-height:1.6;color:#222;",
-        "max-width:960px;margin:24px auto;padding:0 16px;}",
-        "h1{color:#333;border-bottom:2px solid #e0e0e0;padding-bottom:8px;}",
-        "h2{color:#444;margin-top:28px;}h3{color:#555;}",
-        "table{border-collapse:collapse;width:100%;margin:12px 0;}",
-        "th,td{border:1px solid #ccc;padding:5px 10px;text-align:left;}",
-        "th{background:#f4f4f4;font-weight:600;}",
-        ".badge-ok{background:#2ca02c;color:#fff;border-radius:3px;padding:2px 6px;}",
-        ".badge-err{background:#d62728;color:#fff;border-radius:3px;padding:2px 6px;}",
+        "max-width:1100px;margin:24px auto;padding:0 20px;background:#fafafa;}",
+        "h1{color:#333;border-bottom:2px solid #555;padding-bottom:10px;}",
+        "h2{color:#333;margin-top:32px;border-left:4px solid #ff7f11;padding-left:10px;}",
+        "h3{color:#555;margin-top:20px;}",
+        "table{border-collapse:collapse;width:100%;margin:10px 0;}",
+        "th,td{border:1px solid #ddd;padding:5px 10px;text-align:left;font-size:13px;}",
+        "th{background:#ececec;font-weight:600;}",
+        "tr:hover{background:#f5f5f5;}",
+        ".badge-ok{background:#2ca02c;color:#fff;border-radius:3px;",
+        "padding:2px 8px;font-size:12px;font-weight:600;}",
+        ".badge-err{background:#d62728;color:#fff;border-radius:3px;",
+        "padding:2px 8px;font-size:12px;font-weight:600;}",
+        ".meta-info{color:#666;font-size:14px;margin:4px 0;}",
         "</style></head><body>",
         "<h1>", esc(title), "</h1>",
-        if (nzchar(engineer)) paste0("<p><strong>Engineer:</strong> ", esc(engineer), "</p>") else "",
-        if (nzchar(project))  paste0("<p><strong>Project:</strong> ",  esc(project),  "</p>") else "",
-        "<p><strong>Generated:</strong> ", as.character(Sys.time()), "</p><hr/>"
+        if (nzchar(engineer)) paste0("<p class='meta-info'><strong>Engineer:</strong> ",
+                                     esc(engineer), "</p>") else "",
+        if (nzchar(project))  paste0("<p class='meta-info'><strong>Project:</strong> ",
+                                     esc(project),  "</p>") else "",
+        "<p class='meta-info'><strong>Generated:</strong> ",
+        esc(as.character(Sys.time())), "</p>",
+        "<p class='meta-info'><strong>Datasets:</strong> ", length(ds), "</p>"
       )
-
-      body <- ""
-
-      # Metadata section
-      if ("meta" %in% sections) {
-        body <- paste0(body, "<h2>Dataset Metadata</h2>")
-        for (id in names(ds)) {
-          r  <- ds[[id]]
-          ok <- isTRUE(r$success)
-          body <- paste0(body,
-            "<h3>", esc(r$filename),
-            " <span class='", if (ok) "badge-ok" else "badge-err", "'>",
-            if (ok) "OK" else "failed", "</span></h3>",
-            "<table><tr><th>Key</th><th>Value</th></tr>",
-            paste0(sapply(names(r$meta), function(nm)
-              paste0("<tr><td>", esc(nm), "</td><td>",
-                     esc(as.character(r$meta[[nm]])), "</td></tr>")),
-              collapse = ""),
-            "</table>"
-          )
-        }
-      }
-
-      # Table section
-      if ("table" %in% sections) {
-        body <- paste0(body, "<h2>Data Tables</h2>")
-        for (id in names(ds)) {
-          r  <- ds[[id]]
-          df <- r$points
-          if (is.null(df) || nrow(df) == 0) next
-          num_cols <- names(df)[sapply(df, is.numeric)]
-          df_show  <- df[, num_cols, drop = FALSE]
-          df_show  <- as.data.frame(lapply(df_show, round, digits = 3))
-
-          body <- paste0(body,
-            "<h3>", esc(r$filename), " (", nrow(df_show), " rows)</h3>",
-            "<table><tr>",
-            paste0("<th>", esc(names(df_show)), "</th>", collapse = ""),
-            "</tr>",
-            paste0(apply(df_show, 1, function(row)
-              paste0("<tr>",
-                     paste0("<td>", esc(row), "</td>", collapse = ""),
-                     "</tr>")),
-              collapse = ""),
-            "</table>"
-          )
-        }
-      }
 
       writeLines(paste0(hdr, body, "</body></html>"), file)
     }
