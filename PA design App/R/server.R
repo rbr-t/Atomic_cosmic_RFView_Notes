@@ -350,7 +350,7 @@ server <- function(input, output, session) {
                   ),
 
                   # ── Tab 2: Contours ───────────────────────────────────
-                  tabPanel(tagList(icon("chart-pie"), " Contours"),
+                  tabPanel(tagList(icon("bullseye"), " Contours"),
                     br(),
                     fluidRow(
                       column(3,
@@ -550,7 +550,7 @@ server <- function(input, output, session) {
                   ),
 
                   # ── Tab 4: Nose Plot ─────────────────────────────────
-                  tabPanel("Nose Plot",
+                  tabPanel("Nose / Tradeoff",
                     br(),
                     fluidRow(
                       column(3,
@@ -559,69 +559,65 @@ server <- function(input, output, session) {
                           h5("Tradeoff plot controls", style = "color:#f0f0f0; margin-top:0;"),
                           uiOutput("lp_nose_dataset_selector"),
                           hr(),
-                          strong("Display mode", style = "color:#ccc; font-size:12px;"),
-                          checkboxInput("lp_nose_smith_mode",
-                            "Smith-scatter (colour by X metric)",
-                            value = TRUE),
-                          checkboxInput("lp_nose_mark_opt", "Mark MXP/MXE/MXG",
-                            value = TRUE),
-                          hr(),
-                          strong("Smith-scatter: colour metric (= X axis)",
-                            style = "color:#ccc; font-size:12px;"),
-                          selectInput("lp_nose_x_var", "Colour / X axis",
+                          strong("Smith chart colouring", style = "color:#ccc; font-size:12px;"),
+                          selectInput("lp_nose_x_var", "Colour metric",
                             choices = c(
                               "Pout (dBm)" = "pout_dbm",
+                              "PAE (%)"    = "pae_pct",
+                              "Gain (dB)"  = "gain_db",
+                              "DE (%)"     = "de_pct",
                               "Pin (dBm)"  = "pin_dbm",
                               "Pout (W)"   = "pout_w"),
                             selected = "pout_dbm"),
-                          selectInput("lp_nose_y1_var", "Y1 axis (left, solid)",
+                          hr(),
+                          strong("Impedance XY plot axes", style = "color:#ccc; font-size:12px;"),
+                          selectInput("lp_nose_x_pw", "X axis (power sweep)",
                             choices = c(
-                              "Gain (dB)"  = "gain_db",
+                              "Pin (dBm)"  = "pin_dbm",
                               "Pout (dBm)" = "pout_dbm",
-                              "PAE (%)"    = "pae_pct",
-                              "DE (%)"     = "de_pct",
                               "Pout (W)"   = "pout_w"),
-                            selected = "gain_db"),
-                          selectInput("lp_nose_y2_var", "Y2 axis (right, dotted)",
-                            choices = c(
-                              "PAE (%)"   = "pae_pct",
-                              "DE (%)"    = "de_pct",
-                              "Gain (dB)" = "gain_db"),
-                            selected = "pae_pct"),
+                            selected = "pin_dbm"),
                           checkboxInput("lp_nose_mark_opt", "Mark MXP/MXE/MXG",
                             value = TRUE),
                           hr(),
-                          strong("XY-mode axes (Smith mode off)",
-                            style = "color:#888; font-size:11px;"),
-                          selectInput("lp_nose_y1_var", "Y1 axis (left, solid)",
-                            choices = c(
-                              "Gain (dB)"  = "gain_db",
-                              "Pout (dBm)" = "pout_dbm",
-                              "PAE (%)"    = "pae_pct",
-                              "DE (%)"     = "de_pct",
-                              "Pout (W)"   = "pout_w"),
-                            selected = "gain_db"),
-                          selectInput("lp_nose_y2_var", "Y2 axis (right, dotted)",
-                            choices = c(
-                              "PAE (%)"   = "pae_pct",
-                              "DE (%)"    = "de_pct",
-                              "Gain (dB)" = "gain_db"),
-                            selected = "pae_pct"),
+                          strong(icon("compress-arrows-alt"), " Normalization",
+                            style = "color:#ccc; font-size:12px;"),
+                          numericInput("lp_nose_z0_norm",
+                            HTML("Reference Z\u2080 (\u03a9) [50 = no change]"),
+                            value = 50, min = 1, max = 10000, step = 1),
+                          hr(),
+                          strong(icon("bolt"), " Compression filter",
+                            style = "color:#ccc; font-size:12px;"),
+                          p(style = "font-size:11px; color:#999; margin:4px 0;",
+                            "Show only points near Px dB compression. 0 = all."),
+                          numericInput("lp_nose_px_db",
+                            "Px compression (dB)",
+                            value = 0, min = 0, max = 10, step = 0.5),
+                          numericInput("lp_nose_px_tol", "Tolerance \u00b1 (dB)",
+                            value = 0.3, min = 0.05, max = 2, step = 0.05),
                           hr(),
                           sliderInput("lp_backoff_db", "Back-off reference (dB)",
                             min = 0, max = 12, value = 6, step = 0.5)
                         )
                       ),
                       column(9,
-                        div(class = "well",
-                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                          h5("Tradeoff / Nose Plot",
-                            style = "color:#f0f0f0; margin-top:0;"),
-                          plotlyOutput("lp_nose_plot", height = "500px"),
-                          hr(),
-                          p(class = "text-muted", style = "font-size:11px;",
-                            "Smith-scatter mode: all pull points plotted in \u0393-plane, coloured by metric. ",
-                            "XY mode: sorted line plot with configurable dual Y axes.")
+                        fluidRow(
+                          column(6,
+                            div(class = "well",
+                              style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                              h6(icon("bullseye"), " Smith Chart \u2014 \u0393 cloud coloured by metric",
+                                style = "color:#f0f0f0; margin-top:0; margin-bottom:6px;"),
+                              plotlyOutput("lp_nose_smith", height = "420px")
+                            )
+                          ),
+                          column(6,
+                            div(class = "well",
+                              style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                              h6(icon("chart-line"), " Re(\u0393_L) & Im(\u0393_L) vs power sweep",
+                                style = "color:#f0f0f0; margin-top:0; margin-bottom:6px;"),
+                              plotlyOutput("lp_nose_xy", height = "420px")
+                            )
+                          )
                         )
                       )
                     )
@@ -635,7 +631,8 @@ server <- function(input, output, session) {
                         div(class = "well",
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
                           h5("AM-PM / AM-AM controls", style = "color:#f0f0f0; margin-top:0;"),
-                          uiOutput("lp_xy_dataset_selector"),
+                          # ← own selector ID to avoid DOM duplication with XY tab
+                          uiOutput("lp_ampm_dataset_selector"),
                           hr(),
                           selectInput("lp_ampm_x_var", "X axis",
                             choices = c(
@@ -646,16 +643,23 @@ server <- function(input, output, session) {
                           hr(),
                           p(style = "font-size:11px; color:#999;",
                             icon("info-circle"),
-                            " AM-AM shows gain compression relative to small-signal gain (0 dB = no compression).",
-                            " AM-PM shows phase distortion in degrees.")
+                            " AM-AM: gain compression vs input power (0 dB = linear; -1 dB = P1dB).",
+                            " AM-PM: phase distortion in degrees [\u00b0].")
                         )
                       ),
                       column(9,
                         div(class = "well",
-                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                          h5("AM-AM (Gain compression, dB) \u2014 left axis \u00a0|\u00a0 AM-PM (\u00b0) \u2014 right axis",
-                            style = "color:#f0f0f0; margin-top:0;"),
-                          plotlyOutput("lp_ampm_plot", height = "460px")
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                          h5(icon("compress-arrows-alt"), " AM-AM Compression (dB)",
+                            style = "color:#ff7f11; margin-top:0; margin-bottom:6px;"),
+                          plotlyOutput("lp_amam_plot", height = "280px")
+                        ),
+                        br(),
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                          h5(icon("wave-square"), " AM-PM Phase distortion (\u00b0)",
+                            style = "color:#1f77b4; margin-top:0; margin-bottom:6px;"),
+                          plotlyOutput("lp_ampm_plot", height = "280px")
                         )
                       )
                     )
@@ -730,14 +734,32 @@ server <- function(input, output, session) {
                           h5("Comparison controls", style = "color:#f0f0f0; margin-top:0;"),
                           uiOutput("lp_compare_selector"),
                           hr(),
-                          selectInput("lp_compare_metric", "Contour metric",
-                            choices  = c(
-                              "PAE (%)"    = "pae_pct",
+                          strong("X axis", style = "color:#ccc; font-size:12px;"),
+                          selectInput("lp_compare_x_var", NULL,
+                            choices = c(
+                              "Pin (dBm)"  = "pin_dbm",
                               "Pout (dBm)" = "pout_dbm",
-                              "Gain (dB)"  = "gain_db"),
-                            selected = "pae_pct"),
-                          checkboxInput("lp_compare_optimum", "Show optimal points",
-                            value = TRUE)
+                              "Pout (W)"   = "pout_w"),
+                            selected = "pin_dbm"),
+                          hr(),
+                          strong("Y axis traces", style = "color:#ccc; font-size:12px;"),
+                          checkboxGroupInput("lp_compare_y_vars", NULL,
+                            choices = c(
+                              "PAE (%)"    = "pae_pct",
+                              "DE (%)"     = "de_pct",
+                              "Gain (dB)"  = "gain_db",
+                              "Pout (dBm)" = "pout_dbm",
+                              "Pout (W)"   = "pout_w"),
+                            selected = c("pae_pct", "gain_db")),
+                          hr(),
+                          strong("Options", style = "color:#ccc; font-size:12px;"),
+                          checkboxInput("lp_compare_optimum", "Mark MXP/MXE/MXG",
+                            value = TRUE),
+                          checkboxInput("lp_compare_per_freq",
+                            "Separate lines per frequency", value = FALSE),
+                          numericInput("lp_compare_lttb",
+                            "Max points / trace (LTTB)",
+                            value = 500L, min = 50L, max = 5000L, step = 50L)
                         )
                       ),
                       column(9,
@@ -762,6 +784,10 @@ server <- function(input, output, session) {
                             value = "Load Pull Report"),
                           textInput("lp_rpt_engineer", "Engineer / Author", value = ""),
                           textInput("lp_rpt_project",  "Project ref",       value = ""),
+                          hr(),
+                          tags$label("Datasets to include",
+                            style = "color:#ccc; font-weight:600; font-size:13px;"),
+                          uiOutput("lp_rpt_dataset_selector"),
                           hr(),
                           checkboxGroupInput("lp_rpt_sections", "Include sections",
                             choices  = c(
