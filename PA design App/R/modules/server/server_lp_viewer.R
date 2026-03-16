@@ -103,6 +103,40 @@ serverLpViewer <- function(input, output, session, state) {
   lp_datasets <- reactiveVal(list())   # named list: id → parsed result
   lp_log      <- reactiveVal(character())
 
+  # ── DuckDB in-memory backend ──────────────────────────────────────────────
+  # Each dataset's points data.frame is written here immediately after parse;
+  # r$points is then set to NULL so large files never accumulate in R memory.
+  lp_con <- duckdb::dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+  session$onSessionEnded(function() {
+    tryCatch(duckdb::dbDisconnect(lp_con, shutdown = TRUE),
+             error = function(e) NULL)
+  })
+
+  # ── Pure-R LTTB downsampler ───────────────────────────────────────────────
+  # Largest-Triangle-Three-Buckets: reduces n points to at most max_pts while
+  # preserving the visual shape.  No package dependency required.
+  .lttb <- function(x, y, max_pts = 500L) {
+    n <- length(x)
+    if (n <= max_pts || max_pts < 3L) return(list(x = x, y = y))
+    bucket_size <- (n - 2) / (max_pts - 2)
+    out_x <- x[1]; out_y <- y[1]
+    a <- 1L
+    for (i in seq_len(max_pts - 2L)) {
+      rng_s <- floor((i + 1) * bucket_size) + 1L
+      rng_e <- min(floor((i + 2) * bucket_size) + 1L, n)
+      avg_x <- mean(x[rng_s:rng_e], na.rm = TRUE)
+      avg_y <- mean(y[rng_s:rng_e], na.rm = TRUE)
+      b_s   <- floor(i * bucket_size) + 1L
+      b_e   <- min(floor((i + 1) * bucket_size), n)
+      areas <- abs((x[a] - avg_x) * (y[b_s:b_e] - y[a]) -
+                   (x[a] - x[b_s:b_e]) * (avg_y - y[a])) * 0.5
+      bi    <- b_s + which.max(areas) - 1L
+      out_x <- c(out_x, x[bi]); out_y <- c(out_y, y[bi])
+      a     <- bi
+    }
+    list(x = c(out_x, x[n]), y = c(out_y, y[n]))
+  }
+
   # ── Palette ────────────────────────────────────────────────────────────────
   PALETTE <- c("#ff7f11", "#1f77b4", "#2ca02c", "#d62728",
                "#9467bd", "#8c564b", "#e377c2", "#17becf")
@@ -223,7 +257,29 @@ serverLpViewer <- function(input, output, session, state) {
           log  <- c(log, paste0("    ERROR: ", result$error))
         }
 
-        id            <- make.names(fname, unique = FALSE)
+        id  <- make.names(fname, unique = FALSE)
+
+        # Write points to DuckDB and drop from R memory
+        if (isTRUE(result$success) && !is.null(result$points)) {
+          tbl <- paste0("lp_", gsub("[^A-Za-z0-9_]", "_", id))
+          tryCatch({
+            if (DBI::dbExistsTable(lp_con, tbl))
+              DBI::dbRemoveTable(lp_con, tbl)
+            DBI::dbWriteTable(lp_con, tbl, result$points)
+            result$nrows     <- nrow(result$points)
+            result$tbl_name  <- tbl
+            result$col_names <- names(result$points)
+            result$points    <- NULL   # free R memory
+            log <- c(log, sprintf("    \u2192 DuckDB: %d rows \u00d7 %d cols stored in '%s'",
+                                  result$nrows, length(result$col_names), tbl))
+          }, error = function(e) {
+            log <<- c(log, paste0("    WARNING: DuckDB write failed: ", e$message,
+                                  " \u2014 keeping data.frame in memory"))
+            result$nrows     <<- nrow(result$points)
+            result$col_names <<- names(result$points)
+          })
+        }
+
         current[[id]] <- result
       }
     })
@@ -255,9 +311,8 @@ serverLpViewer <- function(input, output, session, state) {
         for (nm in names(r$meta))
           lines <- c(lines, sprintf("  %-18s %s", nm, r$meta[[nm]]))
       }
-      if (!is.null(r$points) && nrow(r$points) > 0) {
-        avail <- names(r$points)[
-          sapply(r$points, function(col) !all(is.na(col)))]
+      if (!is.null(r$col_names) && length(r$col_names) > 0) {
+        avail <- r$col_names
         lines <- c(lines, paste0("  Available cols: ",
                                  paste(avail, collapse = ", ")))
       }
@@ -276,7 +331,7 @@ serverLpViewer <- function(input, output, session, state) {
       r          <- ds[[id]]
       ok         <- isTRUE(r$success)
       status_col <- if (ok) "#2ca02c" else "#d62728"
-      status_txt <- if (ok) paste0("OK \u00b7 ", nrow(r$points), " pts") else "Failed"
+      status_txt <- if (ok) paste0("OK \u00b7 ", r$nrows %||% 0L, " pts") else "Failed"
       freq_str   <- r$meta[["freq_ghz"]] %||% "?"
       # Escape single-quotes so the JS string literal is safe
       safe_id    <- gsub("'", "\\\\'", id)
@@ -313,7 +368,11 @@ serverLpViewer <- function(input, output, session, state) {
     del_id  <- input$lp_del_trigger
     current <- lp_datasets()
     if (!del_id %in% names(current)) return()
-    fname   <- current[[del_id]]$filename
+    r <- current[[del_id]]
+    # Clean up DuckDB table to free in-memory storage
+    if (!is.null(r$tbl_name) && DBI::dbExistsTable(lp_con, r$tbl_name))
+      tryCatch(DBI::dbRemoveTable(lp_con, r$tbl_name), error = function(e) NULL)
+    fname   <- r$filename
     current[[del_id]] <- NULL
     lp_datasets(current)
     lp_log(c(lp_log(),
@@ -364,13 +423,35 @@ serverLpViewer <- function(input, output, session, state) {
   .make_selector("lp_compare_selector",        "Dataset(s)", TRUE)
 
   # ── Helper: pull normalised data.frame for a dataset id ─────────────────
-  .get_df <- function(id) {
+  # cols: optional character vector of column names to SELECT (saves I/O)
+  .get_df <- function(id, cols = NULL) {
     ds <- lp_datasets()
     if (is.null(id) || length(id) == 0 || !id %in% names(ds)) return(NULL)
     r  <- ds[[id]]
-    if (!isTRUE(r$success) || is.null(r$points) || nrow(r$points) == 0)
-      return(NULL)
-    r$points
+    if (!isTRUE(r$success)) return(NULL)
+
+    # DuckDB path (normal case — points were offloaded)
+    if (!is.null(r$tbl_name) && DBI::dbExistsTable(lp_con, r$tbl_name)) {
+      sel <- if (!is.null(cols)) {
+        valid <- intersect(cols, r$col_names)
+        if (length(valid) == 0) return(NULL)
+        paste(paste0('"', valid, '"'), collapse = ", ")
+      } else "*"
+      tryCatch(
+        DBI::dbGetQuery(lp_con,
+          paste0("SELECT ", sel, " FROM \"", r$tbl_name, "\"")),
+        error = function(e) NULL
+      )
+    # Fallback: data.frame still in memory (DuckDB write failed or legacy)
+    } else if (!is.null(r$points) && nrow(r$points) > 0) {
+      if (!is.null(cols)) {
+        valid <- intersect(cols, names(r$points))
+        if (length(valid) == 0) return(NULL)
+        r$points[, valid, drop = FALSE]
+      } else {
+        r$points
+      }
+    } else NULL
   }
 
   # ── Smith Chart with LP contours ──────────────────────────────────────────
@@ -419,7 +500,14 @@ serverLpViewer <- function(input, output, session, state) {
 
     if (length(sel_ids) > 0 && length(vars) > 0) {
       for (id in sel_ids) {
-        df    <- .get_df(id)
+        # Column-targeted query: only fetch Γ columns + requested metric columns
+        # This is the key DuckDB optimisation for large files.
+        metric_cols <- vapply(vars, function(v) {
+          vm <- var_meta[[v]]; if (is.null(vm)) NA_character_ else vm$col
+        }, character(1))
+        gamma_cols <- c("gl_r","gl_i","gs_r","gs_i","gl2_r","gl2_i","gl3_r","gl3_i")
+        need_cols  <- unique(c(gamma_cols, na.omit(metric_cols)))
+        df    <- .get_df(id, cols = need_cols)
         if (is.null(df)) next
         r     <- ds[[id]]
         fname <- .short_name(r$filename)
@@ -602,9 +690,12 @@ serverLpViewer <- function(input, output, session, state) {
   # ── XY Performance Plot (dual Y-axis: power/gain on Y1, PAE/DE on Y2) ─────
   output$lp_xy_plot <- renderPlotly({
     id     <- input$lp_xy_dataset_selector
-    df     <- .get_df(id)
     y_vars <- input$lp_xy_y_vars
     x_var  <- input$lp_xy_x_var %||% "pin_dbm"
+
+    # Column-targeted query — only fetch the columns this plot actually needs
+    need   <- unique(c(x_var, y_vars))
+    df     <- .get_df(id, cols = need)
 
     if (is.null(df) || length(y_vars) == 0 || !x_var %in% names(df)) {
       return(plot_ly() %>% layout(
@@ -621,6 +712,8 @@ serverLpViewer <- function(input, output, session, state) {
     p  <- plot_ly()
     y1_labels <- c(); y2_labels <- c(); i_col <- 1L
 
+    LTTB_MAX <- 500L   # max rendered points per trace
+
     for (v in y_vars) {
       if (!v %in% names(df)) next
       yv    <- df[[v]]
@@ -635,9 +728,11 @@ serverLpViewer <- function(input, output, session, state) {
         gsub("_", " ", v))
       if (on_y2) y2_labels <- c(y2_labels, lbl)
       else       y1_labels <- c(y1_labels, lbl)
+      # LTTB downsample if too many points
+      ds_pts <- .lttb(xv[ok], yv[ok], LTTB_MAX)
       p <- p %>% add_trace(
-        type   = "scatter", mode = "lines+markers",
-        x      = xv[ok], y = yv[ok],
+        type   = "scattergl", mode = "lines+markers",
+        x      = ds_pts$x, y = ds_pts$y,
         yaxis  = if (on_y2) "y2" else "y",
         name   = lbl,
         line   = list(color = col, dash = if (on_y2) "dot" else "solid"),
@@ -734,7 +829,7 @@ serverLpViewer <- function(input, output, session, state) {
       )
 
       p <- p %>% add_trace(
-        type      = "scatter", mode = "markers",
+        type      = "scattergl", mode = "markers",
         x         = xv, y = yv,
         marker    = list(
           color     = cv_ok,
@@ -1005,9 +1100,10 @@ serverLpViewer <- function(input, output, session, state) {
   # ── AM-PM / AM-AM vs Pout ───────────────────────────────────────────────────
   output$lp_ampm_plot <- renderPlotly({
     id    <- input$lp_xy_dataset_selector   # reuse XY selector
-    df    <- .get_df(id)
     x_var <- input$lp_ampm_x_var %||% "pin_dbm"
 
+    # Column-targeted query — only the 4 columns this plot uses
+    df    <- .get_df(id, cols = c("pin_dbm", "pout_dbm", "pout_w", "gain_db", "am_pm"))
     .ax_lbl2 <- function(v) switch(v,
       pout_dbm = "Pout (dBm)", pin_dbm = "Pin (dBm)", pout_w = "Pout (W)",
       gsub("_", " ", v))
@@ -1034,18 +1130,19 @@ serverLpViewer <- function(input, output, session, state) {
     xv <- df[[x_var]]
     p  <- plot_ly()
 
-    # AM-AM: Gain (dB) vs Pout — left Y axis (linear gain compression)
+    # AM-AM: Gain (dB) vs Pin — left Y axis (linear gain compression)
     if (has_gain) {
       yv <- df$gain_db
       ok <- !is.na(xv) & !is.na(yv)
+      ds_aa <- .lttb(xv[ok], yv[ok], 500L)
       p  <- p %>% add_trace(
-        type = "scatter", mode = "lines+markers",
-        x = xv[ok], y = yv[ok], yaxis = "y",
+        type = "scattergl", mode = "lines+markers",
+        x = ds_aa$x, y = ds_aa$y, yaxis = "y",
         name = "AM-AM (dB)",
         line   = list(color = "#ff7f11", width = 2),
         marker = list(color = "#ff7f11", size = 5)
       )
-      # Mark 1dB compression point
+      # Mark 1dB compression point (on original data, not downsampled)
       if (sum(ok) > 2) {
         g_lin  <- max(yv[ok][seq_len(min(3, sum(ok)))], na.rm = TRUE)
         g_comp <- g_lin - 1
@@ -1066,13 +1163,14 @@ serverLpViewer <- function(input, output, session, state) {
       }
     }
 
-    # AM-PM: phase distortion vs Pout — right Y axis
+    # AM-PM: phase distortion vs Pin — right Y axis
     if (has_ampm) {
       yv2 <- df$am_pm
       ok2 <- !is.na(xv) & !is.na(yv2)
+      ds_pm <- .lttb(xv[ok2], yv2[ok2], 500L)
       p   <- p %>% add_trace(
-        type = "scatter", mode = "lines+markers",
-        x = xv[ok2], y = yv2[ok2], yaxis = "y2",
+        type = "scattergl", mode = "lines+markers",
+        x = ds_pm$x, y = ds_pm$y, yaxis = "y2",
         name = "AM-PM (°)",
         line   = list(color = "#1f77b4", width = 2, dash = "dot"),
         marker = list(color = "#1f77b4", size = 5, symbol = "circle-open")
@@ -1115,16 +1213,18 @@ serverLpViewer <- function(input, output, session, state) {
     p <- plot_ly()
     for (i in seq_along(sel)) {
       id  <- sel[i]
-      df  <- .get_df(id)
+      # Column-targeted query for comparison
+      df  <- .get_df(id, cols = c("pout_dbm", metric))
       if (is.null(df) || !"pout_dbm" %in% names(df)) next
       if (!metric %in% names(df)) next
       col  <- PALETTE[(i - 1) %% length(PALETTE) + 1]
       xv   <- df$pout_dbm
       yv   <- df[[metric]]
       ok   <- !is.na(xv) & !is.na(yv)
+      ds_c <- .lttb(xv[ok], yv[ok], 500L)
       p    <- p %>% add_trace(
-        type   = "scatter", mode = "lines+markers",
-        x      = xv[ok], y = yv[ok],
+        type   = "scattergl", mode = "lines+markers",
+        x      = ds_c$x, y = ds_c$y,
         name   = ds[[id]]$filename,
         line   = list(color = col),
         marker = list(color = col, size = 5)
@@ -1164,7 +1264,7 @@ serverLpViewer <- function(input, output, session, state) {
             tags$span(
               style = paste0("color:", if (ok) "#2ca02c" else "#d62728",
                              "; font-size:12px;"),
-              if (ok) paste0("\u2713 ", nrow(r$points), " pts") else "\u2717 failed"
+              if (ok) paste0("\u2713 ", r$nrows %||% 0L, " pts") else "\u2717 failed"
             )
           ),
           tags$small(style = "color:#888;",
@@ -1485,7 +1585,7 @@ serverLpViewer <- function(input, output, session, state) {
       for (id in names(ds)) {
         r  <- ds[[id]]
         ok <- isTRUE(r$success)
-        df <- if (ok) r$points else NULL
+        df <- if (ok) .get_df(id) else NULL
 
         body <- paste0(body,
           "<hr style='margin:28px 0; border-color:#ccc;'/>",
@@ -1584,8 +1684,9 @@ serverLpViewer <- function(input, output, session, state) {
       ds  <- lp_datasets()
       dfs <- Filter(Negate(is.null), lapply(names(ds), function(id) {
         r  <- ds[[id]]
-        if (!isTRUE(r$success) || nrow(r$points) == 0) return(NULL)
-        df             <- r$points
+        if (!isTRUE(r$success) || (r$nrows %||% 0L) == 0L) return(NULL)
+        df             <- .get_df(id)
+        if (is.null(df)) return(NULL)
         df$source_file <- r$filename
         df$format      <- r$format
         df

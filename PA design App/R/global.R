@@ -4,8 +4,8 @@
 # Sourced once at startup before ui/server are built.
 # ============================================================
 
-# Allow uploads up to 200 MB (default Shiny limit is 5 MB)
-options(shiny.maxRequestSize = 200 * 1024^2)
+# Allow uploads up to 2 GB — required for large LP file batches
+options(shiny.maxRequestSize = 2048 * 1024^2)
 
 library(shiny)
 library(shinydashboard)
@@ -16,6 +16,7 @@ library(R6)
 library(yaml)
 library(DBI)
 library(pool)
+library(duckdb)
 
 # Source core systems
 source("../core/project_mgmt/project_manager.R")

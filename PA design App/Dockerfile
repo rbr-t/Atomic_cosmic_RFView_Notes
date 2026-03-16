@@ -24,7 +24,8 @@ RUN R -e "install.packages(c( \
     'httr', \
     'jsonlite', \
     'readxl', \
-    'uuid' \
+    'uuid', \
+    'duckdb' \
     ), repos='https://cloud.r-project.org/')"
 
 # Create app directory
