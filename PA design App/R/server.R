@@ -349,14 +349,15 @@ server <- function(input, output, session) {
                     )
                   ),
 
-                  # ── Tab 2: Smith Chart + Contours ────────────────────
-                  tabPanel("Smith Chart",
+                  # ── Tab 2: Contours ───────────────────────────────────
+                  tabPanel(tagList(icon("chart-pie"), " Contours"),
                     br(),
                     fluidRow(
                       column(3,
                         div(class = "well",
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                          h5("Contour controls", style = "color:#f0f0f0; margin-top:0;"),
+                          h5(icon("sliders-h"), " Contour controls",
+                             style = "color:#f0f0f0; margin-top:0;"),
                           uiOutput("lp_dataset_selector"),
                           hr(),
                           checkboxGroupInput("lp_contour_vars", "Overlay contours",
@@ -381,15 +382,32 @@ server <- function(input, output, session) {
                           strong("Overlays", style = "color:#ccc; font-size:12px;"),
                           checkboxInput("lp_show_harmonics", "Show 2H/3H \u0393 points",  value = FALSE),
                           checkboxInput("lp_show_stability", "Show stability circles", value = FALSE),
-                          checkboxInput("lp_smith_zoom_data", "Zoom to data region",   value = FALSE)
+                          checkboxInput("lp_smith_zoom_data", "Zoom to data region",   value = FALSE),
+                          hr(),
+                          strong(icon("compress-arrows-alt"), " Normalization",
+                                 style = "color:#ccc; font-size:12px;"),
+                          numericInput("lp_smith_z0_norm",
+                            HTML("Reference Z\u2080 (\u03a9) [50 = no change]"),
+                            value = 50, min = 1, max = 10000, step = 1),
+                          hr(),
+                          strong(icon("bolt"), " Compression filter",
+                                 style = "color:#ccc; font-size:12px;"),
+                          p(style = "font-size:11px; color:#999; margin:4px 0;",
+                            "Show only impedances near Px dB compression."),
+                          numericInput("lp_smith_px_db",
+                            "Px compression (dB)  [0 = all points]",
+                            value = 0, min = 0, max = 10, step = 0.5),
+                          numericInput("lp_smith_px_tol",
+                            "Tolerance \u00b1 (dB)",
+                            value = 0.3, min = 0.05, max = 2, step = 0.05)
                         )
                       ),
                       column(9,
                         div(class = "well",
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                          h5("Smith Chart \u2014 Load Pull Contours",
+                          h5(icon("chart-pie"), " Contours \u2014 All Datasets on One Smith Chart",
                             style = "color:#f0f0f0; margin-top:0;"),
-                          plotlyOutput("lp_smith_plot", height = "500px")
+                          plotlyOutput("lp_smith_plot", height = "560px")
                         )
                       )
                     )
@@ -430,6 +448,102 @@ server <- function(input, output, session) {
                           h5("Gain / PAE / DE vs Power",
                             style = "color:#f0f0f0; margin-top:0;"),
                           plotlyOutput("lp_xy_plot", height = "460px")
+                        )
+                      )
+                    )
+                  ),
+
+                  # ── Tab 3b: Performance Overview (4 subplots) ─────────
+                  tabPanel(tagList(icon("th"), " Performance"),
+                    br(),
+                    fluidRow(
+                      column(3,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                          h5(icon("sliders-h"), " Controls",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          uiOutput("lp_perf_dataset_selector"),
+                          selectInput("lp_perf_x_var", "X axis",
+                            choices = c(
+                              "Pin (dBm)"  = "pin_dbm",
+                              "Pout (dBm)" = "pout_dbm",
+                              "Pout (W)"   = "pout_w"),
+                            selected = "pin_dbm"),
+                          hr(),
+                          strong("Gain plot: secondary Y", style = "color:#ccc; font-size:12px;"),
+                          selectInput("lp_perf_gain_y2", NULL,
+                            choices = c(
+                              "None"       = "none",
+                              "PAE (%)"    = "pae_pct",
+                              "DE (%)"     = "de_pct",
+                              "Pout (dBm)" = "pout_dbm",
+                              "Pout (W)"   = "pout_w"),
+                            selected = "none"),
+                          hr(),
+                          strong("Efficiency plot: secondary Y", style = "color:#ccc; font-size:12px;"),
+                          selectInput("lp_perf_eff_y2", NULL,
+                            choices = c(
+                              "None"       = "none",
+                              "Gain (dB)"  = "gain_db",
+                              "Pout (dBm)" = "pout_dbm",
+                              "Pout (W)"   = "pout_w"),
+                            selected = "none"),
+                          hr(),
+                          strong(icon("project-diagram"), " Smith chart options",
+                                 style = "color:#ccc; font-size:12px;"),
+                          numericInput("lp_perf_z0_norm",
+                            HTML("Normalize to Z\u2080 (\u03a9)"),
+                            value = 50, min = 1, max = 10000, step = 1),
+                          checkboxInput("lp_perf_show_harmonics",
+                            "Show 2H / 3H \u0393 points", value = FALSE),
+                          checkboxInput("lp_perf_show_opt",
+                            "Mark MXP / MXE / MXG", value = TRUE),
+                          hr(),
+                          strong(icon("bolt"), " Compression filter (Smith)",
+                                 style = "color:#ccc; font-size:12px;"),
+                          numericInput("lp_perf_px_db",
+                            "Px compression (dB)  [0 = all]",
+                            value = 0, min = 0, max = 10, step = 0.5),
+                          numericInput("lp_perf_px_tol", "Tolerance \u00b1 (dB)",
+                            value = 0.3, min = 0.05, max = 2, step = 0.05)
+                        )
+                      ),
+                      column(9,
+                        fluidRow(
+                          column(6,
+                            div(class = "well",
+                              style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                              h6(icon("chart-line"), " Gain",
+                                 style = "color:#f0f0f0; margin-top:0; margin-bottom:6px;"),
+                              plotlyOutput("lp_perf_gain_plot", height = "310px")
+                            )
+                          ),
+                          column(6,
+                            div(class = "well",
+                              style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                              h6(icon("tachometer-alt"), " Efficiency (PAE / DE)",
+                                 style = "color:#f0f0f0; margin-top:0; margin-bottom:6px;"),
+                              plotlyOutput("lp_perf_eff_plot",  height = "310px")
+                            )
+                          )
+                        ),
+                        fluidRow(
+                          column(6,
+                            div(class = "well",
+                              style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                              h6(icon("crosshairs"), " Source \u0393\u209b",
+                                 style = "color:#f0f0f0; margin-top:0; margin-bottom:6px;"),
+                              plotlyOutput("lp_perf_smith_s",   height = "310px")
+                            )
+                          ),
+                          column(6,
+                            div(class = "well",
+                              style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                              h6(icon("crosshairs"), " Load \u0393\u2097",
+                                 style = "color:#f0f0f0; margin-top:0; margin-bottom:6px;"),
+                              plotlyOutput("lp_perf_smith_l",   height = "310px")
+                            )
+                          )
                         )
                       )
                     )
@@ -525,16 +639,21 @@ server <- function(input, output, session) {
                           hr(),
                           selectInput("lp_ampm_x_var", "X axis",
                             choices = c(
-                              "Pout (dBm)" = "pout_dbm",
                               "Pin (dBm)"  = "pin_dbm",
+                              "Pout (dBm)" = "pout_dbm",
                               "Pout (W)"   = "pout_w"),
-                            selected = "pin_dbm")
+                            selected = "pin_dbm"),
+                          hr(),
+                          p(style = "font-size:11px; color:#999;",
+                            icon("info-circle"),
+                            " AM-AM shows gain compression relative to small-signal gain (0 dB = no compression).",
+                            " AM-PM shows phase distortion in degrees.")
                         )
                       ),
                       column(9,
                         div(class = "well",
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                          h5("AM-AM (Gain dB) \u2014 left axis \u00a0|\u00a0 AM-PM (\u00b0) \u2014 right axis",
+                          h5("AM-AM (Gain compression, dB) \u2014 left axis \u00a0|\u00a0 AM-PM (\u00b0) \u2014 right axis",
                             style = "color:#f0f0f0; margin-top:0;"),
                           plotlyOutput("lp_ampm_plot", height = "460px")
                         )
@@ -543,31 +662,61 @@ server <- function(input, output, session) {
                   ),
 
                   # ── Tab 6: Tabular Summary ───────────────────────────
-                  tabPanel("Tabular",
+                  tabPanel(tagList(icon("table"), " Tabular"),
                     br(),
                     div(class = "well",
                       style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                      h5("Performance summary", style = "color:#f0f0f0; margin-top:0;"),
+                      h5(icon("table"), " Performance summary",
+                         style = "color:#f0f0f0; margin-top:0;"),
                       fluidRow(
                         column(4, uiOutput("lp_table_dataset_selector")),
                         column(4, sliderInput("lp_ppeak_backoff",
-                          "Ppeak back-off (dB)", min = 0, max = 12, value = 6, step = 0.5)),
-                        column(4, downloadButton("lp_table_csv", "Download CSV",
-                          class = "btn-default"))
+                          "Pavg back-off from Ppeak (dB)", min = 0, max = 12, value = 6, step = 0.5)),
+                        column(4,
+                          br(),
+                          downloadButton("lp_table_csv", "Download CSV",
+                            class = "btn-default btn-sm"))
                       ),
                       hr(),
-                      h5("Optimal operating points: MXP / MXE / MXG",
-                        style = "color:#f0f0f0;"),
+                      h5(icon("star"), " Optimal operating points: MXP / MXE / MXG",
+                         style = "color:#f0f0f0;"),
                       p(class = "text-muted", style = "font-size:11px;",
-                        "MXP = max Pout, MXE = max PAE, MXG = max Gain. Z = 50\u00d7(1+\u0393)/(1-\u0393)."),
+                        "MXP = max Pout \u2502 MXE = max PAE \u2502 MXG = max Gain. ",
+                        "Results split per frequency. Z = Z\u2080\u00d7(1+\u0393)/(1-\u0393)."),
                       DT::DTOutput("lp_table_optima"),
                       hr(),
-                      h5("Performance at Ppeak (max Pout)", style = "color:#f0f0f0;"),
+                      h5(icon("chart-bar"), " Performance at Ppeak (max Pout) per frequency",
+                         style = "color:#f0f0f0;"),
                       DT::DTOutput("lp_table_ppeak"),
                       hr(),
-                      h5("Performance at Pavg (Ppeak \u2212 X dB back-off)",
-                        style = "color:#f0f0f0;"),
-                      DT::DTOutput("lp_table_pavg")
+                      h5(icon("battery-half"), " Performance at Pavg (Ppeak \u2212 X\u202fdB back-off) per frequency",
+                         style = "color:#f0f0f0;"),
+                      DT::DTOutput("lp_table_pavg"),
+                      hr(),
+                      h5(icon("map-pin"), " Selected design load point (Z\u2097)",
+                         style = "color:#f0f0f0;"),
+                      p(class = "text-muted", style = "font-size:11px;",
+                        "Pick the optimum load from MXP / MXE / MXG or enter custom \u0393_L values."),
+                      fluidRow(
+                        column(3,
+                          selectInput("lp_zl_basis", "Basis",
+                            choices = c("MXP (max Pout)" = "MXP",
+                                        "MXE (max PAE)"  = "MXE",
+                                        "MXG (max Gain)" = "MXG",
+                                        "Custom \u0393"  = "custom"),
+                            selected = "MXE")
+                        ),
+                        column(3,
+                          numericInput("lp_zl_gamma_r", "Custom Re(\u0393_L)", value = 0, min=-1, max=1, step=0.01)
+                        ),
+                        column(3,
+                          numericInput("lp_zl_gamma_i", "Custom Im(\u0393_L)", value = 0, min=-1, max=1, step=0.01)
+                        ),
+                        column(3,
+                          numericInput("lp_zl_z0", "Z\u2080 (\u03a9)", value = 50, min=1, max=1000, step=1)
+                        )
+                      ),
+                      DT::DTOutput("lp_table_selected_zl")
                     )
                   ),
 

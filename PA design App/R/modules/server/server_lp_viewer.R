@@ -464,6 +464,21 @@ serverLpViewer <- function(input, output, session, state) {
     show_pae  <- isTRUE(input$lp_show_max_pae)
     show_po   <- isTRUE(input$lp_show_max_pout)
     zoom_data <- isTRUE(input$lp_smith_zoom_data)
+    z0_norm   <- as.numeric(input$lp_smith_z0_norm %||% 50)
+    if (!is.finite(z0_norm) || z0_norm <= 0) z0_norm <- 50
+    do_norm   <- abs(z0_norm - 50) > 0.1          # only transform if ≠ 50 Ω
+    px_db     <- as.numeric(input$lp_smith_px_db  %||% 0)
+    px_tol    <- as.numeric(input$lp_smith_px_tol %||% 0.3)
+    do_px     <- is.finite(px_db) && px_db > 0.01
+
+    # Helper: re-normalise Gamma from Z0=50 to z0_norm
+    .renorm_gamma <- function(gr, gi) {
+      z_r <- 50 * (1 - gr^2 - gi^2) / ((1 - gr)^2 + gi^2)
+      z_x <- 50 * 2 * gi            / ((1 - gr)^2 + gi^2)
+      d   <- (z_r + z0_norm)^2 + z_x^2
+      list(r = ((z_r - z0_norm) * (z_r + z0_norm) + z_x^2) / d,
+           i = 2 * z_x * z0_norm / d)
+    }
 
     grid <- build_smith_grid()
     p    <- plot_ly()
@@ -501,20 +516,50 @@ serverLpViewer <- function(input, output, session, state) {
     if (length(sel_ids) > 0 && length(vars) > 0) {
       for (id in sel_ids) {
         # Column-targeted query: only fetch Γ columns + requested metric columns
-        # This is the key DuckDB optimisation for large files.
+        # Also fetch gain_db when Px compression filter is active.
         metric_cols <- vapply(vars, function(v) {
           vm <- var_meta[[v]]; if (is.null(vm)) NA_character_ else vm$col
         }, character(1))
         gamma_cols <- c("gl_r","gl_i","gs_r","gs_i","gl2_r","gl2_i","gl3_r","gl3_i")
-        need_cols  <- unique(c(gamma_cols, na.omit(metric_cols)))
+        need_cols  <- unique(c(gamma_cols, na.omit(metric_cols),
+                               if (do_px) "gain_db" else NULL))
         df    <- .get_df(id, cols = need_cols)
         if (is.null(df)) next
         r     <- ds[[id]]
         fname <- .short_name(r$filename)
 
+        # ── Px compression filter ───────────────────────────────────────────
+        if (do_px && "gain_db" %in% names(df) && !all(is.na(df$gain_db))) {
+          g_lin <- max(df$gain_db[seq_len(min(5L, nrow(df)))], na.rm = TRUE)
+          compr <- g_lin - df$gain_db           # 0 at small signal, + at compression
+          df    <- df[!is.na(compr) & abs(compr - px_db) <= px_tol, , drop = FALSE]
+          if (nrow(df) == 0) next
+        }
+
         xv_all <- if (pull == "load") df$gl_r else df$gs_r
         yv_all <- if (pull == "load") df$gl_i else df$gs_i
         if (is.null(xv_all) || all(is.na(xv_all))) next
+
+        # ── Γ re-normalisation ──────────────────────────────────────────────
+        if (do_norm) {
+          nr <- .renorm_gamma(xv_all, yv_all)
+          xv_all <- nr$r; yv_all <- nr$i
+          if (!is.null(df$gs_r)) {
+            nrs <- .renorm_gamma(df$gs_r, df$gs_i)
+            df$gs_r <- nrs$r; df$gs_i <- nrs$i
+          }
+          for (hcol in c("gl2_r","gl2_i","gl3_r","gl3_i")) {
+            if (hcol %in% names(df)) {
+              tag <- if (grepl("_r$", hcol)) "_r" else "_i"
+              pfx <- sub("_[ri]$", "", hcol)
+              r_col <- paste0(pfx, "_r"); i_col <- paste0(pfx, "_i")
+              if (all(c(r_col, i_col) %in% names(df))) {
+                nh <- .renorm_gamma(df[[r_col]], df[[i_col]])
+                df[[r_col]] <- nh$r; df[[i_col]] <- nh$i
+              }
+            }
+          }
+        }
 
         for (v in vars) {
           vm  <- var_meta[[v]]
@@ -759,6 +804,247 @@ serverLpViewer <- function(input, output, session, state) {
       font   = list(color = "#aaa"),
       margin = list(l = 60, r = 70, t = 50, b = 60)
     )
+  })
+
+  # ── Performance tab — dataset selector ────────────────────────────────────
+  .make_selector("lp_perf_dataset_selector", "Dataset", FALSE)
+
+  # ── Helper: re-normalise Gamma assuming original Z0=50 ────────────────────
+  .renorm_g <- function(gr, gi, z0) {
+    if (abs(z0 - 50) < 0.1) return(list(r = gr, i = gi))
+    z_r <- 50 * (1 - gr^2 - gi^2) / ((1 - gr)^2 + gi^2)
+    z_x <- 50 * 2 * gi            / ((1 - gr)^2 + gi^2)
+    d   <- (z_r + z0)^2 + z_x^2
+    list(r = ((z_r - z0) * (z_r + z0) + z_x^2) / d,
+         i = 2 * z_x * z0 / d)
+  }
+
+  # ── Performance: Gain subplot ──────────────────────────────────────────────
+  output$lp_perf_gain_plot <- renderPlotly({
+    id    <- input$lp_perf_dataset_selector
+    x_var <- input$lp_perf_x_var   %||% "pin_dbm"
+    y2_v  <- input$lp_perf_gain_y2 %||% "none"
+    need  <- unique(c(x_var, "gain_db", if (y2_v != "none") y2_v))
+    df    <- .get_df(id, cols = need)
+    ep <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+                        title = list(text=m, font=list(color="#aaa")))
+    if (is.null(df) || !x_var %in% names(df)) return(ep("No data"))
+    ord <- order(df[[x_var]], na.last = NA); df <- df[ord, , drop=FALSE]
+    xv  <- df[[x_var]]; p <- plot_ly()
+    if ("gain_db" %in% names(df)) {
+      yv <- df$gain_db; ok <- !is.na(xv) & !is.na(yv)
+      ds <- .lttb(xv[ok], yv[ok], 500L)
+      p  <- p %>% add_trace(type="scattergl", mode="lines+markers",
+               x=ds$x, y=ds$y, yaxis="y", name="Gain (dB)",
+               line=list(color="#ff7f11",width=2), marker=list(color="#ff7f11",size=5))
+    }
+    y2_lbl <- ""
+    if (y2_v != "none" && y2_v %in% names(df)) {
+      yv2 <- df[[y2_v]]; ok2 <- !is.na(xv) & !is.na(yv2)
+      ds2 <- .lttb(xv[ok2], yv2[ok2], 500L)
+      y2_lbl <- switch(y2_v, pae_pct="PAE (%)", de_pct="DE (%)",
+                              pout_dbm="Pout (dBm)", pout_w="Pout (W)", y2_v)
+      p <- p %>% add_trace(type="scattergl", mode="lines+markers",
+               x=ds2$x, y=ds2$y, yaxis="y2", name=y2_lbl,
+               line=list(color="#1f77b4",width=2,dash="dot"),
+               marker=list(color="#1f77b4",size=5,symbol="circle-open"))
+    }
+    xl <- switch(x_var, pin_dbm="Pin (dBm)", pout_dbm="Pout (dBm)", pout_w="Pout (W)", x_var)
+    p %>% layout(
+      paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+      xaxis  = list(title=xl,         color="#aaa", showgrid=TRUE, gridcolor="rgba(100,100,100,0.25)"),
+      yaxis  = list(title="Gain (dB)", color="#ff7f11", showgrid=TRUE, gridcolor="rgba(100,100,100,0.25)", tickfont=list(color="#ff7f11")),
+      yaxis2 = list(title=y2_lbl, color="#1f77b4", overlaying="y", side="right", showgrid=FALSE, zeroline=FALSE, tickfont=list(color="#1f77b4")),
+      legend=list(font=list(color="#aaa"),bgcolor="rgba(0,0,0,0.3)"),
+      title=list(text="Gain", font=list(color="#eee",size=13)),
+      font=list(color="#aaa"), margin=list(l=60,r=60,t=35,b=50))
+  })
+
+  # ── Performance: Efficiency subplot ───────────────────────────────────────
+  output$lp_perf_eff_plot <- renderPlotly({
+    id    <- input$lp_perf_dataset_selector
+    x_var <- input$lp_perf_x_var  %||% "pin_dbm"
+    y2_v  <- input$lp_perf_eff_y2 %||% "none"
+    need  <- unique(c(x_var, "pae_pct", "de_pct", if (y2_v != "none") y2_v))
+    df    <- .get_df(id, cols = need)
+    ep <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+                        title=list(text=m, font=list(color="#aaa")))
+    if (is.null(df) || !x_var %in% names(df)) return(ep("No data"))
+    ord <- order(df[[x_var]], na.last=NA); df <- df[ord, , drop=FALSE]
+    xv <- df[[x_var]]; p <- plot_ly()
+    PAL_EFF <- c("#1f77b4","#2ca02c")
+    ic <- 1L
+    for (ev in c("pae_pct","de_pct")) {
+      if (!ev %in% names(df)) { ic <- ic + 1L; next }
+      yv <- df[[ev]]; ok <- !is.na(xv) & !is.na(yv)
+      ds <- .lttb(xv[ok], yv[ok], 500L)
+      cl <- PAL_EFF[(ic-1L) %% 2L + 1L]; ic <- ic + 1L
+      lbl <- if (ev=="pae_pct") "PAE (%)" else "DE (%)"
+      p <- p %>% add_trace(type="scattergl", mode="lines+markers",
+               x=ds$x, y=ds$y, yaxis="y", name=lbl,
+               line=list(color=cl,width=2), marker=list(color=cl,size=5))
+    }
+    y2_lbl <- ""
+    if (y2_v != "none" && y2_v %in% names(df)) {
+      yv2 <- df[[y2_v]]; ok2 <- !is.na(xv) & !is.na(yv2)
+      ds2 <- .lttb(xv[ok2], yv2[ok2], 500L)
+      y2_lbl <- switch(y2_v, gain_db="Gain (dB)", pout_dbm="Pout (dBm)", pout_w="Pout (W)", y2_v)
+      p <- p %>% add_trace(type="scattergl", mode="lines+markers",
+               x=ds2$x, y=ds2$y, yaxis="y2", name=y2_lbl,
+               line=list(color="#ff7f11",width=2,dash="dot"),
+               marker=list(color="#ff7f11",size=5,symbol="circle-open"))
+    }
+    xl <- switch(x_var, pin_dbm="Pin (dBm)", pout_dbm="Pout (dBm)", pout_w="Pout (W)", x_var)
+    p %>% layout(
+      paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+      xaxis  = list(title=xl,          color="#aaa", showgrid=TRUE, gridcolor="rgba(100,100,100,0.25)"),
+      yaxis  = list(title="Efficiency (%)", color="#1f77b4", showgrid=TRUE, gridcolor="rgba(100,100,100,0.25)", tickfont=list(color="#1f77b4")),
+      yaxis2 = list(title=y2_lbl, color="#ff7f11", overlaying="y", side="right", showgrid=FALSE, zeroline=FALSE, tickfont=list(color="#ff7f11")),
+      legend=list(font=list(color="#aaa"),bgcolor="rgba(0,0,0,0.3)"),
+      title=list(text="Efficiency", font=list(color="#eee",size=13)),
+      font=list(color="#aaa"), margin=list(l=60,r=60,t=35,b=50))
+  })
+
+  # ── Performance: Smith Source (Γ_S) ───────────────────────────────────────
+  output$lp_perf_smith_s <- renderPlotly({
+    id        <- input$lp_perf_dataset_selector
+    z0        <- as.numeric(input$lp_perf_z0_norm %||% 50)
+    px_db_p   <- as.numeric(input$lp_perf_px_db   %||% 0)
+    px_tol_p  <- as.numeric(input$lp_perf_px_tol  %||% 0.3)
+    show_harm <- isTRUE(input$lp_perf_show_harmonics)
+    show_opt  <- isTRUE(input$lp_perf_show_opt %||% TRUE)
+    df        <- .get_df(id, cols = c("gs_r","gs_i","pout_dbm","gain_db","pae_pct",
+                                       if (show_harm) c("gs2_r","gs2_i","gs3_r","gs3_i")))
+    ep <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+                        title=list(text=m, font=list(color="#aaa")))
+    if (is.null(df) || !"gs_r" %in% names(df)) return(ep("No source-pull \u0393_S data"))
+    # Px filter
+    if (px_db_p > 0.01 && "gain_db" %in% names(df)) {
+      g_lin <- max(df$gain_db[seq_len(min(5L,nrow(df)))], na.rm=TRUE)
+      compr <- g_lin - df$gain_db
+      df    <- df[!is.na(compr) & abs(compr - px_db_p) <= px_tol_p, , drop=FALSE]
+    }
+    # Γ normalization
+    ng <- .renorm_g(df$gs_r, df$gs_i, z0)
+    xv <- ng$r; yv <- ng$i
+    cv <- df$pout_dbm %||% rep(NA_real_, nrow(df))
+    ok <- !is.na(xv) & !is.na(yv) & (xv^2 + yv^2) <= 1.02
+    grid <- build_smith_grid(); p <- plot_ly()
+    for (tr in grid) p <- p %>% add_trace(type="scatter",mode="lines",
+      x=tr$x,y=tr$y,line=tr$line,hoverinfo="none",showlegend=FALSE,name=tr$name)
+    p <- p %>% add_trace(type="scattergl",mode="markers",
+      x=xv[ok],y=yv[ok],
+      marker=list(color=cv[ok],colorscale="Jet",size=7,showscale=TRUE,
+                  colorbar=list(title="Pout(dBm)",len=0.6,
+                               tickfont=list(color="#aaa",size=9),
+                               titlefont=list(color="#aaa",size=10))),
+      name="Γ_S", hoverinfo="text",
+      hovertext=sprintf("Re: %.3f Im: %.3f Pout: %.1f dBm", xv[ok], yv[ok], cv[ok]))
+    if (show_harm) {
+      for (h in list(list(r="gs2_r",i="gs2_i",lbl="2H Γ_S",col="#e377c2"),
+                     list(r="gs3_r",i="gs3_i",lbl="3H Γ_S",col="#17becf"))) {
+        if (!all(c(h$r,h$i) %in% names(df))) next
+        ngh <- .renorm_g(df[[h$r]], df[[h$i]], z0)
+        ok_h <- !is.na(ngh$r) & !is.na(ngh$i)
+        if (sum(ok_h)==0) next
+        p <- p %>% add_trace(type="scatter",mode="markers",
+          x=ngh$r[ok_h],y=ngh$i[ok_h],
+          marker=list(color=h$col,size=6,symbol="x",opacity=0.8),
+          name=h$lbl,showlegend=TRUE,hoverinfo="none")
+      }
+    }
+    if (show_opt) {
+      opt <- .find_optima(df)
+      OC  <- list(MXP=list(col="pout_dbm",sym="star",color="#ff7f11"),
+                  MXE=list(col="pae_pct", sym="diamond",color="#1f77b4"),
+                  MXG=list(col="gain_db", sym="triangle-up",color="#2ca02c"))
+      for (nm in names(OC)) {
+        bi <- opt[[nm]]; if (is.na(bi)) next; cfg <- OC[[nm]]
+        if (!cfg$col %in% names(df)) next
+        ng_o <- .renorm_g(df$gs_r[bi], df$gs_i[bi], z0)
+        p <- p %>% add_trace(type="scatter",mode="markers+text",
+          x=ng_o$r,y=ng_o$i,
+          text=sprintf("%s\n%.1f",nm,df[[cfg$col]][bi]),textposition="top center",
+          textfont=list(color=cfg$color,size=10),
+          marker=list(color=cfg$color,size=14,symbol=cfg$sym,
+                      line=list(color="white",width=1.5)),
+          name=nm,showlegend=TRUE)
+      }
+    }
+    z_lbl <- if (abs(z0-50)<0.1) "50\u03a9" else sprintf("%.0f\u03a9",z0)
+    sl <- .smith_layout(title_txt=paste0("Source \u0393_S  (Z\u2080=",z_lbl,")"),
+                        xl="Re(\u0393_S)", yl="Im(\u0393_S)")
+    p %>% layout(sl)
+  })
+
+  # ── Performance: Smith Load (Γ_L) ─────────────────────────────────────────
+  output$lp_perf_smith_l <- renderPlotly({
+    id        <- input$lp_perf_dataset_selector
+    z0        <- as.numeric(input$lp_perf_z0_norm %||% 50)
+    px_db_p   <- as.numeric(input$lp_perf_px_db   %||% 0)
+    px_tol_p  <- as.numeric(input$lp_perf_px_tol  %||% 0.3)
+    show_harm <- isTRUE(input$lp_perf_show_harmonics)
+    show_opt  <- isTRUE(input$lp_perf_show_opt %||% TRUE)
+    df        <- .get_df(id, cols = c("gl_r","gl_i","pout_dbm","gain_db","pae_pct",
+                                       if (show_harm) c("gl2_r","gl2_i","gl3_r","gl3_i")))
+    ep <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+                        title=list(text=m, font=list(color="#aaa")))
+    if (is.null(df) || !"gl_r" %in% names(df)) return(ep("No load-pull \u0393_L data"))
+    if (px_db_p > 0.01 && "gain_db" %in% names(df)) {
+      g_lin <- max(df$gain_db[seq_len(min(5L,nrow(df)))], na.rm=TRUE)
+      compr <- g_lin - df$gain_db
+      df    <- df[!is.na(compr) & abs(compr - px_db_p) <= px_tol_p, , drop=FALSE]
+    }
+    ng <- .renorm_g(df$gl_r, df$gl_i, z0)
+    xv <- ng$r; yv <- ng$i
+    cv <- df$pout_dbm %||% rep(NA_real_, nrow(df))
+    ok <- !is.na(xv) & !is.na(yv) & (xv^2 + yv^2) <= 1.02
+    grid <- build_smith_grid(); p <- plot_ly()
+    for (tr in grid) p <- p %>% add_trace(type="scatter",mode="lines",
+      x=tr$x,y=tr$y,line=tr$line,hoverinfo="none",showlegend=FALSE,name=tr$name)
+    p <- p %>% add_trace(type="scattergl",mode="markers",
+      x=xv[ok],y=yv[ok],
+      marker=list(color=cv[ok],colorscale="Jet",size=7,showscale=TRUE,
+                  colorbar=list(title="Pout(dBm)",len=0.6,
+                               tickfont=list(color="#aaa",size=9),
+                               titlefont=list(color="#aaa",size=10))),
+      name="Γ_L", hoverinfo="text",
+      hovertext=sprintf("Re: %.3f Im: %.3f Pout: %.1f dBm", xv[ok], yv[ok], cv[ok]))
+    if (show_harm) {
+      for (h in list(list(r="gl2_r",i="gl2_i",lbl="2H Γ_L",col="#e377c2"),
+                     list(r="gl3_r",i="gl3_i",lbl="3H Γ_L",col="#17becf"))) {
+        if (!all(c(h$r,h$i) %in% names(df))) next
+        ngh <- .renorm_g(df[[h$r]], df[[h$i]], z0)
+        ok_h <- !is.na(ngh$r) & !is.na(ngh$i)
+        if (sum(ok_h)==0) next
+        p <- p %>% add_trace(type="scatter",mode="markers",
+          x=ngh$r[ok_h],y=ngh$i[ok_h],
+          marker=list(color=h$col,size=6,symbol="x",opacity=0.8),
+          name=h$lbl,showlegend=TRUE,hoverinfo="none")
+      }
+    }
+    if (show_opt) {
+      opt <- .find_optima(df)
+      OC  <- list(MXP=list(col="pout_dbm",sym="star",color="#ff7f11"),
+                  MXE=list(col="pae_pct", sym="diamond",color="#1f77b4"),
+                  MXG=list(col="gain_db", sym="triangle-up",color="#2ca02c"))
+      for (nm in names(OC)) {
+        bi <- opt[[nm]]; if (is.na(bi)) next; cfg <- OC[[nm]]
+        if (!cfg$col %in% names(df)) next
+        ng_o <- .renorm_g(df$gl_r[bi], df$gl_i[bi], z0)
+        p <- p %>% add_trace(type="scatter",mode="markers+text",
+          x=ng_o$r,y=ng_o$i,
+          text=sprintf("%s\n%.1f",nm,df[[cfg$col]][bi]),textposition="top center",
+          textfont=list(color=cfg$color,size=10),
+          marker=list(color=cfg$color,size=14,symbol=cfg$sym,
+                      line=list(color="white",width=1.5)),
+          name=nm,showlegend=TRUE)
+      }
+    }
+    z_lbl <- if (abs(z0-50)<0.1) "50\u03a9" else sprintf("%.0f\u03a9",z0)
+    sl <- .smith_layout(title_txt=paste0("Load \u0393_L  (Z\u2080=",z_lbl,")"),
+                        xl="Re(\u0393_L)", yl="Im(\u0393_L)")
+    p %>% layout(sl)
   })
 
   # ── Tradeoff / Nose Plot — all measured impedances coloured by metric ───
@@ -1010,76 +1296,163 @@ serverLpViewer <- function(input, output, session, state) {
     )
   })
 
-  # ── Tabular: Ppeak (max Pout) ─────────────────────────────────────────────
-  output$lp_table_ppeak <- DT::renderDT({
-    id  <- input$lp_table_dataset_selector
-    df  <- .get_df(id)
-    if (is.null(df) || !"pout_dbm" %in% names(df)) return(data.frame())
-    bi  <- which.max(df$pout_dbm)
-    if (length(bi) == 0) return(data.frame())
-    row <- df[bi, , drop = FALSE]
-    .clean_dt_row(row)
-  }, options = list(dom = "t", scrollX = TRUE, pageLength = 1),
-     class   = "compact cell-border", rownames = FALSE)
+  # ── Table helpers ──────────────────────────────────────────────────────────
+  .perf_row_at <- function(df, bi) {
+    if (length(bi) == 0 || is.na(bi[1])) return(NULL)
+    row <- df[bi[1], , drop = FALSE]
+    gl_r <- if ("gl_r" %in% names(row)) row$gl_r else NA_real_
+    gl_i <- if ("gl_i" %in% names(row)) row$gl_i else NA_real_
+    gs_r <- if ("gs_r" %in% names(row)) row$gs_r else NA_real_
+    gs_i <- if ("gs_i" %in% names(row)) row$gs_i else NA_real_
+    zl   <- .gamma_to_z(gl_r, gl_i)
+    zs   <- .gamma_to_z(gs_r, gs_i)
+    data.frame(
+      Pout_dBm = round(if ("pout_dbm" %in% names(row)) row$pout_dbm else NA_real_, 2),
+      Gain_dB  = round(if ("gain_db"  %in% names(row)) row$gain_db  else NA_real_, 2),
+      PAE_pct  = round(if ("pae_pct"  %in% names(row)) row$pae_pct  else NA_real_, 2),
+      DE_pct   = round(if ("de_pct"   %in% names(row)) row$de_pct   else NA_real_, 2),
+      Pin_dBm  = round(if ("pin_dbm"  %in% names(row)) row$pin_dbm  else NA_real_, 2),
+      Freq_GHz = round(if ("freq_ghz" %in% names(row)) row$freq_ghz else NA_real_, 4),
+      Gamma_L  = sprintf("%.3f %+.3fj", gl_r, gl_i),
+      ZL_Ohm   = sprintf("%.2f %+.2fj", round(zl$r, 2), round(zl$x, 2)),
+      Gamma_S  = sprintf("%.3f %+.3fj", gs_r, gs_i),
+      ZS_Ohm   = sprintf("%.2f %+.2fj", round(zs$r, 2), round(zs$x, 2)),
+      stringsAsFactors = FALSE
+    )
+  }
 
-  # ── Tabular: Pavg (Ppeak − N dB) ─────────────────────────────────────────
-  output$lp_table_pavg <- DT::renderDT({
-    id  <- input$lp_table_dataset_selector
-    df  <- .get_df(id)
-    if (is.null(df) || !"pout_dbm" %in% names(df)) return(data.frame())
-    bo      <- as.numeric(input$lp_ppeak_backoff %||% 6)
-    max_po  <- max(df$pout_dbm, na.rm = TRUE)
-    bi      <- which.min(abs(df$pout_dbm - (max_po - bo)))
-    if (length(bi) == 0) return(data.frame())
-    row     <- df[bi, , drop = FALSE]
-    .clean_dt_row(row)
-  }, options = list(dom = "t", scrollX = TRUE, pageLength = 1),
-     class   = "compact cell-border", rownames = FALSE)
+  # Split dataframe into per-frequency sub-frames
+  .by_freq <- function(df) {
+    if ("freq_ghz" %in% names(df) && length(unique(na.omit(df$freq_ghz))) > 1) {
+      freqs <- sort(unique(na.omit(df$freq_ghz)))
+      lapply(freqs, function(f)
+        list(freq = f, df = df[!is.na(df$freq_ghz) & df$freq_ghz == f, , drop = FALSE]))
+    } else {
+      list(list(freq = NA_real_, df = df))
+    }
+  }
 
-  # ── Tabular: Optimum operating points (MXP / MXE / MXG) with impedances ──
+  # ── Tabular: Optimum operating points (MXP / MXE / MXG) per frequency ─────
   output$lp_table_optima <- DT::renderDT({
     id <- input$lp_table_dataset_selector
     df <- .get_df(id)
     if (is.null(df)) return(data.frame())
-
-    opt  <- .find_optima(df)
     rows <- list()
-
-    for (oname in c("MXP", "MXE", "MXG")) {
-      bi <- opt[[oname]]
-      if (is.na(bi)) next
-      row  <- df[bi, , drop = FALSE]
-
-      gl_r <- if ("gl_r" %in% names(row)) row$gl_r else NA_real_
-      gl_i <- if ("gl_i" %in% names(row)) row$gl_i else NA_real_
-      gs_r <- if ("gs_r" %in% names(row)) row$gs_r else NA_real_
-      gs_i <- if ("gs_i" %in% names(row)) row$gs_i else NA_real_
-      zl   <- .gamma_to_z(gl_r, gl_i)
-      zs   <- .gamma_to_z(gs_r, gs_i)
-
-      rec <- data.frame(
-        Point    = oname,
-        Pout_dBm = round(if ("pout_dbm" %in% names(row)) row$pout_dbm else NA_real_, 2),
-        Gain_dB  = round(if ("gain_db"  %in% names(row)) row$gain_db  else NA_real_, 2),
-        PAE_pct  = round(if ("pae_pct"  %in% names(row)) row$pae_pct  else NA_real_, 2),
-        DE_pct   = round(if ("de_pct"   %in% names(row)) row$de_pct   else NA_real_, 2),
-        Freq_GHz = round(if ("freq_ghz" %in% names(row)) row$freq_ghz else NA_real_, 4),
-        Gamma_L  = sprintf("%.3f %+.3fj", gl_r, gl_i),
-        ZL_Ohm   = sprintf("%.2f %+.2fj", round(zl$r, 2), round(zl$x, 2)),
-        Gamma_S  = sprintf("%.3f %+.3fj", gs_r, gs_i),
-        ZS_Ohm   = sprintf("%.2f %+.2fj", round(zs$r, 2), round(zs$x, 2)),
-        stringsAsFactors = FALSE
-      )
-      rows[[oname]] <- rec
+    for (grp in .by_freq(df)) {
+      gdf  <- grp$df
+      freq <- grp$freq
+      f_lbl <- if (is.na(freq)) "" else sprintf("%.4g GHz", freq)
+      opt  <- .find_optima(gdf)
+      for (oname in c("MXP", "MXE", "MXG")) {
+        bi <- opt[[oname]]
+        if (is.na(bi)) next
+        rec <- .perf_row_at(gdf, bi)
+        if (is.null(rec)) next
+        rec$Point   <- oname
+        rec$Freq_GHz <- if (is.na(freq)) NA_real_ else round(freq, 4)
+        rows[[length(rows) + 1]] <- rec[, c("Point","Freq_GHz",
+          intersect(c("Pout_dBm","Gain_dB","PAE_pct","DE_pct","Pin_dBm",
+                      "Gamma_L","ZL_Ohm","Gamma_S","ZS_Ohm"), names(rec)))]
+      }
     }
-
     if (length(rows) == 0) return(data.frame())
     do.call(rbind, rows)
-  }, options = list(dom = "t", scrollX = TRUE, pageLength = 5),
-     class   = "compact cell-border", rownames = FALSE)
+  }, options = list(dom = "lftip", scrollX = TRUE, pageLength = 10),
+     class = "compact cell-border", rownames = FALSE)
+
+  # ── Tabular: Ppeak (max Pout) per frequency ───────────────────────────────
+  output$lp_table_ppeak <- DT::renderDT({
+    id  <- input$lp_table_dataset_selector
+    df  <- .get_df(id)
+    if (is.null(df) || !"pout_dbm" %in% names(df)) return(data.frame())
+    rows <- list()
+    for (grp in .by_freq(df)) {
+      gdf <- grp$df
+      bi  <- which.max(gdf$pout_dbm)
+      if (length(bi) == 0) next
+      rec <- .perf_row_at(gdf, bi)
+      if (is.null(rec)) next
+      rec$Freq_GHz <- if (is.na(grp$freq)) NA_real_ else round(grp$freq, 4)
+      rows[[length(rows) + 1]] <- rec
+    }
+    if (length(rows) == 0) return(data.frame())
+    do.call(rbind, rows)
+  }, options = list(dom = "t", scrollX = TRUE, pageLength = 20),
+     class = "compact cell-border", rownames = FALSE)
+
+  # ── Tabular: Pavg (Ppeak − N dB back-off) per frequency ──────────────────
+  output$lp_table_pavg <- DT::renderDT({
+    id  <- input$lp_table_dataset_selector
+    df  <- .get_df(id)
+    if (is.null(df) || !"pout_dbm" %in% names(df)) return(data.frame())
+    bo   <- as.numeric(input$lp_ppeak_backoff %||% 6)
+    rows <- list()
+    for (grp in .by_freq(df)) {
+      gdf    <- grp$df
+      max_po <- max(gdf$pout_dbm, na.rm = TRUE)
+      bi     <- which.min(abs(gdf$pout_dbm - (max_po - bo)))
+      if (length(bi) == 0) next
+      rec <- .perf_row_at(gdf, bi)
+      if (is.null(rec)) next
+      rec$Freq_GHz <- if (is.na(grp$freq)) NA_real_ else round(grp$freq, 4)
+      rec$Backoff_dB <- round(bo, 1)
+      rows[[length(rows) + 1]] <- rec
+    }
+    if (length(rows) == 0) return(data.frame())
+    do.call(rbind, rows)
+  }, options = list(dom = "t", scrollX = TRUE, pageLength = 20),
+     class = "compact cell-border", rownames = FALSE)
+
+  # ── Tabular: Selected design load point ───────────────────────────────────
+  output$lp_table_selected_zl <- DT::renderDT({
+    id    <- input$lp_table_dataset_selector
+    basis <- input$lp_zl_basis %||% "MXE"
+    z0    <- as.numeric(input$lp_zl_z0 %||% 50)
+    df    <- .get_df(id)
+    if (is.null(df)) return(data.frame())
+    rows <- list()
+    for (grp in .by_freq(df)) {
+      gdf  <- grp$df
+      freq <- grp$freq
+      if (basis == "custom") {
+        gr_c <- as.numeric(input$lp_zl_gamma_r %||% 0)
+        gi_c <- as.numeric(input$lp_zl_gamma_i %||% 0)
+        zl   <- .gamma_to_z(gr_c, gi_c, z0)
+        rec  <- data.frame(
+          Freq_GHz = if (is.na(freq)) NA_real_ else round(freq, 4),
+          Basis    = "Custom",
+          Gamma_L  = sprintf("%.3f %+.3fj", gr_c, gi_c),
+          ZL_Ohm   = sprintf("%.2f %+.2fj", round(zl$r, 2), round(zl$x, 2)),
+          Pout_dBm = NA_real_, Gain_dB = NA_real_,
+          PAE_pct  = NA_real_, stringsAsFactors = FALSE)
+      } else {
+        opt <- .find_optima(gdf)
+        bi  <- opt[[basis]]
+        if (is.na(bi)) next
+        rec  <- .perf_row_at(gdf, bi)
+        if (is.null(rec)) next
+        rec$Basis    <- basis
+        rec$Freq_GHz <- if (is.na(freq)) NA_real_ else round(freq, 4)
+        # Convert to requested Z0
+        if (abs(z0 - 50) > 0.1 && "Gamma_L" %in% names(rec)) {
+          gparts   <- as.numeric(strsplit(gsub("[ij]","",rec$Gamma_L),"[ ]+")[[1]])
+          ng       <- .renorm_g(gparts[1], gparts[2], z0)
+          zl2      <- .gamma_to_z(ng$r, ng$i, z0)
+          rec$Gamma_L <- sprintf("%.3f %+.3fj", ng$r, ng$i)
+          rec$ZL_Ohm  <- sprintf("%.2f %+.2fj", round(zl2$r, 2), round(zl2$x, 2))
+        }
+      }
+      rows[[length(rows) + 1]] <- rec
+    }
+    if (length(rows) == 0) return(data.frame())
+    out <- do.call(rbind, rows)
+    keep <- intersect(c("Freq_GHz","Basis","Pout_dBm","Gain_dB","PAE_pct","DE_pct",
+                        "Gamma_L","ZL_Ohm","Gamma_S","ZS_Ohm"), names(out))
+    out[, keep, drop = FALSE]
+  }, options = list(dom = "t", scrollX = TRUE, pageLength = 20),
+     class = "compact cell-border", rownames = FALSE)
 
   .clean_dt_row <- function(row) {
-    # Keep only non-all-NA columns; round numerics
     non_empty <- names(row)[sapply(row, function(c) !all(is.na(c)))]
     row       <- row[, non_empty, drop = FALSE]
     num_cols  <- names(row)[sapply(row, is.numeric)]
@@ -1130,36 +1503,34 @@ serverLpViewer <- function(input, output, session, state) {
     xv <- df[[x_var]]
     p  <- plot_ly()
 
-    # AM-AM: Gain (dB) vs Pin — left Y axis (linear gain compression)
+    # AM-AM: gain COMPRESSION relative to small-signal gain (0 dB = linear, negative = compressed)
     if (has_gain) {
-      yv <- df$gain_db
-      ok <- !is.na(xv) & !is.na(yv)
-      ds_aa <- .lttb(xv[ok], yv[ok], 500L)
-      p  <- p %>% add_trace(
+      yv_raw <- df$gain_db
+      ok     <- !is.na(xv) & !is.na(yv_raw)
+      g_lin  <- max(yv_raw[ok][seq_len(min(5L, sum(ok)))], na.rm = TRUE)
+      yv     <- yv_raw - g_lin   # compression: 0 at small signal, ≈−1 at P1dB
+      ds_aa  <- .lttb(xv[ok], yv[ok], 500L)
+      p <- p %>% add_trace(
         type = "scattergl", mode = "lines+markers",
         x = ds_aa$x, y = ds_aa$y, yaxis = "y",
-        name = "AM-AM (dB)",
+        name = "AM-AM compression (dB)",
         line   = list(color = "#ff7f11", width = 2),
         marker = list(color = "#ff7f11", size = 5)
       )
-      # Mark 1dB compression point (on original data, not downsampled)
-      if (sum(ok) > 2) {
-        g_lin  <- max(yv[ok][seq_len(min(3, sum(ok)))], na.rm = TRUE)
-        g_comp <- g_lin - 1
-        ci     <- which(yv[ok] <= g_comp)
-        if (length(ci) > 0) {
-          ci1 <- ci[1]
-          p   <- p %>% add_trace(
-            type = "scatter", mode = "markers+text",
-            x = xv[ok][ci1], y = yv[ok][ci1],
-            text = sprintf("P1dB\n%.1f dBm", xv[ok][ci1]),
-            textposition = "top right",
-            textfont = list(color = "#ff7f11", size = 10),
-            marker = list(color = "#ff7f11", size = 12, symbol = "circle",
-                          line = list(color = "white", width = 2)),
-            yaxis = "y", name = "P1dB", showlegend = TRUE
-          )
-        }
+      # Mark P1dB: compression = −1 dB
+      ci <- which(yv[ok] <= -1)
+      if (length(ci) > 0) {
+        ci1 <- ci[1]
+        p   <- p %>% add_trace(
+          type = "scatter", mode = "markers+text",
+          x = xv[ok][ci1], y = yv[ok][ci1],
+          text = sprintf("P1dB\n%.1f dBm", xv[ok][ci1]),
+          textposition = "top right",
+          textfont = list(color = "#ff7f11", size = 10),
+          marker = list(color = "#ff7f11", size = 12, symbol = "circle",
+                        line = list(color = "white", width = 2)),
+          yaxis = "y", name = "P1dB", showlegend = TRUE
+        )
       }
     }
 
@@ -1181,7 +1552,7 @@ serverLpViewer <- function(input, output, session, state) {
       paper_bgcolor = "#1b1b2b", plot_bgcolor = "#1b1b2b",
       xaxis  = list(title = .ax_lbl2(x_var), color = "#aaa",
                     showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)"),
-      yaxis  = list(title = "AM-AM (dB)", color = "#ff7f11",
+      yaxis  = list(title = "AM-AM compression (dB)", color = "#ff7f11",
                     showgrid = TRUE, gridcolor = "rgba(100,100,100,0.25)",
                     tickfont = list(color = "#ff7f11")),
       yaxis2 = list(title = "AM-PM (°)", color = "#1f77b4",
@@ -1580,67 +1951,146 @@ serverLpViewer <- function(input, output, session, state) {
           margin = list(l = 65, r = 75, t = 50, b = 60))
       }
 
+      # ── Helper: build per-dataset optima HTML table ──────────────────────
+      optima_tbl_html <- function(df) {
+        rows2 <- list()
+        for (grp in .by_freq(df)) {
+          gdf <- grp$df; freq <- grp$freq
+          opt <- .find_optima(gdf)
+          for (oname in c("MXP","MXE","MXG")) {
+            bi <- opt[[oname]]; if (is.na(bi)) next
+            row <- gdf[bi, , drop=FALSE]
+            gl_r <- if ("gl_r"%in%names(row)) row$gl_r else NA_real_
+            gl_i <- if ("gl_i"%in%names(row)) row$gl_i else NA_real_
+            gs_r <- if ("gs_r"%in%names(row)) row$gs_r else NA_real_
+            gs_i <- if ("gs_i"%in%names(row)) row$gs_i else NA_real_
+            zl   <- .gamma_to_z(gl_r, gl_i); zs <- .gamma_to_z(gs_r, gs_i)
+            rows2[[length(rows2)+1]] <- sprintf(
+              "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>",
+              oname,
+              if (is.na(freq)) "&mdash;" else sprintf("%.4g",freq),
+              if ("pout_dbm"%in%names(row)) sprintf("%.2f",row$pout_dbm) else "&mdash;",
+              if ("gain_db" %in%names(row)) sprintf("%.2f",row$gain_db)  else "&mdash;",
+              if ("pae_pct" %in%names(row)) sprintf("%.2f",row$pae_pct)  else "&mdash;",
+              if ("de_pct"  %in%names(row)) sprintf("%.2f",row$de_pct)   else "&mdash;",
+              if (any(!is.na(c(gl_r,gl_i)))) sprintf("%.3f%+.3fj",gl_r,gl_i) else "&mdash;",
+              if (any(!is.na(c(gl_r,gl_i)))) sprintf("%.2f%+.2fj\u03a9",round(zl$r,2),round(zl$x,2)) else "&mdash;",
+              if (any(!is.na(c(gs_r,gs_i)))) sprintf("%.3f%+.3fj",gs_r,gs_i) else "&mdash;")
+          }
+          # Ppeak row
+          bi_pk <- which.max(gdf$pout_dbm)
+          if (length(bi_pk)>0) {
+            row <- gdf[bi_pk,,drop=FALSE]
+            gl_r<-if("gl_r"%in%names(row))row$gl_r else NA_real_
+            gl_i<-if("gl_i"%in%names(row))row$gl_i else NA_real_
+            zl<-.gamma_to_z(gl_r,gl_i)
+            rows2[[length(rows2)+1]] <- sprintf(
+              "<tr style='background:#fff8ee'><td>Ppeak</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>&mdash;</td></tr>",
+              if(is.na(freq)) "&mdash;" else sprintf("%.4g",freq),
+              if("pout_dbm"%in%names(row))sprintf("%.2f",row$pout_dbm) else "&mdash;",
+              if("gain_db" %in%names(row))sprintf("%.2f",row$gain_db)  else "&mdash;",
+              if("pae_pct" %in%names(row))sprintf("%.2f",row$pae_pct)  else "&mdash;",
+              if("de_pct"  %in%names(row))sprintf("%.2f",row$de_pct)   else "&mdash;",
+              if(any(!is.na(c(gl_r,gl_i))))sprintf("%.3f%+.3fj",gl_r,gl_i) else "&mdash;",
+              if(any(!is.na(c(gl_r,gl_i))))sprintf("%.2f%+.2fj\u03a9",round(zl$r,2),round(zl$x,2)) else "&mdash;")
+          }
+        }
+        if (length(rows2)==0) return("<p><em>No performance data available.</em></p>")
+        paste0(
+          "<table><thead><tr><th>Point</th><th>Freq (GHz)</th>",
+          "<th>Pout (dBm)</th><th>Gain (dB)</th><th>PAE (%)</th><th>DE (%)</th>",
+          "<th>&Gamma;_L</th><th>Z_L (&Omega;)</th><th>&Gamma;_S</th></tr></thead><tbody>",
+          paste(rows2, collapse=""), "</tbody></table>")
+      }
+
       # ── Assemble report body ──────────────────────────────────────────────
-      body <- ""
+      body   <- ""
+      toc_li <- ""
+      sec_id <- 0L
       for (id in names(ds)) {
-        r  <- ds[[id]]
-        ok <- isTRUE(r$success)
-        df <- if (ok) .get_df(id) else NULL
+        sec_id <- sec_id + 1L
+        r      <- ds[[id]]
+        ok     <- isTRUE(r$success)
+        df     <- if (ok) .get_df(id) else NULL
+        did    <- paste0("ds", sec_id)
+        fname  <- esc(r$filename)
+
+        # TOC entry
+        toc_li <- paste0(toc_li,
+          "<li><a href='#", did, "'>", fname, "</a>",
+          "<ul style='padding-left:12px;font-size:11px;list-style:disc;'>",
+          if (ok) paste0(
+            "<li><a href='#", did, "_summary'>&#128202; Summary</a></li>",
+            "<li><a href='#", did, "_smith'>&#9678; Contours</a></li>",
+            "<li><a href='#", did, "_xy'>&#128200; XY Performance</a></li>",
+            "<li><a href='#", did, "_imp'>&#127919; Impedances</a></li>",
+            "<li><a href='#", did, "_ampm'>&#128201; AM-AM/AM-PM</a></li>",
+            if ("meta" %in% sections) paste0("<li><a href='#", did, "_meta'>&#128196; Metadata</a></li>") else ""
+          ) else "",
+          "</ul></li>")
 
         body <- paste0(body,
-          "<hr style='margin:28px 0; border-color:#ccc;'/>",
-          "<h2>", esc(r$filename),
+          "<section id='", did, "'>",
+          "<hr style='margin:32px 0 20px; border-color:#ccc;'/>",
+          "<h2 id='", did, "'>",
+          "&#128065; ", fname,
           "  <span class='", if (ok) "badge-ok" else "badge-err", "'>",
           if (ok) "OK" else "failed", "</span></h2>")
-        if (!ok) next
+        if (!ok) { body <- paste0(body, "</section>"); next }
 
-        # Summary table
-        if ("table" %in% sections)
-          body <- paste0(body, "<h3>Optimum Points Summary</h3>", optima_html(df))
+        # 1. Summary table
+        body <- paste0(body,
+          "<h3 id='", did, "_summary'>&#128202; Performance Summary</h3>",
+          optima_tbl_html(df))
 
-        # Parsed metadata
+        # 2. Smith chart contours
+        has_gl <- !is.null(df$gl_r) && !all(is.na(df$gl_r))
+        if ("smith" %in% sections && has_gl)
+          body <- paste0(body,
+            "<h3 id='", did, "_smith'>&#9678; Smith Chart &mdash; Contours</h3>",
+            plot_div(build_smith_fig(r, df)))
+
+        # 3. XY performance
+        if ("xy" %in% sections)
+          body <- paste0(body,
+            "<h3 id='", did, "_xy'>&#128200; XY Performance (Gain / PAE / DE)</h3>",
+            plot_div(build_xy_fig(r, df)))
+
+        # 4. Source & Load impedances
+        body <- paste0(body,
+          "<h3 id='", did, "_imp'>&#127919; Source &amp; Load Impedances (&Gamma;)</h3>")
+        if ("nose" %in% sections) {
+          p_nose <- build_nose_fig(r, df)
+          if (!is.null(p_nose)) body <- paste0(body, plot_div(p_nose))
+        } else {
+          body <- paste0(body, "<p class='text-muted'>Enable &ldquo;Nose plot&rdquo; section to include impedance scatter.</p>")
+        }
+
+        # 5. AM-AM / AM-PM
+        p_am <- build_ampm_fig(r, df)
+        if (!is.null(p_am))
+          body <- paste0(body,
+            "<h3 id='", did, "_ampm'>&#128201; AM-AM (compression) / AM-PM (&deg;)</h3>",
+            plot_div(p_am))
+
+        # 6. Metadata
         if ("meta" %in% sections && length(r$meta) > 0) {
-          rows <- paste0(
+          meta_rows <- paste0(
             "<tr><td style='font-weight:600;padding:4px 12px 4px 6px;'>",
             esc(names(r$meta)), "</td><td style='padding:4px 6px;'>",
             esc(as.character(unlist(r$meta))), "</td></tr>", collapse = "")
           body <- paste0(body,
-            "<h3>Metadata</h3>",
+            "<h3 id='", did, "_meta'>&#128196; Measurement Metadata</h3>",
             "<table style='border-collapse:collapse;width:auto;margin:8px 0;'>",
-            "<thead><tr><th style='padding:4px 12px 4px 6px;border-bottom:2px solid #ccc;",
-            "text-align:left;'>Key</th>",
-            "<th style='padding:4px 6px;border-bottom:2px solid #ccc;",
-            "text-align:left;'>Value</th></tr></thead><tbody>",
-            rows, "</tbody></table>")
+            "<thead><tr><th style='padding:4px 12px 4px 6px;border-bottom:2px solid #ccc;text-align:left;'>Key</th>",
+            "<th style='padding:4px 6px;border-bottom:2px solid #ccc;text-align:left;'>Value</th></tr></thead>",
+            "<tbody>", meta_rows, "</tbody></table>")
         }
 
-        has_gl <- !is.null(df$gl_r) && !all(is.na(df$gl_r))
-
-        # Smith chart
-        if ("smith" %in% sections && has_gl)
-          body <- paste0(body, "<h3>Smith Chart \u2014 Pout &amp; PAE Contours</h3>",
-                         plot_div(build_smith_fig(r, df)))
-
-        # XY performance
-        if ("xy" %in% sections)
-          body <- paste0(body, "<h3>XY Performance</h3>",
-                         plot_div(build_xy_fig(r, df)))
-
-        # Nose / Tradeoff
-        if ("nose" %in% sections) {
-          p_nose <- build_nose_fig(r, df)
-          if (!is.null(p_nose))
-            body <- paste0(body, "<h3>Tradeoff / Nose Chart</h3>",
-                           plot_div(p_nose))
-        }
-
-        # AM-AM / AM-PM (always included when data is present)
-        p_am <- build_ampm_fig(r, df)
-        if (!is.null(p_am))
-          body <- paste0(body, "<h3>AM-AM / AM-PM</h3>", plot_div(p_am))
+        body <- paste0(body, "</section>")
       }
 
-      # ── Page header + CDN script ──────────────────────────────────────────
+      # ── Page header + CDN script + floating TOC ───────────────────────────
       hdr <- paste0(
         "<!DOCTYPE html><html lang='en'><head>",
         "<meta charset='UTF-8'>",
@@ -1648,32 +2098,51 @@ serverLpViewer <- function(input, output, session, state) {
         "<title>", esc(title), "</title>",
         "<script src='https://cdn.plot.ly/plotly-2.35.2.min.js' charset='utf-8'></script>",
         "<style>",
-        "body{font-family:Arial,sans-serif;line-height:1.6;color:#222;",
-        "max-width:1100px;margin:24px auto;padding:0 20px;background:#fafafa;}",
-        "h1{color:#333;border-bottom:2px solid #555;padding-bottom:10px;}",
-        "h2{color:#333;margin-top:32px;border-left:4px solid #ff7f11;padding-left:10px;}",
-        "h3{color:#555;margin-top:20px;}",
-        "table{border-collapse:collapse;width:100%;margin:10px 0;}",
-        "th,td{border:1px solid #ddd;padding:5px 10px;text-align:left;font-size:13px;}",
+        ":root{--accent:#ff7f11;--bg:#fafafa;--text:#222;--border:#ddd;}",
+        "body{font-family:Arial,sans-serif;line-height:1.6;color:var(--text);",
+        "  background:var(--bg);margin:0;padding:0;}",
+        "#content{max-width:1060px;margin:24px auto 24px 280px;padding:0 24px;}",
+        "#toc{position:fixed;top:0;left:0;width:260px;height:100vh;",
+        "  background:#1e1e2e;color:#ccc;overflow-y:auto;padding:16px 12px;",
+        "  box-sizing:border-box;font-size:12px;border-right:1px solid #333;}",
+        "#toc h4{color:#ff7f11;margin:0 0 10px;font-size:13px;letter-spacing:.5px;}",
+        "#toc ul{list-style:none;padding:0;margin:0;}",
+        "#toc li{margin:3px 0;}",
+        "#toc a{color:#bbb;text-decoration:none;display:block;padding:2px 4px;border-radius:3px;}",
+        "#toc a:hover{color:#fff;background:rgba(255,127,17,0.25);}",
+        "h1{color:#333;border-bottom:3px solid var(--accent);padding-bottom:10px;margin-top:0;}",
+        "h2{color:#333;margin-top:36px;border-left:4px solid var(--accent);padding-left:10px;}",
+        "h3{color:#555;margin-top:22px;border-left:2px solid #ddd;padding-left:8px;}",
+        "section{margin-bottom:24px;}",
+        "table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13px;}",
+        "th,td{border:1px solid var(--border);padding:5px 10px;text-align:left;}",
         "th{background:#ececec;font-weight:600;}",
         "tr:hover{background:#f5f5f5;}",
         ".badge-ok{background:#2ca02c;color:#fff;border-radius:3px;",
-        "padding:2px 8px;font-size:12px;font-weight:600;}",
+        "  padding:2px 8px;font-size:12px;font-weight:600;}",
         ".badge-err{background:#d62728;color:#fff;border-radius:3px;",
-        "padding:2px 8px;font-size:12px;font-weight:600;}",
+        "  padding:2px 8px;font-size:12px;font-weight:600;}",
         ".meta-info{color:#666;font-size:14px;margin:4px 0;}",
+        "@media(max-width:800px){#toc{display:none;}#content{margin-left:24px;}}",
         "</style></head><body>",
-        "<h1>", esc(title), "</h1>",
-        if (nzchar(engineer)) paste0("<p class='meta-info'><strong>Engineer:</strong> ",
-                                     esc(engineer), "</p>") else "",
-        if (nzchar(project))  paste0("<p class='meta-info'><strong>Project:</strong> ",
-                                     esc(project),  "</p>") else "",
-        "<p class='meta-info'><strong>Generated:</strong> ",
-        esc(as.character(Sys.time())), "</p>",
-        "<p class='meta-info'><strong>Datasets:</strong> ", length(ds), "</p>"
+        "<nav id='toc'>",
+        "<h4>&#128196; Load Pull Report</h4>",
+        "<ul>",
+        "<li><a href='#rpt-header'>&#127968; Cover</a></li>",
+        toc_li,
+        "</ul></nav>",
+        "<div id='content'>",
+        "<h1 id='rpt-header'>", esc(title), "</h1>",
+        "<div style='border:1px solid #ddd;border-radius:4px;padding:12px;",
+        "background:#fff;margin-bottom:20px;display:inline-block;min-width:300px;'>",
+        if (nzchar(engineer)) paste0("<p class='meta-info'>&#128100; <strong>Engineer:</strong> ", esc(engineer), "</p>") else "",
+        if (nzchar(project))  paste0("<p class='meta-info'>&#128196; <strong>Project:</strong> ",  esc(project),  "</p>") else "",
+        "<p class='meta-info'>&#128336; <strong>Generated:</strong> ", esc(as.character(Sys.time())), "</p>",
+        "<p class='meta-info'>&#128230; <strong>Datasets:</strong> ", length(ds), "</p>",
+        "</div>"
       )
 
-      writeLines(paste0(hdr, body, "</body></html>"), file)
+      writeLines(paste0(hdr, body, "</div></body></html>"), file)
     }
   )
 
