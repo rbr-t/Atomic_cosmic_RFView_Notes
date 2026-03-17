@@ -87,6 +87,31 @@ rfCalculatorsDrawerUI <- function() {
           )
         ),
 
+        # Gamma (Re+jIm) to Impedance -- Smith chart variant
+        tabPanel(tagList(icon("project-diagram"), " Gamma (Re+jIm) -> Z"),
+          br(),
+          fluidRow(
+            column(5,
+              div(class = "well",
+                style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                h5("Input", style = "color:#f0f0f0; margin-top:0;"),
+                p(style = "color:#aaa; font-size:11px; margin:0 0 8px 0;",
+                  "Enter \u0393 as rectangular coordinates (e.g. from a Smith chart click)."),
+                numericInput("calc_gamma_re", "Re(\u0393)", value = 0.2, step = 0.01),
+                numericInput("calc_gamma_im", "Im(\u0393)", value = 0.1, step = 0.01),
+                numericInput("calc_gamma_rect_z0", "Z0 (\u03a9)", value = 50, min = 0.1, step = 0.1)
+              )
+            ),
+            column(7,
+              div(class = "well",
+                style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                h5("Impedance & reflection", style = "color:#f0f0f0; margin-top:0;"),
+                uiOutput("calc_gamma_rect_result")
+              )
+            )
+          )
+        ),
+
         # Gamma to VSWR
         tabPanel(tagList(icon("signal"), " Gamma -> VSWR"),
           br(),
