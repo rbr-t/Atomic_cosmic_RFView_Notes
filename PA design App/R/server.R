@@ -31,10 +31,13 @@ source("modules/server/server_pa_lineup.R")
 source("modules/server/server_spec_design.R")
 source("modules/server/server_file_ops.R")
 source("modules/server/server_rf_tools.R")
+source("modules/server/server_rf_calculators.R")
 source("modules/server/server_guardrails.R")
 
 # ── Load Pull subsystem ───────────────────────────────────────────────────
+source("modules/calculations/calc_rf_tools.R")
 source("modules/rf_tools/lp_parsers.R")
+source("modules/rf_tools/rf_calculators_drawer_ui.R")
 source("modules/server/server_lp_viewer.R")
 
 # ── Knowledge Base subsystem ─────────────────────────────────────────────
@@ -98,126 +101,7 @@ server <- function(input, output, session) {
       ),
 
       # ── RF Calculators: Power · Freq/Wave · MTTF · Thermal ───────────────
-      "rf_calc" = tagList(
-        div(style = "padding:4px 0 10px 0;",
-          p(style = "color:#aaa; font-size:12px; margin:0 0 8px 0;",
-            icon("calculator"), " Quick-access RF engineering calculators."),
-          tabsetPanel(id = "rf_calc_tabs",
-
-            # ── Power Converter (dBm ↔ W) ────────────────────────────────
-            tabPanel(tagList(icon("bolt"), " Power"),
-              br(),
-              fluidRow(
-                column(5,
-                  div(class = "well",
-                    style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                    h5("Input", style = "color:#f0f0f0; margin-top:0;"),
-                    numericInput("calc_power_val", "Value", value = 0, step = 0.1),
-                    selectInput("calc_power_unit", "Unit",
-                      choices  = c("dBm" = "dBm", "dBW" = "dBW",
-                                   "W"   = "W",   "mW"  = "mW",  "\u00b5W" = "uW"),
-                      selected = "dBm")
-                  )
-                ),
-                column(7,
-                  div(class = "well",
-                    style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                    h5("Conversions", style = "color:#f0f0f0; margin-top:0;"),
-                    uiOutput("calc_power_result")
-                  )
-                )
-              )
-            ),
-
-            # ── Frequency / Wavelength ───────────────────────────────────
-            tabPanel(tagList(icon("wave-square"), " Freq / Wave"),
-              br(),
-              fluidRow(
-                column(5,
-                  div(class = "well",
-                    style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                    h5("Input", style = "color:#f0f0f0; margin-top:0;"),
-                    numericInput("calc_freq_val", "Frequency",
-                      value = 2400, min = 0.001, step = 1),
-                    selectInput("calc_freq_unit", "Unit",
-                      choices  = c("Hz" = "Hz", "kHz" = "kHz",
-                                   "MHz" = "MHz", "GHz" = "GHz"),
-                      selected = "MHz"),
-                    numericInput("calc_freq_er",
-                      "Dielectric \u03b5r (for guided \u03bb)",
-                      value = 1, min = 1, max = 100, step = 0.1)
-                  )
-                ),
-                column(7,
-                  div(class = "well",
-                    style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                    h5("Results", style = "color:#f0f0f0; margin-top:0;"),
-                    uiOutput("calc_freq_result")
-                  )
-                )
-              )
-            ),
-
-            # ── MTTF — Arrhenius model ────────────────────────────────────
-            tabPanel(tagList(icon("hourglass-half"), " MTTF"),
-              br(),
-              fluidRow(
-                column(5,
-                  div(class = "well",
-                    style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                    h5("Arrhenius parameters", style = "color:#f0f0f0; margin-top:0;"),
-                    numericInput("calc_mttf_ref", "Reference MTTF\u2080 (hours)",
-                      value = 1e6, min = 1, step = 1),
-                    numericInput("calc_mttf_t0", "Reference temp T\u2080 (\u00b0C)",
-                      value = 125, step = 1),
-                    numericInput("calc_mttf_tj", "Operating junction Tj (\u00b0C)",
-                      value = 150, step = 1),
-                    numericInput("calc_mttf_ea", "Activation energy Ea (eV)",
-                      value = 0.7, min = 0.1, max = 3, step = 0.05)
-                  )
-                ),
-                column(7,
-                  div(class = "well",
-                    style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                    h5("MTTF at Tj operating", style = "color:#f0f0f0; margin-top:0;"),
-                    uiOutput("calc_mttf_result")
-                  )
-                )
-              )
-            ),
-
-            # ── Thermal: junction temperature ─────────────────────────────
-            tabPanel(tagList(icon("thermometer-half"), " Thermal"),
-              br(),
-              fluidRow(
-                column(5,
-                  div(class = "well",
-                    style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                    h5("Thermal stack", style = "color:#f0f0f0; margin-top:0;"),
-                    numericInput("calc_th_pdiss",  "Pdiss (W)",
-                      value = 10, min = 0, step = 0.5),
-                    numericInput("calc_th_rth_jc", "Rth_jc (\u00b0C/W)",
-                      value = 3,  min = 0, step = 0.1),
-                    numericInput("calc_th_rth_cs", "Rth_cs (\u00b0C/W)",
-                      value = 1,  min = 0, step = 0.1),
-                    numericInput("calc_th_rth_sa", "Rth_sa heatsink (\u00b0C/W)",
-                      value = 5,  min = 0, step = 0.1),
-                    numericInput("calc_th_tamb",   "Tambient (\u00b0C)",
-                      value = 25, step = 1)
-                  )
-                ),
-                column(7,
-                  div(class = "well",
-                    style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                    h5("Results", style = "color:#f0f0f0; margin-top:0;"),
-                    uiOutput("calc_thermal_result")
-                  )
-                )
-              )
-            )
-          )
-        )
-      ),
+      "rf_calc" = rfCalculatorsDrawerUI(),
 
       # ── RF Tools: Smith Chart + Load Pull ───────────────────────────────────
       "rf_tools" = tagList(
@@ -993,127 +877,6 @@ server <- function(input, output, session) {
     )
   })
 
-  # ── RF Calculator reactive outputs ──────────────────────────────────────
-
-  output$calc_power_result <- renderUI({
-    val  <- input$calc_power_val  %||% 0
-    unit <- input$calc_power_unit %||% "dBm"
-    val_w <- switch(unit,
-      dBm = 10^((val - 30) / 10),
-      dBW = 10^(val / 10),
-      W   = val,
-      mW  = val / 1e3,
-      uW  = val / 1e6
-    )
-    if (is.null(val_w) || is.na(val_w) || !is.finite(val_w)) {
-      return(p(style = "color:#d62728;", "Invalid input"))
-    }
-    dbm  <- 10 * log10(val_w) + 30
-    dbw  <- 10 * log10(val_w)
-    mw   <- val_w * 1e3
-    uw   <- val_w * 1e6
-    fmt  <- function(x) formatC(signif(x, 5), format = "g")
-    tags$table(class = "table table-condensed",
-      style = "color:#f0f0f0; font-size:13px; margin:0;",
-      tags$thead(tags$tr(tags$th("Unit"), tags$th("Value"))),
-      tags$tbody(
-        tags$tr(tags$td("dBm"),         tags$td(fmt(dbm))),
-        tags$tr(tags$td("dBW"),         tags$td(fmt(dbw))),
-        tags$tr(tags$td("W"),           tags$td(fmt(val_w))),
-        tags$tr(tags$td("mW"),          tags$td(fmt(mw))),
-        tags$tr(tags$td("\u00b5W"),    tags$td(fmt(uw)))
-      )
-    )
-  })
-
-  output$calc_freq_result <- renderUI({
-    freq_val  <- input$calc_freq_val  %||% 2400
-    freq_unit <- input$calc_freq_unit %||% "MHz"
-    er        <- max(1, input$calc_freq_er %||% 1)
-    freq_hz   <- freq_val * switch(freq_unit,
-      Hz = 1, kHz = 1e3, MHz = 1e6, GHz = 1e9)
-    if (is.null(freq_hz) || is.na(freq_hz) || freq_hz <= 0) {
-      return(p(style = "color:#d62728;", "Enter a positive frequency"))
-    }
-    c0        <- 2.998e8
-    lambda_m  <- c0 / freq_hz
-    lambda_g  <- lambda_m / sqrt(er)
-    period_ns <- 1e9 / freq_hz
-    fmt <- function(x) formatC(signif(x, 5), format = "g")
-    tags$table(class = "table table-condensed",
-      style = "color:#f0f0f0; font-size:13px; margin:0;",
-      tags$thead(tags$tr(tags$th("Quantity"), tags$th("Value"))),
-      tags$tbody(
-        tags$tr(tags$td("Freq (MHz)"),                  tags$td(fmt(freq_hz / 1e6))),
-        tags$tr(tags$td("Period (ns)"),                 tags$td(fmt(period_ns))),
-        tags$tr(tags$td("\u03bb free-space (m)"),      tags$td(fmt(lambda_m))),
-        tags$tr(tags$td("\u03bb free-space (mm)"),     tags$td(fmt(lambda_m * 1e3))),
-        tags$tr(tags$td("\u03bb/4 free-space (mm)"),   tags$td(fmt(lambda_m * 250))),
-        tags$tr(tags$td(paste0("\u03bb guided (mm, \u03b5r=", er, ")")),
-          tags$td(fmt(lambda_g * 1e3))),
-        tags$tr(tags$td(paste0("\u03bb/4 guided (mm, \u03b5r=", er, ")")),
-          tags$td(fmt(lambda_g * 250)))
-      )
-    )
-  })
-
-  output$calc_mttf_result <- renderUI({
-    mttf0 <- input$calc_mttf_ref %||% 1e6
-    t0    <- input$calc_mttf_t0  %||% 125
-    tj    <- input$calc_mttf_tj  %||% 150
-    ea    <- input$calc_mttf_ea  %||% 0.7
-    if (any(is.na(c(mttf0, t0, tj, ea))) || mttf0 <= 0 || ea <= 0) {
-      return(p(style = "color:#d62728;", "Check inputs (MTTF\u2080 and Ea must be > 0)"))
-    }
-    kb     <- 8.617e-5
-    af     <- exp((ea / kb) * (1 / (t0 + 273.15) - 1 / (tj + 273.15)))
-    mttf_t <- mttf0 * af
-    fmt    <- function(x) formatC(signif(x, 4), format = "g")
-    tags$table(class = "table table-condensed",
-      style = "color:#f0f0f0; font-size:13px; margin:0;",
-      tags$thead(tags$tr(tags$th("Parameter"), tags$th("Value"))),
-      tags$tbody(
-        tags$tr(tags$td("Acceleration factor"),  tags$td(fmt(af))),
-        tags$tr(tags$td("MTTF at Tj (hours)"),   tags$td(fmt(mttf_t))),
-        tags$tr(tags$td("MTTF at Tj (years)"),   tags$td(fmt(mttf_t / 8760))),
-        tags$tr(tags$td("Ea (eV)"),              tags$td(fmt(ea))),
-        tags$tr(tags$td("T\u2080 (K)"),          tags$td(sprintf("%.2f", t0 + 273.15))),
-        tags$tr(tags$td("Tj (K)"),               tags$td(sprintf("%.2f", tj + 273.15)))
-      )
-    )
-  })
-
-  output$calc_thermal_result <- renderUI({
-    pdiss  <- input$calc_th_pdiss  %||% 10
-    rjc    <- input$calc_th_rth_jc %||% 3
-    rcs    <- input$calc_th_rth_cs %||% 1
-    rsa    <- input$calc_th_rth_sa %||% 5
-    tamb   <- input$calc_th_tamb   %||% 25
-    if (any(is.na(c(pdiss, rjc, rcs, rsa, tamb)))) {
-      return(p(style = "color:#d62728;", "Check inputs"))
-    }
-    t_amb   <- tamb
-    t_case  <- t_amb  + pdiss * rsa
-    t_junc  <- t_case + pdiss * (rjc + rcs)
-    rth_tot <- rjc + rcs + rsa
-    warn_s  <- if (t_junc > 200) "color:#d62728; font-weight:600;" else "color:#f0f0f0;"
-    f1 <- function(x) sprintf("%.1f \u00b0C", x)
-    div(
-      tags$table(class = "table table-condensed",
-        style = "color:#f0f0f0; font-size:13px; margin:0;",
-        tags$thead(tags$tr(tags$th("Node"), tags$th("Temperature"))),
-        tags$tbody(
-          tags$tr(tags$td("Tambient"),  tags$td(f1(t_amb))),
-          tags$tr(tags$td("Tcase"),     tags$td(f1(t_case))),
-          tags$tr(tags$td("Tjunction"), tags$td(tags$span(style = warn_s, f1(t_junc))))
-        )
-      ),
-      p(style = "color:#aaa; font-size:11px; margin-top:6px;",
-        paste0("Rth_total = ", sprintf("%.2f", rth_tot), " \u00b0C/W  |  Pdiss = ",
-               sprintf("%.1f", pdiss), " W"))
-    )
-  })
-
   # ── Register all feature modules ────────────────────────────────────────
   serverDashboard(input, output, session, state)
   serverProjects(input, output, session, state)
@@ -1125,6 +888,7 @@ server <- function(input, output, session) {
   serverPaLineup(input, output, session, state)
   serverSpecDesign(input, output, session, state)
   serverFileOps(input, output, session, state)
+  serverRfCalculators(input, output, session, state)
   serverRfTools(input, output, session, state)
   serverGuardrails(input, output, session, state)
   serverSettings(input, output, session, state)
