@@ -756,6 +756,20 @@ parse_mdif <- function(lines, filepath) {
   if (!"pin_w" %in% names(df) && "pin_dbm" %in% names(df))
     df$pin_w  <- 10^((df$pin_dbm  - 30) / 10)
 
+  # Derive PAE (%) if absent but Pout_W, Pin_W, Pdc_W are all available
+  # PAE = (Pout_W - Pin_W) / Pdc_W * 100
+  if (!"pae_pct" %in% names(df) && all(c("pout_w","pin_w","pdc_w") %in% names(df))) {
+    df$pae_pct <- (df$pout_w - df$pin_w) / df$pdc_w * 100
+    df$pae_pct[!is.finite(df$pae_pct) | df$pdc_w <= 0] <- NA_real_
+  }
+
+  # Derive DE (%) if absent but Pout_W, Pdc_W are available
+  # DE = Pout_W / Pdc_W * 100
+  if (!"de_pct" %in% names(df) && all(c("pout_w","pdc_w") %in% names(df))) {
+    df$de_pct <- df$pout_w / df$pdc_w * 100
+    df$de_pct[!is.finite(df$de_pct) | df$pdc_w <= 0] <- NA_real_
+  }
+
   # Add freq from meta if missing per-row
   if (!"freq_ghz" %in% names(df)) {
     fq <- suppressWarnings(as.numeric(meta$freq_ghz %||% NA))
@@ -795,6 +809,15 @@ parse_mdif <- function(lines, filepath) {
                  "pout_dbm","pout_w","pin_dbm","pin_w",
                  "gain_db","pae_pct","de_pct","idc_a","vdc_v","pdc_w","freq_ghz")
   for (cn in canonical) if (!cn %in% names(df)) df[[cn]] <- NA_real_
+
+  # Convert efficiency stored as fraction (0–1) to percent (0–100)
+  # Some instrument exports write DE/PAE as 0.72 meaning 72 %
+  for (.ecol in c("pae_pct", "de_pct")) {
+    vals <- df[[.ecol]]
+    ok   <- is.finite(vals)
+    if (any(ok) && max(vals[ok]) <= 1.01 && min(vals[ok]) >= 0)
+      df[[.ecol]] <- vals * 100
+  }
 
   # Keep canonical + any harmonic/extra columns that survived (drop nothing useful)
   extra <- setdiff(names(df), canonical)

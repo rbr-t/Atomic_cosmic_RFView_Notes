@@ -400,7 +400,7 @@ serverLpViewer <- function(input, output, session, state) {
 
   .make_selector <- function(output_id, label = "Dataset",
                              multiple = FALSE) {
-    output[[output_id]] <- renderUI({
+    output[[paste0(output_id, "_ui")]] <- renderUI({
       ch <- .dataset_choices()
       if (length(ch) == 0)
         return(p(style = "color:#888; font-size:12px;",
@@ -513,6 +513,7 @@ serverLpViewer <- function(input, output, session, state) {
     )
     show_opt <- isTRUE(input$lp_show_optima %||% TRUE)
     show_h2  <- isTRUE(input$lp_show_harmonics)
+    show_stab <- isTRUE(input$lp_show_stability)
 
     if (length(sel_ids) > 0 && length(vars) > 0) {
       for (id in sel_ids) {
@@ -576,9 +577,9 @@ serverLpViewer <- function(input, output, session, state) {
           # Short legend: "Gain(dB) [short_filename]"
           leg_name <- paste0(vm$label, " [", fname, "]")
 
-          # Try cache first, then on-the-fly interpolation
+          # Try cache first (only valid for 50-Ω reference; skip when re-normalised)
           cache_key  <- paste0(pull, ":", v)
-          cached     <- r$interp_cache[[cache_key]]
+          cached     <- if (!do_norm) r$interp_cache[[cache_key]] else NULL
           interp_ok  <- FALSE
 
           if (!is.null(cached)) {
@@ -711,6 +712,61 @@ serverLpViewer <- function(input, output, session, state) {
       } # dataset loop
     }
 
+    # ── Stability circles (output plane) ────────────────────────────────────
+    # Computed from S-parameters if present in a dataset; one circle per dataset.
+    if (show_stab && length(sel_ids) > 0) {
+      STAB_COLS <- c("s11_mag","s11_ang","s12_mag","s12_ang",
+                     "s21_mag","s21_ang","s22_mag","s22_ang")
+      n_sc <- 0L
+      for (id in sel_ids) {
+        r  <- lp_datasets()[[id]]
+        if (is.null(r) || !isTRUE(r$success)) next
+        avail <- r$col_names %||% character(0)
+        if (!all(STAB_COLS %in% avail)) next
+
+        df_s <- .get_df(id, cols = c(STAB_COLS, "freq_ghz"))
+        if (is.null(df_s) || nrow(df_s) == 0) next
+
+        # Use first (or most common) row as representative S-parameter set
+        df_s <- df_s[1L, , drop = FALSE]
+        s11 <- df_s$s11_mag * exp(1i * df_s$s11_ang * pi / 180)
+        s12 <- df_s$s12_mag * exp(1i * df_s$s12_ang * pi / 180)
+        s21 <- df_s$s21_mag * exp(1i * df_s$s21_ang * pi / 180)
+        s22 <- df_s$s22_mag * exp(1i * df_s$s22_ang * pi / 180)
+        det_s <- s11 * s22 - s12 * s21
+
+        denom_out <- Mod(s11)^2 - Mod(det_s)^2
+        if (abs(denom_out) < 1e-12) next
+
+        C_out <- Conj(s11 - det_s * Conj(s22)) / denom_out
+        r_out <- abs(Mod(s12 * s21) / abs(denom_out))
+
+        # Draw circle on Smith chart
+        theta_sc <- seq(0, 2*pi, length.out = 200)
+        cx <- Re(C_out); cy <- Im(C_out)
+        sc_x <- cx + r_out * cos(theta_sc)
+        sc_y <- cy + r_out * sin(theta_sc)
+        sc_col <- c("#e377c2","#17becf","#bcbd22","#8c564b")[n_sc %% 4L + 1L]
+        n_sc   <- n_sc + 1L
+        fname  <- .short_name(r$filename, 20L)
+        p <- p %>% add_trace(type="scatter", mode="lines",
+          x=sc_x, y=sc_y,
+          line=list(color=sc_col, width=1.8, dash="dash"),
+          name=paste0("Stab-out [",fname,"]"),
+          hovertext=sprintf("Output stability circle<br>%s<br>C=(%.3f%+.3fj) r=%.3f",
+                            fname, cx, cy, r_out),
+          hoverinfo="text", showlegend=TRUE)
+      }
+      if (n_sc == 0L) {
+        # No S-params available — add a placeholder text trace
+        p <- p %>% add_trace(type="scatter", mode="text",
+          x=0, y=0,
+          text="S-params needed for stability circles",
+          textfont=list(color="#e8a000",size=11),
+          hoverinfo="none", showlegend=FALSE, name="stab_note")
+      }
+    }
+
     # Axis range: zoom to data or full chart
     ax_range <- if (zoom_data && length(all_xv) > 0) {
       pad <- 0.08
@@ -757,45 +813,42 @@ serverLpViewer <- function(input, output, session, state) {
       ))
     }
 
-    # Sort by X so lines connect left-to-right
-    ord <- order(df[[x_var]], na.last = NA)
-    df  <- df[ord, , drop = FALSE]
+# Efficiency variables go on Y2 (right axis)
+      EFF_VARS <- c("pae_pct", "de_pct")
 
-    # Efficiency variables go on Y2 (right axis)
-    EFF_VARS <- c("pae_pct", "de_pct")
+      # Sort by X so the scatter follows the power sweep direction
+      ord <- order(df[[x_var]], na.last = NA)
+      df  <- df[ord, , drop = FALSE]
 
-    xv <- df[[x_var]]
-    p  <- plot_ly()
-    y1_labels <- c(); y2_labels <- c(); i_col <- 1L
+      xv <- df[[x_var]]
+      p  <- plot_ly()
+      y1_labels <- c(); y2_labels <- c(); i_col <- 1L
 
-    LTTB_MAX <- 500L   # max rendered points per trace
-
-    for (v in y_vars) {
-      if (!v %in% names(df)) next
-      yv    <- df[[v]]
-      ok    <- !is.na(xv) & !is.na(yv)
-      col   <- PALETTE[(i_col - 1L) %% length(PALETTE) + 1L]
-      i_col <- i_col + 1L
-      on_y2 <- v %in% EFF_VARS
-      lbl   <- switch(v,
-        pae_pct  = "PAE (%)",  de_pct  = "DE (%)",
-        gain_db  = "Gain (dB)", pout_dbm = "Pout (dBm)",
-        pout_w   = "Pout (W)",  pin_dbm  = "Pin (dBm)",
-        gsub("_", " ", v))
-      if (on_y2) y2_labels <- c(y2_labels, lbl)
-      else       y1_labels <- c(y1_labels, lbl)
-      # LTTB downsample if too many points
-      ds_pts <- .lttb(xv[ok], yv[ok], LTTB_MAX)
-      p <- p %>% add_trace(
-        type   = "scattergl", mode = "lines+markers",
-        x      = ds_pts$x, y = ds_pts$y,
-        yaxis  = if (on_y2) "y2" else "y",
-        name   = lbl,
-        opacity = 0.80,
-        line   = list(color = col, dash = if (on_y2) "dot" else "solid", width = 2),
-        marker = list(color = col, size = 5,
-                      symbol = if (on_y2) "circle-open" else "circle",
-                      opacity = 0.60)
+      for (v in y_vars) {
+        if (!v %in% names(df)) next
+        yv    <- df[[v]]
+        ok    <- !is.na(xv) & !is.na(yv)
+        col   <- PALETTE[(i_col - 1L) %% length(PALETTE) + 1L]
+        i_col <- i_col + 1L
+        on_y2 <- v %in% EFF_VARS
+        lbl   <- switch(v,
+          pae_pct  = "PAE (%)",  de_pct  = "DE (%)",
+          gain_db  = "Gain (dB)", pout_dbm = "Pout (dBm)",
+          pout_w   = "Pout (W)",  pin_dbm  = "Pin (dBm)",
+          gsub("_", " ", v))
+        if (on_y2) y2_labels <- c(y2_labels, lbl)
+        else       y1_labels <- c(y1_labels, lbl)
+        # Pure scatter — LP data has one point per (impedance, power) combination;
+        # connecting points with lines produces misleading vertical jumps.
+        p <- p %>% add_trace(
+          type   = "scattergl", mode = "markers",
+          x      = xv[ok], y = yv[ok],
+          yaxis  = if (on_y2) "y2" else "y",
+          name   = lbl,
+          opacity = 0.80,
+          marker = list(color = col, size = 5,
+                        symbol = if (on_y2) "circle-open" else "circle",
+                        opacity = 0.70)
       )
     }
 
@@ -846,21 +899,18 @@ serverLpViewer <- function(input, output, session, state) {
     xv  <- df[[x_var]]; p <- plot_ly()
     if ("gain_db" %in% names(df)) {
       yv <- df$gain_db; ok <- !is.na(xv) & !is.na(yv)
-      ds <- .lttb(xv[ok], yv[ok], 500L)
-      p  <- p %>% add_trace(type="scattergl", mode="lines+markers",
-               x=ds$x, y=ds$y, yaxis="y", name="Gain (dB)",
-               line=list(color="#ff7f11",width=2), marker=list(color="#ff7f11",size=5))
+      p  <- p %>% add_trace(type="scattergl", mode="markers",
+               x=xv[ok], y=yv[ok], yaxis="y", name="Gain (dB)",
+               marker=list(color="#ff7f11",size=5,opacity=0.75))
     }
     y2_lbl <- ""
     if (y2_v != "none" && y2_v %in% names(df)) {
       yv2 <- df[[y2_v]]; ok2 <- !is.na(xv) & !is.na(yv2)
-      ds2 <- .lttb(xv[ok2], yv2[ok2], 500L)
       y2_lbl <- switch(y2_v, pae_pct="PAE (%)", de_pct="DE (%)",
                               pout_dbm="Pout (dBm)", pout_w="Pout (W)", y2_v)
-      p <- p %>% add_trace(type="scattergl", mode="lines+markers",
-               x=ds2$x, y=ds2$y, yaxis="y2", name=y2_lbl,
-               line=list(color="#1f77b4",width=2,dash="dot"),
-               marker=list(color="#1f77b4",size=5,symbol="circle-open"))
+      p <- p %>% add_trace(type="scattergl", mode="markers",
+               x=xv[ok2], y=yv2[ok2], yaxis="y2", name=y2_lbl,
+               marker=list(color="#1f77b4",size=5,symbol="circle-open",opacity=0.75))
     }
     xl <- switch(x_var, pin_dbm="Pin (dBm)", pout_dbm="Pout (dBm)", pout_w="Pout (W)", x_var)
     p %>% layout(
@@ -890,22 +940,19 @@ serverLpViewer <- function(input, output, session, state) {
     for (ev in c("pae_pct","de_pct")) {
       if (!ev %in% names(df)) { ic <- ic + 1L; next }
       yv <- df[[ev]]; ok <- !is.na(xv) & !is.na(yv)
-      ds <- .lttb(xv[ok], yv[ok], 500L)
       cl <- PAL_EFF[(ic-1L) %% 2L + 1L]; ic <- ic + 1L
       lbl <- if (ev=="pae_pct") "PAE (%)" else "DE (%)"
-      p <- p %>% add_trace(type="scattergl", mode="lines+markers",
-               x=ds$x, y=ds$y, yaxis="y", name=lbl,
-               line=list(color=cl,width=2), marker=list(color=cl,size=5))
+      p <- p %>% add_trace(type="scattergl", mode="markers",
+               x=xv[ok], y=yv[ok], yaxis="y", name=lbl,
+               marker=list(color=cl,size=5,opacity=0.75))
     }
     y2_lbl <- ""
     if (y2_v != "none" && y2_v %in% names(df)) {
       yv2 <- df[[y2_v]]; ok2 <- !is.na(xv) & !is.na(yv2)
-      ds2 <- .lttb(xv[ok2], yv2[ok2], 500L)
       y2_lbl <- switch(y2_v, gain_db="Gain (dB)", pout_dbm="Pout (dBm)", pout_w="Pout (W)", y2_v)
-      p <- p %>% add_trace(type="scattergl", mode="lines+markers",
-               x=ds2$x, y=ds2$y, yaxis="y2", name=y2_lbl,
-               line=list(color="#ff7f11",width=2,dash="dot"),
-               marker=list(color="#ff7f11",size=5,symbol="circle-open"))
+      p <- p %>% add_trace(type="scattergl", mode="markers",
+               x=xv[ok2], y=yv2[ok2], yaxis="y2", name=y2_lbl,
+               marker=list(color="#ff7f11",size=5,symbol="circle-open",opacity=0.75))
     }
     xl <- switch(x_var, pin_dbm="Pin (dBm)", pout_dbm="Pout (dBm)", pout_w="Pout (W)", x_var)
     p %>% layout(
@@ -954,7 +1001,9 @@ serverLpViewer <- function(input, output, session, state) {
                                tickfont=list(color="#aaa",size=9),
                                titlefont=list(color="#aaa",size=10))),
       name="Γ_S", hoverinfo="text",
-      hovertext=sprintf("Re: %.3f Im: %.3f Pout: %.1f dBm", xv[ok], yv[ok], cv[ok]))
+      hovertext={zz<-.gamma_to_z(xv[ok],yv[ok],z0); sprintf(
+        "Re(Γ_S): %.4f<br>Im(Γ_S): %.4f<br>R_S: %.2f Ω<br>X_S: %.2f Ω<br>Pout: %.1f dBm",
+        xv[ok],yv[ok],zz$r,zz$x,cv[ok])})
     if (show_harm) {
       for (h in list(list(r="gs2_r",i="gs2_i",lbl="2H Γ_S",col="#e377c2"),
                      list(r="gs3_r",i="gs3_i",lbl="3H Γ_S",col="#17becf"))) {
@@ -1026,7 +1075,9 @@ serverLpViewer <- function(input, output, session, state) {
                                tickfont=list(color="#aaa",size=9),
                                titlefont=list(color="#aaa",size=10))),
       name="Γ_L", hoverinfo="text",
-      hovertext=sprintf("Re: %.3f Im: %.3f Pout: %.1f dBm", xv[ok], yv[ok], cv[ok]))
+      hovertext={zz<-.gamma_to_z(xv[ok],yv[ok],z0); sprintf(
+        "Re(Γ_L): %.4f<br>Im(Γ_L): %.4f<br>R_L: %.2f Ω<br>X_L: %.2f Ω<br>Pout: %.1f dBm",
+        xv[ok],yv[ok],zz$r,zz$x,cv[ok])})
     if (show_harm) {
       for (h in list(list(r="gl2_r",i="gl2_i",lbl="2H Γ_L",col="#e377c2"),
                      list(r="gl3_r",i="gl3_i",lbl="3H Γ_L",col="#17becf"))) {
@@ -1119,8 +1170,9 @@ serverLpViewer <- function(input, output, session, state) {
                     opacity=0.65,
                     colorbar=list(title=col_lbl, tickfont=list(color="#aaa",size=9),
                                   titlefont=list(color="#aaa",size=10))),
-      hovertext=sprintf("%s: %.2f<br>Re(\u0393): %.3f<br>Im(\u0393): %.3f",
-                        col_lbl, cv[ok], xv[ok], yv[ok]),
+      hovertext={zz<-.gamma_to_z(xv[ok],yv[ok],z0); sprintf(
+        "%s: %.2f<br>Re(\u0393): %.4f<br>Im(\u0393): %.4f<br>R: %.2f \u03a9<br>X: %.2f \u03a9",
+        col_lbl,cv[ok],xv[ok],yv[ok],zz$r,zz$x)},
       hoverinfo="text", name=col_lbl)
 
     if (mark_opt) {
@@ -1153,80 +1205,100 @@ serverLpViewer <- function(input, output, session, state) {
     p %>% layout(sl)
   })
 
-  # ── Nose/Tradeoff — Plot 2: Re(ΓL)/Im(ΓL) vs power sweep (Cartesian) ─────
+  # ── Nose/Tradeoff — Plot 2: Gain (Y1) and Efficiency (Y2) vs Pout/Pin ─────
+  # Classic PA "nose plot": Gain scatter on primary Y-axis,
+  # PAE / DE on secondary Y-axis, X = Pout (dBm) by default.
   output$lp_nose_xy <- renderPlotly({
     id     <- input$lp_nose_dataset_selector
     if (is.null(id) || length(id) == 0) return(
       plot_ly() %>% layout(paper_bgcolor="#1b1b2b",plot_bgcolor="#1b1b2b",
         title=list(text="Select a dataset",font=list(color="#aaa"))))
     id     <- id[1L]
-    x_var  <- input$lp_nose_x_pw  %||% "pin_dbm"
+    x_var  <- input$lp_nose_x_pw  %||% "pout_dbm"
     z0     <- as.numeric(input$lp_nose_z0_norm %||% 50)
     if (!is.finite(z0) || z0 <= 0) z0 <- 50
-    px_db  <- as.numeric(input$lp_nose_px_db  %||% 0)
+    px_db  <- as.numeric(input$lp_nose_px_db  %||% 2.2)
     px_tol <- as.numeric(input$lp_nose_px_tol %||% 0.3)
     do_px  <- is.finite(px_db) && px_db > 0.01
-    pull   <- input$lp_pull_type %||% "load"
+    mark_opt <- isTRUE(input$lp_nose_mark_opt)
 
-    need <- unique(c("gl_r","gl_i","gs_r","gs_i","gain_db",x_var))
+    need <- unique(c("gain_db","pae_pct","de_pct",x_var))
     df   <- .get_df(id, cols = need)
     ep <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b",plot_bgcolor="#1b1b2b",
                         title=list(text=m,font=list(color="#aaa")))
     if (is.null(df)) return(ep("No data"))
     if (!x_var %in% names(df)) return(ep(paste0("Column '",x_var,"' not found")))
 
+    # Px compression filter (uses gain_db already in need)
     if (do_px && "gain_db" %in% names(df) && !all(is.na(df$gain_db))) {
       g_lin <- max(df$gain_db[seq_len(min(5L,nrow(df)))], na.rm=TRUE)
       compr <- g_lin - df$gain_db
       df    <- df[!is.na(compr) & abs(compr - px_db) <= px_tol, , drop=FALSE]
-      if (nrow(df) == 0) return(ep("No data after Px filter"))
+      if (nrow(df) == 0) return(ep("No data after Px filter \u2014 adjust tolerance"))
     }
 
-    # Sort by X
-    ord <- order(df[[x_var]], na.last=NA); df <- df[ord,,drop=FALSE]
-    xv  <- df[[x_var]]
+    xv <- df[[x_var]]
+    p  <- plot_ly()
 
-    gr_raw <- if (pull=="load") df$gl_r else df$gs_r
-    gi_raw <- if (pull=="load") df$gl_i else df$gs_i
-    if (is.null(gr_raw) || all(is.na(gr_raw)))
-      return(ep(paste0("No \u0393_",if(pull=="load")"L" else "S"," data")))
+    # Gain on primary Y
+    if ("gain_db" %in% names(df)) {
+      yv <- df$gain_db; ok <- !is.na(xv) & !is.na(yv)
+      p  <- p %>% add_trace(type="scattergl", mode="markers",
+               x=xv[ok], y=yv[ok], yaxis="y", name="Gain (dB)",
+               opacity=0.80,
+               marker=list(color="#ff7f11", size=6, opacity=0.75))
+    }
 
-    # Re-normalise
-    ng <- .renorm_g(gr_raw, gi_raw, z0)
-    gr <- ng$r; gi <- ng$i
+    # PAE on secondary Y (preferred); DE as fallback if PAE not available
+    eff_col <- if ("pae_pct" %in% names(df) && any(!is.na(df$pae_pct))) "pae_pct" else
+               if ("de_pct"  %in% names(df) && any(!is.na(df$de_pct)))  "de_pct"  else NULL
+    eff_lbl <- if (!is.null(eff_col)) switch(eff_col, pae_pct="PAE (%)", de_pct="DE (%)") else ""
+    if (!is.null(eff_col)) {
+      yv2 <- df[[eff_col]]; ok2 <- !is.na(xv) & !is.na(yv2)
+      p   <- p %>% add_trace(type="scattergl", mode="markers",
+               x=xv[ok2], y=yv2[ok2], yaxis="y2", name=eff_lbl,
+               opacity=0.80,
+               marker=list(color="#1f77b4", size=6, symbol="circle-open", opacity=0.75))
+    }
 
-    p <- plot_ly()
-    ok_r <- !is.na(xv) & !is.na(gr)
-    ok_i <- !is.na(xv) & !is.na(gi)
-    ds_r <- .lttb(xv[ok_r], gr[ok_r], 500L)
-    ds_i <- .lttb(xv[ok_i], gi[ok_i], 500L)
-    suf  <- if (pull=="load") "_L" else "_S"
-    p <- p %>%
-      add_trace(type="scattergl", mode="lines+markers",
-        x=ds_r$x, y=ds_r$y, yaxis="y", name=paste0("Re(\u0393",suf,")"),
-        opacity=0.85,
-        line=list(color="#ff7f11",width=2),
-        marker=list(color="#ff7f11",size=5,opacity=0.60)) %>%
-      add_trace(type="scattergl", mode="lines+markers",
-        x=ds_i$x, y=ds_i$y, yaxis="y2", name=paste0("Im(\u0393",suf,")"),
-        opacity=0.85,
-        line=list(color="#1f77b4",width=2,dash="dot"),
-        marker=list(color="#1f77b4",size=5,symbol="circle-open",opacity=0.60))
+    # Mark MXP / MXE / MXG
+    if (mark_opt) {
+      opt <- .find_optima(df)
+      OC  <- list(MXP=list(col="pout_dbm",sym="star",      color="#ff7f11", y2=FALSE),
+                  MXE=list(col="pae_pct", sym="diamond",   color="#1f77b4", y2=TRUE),
+                  MXG=list(col="gain_db", sym="triangle-up",color="#2ca02c", y2=FALSE))
+      for (nm in names(OC)) {
+        bi <- opt[[nm]]; if (is.na(bi)) next; cfg <- OC[[nm]]
+        yv_opt <- if (cfg$y2 && !is.null(eff_col)) df[[eff_col]][bi] else {
+          if ("gain_db" %in% names(df)) df$gain_db[bi] else next
+        }
+        xv_opt <- if (x_var %in% names(df)) df[[x_var]][bi] else next
+        if (is.na(xv_opt) || is.na(yv_opt)) next
+        p <- p %>% add_trace(type="scatter", mode="markers+text",
+          x=xv_opt, y=yv_opt,
+          yaxis=if(cfg$y2)"y2" else "y",
+          text=sprintf("%s\n%.2f",nm,yv_opt), textposition="top center",
+          textfont=list(color=cfg$color,size=9),
+          marker=list(color=cfg$color,size=12,symbol=cfg$sym,
+                      line=list(color="white",width=1.5)),
+          name=nm, showlegend=TRUE)
+      }
+    }
 
     xl <- switch(x_var, pin_dbm="Pin (dBm)", pout_dbm="Pout (dBm)",
                          pout_w="Pout (W)", gsub("_"," ",x_var))
-    z_lbl <- if (abs(z0-50)<0.1) "50\u03a9" else sprintf("%.0f\u03a9",z0)
     p %>% layout(
       paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
-      xaxis  = list(title=xl, color="#aaa", showgrid=TRUE, gridcolor="rgba(100,100,100,0.25)"),
-      yaxis  = list(title=paste0("Re(\u0393",suf,")"), color="#ff7f11",
+      xaxis  = list(title=xl, color="#aaa", showgrid=TRUE,
+                    gridcolor="rgba(100,100,100,0.25)"),
+      yaxis  = list(title="Gain (dB)", color="#ff7f11",
                     showgrid=TRUE, gridcolor="rgba(100,100,100,0.25)",
                     tickfont=list(color="#ff7f11")),
-      yaxis2 = list(title=paste0("Im(\u0393",suf,")"), color="#1f77b4",
-                    overlaying="y", side="right", showgrid=FALSE, zeroline=FALSE,
-                    tickfont=list(color="#1f77b4")),
+      yaxis2 = list(title=eff_lbl, color="#1f77b4",
+                    overlaying="y", side="right", showgrid=FALSE,
+                    zeroline=FALSE, tickfont=list(color="#1f77b4")),
       legend=list(font=list(color="#aaa"),bgcolor="rgba(0,0,0,0.3)"),
-      title=list(text=paste0("\u0393","(",z_lbl,") vs ",xl),
+      title=list(text=paste0("Nose Plot \u2014 Gain & Efficiency vs ",xl),
                  font=list(color="#eee",size=13)),
       font=list(color="#aaa"), margin=list(l=65,r=70,t=40,b=50))
   })
@@ -1548,14 +1620,14 @@ serverLpViewer <- function(input, output, session, state) {
           col <- PALETTE[(i_col - 1L) %% length(PALETTE) + 1L]; i_col <- i_col + 1L
           ds_c <- .lttb(xv[ok], yv[ok], lttb_n)
           on_y2 <- v %in% EFF_VARS
+          col <- PALETTE[(i_col - 1L) %% length(PALETTE) + 1L]; i_col <- i_col + 1L
           p <- p %>% add_trace(
-            type="scattergl", mode="lines+markers",
+            type="scattergl", mode="markers",
             x=ds_c$x, y=ds_c$y,
             yaxis = if (on_y2) "y2" else "y",
             name=paste0(fname, f_sfx, " \u2014 ", .lbl(v)),
-            opacity=0.85,
-            line=list(color=col, width=2, dash=if(on_y2)"dot" else "solid"),
-            marker=list(color=col, size=5, opacity=0.60,
+            opacity=0.80,
+            marker=list(color=col, size=5, opacity=0.65,
                         symbol=if(on_y2)"circle-open" else "circle"))
         }
 
