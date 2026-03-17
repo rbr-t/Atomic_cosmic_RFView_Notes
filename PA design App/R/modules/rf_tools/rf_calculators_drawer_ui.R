@@ -64,70 +64,90 @@ rfCalculatorsDrawerUI <- function() {
           )
         ),
 
-        # Gamma to Impedance
-        tabPanel(tagList(icon("project-diagram"), " Gamma -> Z"),
+        # Gamma <-> Z (unified: polar or rect input, bidirectional)
+        tabPanel(tagList(icon("project-diagram"), " \u0393 \u2194 Z"),
           br(),
           fluidRow(
             column(5,
               div(class = "well",
                 style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
                 h5("Input", style = "color:#f0f0f0; margin-top:0;"),
-                numericInput("calc_gamma_mag", "|Gamma|", value = 0.25, min = 0, max = 0.9999, step = 0.01),
-                numericInput("calc_gamma_phase", "Angle Gamma (deg)", value = 0, min = -180, max = 180, step = 1),
-                numericInput("calc_gamma_z0", "Z0 (Ohm)", value = 50, min = 0.1, step = 0.1)
+                radioButtons("calc_gz_direction", label = NULL,
+                  choices  = c("\u0393 \u2192 Z" = "g2z", "Z \u2192 \u0393" = "z2g"),
+                  selected = "g2z", inline = TRUE),
+                hr(style = "border-color:#3a3a4a; margin:6px 0;"),
+                # --- Gamma -> Z inputs ---
+                conditionalPanel("input.calc_gz_direction === 'g2z'",
+                  radioButtons("calc_gz_fmt", "\u0393 format",
+                    choices  = c("Mag / Phase" = "polar", "Re + jIm" = "rect"),
+                    selected = "polar", inline = TRUE),
+                  conditionalPanel("input.calc_gz_fmt === 'polar'",
+                    numericInput("calc_gz_mag", "|\u0393|",
+                      value = 0.25, min = 0, max = 2, step = 0.01),
+                    numericInput("calc_gz_ang", "\u2220\u0393 (deg)",
+                      value = 0, min = -180, max = 180, step = 1)
+                  ),
+                  conditionalPanel("input.calc_gz_fmt === 'rect'",
+                    numericInput("calc_gz_re", "Re(\u0393)", value =  0.2, step = 0.01),
+                    numericInput("calc_gz_im", "Im(\u0393)", value =  0.1, step = 0.01)
+                  )
+                ),
+                # --- Z -> Gamma inputs ---
+                conditionalPanel("input.calc_gz_direction === 'z2g'",
+                  numericInput("calc_gz_r", "R (\u03a9)", value =  75, step = 1),
+                  numericInput("calc_gz_x", "X (\u03a9)", value =  25, step = 1)
+                ),
+                hr(style = "border-color:#3a3a4a; margin:6px 0;"),
+                numericInput("calc_gz_z0", "Z\u2080 (\u03a9)", value = 50, min = 0.1, step = 0.1)
               )
             ),
             column(7,
               div(class = "well",
                 style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                h5("Impedance", style = "color:#f0f0f0; margin-top:0;"),
-                uiOutput("calc_gamma_imp_result")
+                h5("Results", style = "color:#f0f0f0; margin-top:0;"),
+                uiOutput("calc_gz_result")
               )
             )
           )
         ),
 
-        # Gamma (Re+jIm) to Impedance -- Smith chart variant
-        tabPanel(tagList(icon("project-diagram"), " Gamma (Re+jIm) -> Z"),
+        # Gamma <-> VSWR (unified: polar or rect input, bidirectional)
+        tabPanel(tagList(icon("signal"), " \u0393 \u2194 VSWR"),
           br(),
           fluidRow(
             column(5,
               div(class = "well",
                 style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
                 h5("Input", style = "color:#f0f0f0; margin-top:0;"),
-                p(style = "color:#aaa; font-size:11px; margin:0 0 8px 0;",
-                  "Enter \u0393 as rectangular coordinates (e.g. from a Smith chart click)."),
-                numericInput("calc_gamma_re", "Re(\u0393)", value = 0.2, step = 0.01),
-                numericInput("calc_gamma_im", "Im(\u0393)", value = 0.1, step = 0.01),
-                numericInput("calc_gamma_rect_z0", "Z0 (\u03a9)", value = 50, min = 0.1, step = 0.1)
+                radioButtons("calc_gv_direction", label = NULL,
+                  choices  = c("\u0393 \u2192 VSWR" = "g2v", "VSWR \u2192 \u0393" = "v2g"),
+                  selected = "g2v", inline = TRUE),
+                hr(style = "border-color:#3a3a4a; margin:6px 0;"),
+                # --- Gamma -> VSWR inputs ---
+                conditionalPanel("input.calc_gv_direction === 'g2v'",
+                  radioButtons("calc_gv_fmt", "\u0393 format",
+                    choices  = c("Mag / Phase" = "polar", "Re + jIm" = "rect"),
+                    selected = "polar", inline = TRUE),
+                  conditionalPanel("input.calc_gv_fmt === 'polar'",
+                    numericInput("calc_gv_mag", "|\u0393|",
+                      value = 0.25, min = 0, max = 2, step = 0.01)
+                  ),
+                  conditionalPanel("input.calc_gv_fmt === 'rect'",
+                    numericInput("calc_gv_re", "Re(\u0393)", value =  0.2, step = 0.01),
+                    numericInput("calc_gv_im", "Im(\u0393)", value =  0.1, step = 0.01)
+                  )
+                ),
+                # --- VSWR -> Gamma input ---
+                conditionalPanel("input.calc_gv_direction === 'v2g'",
+                  numericInput("calc_gv_vswr", "VSWR", value = 2.0, min = 1, step = 0.1)
+                )
               )
             ),
             column(7,
               div(class = "well",
                 style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                h5("Impedance & reflection", style = "color:#f0f0f0; margin-top:0;"),
-                uiOutput("calc_gamma_rect_result")
-              )
-            )
-          )
-        ),
-
-        # Gamma to VSWR
-        tabPanel(tagList(icon("signal"), " Gamma -> VSWR"),
-          br(),
-          fluidRow(
-            column(5,
-              div(class = "well",
-                style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                h5("Input", style = "color:#f0f0f0; margin-top:0;"),
-                numericInput("calc_gamma_vswr_mag", "|Gamma|", value = 0.25, min = 0, max = 0.9999, step = 0.01)
-              )
-            ),
-            column(7,
-              div(class = "well",
-                style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                h5("VSWR / Return Loss", style = "color:#f0f0f0; margin-top:0;"),
-                uiOutput("calc_gamma_vswr_result")
+                h5("Results", style = "color:#f0f0f0; margin-top:0;"),
+                uiOutput("calc_gv_result")
               )
             )
           )

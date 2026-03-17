@@ -73,113 +73,163 @@
   })
 }
 
-.registerGammaImpedanceCalculator <- function(input, output) {
-  output$calc_gamma_imp_result <- renderUI({
-    gamma_mag   <- input$calc_gamma_mag %||% 0.25
-    gamma_phase <- input$calc_gamma_phase %||% 0
-    z0          <- input$calc_gamma_z0 %||% 50
+# ---- Unified Gamma <-> Z (polar or rect input, bidirectional) ----------------
+.registerGammaZCalculator <- function(input, output) {
+  output$calc_gz_result <- renderUI({
+    direction <- input$calc_gz_direction %||% "g2z"
+    z0        <- input$calc_gz_z0 %||% 50
+    fmt       <- function(x) formatC(signif(x, 6), format = "g")
+    f_rl      <- function(gm) if (gm == 0) "\u221e dB" else paste0(fmt(-20 * log10(gm)), " dB")
+    f_vswr    <- function(gm) if (gm >= 1) "\u221e" else paste0(fmt((1 + gm) / (1 - gm)), ":1")
 
-    if (is.na(gamma_mag) || is.na(gamma_phase) || is.na(z0) || z0 <= 0) {
-      return(p(style = "color:#d62728;", "Invalid input values"))
-    }
-    if (gamma_mag < 0 || gamma_mag >= 1) {
-      return(p(style = "color:#d62728;", "|Gamma| must be in [0, 1)"))
-    }
+    if (is.na(z0) || z0 <= 0)
+      return(p(style = "color:#d62728;", "Z\u2080 must be > 0"))
 
-    gamma <- gamma_mag * exp(1i * gamma_phase * pi / 180)
-    zin <- z0 * (1 + gamma) / (1 - gamma)
-    fmt <- function(x) formatC(signif(x, 6), format = "g")
+    if (direction == "g2z") {
+      # ---- Gamma -> Z ----
+      fmt_type <- input$calc_gz_fmt %||% "polar"
+      gamma <- if (fmt_type == "polar") {
+        mag <- input$calc_gz_mag %||% 0.25
+        ang <- input$calc_gz_ang %||% 0
+        if (any(is.na(c(mag, ang)))) return(p(style = "color:#d62728;", "Invalid input"))
+        mag * exp(1i * ang * pi / 180)
+      } else {
+        re <- input$calc_gz_re %||% 0.2
+        im <- input$calc_gz_im %||% 0.1
+        if (any(is.na(c(re, im)))) return(p(style = "color:#d62728;", "Invalid input"))
+        complex(real = re, imaginary = im)
+      }
 
-    tags$table(class = "table table-condensed",
-      style = "color:#f0f0f0; font-size:13px; margin:0;",
-      tags$thead(tags$tr(tags$th("Quantity"), tags$th("Value"))),
-      tags$tbody(
-        tags$tr(tags$td("Gamma (rect)"), tags$td(sprintf("%s %+.6fj", fmt(Re(gamma)), Im(gamma)))),
-        tags$tr(tags$td("R (Ohm)"), tags$td(fmt(Re(zin)))),
-        tags$tr(tags$td("X (Ohm)"), tags$td(fmt(Im(zin)))),
-        tags$tr(tags$td("Z (Ohm)"), tags$td(sprintf("%s %+.6fj", fmt(Re(zin)), Im(zin))))
+      gm  <- Mod(gamma)
+      zin <- z0 * (1 + gamma) / (1 - gamma)
+      warn <- if (gm >= 1)
+        p(style = "color:#e8a000; font-size:11px; margin:6px 0 0 0;",
+          icon("exclamation-triangle"),
+          " |\u0393| \u2265 1: active/unstable region \u2014 Z shown for reference")
+      else NULL
+
+      div(
+        tags$table(class = "table table-condensed",
+          style = "color:#f0f0f0; font-size:13px; margin:0;",
+          tags$thead(tags$tr(tags$th("Quantity"), tags$th("Value"))),
+          tags$tbody(
+            tags$tr(tags$td("|\u0393|"),            tags$td(fmt(gm))),
+            tags$tr(tags$td("\u2220\u0393 (deg)"),  tags$td(fmt(Arg(gamma) * 180 / pi))),
+            tags$tr(tags$td("Re(\u0393)"),          tags$td(fmt(Re(gamma)))),
+            tags$tr(tags$td("Im(\u0393)"),          tags$td(fmt(Im(gamma)))),
+            tags$tr(tags$td("R (\u03a9)"),          tags$td(fmt(Re(zin)))),
+            tags$tr(tags$td("X (\u03a9)"),          tags$td(fmt(Im(zin)))),
+            tags$tr(tags$td("Z (\u03a9)"),          tags$td(sprintf("%s %+.5gj", fmt(Re(zin)), Im(zin)))),
+            tags$tr(tags$td("VSWR"),                tags$td(f_vswr(gm))),
+            tags$tr(tags$td("Return Loss"),         tags$td(f_rl(gm)))
+          )
+        ),
+        warn
       )
-    )
+    } else {
+      # ---- Z -> Gamma ----
+      r_val <- input$calc_gz_r %||% 75
+      x_val <- input$calc_gz_x %||% 25
+      if (any(is.na(c(r_val, x_val))))
+        return(p(style = "color:#d62728;", "Invalid input"))
+
+      zin   <- complex(real = r_val, imaginary = x_val)
+      gamma <- (zin - z0) / (zin + z0)
+      gm    <- Mod(gamma)
+      warn  <- if (r_val < 0)
+        p(style = "color:#e8a000; font-size:11px; margin:6px 0 0 0;",
+          icon("exclamation-triangle"),
+          " R < 0: active region \u2014 |\u0393| may be \u2265 1")
+      else NULL
+
+      div(
+        tags$table(class = "table table-condensed",
+          style = "color:#f0f0f0; font-size:13px; margin:0;",
+          tags$thead(tags$tr(tags$th("Quantity"), tags$th("Value"))),
+          tags$tbody(
+            tags$tr(tags$td("|\u0393|"),            tags$td(fmt(gm))),
+            tags$tr(tags$td("\u2220\u0393 (deg)"),  tags$td(fmt(Arg(gamma) * 180 / pi))),
+            tags$tr(tags$td("Re(\u0393)"),          tags$td(fmt(Re(gamma)))),
+            tags$tr(tags$td("Im(\u0393)"),          tags$td(fmt(Im(gamma)))),
+            tags$tr(tags$td("VSWR"),                tags$td(f_vswr(gm))),
+            tags$tr(tags$td("Return Loss"),         tags$td(f_rl(gm)))
+          )
+        ),
+        warn
+      )
+    }
   })
 }
 
-.registerGammaRectImpedanceCalculator <- function(input, output) {
-  output$calc_gamma_rect_result <- renderUI({
-    gamma_re <- input$calc_gamma_re %||% 0.2
-    gamma_im <- input$calc_gamma_im %||% 0.1
-    z0       <- input$calc_gamma_rect_z0 %||% 50
-
-    if (any(is.na(c(gamma_re, gamma_im, z0))) || z0 <= 0) {
-      return(p(style = "color:#d62728;", "Invalid input values"))
-    }
-
-    gamma     <- gamma_re + 1i * gamma_im
-    gamma_mag <- Mod(gamma)
-    gamma_deg <- Arg(gamma) * 180 / pi
+# ---- Unified Gamma <-> VSWR (polar or rect input, bidirectional) -------------
+.registerGammaVswrCalculator <- function(input, output) {
+  output$calc_gv_result <- renderUI({
+    direction <- input$calc_gv_direction %||% "g2v"
     fmt       <- function(x) formatC(signif(x, 6), format = "g")
+    f_rl      <- function(gm) if (gm == 0) "\u221e dB" else paste0(fmt(-20 * log10(gm)), " dB")
 
-    zin  <- z0 * (1 + gamma) / (1 - gamma)
-
-    vswr_str <- if (gamma_mag >= 1) "Infinity" else {
-      vswr <- (1 + gamma_mag) / (1 - gamma_mag)
-      paste0(fmt(vswr), ":1")
-    }
-    rl_str <- if (gamma_mag == 0) "Infinity" else fmt(-20 * log10(gamma_mag))
-
-    region_warn <- if (gamma_mag >= 1) {
-      p(style = "color:#e8a000; font-size:11px; margin:6px 0 0 0;",
-        icon("exclamation-triangle"),
-        " |\u0393| \u2265 1: active / unstable region \u2014 impedance result shown for reference only")
-    } else NULL
-
-    div(
+    if (direction == "g2v") {
+      # ---- Gamma -> VSWR ----
+      fmt_type <- input$calc_gv_fmt %||% "polar"
+      if (fmt_type == "polar") {
+        gm <- input$calc_gv_mag %||% 0.25
+        if (is.na(gm) || gm < 0)
+          return(p(style = "color:#d62728;", "|\u0393| must be \u2265 0"))
+        if (gm >= 1)
+          return(div(
+            p(style = "color:#f0f0f0;", paste0("|\u0393| = ", fmt(gm))),
+            p(style = "color:#f0f0f0;", "VSWR = \u221e"),
+            p(style = "color:#aaa; font-size:11px;", "Return Loss \u2192 0 dB as |\u0393| \u2192 1")
+          ))
+        tags$table(class = "table table-condensed",
+          style = "color:#f0f0f0; font-size:13px; margin:0;",
+          tags$thead(tags$tr(tags$th("Quantity"), tags$th("Value"))),
+          tags$tbody(
+            tags$tr(tags$td("|\u0393|"),       tags$td(fmt(gm))),
+            tags$tr(tags$td("VSWR"),           tags$td(paste0(fmt((1 + gm) / (1 - gm)), ":1"))),
+            tags$tr(tags$td("Return Loss"),    tags$td(f_rl(gm)))
+          )
+        )
+      } else {
+        re <- input$calc_gv_re %||% 0.2
+        im <- input$calc_gv_im %||% 0.1
+        if (any(is.na(c(re, im))))
+          return(p(style = "color:#d62728;", "Invalid input"))
+        gm  <- sqrt(re^2 + im^2)
+        ang <- atan2(im, re) * 180 / pi
+        if (gm >= 1)
+          return(div(
+            p(style = "color:#f0f0f0;", paste0("|\u0393| = ", fmt(gm), "  \u2220 ", fmt(ang), "\u00b0")),
+            p(style = "color:#f0f0f0;", "VSWR = \u221e"),
+            p(style = "color:#aaa; font-size:11px;", "Return Loss \u2192 0 dB as |\u0393| \u2192 1")
+          ))
+        tags$table(class = "table table-condensed",
+          style = "color:#f0f0f0; font-size:13px; margin:0;",
+          tags$thead(tags$tr(tags$th("Quantity"), tags$th("Value"))),
+          tags$tbody(
+            tags$tr(tags$td("|\u0393|"),       tags$td(fmt(gm))),
+            tags$tr(tags$td("\u2220\u0393 (deg)"), tags$td(fmt(ang))),
+            tags$tr(tags$td("VSWR"),           tags$td(paste0(fmt((1 + gm) / (1 - gm)), ":1"))),
+            tags$tr(tags$td("Return Loss"),    tags$td(f_rl(gm)))
+          )
+        )
+      }
+    } else {
+      # ---- VSWR -> Gamma ----
+      vswr_val <- input$calc_gv_vswr %||% 2.0
+      if (is.na(vswr_val) || vswr_val < 1)
+        return(p(style = "color:#d62728;", "VSWR must be \u2265 1"))
+      gm <- (vswr_val - 1) / (vswr_val + 1)
       tags$table(class = "table table-condensed",
         style = "color:#f0f0f0; font-size:13px; margin:0;",
         tags$thead(tags$tr(tags$th("Quantity"), tags$th("Value"))),
         tags$tbody(
-          tags$tr(tags$td("|\u0393|"),            tags$td(fmt(gamma_mag))),
-          tags$tr(tags$td("\u2220\u0393 (deg)"),  tags$td(fmt(gamma_deg))),
-          tags$tr(tags$td("R (\u03a9)"),          tags$td(fmt(Re(zin)))),
-          tags$tr(tags$td("X (\u03a9)"),          tags$td(fmt(Im(zin)))),
-          tags$tr(tags$td("Z (\u03a9)"),          tags$td(sprintf("%s %+.6fj", fmt(Re(zin)), Im(zin)))),
-          tags$tr(tags$td("VSWR"),                tags$td(vswr_str)),
-          tags$tr(tags$td("Return Loss (dB)"),    tags$td(rl_str))
+          tags$tr(tags$td("VSWR"),        tags$td(paste0(fmt(vswr_val), ":1"))),
+          tags$tr(tags$td("|\u0393|"),    tags$td(fmt(gm))),
+          tags$tr(tags$td("Return Loss"), tags$td(f_rl(gm)))
         )
-      ),
-      region_warn
-    )
-  })
-}
-
-.registerGammaVswrCalculator <- function(input, output) {
-  output$calc_gamma_vswr_result <- renderUI({
-    gamma_mag <- input$calc_gamma_vswr_mag %||% 0.25
-
-    if (is.na(gamma_mag) || gamma_mag < 0) {
-      return(p(style = "color:#d62728;", "|Gamma| must be >= 0"))
-    }
-
-    if (gamma_mag >= 1) {
-      return(tags$div(
-        p(style = "color:#f0f0f0; margin:0;", paste0("|Gamma| = ", formatC(gamma_mag, digits = 6, format = "g"))),
-        p(style = "color:#f0f0f0; margin:4px 0 0 0;", "VSWR = Infinity"),
-        p(style = "color:#aaa; margin:4px 0 0 0; font-size:11px;", "Return loss approaches 0 dB as |Gamma| approaches 1")
-      ))
-    }
-
-    vswr <- (1 + gamma_mag) / (1 - gamma_mag)
-    rl_db <- if (gamma_mag == 0) Inf else -20 * log10(gamma_mag)
-    fmt <- function(x) formatC(signif(x, 6), format = "g")
-
-    tags$table(class = "table table-condensed",
-      style = "color:#f0f0f0; font-size:13px; margin:0;",
-      tags$thead(tags$tr(tags$th("Quantity"), tags$th("Value"))),
-      tags$tbody(
-        tags$tr(tags$td("|Gamma|"), tags$td(fmt(gamma_mag))),
-        tags$tr(tags$td("VSWR"), tags$td(paste0(fmt(vswr), ":1"))),
-        tags$tr(tags$td("Return Loss (dB)"), tags$td(if (is.finite(rl_db)) fmt(rl_db) else "Infinity"))
       )
-    )
+    }
   })
 }
 
@@ -257,8 +307,7 @@
 serverRfCalculators <- function(input, output, session, state) {
   .registerPowerCalculator(input, output)
   .registerFrequencyCalculator(input, output)
-  .registerGammaImpedanceCalculator(input, output)
-  .registerGammaRectImpedanceCalculator(input, output)
+  .registerGammaZCalculator(input, output)
   .registerGammaVswrCalculator(input, output)
   .registerMttfCalculator(input, output)
   .registerThermalCalculator(input, output)
