@@ -144,7 +144,14 @@ serverLpViewer <- function(input, output, session, state) {
   # ── Helpers ────────────────────────────────────────────────────────────────
   # Truncate long filenames for legend labels (max n visible chars)
   .short_name <- function(s, n = 24) {
+    s <- s[1L]   # guard: ensure scalar (prevents 'condition has length > 1')
     if (nchar(s) > n) paste0(substr(s, 1, n), "\u2026") else s
+  }
+
+  # Truncate a legend label to at most n chars (with ellipsis)
+  .trunc_lbl <- function(s, n = 30L) {
+    s <- s[1L]
+    if (nchar(s) > n) paste0(substr(s, 1L, n), "\u2026") else s
   }
 
   # Gamma (Cartesian) → impedance (Z = Z0*(1+Γ)/(1-Γ))
@@ -405,8 +412,8 @@ serverLpViewer <- function(input, output, session, state) {
       if (length(ch) == 0)
         return(p(style = "color:#888; font-size:12px;",
                  "Load datasets first."))
-      # Wrap in a container that enforces overflow:hidden on the element
-      div(style = "max-width:100%; overflow:hidden;",
+      # Wrap in a container; NO overflow:hidden — that clips selectize dropdowns
+      div(style = "max-width:100%;",
         if (multiple)
           checkboxGroupInput(output_id, label, choices = ch, selected = ch[1])
         else
@@ -888,81 +895,156 @@ serverLpViewer <- function(input, output, session, state) {
   # ── Performance: Gain subplot ──────────────────────────────────────────────
   output$lp_perf_gain_plot <- renderPlotly({
     id    <- input$lp_perf_dataset_selector
-    x_var <- input$lp_perf_x_var   %||% "pin_dbm"
+    x_var <- input$lp_perf_x_var   %||% "pout_dbm"
     y2_v  <- input$lp_perf_gain_y2 %||% "none"
-    need  <- unique(c(x_var, "gain_db", if (y2_v != "none") y2_v))
+    pt_op <- min(1, max(0.1, as.numeric(input$lp_point_opacity %||% 0.75)))
+    need  <- unique(c(x_var, "gain_db", "freq_ghz", if (y2_v != "none") y2_v))
     df    <- .get_df(id, cols = need)
     ep <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
                         title = list(text=m, font=list(color="#aaa")))
     if (is.null(df) || !x_var %in% names(df)) return(ep("No data"))
-    ord <- order(df[[x_var]], na.last = NA); df <- df[ord, , drop=FALSE]
-    xv  <- df[[x_var]]; p <- plot_ly()
+    MPAL  <- c("#ff7f11","#1f77b4","#2ca02c","#d62728","#9467bd",
+               "#8c564b","#e377c2","#17becf","#bcbd22","#7f7f7f")
+    freqs <- if ("freq_ghz" %in% names(df)) sort(unique(na.omit(df$freq_ghz))) else numeric(0)
+    multi <- length(freqs) > 1
+    p <- plot_ly()
     if ("gain_db" %in% names(df)) {
-      yv <- df$gain_db; ok <- !is.na(xv) & !is.na(yv)
-      p  <- p %>% add_trace(type="scattergl", mode="markers",
-               x=xv[ok], y=yv[ok], yaxis="y", name="Gain (dB)",
-               marker=list(color="#ff7f11",size=5,opacity=0.75))
+      if (multi) {
+        for (fi in seq_along(freqs)) {
+          fq  <- freqs[fi]; col <- MPAL[(fi-1L)%%length(MPAL)+1L]
+          dff <- df[!is.na(df$freq_ghz) & df$freq_ghz==fq,,drop=FALSE]
+          xvf <- dff[[x_var]]; yv <- dff$gain_db
+          ok  <- !is.na(xvf) & !is.na(yv)
+          lbl <- .trunc_lbl(sprintf("Gain @ %.4g GHz", fq))
+          p <- p %>% add_trace(type="scattergl",mode="markers",x=xvf[ok],y=yv[ok],
+                   yaxis="y",name=lbl,marker=list(color=col,size=5,opacity=pt_op))
+        }
+      } else {
+        ord <- order(df[[x_var]],na.last=NA); dfo <- df[ord,,drop=FALSE]
+        xv <- dfo[[x_var]]; yv <- dfo$gain_db; ok <- !is.na(xv) & !is.na(yv)
+        p <- p %>% add_trace(type="scattergl",mode="markers",x=xv[ok],y=yv[ok],
+                 yaxis="y",name="Gain (dB)",
+                 marker=list(color="#ff7f11",size=5,opacity=pt_op))
+      }
     }
     y2_lbl <- ""
     if (y2_v != "none" && y2_v %in% names(df)) {
-      yv2 <- df[[y2_v]]; ok2 <- !is.na(xv) & !is.na(yv2)
-      y2_lbl <- switch(y2_v, pae_pct="PAE (%)", de_pct="DE (%)",
-                              pout_dbm="Pout (dBm)", pout_w="Pout (W)", y2_v)
-      p <- p %>% add_trace(type="scattergl", mode="markers",
-               x=xv[ok2], y=yv2[ok2], yaxis="y2", name=y2_lbl,
-               marker=list(color="#1f77b4",size=5,symbol="circle-open",opacity=0.75))
+      y2_lbl <- switch(y2_v, pae_pct="PAE (%)",de_pct="DE (%)",
+                              pout_dbm="Pout (dBm)",pout_w="Pout (W)",y2_v)
+      if (multi) {
+        for (fi in seq_along(freqs)) {
+          fq  <- freqs[fi]; col <- MPAL[(fi-1L)%%length(MPAL)+1L]
+          dff <- df[!is.na(df$freq_ghz) & df$freq_ghz==fq,,drop=FALSE]
+          xvf <- dff[[x_var]]; yv2 <- dff[[y2_v]]; ok2 <- !is.na(xvf) & !is.na(yv2)
+          lbl2 <- .trunc_lbl(sprintf("%s @ %.4g GHz", y2_lbl, fq))
+          p <- p %>% add_trace(type="scattergl",mode="markers",x=xvf[ok2],y=yv2[ok2],
+                   yaxis="y2",name=lbl2,marker=list(color=col,size=5,symbol="circle-open",opacity=pt_op))
+        }
+      } else {
+        ord <- order(df[[x_var]],na.last=NA); dfo <- df[ord,,drop=FALSE]
+        xv <- dfo[[x_var]]; yv2 <- dfo[[y2_v]]; ok2 <- !is.na(xv) & !is.na(yv2)
+        p <- p %>% add_trace(type="scattergl",mode="markers",x=xv[ok2],y=yv2[ok2],
+                 yaxis="y2",name=y2_lbl,
+                 marker=list(color="#1f77b4",size=5,symbol="circle-open",opacity=pt_op))
+      }
     }
-    xl <- switch(x_var, pin_dbm="Pin (dBm)", pout_dbm="Pout (dBm)", pout_w="Pout (W)", x_var)
+    # Back-off vertical line (when x-axis is Pout)
+    bo_db <- as.numeric(input$lp_backoff_db %||% 6)
+    shapes_list <- list()
+    if (x_var == "pout_dbm" && is.finite(bo_db) && !is.null(df$pout_dbm)) {
+      pmax <- suppressWarnings(max(df$pout_dbm, na.rm=TRUE))
+      if (is.finite(pmax)) shapes_list[[1]] <- list(
+        type="line", x0=pmax-bo_db, x1=pmax-bo_db, y0=0, y1=1, yref="paper",
+        line=list(color="rgba(200,200,200,0.35)",width=1.5,dash="dash"))
+    }
+    xl <- switch(x_var,pin_dbm="Pin (dBm)",pout_dbm="Pout (dBm)",pout_w="Pout (W)",x_var)
     p %>% layout(
       paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
-      xaxis  = list(title=xl,         color="#aaa", showgrid=TRUE, gridcolor="rgba(100,100,100,0.25)"),
-      yaxis  = list(title="Gain (dB)", color="#ff7f11", showgrid=TRUE, gridcolor="rgba(100,100,100,0.25)", tickfont=list(color="#ff7f11")),
-      yaxis2 = list(title=y2_lbl, color="#1f77b4", overlaying="y", side="right", showgrid=FALSE, zeroline=FALSE, tickfont=list(color="#1f77b4")),
+      xaxis  = list(title=xl,         color="#aaa",showgrid=TRUE,gridcolor="rgba(100,100,100,0.25)"),
+      yaxis  = list(title="Gain (dB)",color="#ff7f11",showgrid=TRUE,gridcolor="rgba(100,100,100,0.25)",tickfont=list(color="#ff7f11")),
+      yaxis2 = list(title=y2_lbl,color="#1f77b4",overlaying="y",side="right",showgrid=FALSE,zeroline=FALSE,tickfont=list(color="#1f77b4")),
+      shapes=shapes_list,
       legend=list(font=list(color="#aaa"),bgcolor="rgba(0,0,0,0.3)"),
-      title=list(text="Gain", font=list(color="#eee",size=13)),
-      font=list(color="#aaa"), margin=list(l=60,r=60,t=35,b=50))
+      title=list(text="Gain",font=list(color="#eee",size=13)),
+      font=list(color="#aaa"),margin=list(l=60,r=60,t=35,b=50))
   })
 
   # ── Performance: Efficiency subplot ───────────────────────────────────────
   output$lp_perf_eff_plot <- renderPlotly({
     id    <- input$lp_perf_dataset_selector
-    x_var <- input$lp_perf_x_var  %||% "pin_dbm"
+    x_var <- input$lp_perf_x_var  %||% "pout_dbm"
     y2_v  <- input$lp_perf_eff_y2 %||% "none"
-    need  <- unique(c(x_var, "pae_pct", "de_pct", if (y2_v != "none") y2_v))
+    pt_op <- min(1, max(0.1, as.numeric(input$lp_point_opacity %||% 0.75)))
+    need  <- unique(c(x_var, "pae_pct", "de_pct", "freq_ghz", if (y2_v != "none") y2_v))
     df    <- .get_df(id, cols = need)
     ep <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
-                        title=list(text=m, font=list(color="#aaa")))
+                        title=list(text=m,font=list(color="#aaa")))
     if (is.null(df) || !x_var %in% names(df)) return(ep("No data"))
-    ord <- order(df[[x_var]], na.last=NA); df <- df[ord, , drop=FALSE]
-    xv <- df[[x_var]]; p <- plot_ly()
-    PAL_EFF <- c("#1f77b4","#2ca02c")
-    ic <- 1L
-    for (ev in c("pae_pct","de_pct")) {
-      if (!ev %in% names(df)) { ic <- ic + 1L; next }
-      yv <- df[[ev]]; ok <- !is.na(xv) & !is.na(yv)
-      cl <- PAL_EFF[(ic-1L) %% 2L + 1L]; ic <- ic + 1L
-      lbl <- if (ev=="pae_pct") "PAE (%)" else "DE (%)"
-      p <- p %>% add_trace(type="scattergl", mode="markers",
-               x=xv[ok], y=yv[ok], yaxis="y", name=lbl,
-               marker=list(color=cl,size=5,opacity=0.75))
+    MPAL  <- c("#1f77b4","#2ca02c","#d62728","#9467bd","#8c564b",
+               "#e377c2","#17becf","#bcbd22","#7f7f7f","#ff7f11")
+    freqs <- if ("freq_ghz" %in% names(df)) sort(unique(na.omit(df$freq_ghz))) else numeric(0)
+    multi <- length(freqs) > 1
+    p <- plot_ly()
+    EFF_VARS <- c("pae_pct","de_pct")
+    EFF_SYMS <- c(pae_pct="circle", de_pct="circle-open")
+    EFF_LBLS <- c(pae_pct="PAE (%)", de_pct="DE (%)")
+    if (multi) {
+      for (fi in seq_along(freqs)) {
+        fq  <- freqs[fi]; col <- MPAL[(fi-1L)%%length(MPAL)+1L]
+        dff <- df[!is.na(df$freq_ghz) & df$freq_ghz==fq,,drop=FALSE]
+        xvf <- dff[[x_var]]
+        for (ev in EFF_VARS) {
+          if (!ev %in% names(dff)) next
+          yv <- dff[[ev]]; ok <- !is.na(xvf) & !is.na(yv)
+          if (!any(ok)) next
+          lbl <- .trunc_lbl(sprintf("%s @ %.4g GHz", EFF_LBLS[ev], fq))
+          p <- p %>% add_trace(type="scattergl",mode="markers",x=xvf[ok],y=yv[ok],
+                   yaxis="y",name=lbl,
+                   marker=list(color=col,size=5,symbol=EFF_SYMS[ev],opacity=pt_op))
+        }
+      }
+    } else {
+      PAL_EFF <- c("#1f77b4","#2ca02c")
+      ic <- 1L
+      ord <- order(df[[x_var]],na.last=NA); dfo <- df[ord,,drop=FALSE]
+      xv  <- dfo[[x_var]]
+      for (ev in EFF_VARS) {
+        if (!ev %in% names(dfo)) { ic <- ic+1L; next }
+        yv <- dfo[[ev]]; ok <- !is.na(xv) & !is.na(yv)
+        cl <- PAL_EFF[(ic-1L)%%2L+1L]; ic <- ic+1L
+        p <- p %>% add_trace(type="scattergl",mode="markers",x=xv[ok],y=yv[ok],
+                 yaxis="y",name=EFF_LBLS[ev],
+                 marker=list(color=cl,size=5,symbol=EFF_SYMS[ev],opacity=pt_op))
+      }
     }
     y2_lbl <- ""
     if (y2_v != "none" && y2_v %in% names(df)) {
-      yv2 <- df[[y2_v]]; ok2 <- !is.na(xv) & !is.na(yv2)
-      y2_lbl <- switch(y2_v, gain_db="Gain (dB)", pout_dbm="Pout (dBm)", pout_w="Pout (W)", y2_v)
-      p <- p %>% add_trace(type="scattergl", mode="markers",
-               x=xv[ok2], y=yv2[ok2], yaxis="y2", name=y2_lbl,
-               marker=list(color="#ff7f11",size=5,symbol="circle-open",opacity=0.75))
+      ord <- order(df[[x_var]],na.last=NA); dfo <- df[ord,,drop=FALSE]
+      xv <- dfo[[x_var]]; yv2 <- dfo[[y2_v]]; ok2 <- !is.na(xv) & !is.na(yv2)
+      y2_lbl <- switch(y2_v,gain_db="Gain (dB)",pout_dbm="Pout (dBm)",pout_w="Pout (W)",y2_v)
+      p <- p %>% add_trace(type="scattergl",mode="markers",x=xv[ok2],y=yv2[ok2],
+               yaxis="y2",name=y2_lbl,
+               marker=list(color="#ff7f11",size=5,symbol="circle-open",opacity=pt_op))
     }
-    xl <- switch(x_var, pin_dbm="Pin (dBm)", pout_dbm="Pout (dBm)", pout_w="Pout (W)", x_var)
+    # Back-off vertical line
+    bo_db <- as.numeric(input$lp_backoff_db %||% 6)
+    shapes_list <- list()
+    if (x_var == "pout_dbm" && is.finite(bo_db) && !is.null(df$pout_dbm)) {
+      pmax <- suppressWarnings(max(df$pout_dbm, na.rm=TRUE))
+      if (is.finite(pmax)) shapes_list[[1]] <- list(
+        type="line",x0=pmax-bo_db,x1=pmax-bo_db,y0=0,y1=1,yref="paper",
+        line=list(color="rgba(200,200,200,0.35)",width=1.5,dash="dash"))
+    }
+    xl <- switch(x_var,pin_dbm="Pin (dBm)",pout_dbm="Pout (dBm)",pout_w="Pout (W)",x_var)
     p %>% layout(
-      paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
-      xaxis  = list(title=xl,          color="#aaa", showgrid=TRUE, gridcolor="rgba(100,100,100,0.25)"),
-      yaxis  = list(title="Efficiency (%)", color="#1f77b4", showgrid=TRUE, gridcolor="rgba(100,100,100,0.25)", tickfont=list(color="#1f77b4")),
-      yaxis2 = list(title=y2_lbl, color="#ff7f11", overlaying="y", side="right", showgrid=FALSE, zeroline=FALSE, tickfont=list(color="#ff7f11")),
+      paper_bgcolor="#1b1b2b",plot_bgcolor="#1b1b2b",
+      xaxis  = list(title=xl,color="#aaa",showgrid=TRUE,gridcolor="rgba(100,100,100,0.25)"),
+      yaxis  = list(title="Efficiency (%)",color="#1f77b4",showgrid=TRUE,gridcolor="rgba(100,100,100,0.25)",tickfont=list(color="#1f77b4")),
+      yaxis2 = list(title=y2_lbl,color="#ff7f11",overlaying="y",side="right",showgrid=FALSE,zeroline=FALSE,tickfont=list(color="#ff7f11")),
+      shapes=shapes_list,
       legend=list(font=list(color="#aaa"),bgcolor="rgba(0,0,0,0.3)"),
-      title=list(text="Efficiency", font=list(color="#eee",size=13)),
-      font=list(color="#aaa"), margin=list(l=60,r=60,t=35,b=50))
+      title=list(text="Efficiency",font=list(color="#eee",size=13)),
+      font=list(color="#aaa"),margin=list(l=60,r=60,t=35,b=50))
   })
 
   # ── Performance: Smith Source (Γ_S) ───────────────────────────────────────
@@ -973,7 +1055,8 @@ serverLpViewer <- function(input, output, session, state) {
     px_tol_p  <- as.numeric(input$lp_perf_px_tol  %||% 0.3)
     show_harm <- isTRUE(input$lp_perf_show_harmonics)
     show_opt  <- isTRUE(input$lp_perf_show_opt %||% TRUE)
-    df        <- .get_df(id, cols = c("gs_r","gs_i","pout_dbm","gain_db","pae_pct",
+    show_gin  <- isTRUE(input$lp_perf_show_gin %||% TRUE)
+    df        <- .get_df(id, cols = c("gs_r","gs_i","gin_r","gin_i","pout_dbm","gain_db","pae_pct",
                                        if (show_harm) c("gs2_r","gs2_i","gs3_r","gs3_i")))
     ep <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
                         title=list(text=m, font=list(color="#aaa")))
@@ -1015,6 +1098,22 @@ serverLpViewer <- function(input, output, session, state) {
           x=ngh$r[ok_h],y=ngh$i[ok_h],
           marker=list(color=h$col,size=6,symbol="x",opacity=0.8),
           name=h$lbl,showlegend=TRUE,hoverinfo="none")
+      }
+    }
+    # Γin (measured input reflection, if available e.g. from Anteverta)
+    if (show_gin && all(c("gin_r","gin_i") %in% names(df)) &&
+        !all(is.na(df$gin_r))) {
+      ng_in <- .renorm_g(df$gin_r, df$gin_i, z0)
+      ok_in <- !is.na(ng_in$r) & !is.na(ng_in$i)
+      if (sum(ok_in) > 0) {
+        zz_in <- .gamma_to_z(ng_in$r[ok_in], ng_in$i[ok_in], z0)
+        p <- p %>% add_trace(type="scattergl", mode="markers",
+          x=ng_in$r[ok_in], y=ng_in$i[ok_in],
+          opacity=0.70,
+          marker=list(color="#e6550d", size=5, symbol="square-open", opacity=0.65),
+          name="\u0393_in (meas.)", showlegend=TRUE, hoverinfo="text",
+          hovertext=sprintf("Re(\u0393in): %.4f<br>Im(\u0393in): %.4f<br>Rin: %.2f \u03a9<br>Xin: %.2f \u03a9",
+                            ng_in$r[ok_in], ng_in$i[ok_in], zz_in$r, zz_in$x))
       }
     }
     if (show_opt) {
@@ -1222,7 +1321,8 @@ serverLpViewer <- function(input, output, session, state) {
     do_px  <- is.finite(px_db) && px_db > 0.01
     mark_opt <- isTRUE(input$lp_nose_mark_opt)
 
-    need <- unique(c("gain_db","pae_pct","de_pct",x_var))
+    pt_op <- min(1, max(0.1, as.numeric(input$lp_point_opacity %||% 0.75)))
+    need <- unique(c("gain_db","pae_pct","de_pct","pout_dbm","freq_ghz","gl_r","gl_i",x_var))
     df   <- .get_df(id, cols = need)
     ep <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b",plot_bgcolor="#1b1b2b",
                         title=list(text=m,font=list(color="#aaa")))
@@ -1237,31 +1337,103 @@ serverLpViewer <- function(input, output, session, state) {
       if (nrow(df) == 0) return(ep("No data after Px filter \u2014 adjust tolerance"))
     }
 
-    xv <- df[[x_var]]
-    p  <- plot_ly()
+    MPAL  <- c("#ff7f11","#1f77b4","#2ca02c","#d62728","#9467bd",
+               "#8c564b","#e377c2","#17becf","#bcbd22","#7f7f7f")
+    freqs <- if ("freq_ghz" %in% names(df)) sort(unique(na.omit(df$freq_ghz))) else numeric(0)
+    multi <- length(freqs) > 1
+    xv    <- df[[x_var]]
+    p     <- plot_ly()
 
-    # Gain on primary Y
+    # Build per-row rich hover text (includes \u0393L / ZL when available)
+    has_gl <- all(c("gl_r","gl_i") %in% names(df)) && any(!is.na(df$gl_r))
+    .mk_hover <- function(df, xv, primary_is_gain) {
+      g  <- if ("gain_db"  %in% names(df)) df$gain_db  else rep(NA_real_, nrow(df))
+      po <- if ("pout_dbm" %in% names(df)) df$pout_dbm else xv
+      pa <- if ("pae_pct"  %in% names(df)) df$pae_pct  else rep(NA_real_, nrow(df))
+      if (has_gl) {
+        zl <- .gamma_to_z(df$gl_r, df$gl_i, z0)
+        if (primary_is_gain)
+          sprintf("\u0393L = %.3f%+.3fj<br>ZL = %.1f%+.1fj \u03a9<br>Gain = %.2f dB<br>Pout = %.1f dBm<br>PAE = %.1f%%",
+                  df$gl_r, df$gl_i, zl$r, zl$x, g, po, pa)
+        else
+          sprintf("\u0393L = %.3f%+.3fj<br>ZL = %.1f%+.1fj \u03a9<br>PAE = %.1f%%<br>Pout = %.1f dBm<br>Gain = %.2f dB",
+                  df$gl_r, df$gl_i, zl$r, zl$x, pa, po, g)
+      } else {
+        if (primary_is_gain)
+          sprintf("Gain = %.2f dB<br>Pout = %.1f dBm<br>PAE = %.1f%%", g, po, pa)
+        else
+          sprintf("PAE = %.1f%%<br>Pout = %.1f dBm<br>Gain = %.2f dB", pa, po, g)
+      }
+    }
+    hover_gain <- .mk_hover(df, xv, TRUE)
+    hover_eff  <- .mk_hover(df, xv, FALSE)
+
+    # ── Gain on primary Y ──────────────────────────────────────────────────
     if ("gain_db" %in% names(df)) {
-      yv <- df$gain_db; ok <- !is.na(xv) & !is.na(yv)
-      p  <- p %>% add_trace(type="scattergl", mode="markers",
+      if (multi) {
+        for (fi in seq_along(freqs)) {
+          fq  <- freqs[fi]
+          sel <- !is.na(df$freq_ghz) & df$freq_ghz == fq
+          dff <- df[sel, , drop=FALSE]; hvf <- hover_gain[sel]
+          xvf <- dff[[x_var]]; yv <- dff$gain_db; ok <- !is.na(xvf) & !is.na(yv)
+          col <- MPAL[(fi - 1L) %% length(MPAL) + 1L]
+          p <- p %>% add_trace(type="scattergl", mode="markers",
+                   x=xvf[ok], y=yv[ok], yaxis="y",
+                   name=.trunc_lbl(sprintf("Gain @ %.4g GHz", fq)),
+                   marker=list(color=col, size=6, opacity=pt_op),
+                   hovertext=hvf[ok], hoverinfo="text")
+        }
+      } else {
+        yv <- df$gain_db; ok <- !is.na(xv) & !is.na(yv)
+        p  <- p %>% add_trace(type="scattergl", mode="markers",
                x=xv[ok], y=yv[ok], yaxis="y", name="Gain (dB)",
-               opacity=0.80,
-               marker=list(color="#ff7f11", size=6, opacity=0.75))
+               marker=list(color="#ff7f11", size=6, opacity=pt_op),
+               hovertext=hover_gain[ok], hoverinfo="text")
+      }
     }
 
-    # PAE on secondary Y (preferred); DE as fallback if PAE not available
+    # ── PAE / DE on secondary Y ───────────────────────────────────────────
     eff_col <- if ("pae_pct" %in% names(df) && any(!is.na(df$pae_pct))) "pae_pct" else
                if ("de_pct"  %in% names(df) && any(!is.na(df$de_pct)))  "de_pct"  else NULL
     eff_lbl <- if (!is.null(eff_col)) switch(eff_col, pae_pct="PAE (%)", de_pct="DE (%)") else ""
     if (!is.null(eff_col)) {
-      yv2 <- df[[eff_col]]; ok2 <- !is.na(xv) & !is.na(yv2)
-      p   <- p %>% add_trace(type="scattergl", mode="markers",
+      if (multi) {
+        for (fi in seq_along(freqs)) {
+          fq  <- freqs[fi]
+          sel <- !is.na(df$freq_ghz) & df$freq_ghz == fq
+          dff <- df[sel, , drop=FALSE]; hvf <- hover_eff[sel]
+          xvf <- dff[[x_var]]; yv2 <- dff[[eff_col]]; ok2 <- !is.na(xvf) & !is.na(yv2)
+          col <- MPAL[(fi - 1L) %% length(MPAL) + 1L]
+          p <- p %>% add_trace(type="scattergl", mode="markers",
+                   x=xvf[ok2], y=yv2[ok2], yaxis="y2",
+                   name=.trunc_lbl(sprintf("%s @ %.4g GHz", eff_lbl, fq)),
+                   marker=list(color=col, size=6, symbol="circle-open", opacity=pt_op),
+                   hovertext=hvf[ok2], hoverinfo="text")
+        }
+      } else {
+        yv2 <- df[[eff_col]]; ok2 <- !is.na(xv) & !is.na(yv2)
+        p   <- p %>% add_trace(type="scattergl", mode="markers",
                x=xv[ok2], y=yv2[ok2], yaxis="y2", name=eff_lbl,
-               opacity=0.80,
-               marker=list(color="#1f77b4", size=6, symbol="circle-open", opacity=0.75))
+               marker=list(color="#1f77b4", size=6, symbol="circle-open", opacity=pt_op),
+               hovertext=hover_eff[ok2], hoverinfo="text")
+      }
     }
 
-    # Mark MXP / MXE / MXG
+    # ── Back-off vertical line ─────────────────────────────────────────────
+    bo_db      <- as.numeric(input$lp_backoff_db %||% 6)
+    shapes_list <- list()
+    if (x_var == "pout_dbm" && is.finite(bo_db) && bo_db >= 0 &&
+        "pout_dbm" %in% names(df) && any(!is.na(df$pout_dbm))) {
+      pmax <- max(df$pout_dbm, na.rm=TRUE)
+      if (is.finite(pmax)) {
+        bo_x <- pmax - bo_db
+        shapes_list[[1]] <- list(
+          type="line", x0=bo_x, x1=bo_x, y0=0, y1=1, yref="paper",
+          line=list(color="rgba(200,200,200,0.35)", width=1.5, dash="dash"))
+      }
+    }
+
+    # ── Mark MXP / MXE / MXG ─────────────────────────────────────────────
     if (mark_opt) {
       opt <- .find_optima(df)
       OC  <- list(MXP=list(col="pout_dbm",sym="star",      color="#ff7f11", y2=FALSE),
@@ -1289,6 +1461,7 @@ serverLpViewer <- function(input, output, session, state) {
                          pout_w="Pout (W)", gsub("_"," ",x_var))
     p %>% layout(
       paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+      shapes = if (length(shapes_list) > 0) shapes_list else NULL,
       xaxis  = list(title=xl, color="#aaa", showgrid=TRUE,
                     gridcolor="rgba(100,100,100,0.25)"),
       yaxis  = list(title="Gain (dB)", color="#ff7f11",
@@ -1499,12 +1672,11 @@ serverLpViewer <- function(input, output, session, state) {
     yv      <- yv_raw - g_lin      # 0 at small signal, -1 at P1dB
     ds_aa   <- .lttb(xv[ok], yv[ok], 500L)
     p <- plot_ly() %>% add_trace(
-      type="scattergl", mode="lines+markers",
+      type="scattergl", mode="markers",
       x=ds_aa$x, y=ds_aa$y,
       name="AM-AM compression (dB)",
       opacity=0.85,
-      line=list(color="#ff7f11",width=2),
-      marker=list(color="#ff7f11",size=5,opacity=0.60)
+      marker=list(color="#ff7f11",size=5,opacity=0.75)
     )
     # P1dB marker
     ci <- which(yv[ok] <= -1)
@@ -1671,6 +1843,12 @@ serverLpViewer <- function(input, output, session, state) {
       legend=list(font=list(color="#aaa"),bgcolor="rgba(0,0,0,0.30)"),
       title=list(text="Multi-device Comparison", font=list(color="#eee",size=14)),
       font=list(color="#aaa"), margin=list(l=60,r=70,t=50,b=60))
+  })
+
+  # ── Report: Select All sections ────────────────────────────────────────────
+  observeEvent(input$lp_rpt_select_all, {
+    all_choices <- c("smith","xy","nose","perf","ampm","table","meta")
+    updateCheckboxGroupInput(session, "lp_rpt_sections", selected = all_choices)
   })
 
   # ── Report preview ─────────────────────────────────────────────────────────

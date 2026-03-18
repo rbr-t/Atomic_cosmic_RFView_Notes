@@ -648,6 +648,12 @@ parse_mdif <- function(lines, filepath) {
   "GAMMA_S_ANG" = "gs_ang", GS_ANG = "gs_ang",
   "GAMMA_S_PHASE" = "gs_ang",
 
+  # Measured input reflection coefficient (e.g. Anteverta, VNA-PA setups)
+  GIN_R = "gin_r", GIN_REAL = "gin_r", GAMMA_IN_R = "gin_r",
+  GAMMA_IN_RE = "gin_r", GIN_RE = "gin_r", S11_MEAS_R = "gin_r",
+  GIN_I = "gin_i", GIN_IMAG = "gin_i", GAMMA_IN_I = "gin_i",
+  GAMMA_IN_IM = "gin_i", GIN_IM = "gin_i", S11_MEAS_I = "gin_i",
+
   # Power
   POUT = "pout_dbm", `POUT(DBM)` = "pout_dbm", POUT_DBM = "pout_dbm",
   OUTPUTPOWER = "pout_dbm",
@@ -791,7 +797,10 @@ parse_mdif <- function(lines, filepath) {
                "DPHASE","DELTA_PHASE"),
     pout_fund_dbm = c("POUT_FUND","POUT_FUNDAMENTAL","POUT_F1"),
     pout_h2_dbm   = c("POUT_H2","POUT_2H","P2H","POUT_2ND"),
-    pout_h3_dbm   = c("POUT_H3","POUT_3H","P3H","POUT_3RD")
+    pout_h3_dbm   = c("POUT_H3","POUT_3H","P3H","POUT_3RD"),
+    # Input reflection coefficient (measured)
+    gin_r  = c("GIN_R","GIN_REAL","GAMMA_IN_R","GAMMA_IN_RE","GIN_RE","S11_MEAS_R"),
+    gin_i  = c("GIN_I","GIN_IMAG","GAMMA_IN_I","GAMMA_IN_IM","GIN_IM","S11_MEAS_I")
   )
   for (canon in names(harm_aliases)) {
     if (!canon %in% names(df)) {
@@ -805,7 +814,7 @@ parse_mdif <- function(lines, filepath) {
   }
 
   # Ensure canonical columns exist (NA if not available)
-  canonical <- c("gl_r","gl_i","gs_r","gs_i",
+  canonical <- c("gl_r","gl_i","gs_r","gs_i","gin_r","gin_i",
                  "pout_dbm","pout_w","pin_dbm","pin_w",
                  "gain_db","pae_pct","de_pct","idc_a","vdc_v","pdc_w","freq_ghz")
   for (cn in canonical) if (!cn %in% names(df)) df[[cn]] <- NA_real_
@@ -817,6 +826,17 @@ parse_mdif <- function(lines, filepath) {
     ok   <- is.finite(vals)
     if (any(ok) && max(vals[ok]) <= 1.01 && min(vals[ok]) >= 0)
       df[[.ecol]] <- vals * 100
+  }
+
+  # Clamp efficiency to physically valid range [0, 100]%.
+  # Values outside this range indicate measurement/calibration errors.
+  for (.ecol in c("pae_pct", "de_pct")) {
+    vals <- df[[.ecol]]
+    fok  <- is.finite(vals)
+    if (any(fok)) {
+      df[[.ecol]][fok & vals > 100.5] <- NA_real_   # > 100 is physically impossible
+      df[[.ecol]][fok & vals < -5]    <- NA_real_   # allow small negative from measurement noise
+    }
   }
 
   # Keep canonical + any harmonic/extra columns that survived (drop nothing useful)
