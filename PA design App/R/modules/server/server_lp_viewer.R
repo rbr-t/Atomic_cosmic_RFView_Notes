@@ -178,6 +178,25 @@ serverLpViewer <- function(input, output, session, state) {
     )
   }
 
+  # Reduce a full load-pull sweep → one row per (freq, unique ZL) at the given metric's max.
+  # metric: "pae_pct" for MXE nose, "gain_db" for MXG nose.
+  .nose_reduce <- function(df, metric) {
+    if (!metric %in% names(df) || all(is.na(df[[metric]]))) return(NULL)
+    if (!all(c("gl_r","gl_i") %in% names(df)))              return(NULL)
+    freq_key <- if ("freq_ghz" %in% names(df) && any(!is.na(df$freq_ghz)))
+                  as.character(round(df$freq_ghz, 4)) else rep("0", nrow(df))
+    gl_key  <- paste(round(df$gl_r, 4), round(df$gl_i, 4), sep = "_")
+    grp_key <- paste(freq_key, gl_key, sep = ":")
+    out <- do.call(rbind, lapply(split(seq_len(nrow(df)), grp_key), function(idx) {
+      grp <- df[idx, , drop = FALSE]
+      bi  <- which.max(grp[[metric]])
+      if (length(bi) == 0L) return(NULL)
+      grp[bi, , drop = FALSE]
+    }))
+    if (is.null(out) || nrow(out) == 0L) return(NULL)
+    out
+  }
+
   # Gamma-grid cache: stored as result$interp_cache[[var_key]][[pull_key]]
   # each element: list(xi, yi, zm) — computed once on parse
   .precompute_interp <- function(df, nx = 40, ny = 40) {
@@ -1214,266 +1233,177 @@ serverLpViewer <- function(input, output, session, state) {
     p %>% layout(sl)
   })
 
-  # ── Nose/Tradeoff — Plot 1: Smith chart coloured by metric ───────────────
-  output$lp_nose_smith <- renderPlotly({
-    id       <- input$lp_nose_dataset_selector
+  # ── Nose Plot 1: Efficiency Nose — MXE per load point ────────────────────
+  # For each unique ZL in the sweep, pick the row with max PAE (or DE).
+  # Scatter: X = Pout at that max, Y = PAE at that max.
+  output$lp_nose_mxe <- renderPlotly({
+    id    <- input$lp_nose_dataset_selector
     if (is.null(id) || length(id) == 0) return(
-      plot_ly() %>% layout(paper_bgcolor="#1b1b2b",plot_bgcolor="#1b1b2b",
-        title=list(text="Select a dataset",font=list(color="#aaa"))))
-    id       <- id[1L]
-    col_var  <- input$lp_nose_x_var    %||% "pout_dbm"
-    z0       <- as.numeric(input$lp_nose_z0_norm %||% 50)
+      plot_ly() %>% layout(paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+        title=list(text="Select a dataset", font=list(color="#aaa"))))
+    id    <- id[1L]
+    x_var <- input$lp_nose_x_pw  %||% "pout_dbm"
+    z0    <- as.numeric(input$lp_nose_z0_norm %||% 50)
     if (!is.finite(z0) || z0 <= 0) z0 <- 50
-    px_db    <- as.numeric(input$lp_nose_px_db  %||% 0)
-    px_tol   <- as.numeric(input$lp_nose_px_tol %||% 0.3)
-    do_px    <- is.finite(px_db) && px_db > 0.01
-    mark_opt <- isTRUE(input$lp_nose_mark_opt)
-    pull     <- input$lp_pull_type %||% "load"
-
-    need <- unique(c("gl_r","gl_i","gs_r","gs_i","gain_db","pout_dbm","pae_pct","de_pct",col_var))
-    df   <- .get_df(id, cols = need)
-    ep <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b",plot_bgcolor="#1b1b2b",
-                        title=list(text=m,font=list(color="#aaa")))
-    if (is.null(df)) return(ep("No data"))
-
-    # Px filter
-    if (do_px && "gain_db" %in% names(df) && !all(is.na(df$gain_db))) {
-      g_lin <- max(df$gain_db[seq_len(min(5L,nrow(df)))], na.rm=TRUE)
-      compr <- g_lin - df$gain_db
-      df    <- df[!is.na(compr) & abs(compr - px_db) <= px_tol, , drop=FALSE]
-      if (nrow(df) == 0) return(ep("No data after Px filter — adjust tolerance"))
-    }
-
-    xv_all <- if (pull == "load") df$gl_r else df$gs_r
-    yv_all <- if (pull == "load") df$gl_i else df$gs_i
-    if (is.null(xv_all) || all(is.na(xv_all)))
-      return(ep(paste0("No \u0393","_",if(pull=="load")"L" else "S"," data")))
-
-    # Re-normalise Gamma
-    ng <- .renorm_g(xv_all, yv_all, z0)
-    xv <- ng$r; yv <- ng$i
-
-    cv  <- if (col_var %in% names(df)) df[[col_var]] else rep(NA_real_, nrow(df))
-    ok  <- !is.na(xv) & !is.na(yv) & !is.na(cv) & (xv^2 + yv^2) <= 1.02
-    col_lbl <- switch(col_var, pout_dbm="Pout (dBm)", pae_pct="PAE (%)",
-                      gain_db="Gain (dB)", de_pct="DE (%)", pin_dbm="Pin (dBm)", col_var)
-
-    grid <- build_smith_grid(); p <- plot_ly()
-    for (tr in grid) p <- p %>% add_trace(type="scatter",mode="lines",
-      x=tr$x,y=tr$y,line=tr$line,hoverinfo="none",showlegend=FALSE,name=tr$name)
-
-    p <- p %>% add_trace(type="scattergl", mode="markers",
-      x=xv[ok], y=yv[ok],
-      opacity = 0.70,
-      marker = list(color=cv[ok], colorscale="Jet", size=7, showscale=TRUE,
-                    opacity=0.65,
-                    colorbar=list(title=col_lbl, tickfont=list(color="#aaa",size=9),
-                                  titlefont=list(color="#aaa",size=10))),
-      hovertext={zz<-.gamma_to_z(xv[ok],yv[ok],z0); sprintf(
-        "%s: %.2f<br>Re(\u0393): %.4f<br>Im(\u0393): %.4f<br>R: %.2f \u03a9<br>X: %.2f \u03a9",
-        col_lbl,cv[ok],xv[ok],yv[ok],zz$r,zz$x)},
-      hoverinfo="text", name=col_lbl)
-
-    if (mark_opt) {
-      opt <- .find_optima(df)
-      OC  <- list(MXP=list(col="pout_dbm",sym="star",      color="#ff7f11"),
-                  MXE=list(col="pae_pct", sym="diamond",   color="#1f77b4"),
-                  MXG=list(col="gain_db", sym="triangle-up",color="#2ca02c"))
-      for (nm in names(OC)) {
-        bi <- opt[[nm]]; if (is.na(bi)) next; cfg <- OC[[nm]]
-        if (!cfg$col %in% names(df)) next
-        ox_raw <- if(pull=="load") df$gl_r[bi] else df$gs_r[bi]
-        oy_raw <- if(pull=="load") df$gl_i[bi] else df$gs_i[bi]
-        if (any(is.na(c(ox_raw,oy_raw)))) next
-        ng_o <- .renorm_g(ox_raw, oy_raw, z0)
-        p <- p %>% add_trace(type="scatter",mode="markers+text",
-          x=ng_o$r, y=ng_o$i,
-          text=sprintf("%s\n%.2f",nm,df[[cfg$col]][bi]), textposition="top center",
-          textfont=list(color=cfg$color,size=10),
-          marker=list(color=cfg$color,size=14,symbol=cfg$sym,
-                      line=list(color="white",width=1.5)),
-          name=nm, showlegend=TRUE)
-      }
-    }
-
-    z_lbl <- if (abs(z0-50)<0.1) "50\u03a9" else sprintf("%.0f\u03a9",z0)
-    sl <- .smith_layout(
-      title_txt=paste0("Tradeoff \u2014 coloured by ",col_lbl," (Z\u2080=",z_lbl,")"),
-      xl=paste0("Re(\u0393_",if(pull=="load")"L" else "S",")"),
-      yl=paste0("Im(\u0393_",if(pull=="load")"L" else "S",")"))
-    p %>% layout(sl)
-  })
-
-  # ── Nose/Tradeoff — Plot 2: Gain (Y1) and Efficiency (Y2) vs Pout/Pin ─────
-  # Classic PA "nose plot": Gain scatter on primary Y-axis,
-  # PAE / DE on secondary Y-axis, X = Pout (dBm) by default.
-  output$lp_nose_xy <- renderPlotly({
-    id     <- input$lp_nose_dataset_selector
-    if (is.null(id) || length(id) == 0) return(
-      plot_ly() %>% layout(paper_bgcolor="#1b1b2b",plot_bgcolor="#1b1b2b",
-        title=list(text="Select a dataset",font=list(color="#aaa"))))
-    id     <- id[1L]
-    x_var  <- input$lp_nose_x_pw  %||% "pout_dbm"
-    z0     <- as.numeric(input$lp_nose_z0_norm %||% 50)
-    if (!is.finite(z0) || z0 <= 0) z0 <- 50
-    px_db  <- as.numeric(input$lp_nose_px_db  %||% 2.2)
-    px_tol <- as.numeric(input$lp_nose_px_tol %||% 0.3)
-    do_px  <- is.finite(px_db) && px_db > 0.01
-    mark_opt <- isTRUE(input$lp_nose_mark_opt)
-
     pt_op <- min(1, max(0.1, as.numeric(input$lp_point_opacity %||% 0.75)))
-    need <- unique(c("gain_db","pae_pct","de_pct","pout_dbm","freq_ghz","gl_r","gl_i",x_var))
+    bo_db <- as.numeric(input$lp_backoff_db %||% 6)
+
+    need <- c("gl_r","gl_i","pae_pct","de_pct","gain_db","pout_dbm","pin_dbm","pout_w","freq_ghz")
     df   <- .get_df(id, cols = need)
-    ep <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b",plot_bgcolor="#1b1b2b",
-                        title=list(text=m,font=list(color="#aaa")))
+    ep   <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+               title=list(text=m, font=list(color="#aaa")))
     if (is.null(df)) return(ep("No data"))
-    if (!x_var %in% names(df)) return(ep(paste0("Column '",x_var,"' not found")))
 
-    # Px compression filter (uses gain_db already in need)
-    if (do_px && "gain_db" %in% names(df) && !all(is.na(df$gain_db))) {
-      g_lin <- max(df$gain_db[seq_len(min(5L,nrow(df)))], na.rm=TRUE)
-      compr <- g_lin - df$gain_db
-      df    <- df[!is.na(compr) & abs(compr - px_db) <= px_tol, , drop=FALSE]
-      if (nrow(df) == 0) return(ep("No data after Px filter \u2014 adjust tolerance"))
-    }
-
-    MPAL  <- c("#ff7f11","#1f77b4","#2ca02c","#d62728","#9467bd",
-               "#8c564b","#e377c2","#17becf","#bcbd22","#7f7f7f")
-    freqs <- if ("freq_ghz" %in% names(df)) sort(unique(na.omit(df$freq_ghz))) else numeric(0)
-    multi <- length(freqs) > 1
-    xv    <- df[[x_var]]
-    p     <- plot_ly()
-
-    # Build per-row rich hover text (includes \u0393L / ZL when available)
-    has_gl <- all(c("gl_r","gl_i") %in% names(df)) && any(!is.na(df$gl_r))
-    .mk_hover <- function(df, xv, primary_is_gain) {
-      g  <- if ("gain_db"  %in% names(df)) df$gain_db  else rep(NA_real_, nrow(df))
-      po <- if ("pout_dbm" %in% names(df)) df$pout_dbm else xv
-      pa <- if ("pae_pct"  %in% names(df)) df$pae_pct  else rep(NA_real_, nrow(df))
-      if (has_gl) {
-        zl <- .gamma_to_z(df$gl_r, df$gl_i, z0)
-        if (primary_is_gain)
-          sprintf("\u0393L = %.3f%+.3fj<br>ZL = %.1f%+.1fj \u03a9<br>Gain = %.2f dB<br>Pout = %.1f dBm<br>PAE = %.1f%%",
-                  df$gl_r, df$gl_i, zl$r, zl$x, g, po, pa)
-        else
-          sprintf("\u0393L = %.3f%+.3fj<br>ZL = %.1f%+.1fj \u03a9<br>PAE = %.1f%%<br>Pout = %.1f dBm<br>Gain = %.2f dB",
-                  df$gl_r, df$gl_i, zl$r, zl$x, pa, po, g)
-      } else {
-        if (primary_is_gain)
-          sprintf("Gain = %.2f dB<br>Pout = %.1f dBm<br>PAE = %.1f%%", g, po, pa)
-        else
-          sprintf("PAE = %.1f%%<br>Pout = %.1f dBm<br>Gain = %.2f dB", pa, po, g)
-      }
-    }
-    hover_gain <- .mk_hover(df, xv, TRUE)
-    hover_eff  <- .mk_hover(df, xv, FALSE)
-
-    # ── Gain on primary Y ──────────────────────────────────────────────────
-    if ("gain_db" %in% names(df)) {
-      if (multi) {
-        for (fi in seq_along(freqs)) {
-          fq  <- freqs[fi]
-          sel <- !is.na(df$freq_ghz) & df$freq_ghz == fq
-          dff <- df[sel, , drop=FALSE]; hvf <- hover_gain[sel]
-          xvf <- dff[[x_var]]; yv <- dff$gain_db; ok <- !is.na(xvf) & !is.na(yv)
-          col <- MPAL[(fi - 1L) %% length(MPAL) + 1L]
-          p <- p %>% add_trace(type="scattergl", mode="markers",
-                   x=xvf[ok], y=yv[ok], yaxis="y",
-                   name=.trunc_lbl(sprintf("Gain @ %.4g GHz", fq)),
-                   marker=list(color=col, size=6, opacity=pt_op),
-                   hovertext=hvf[ok], hoverinfo="text")
-        }
-      } else {
-        yv <- df$gain_db; ok <- !is.na(xv) & !is.na(yv)
-        p  <- p %>% add_trace(type="scattergl", mode="markers",
-               x=xv[ok], y=yv[ok], yaxis="y", name="Gain (dB)",
-               marker=list(color="#ff7f11", size=6, opacity=pt_op),
-               hovertext=hover_gain[ok], hoverinfo="text")
-      }
-    }
-
-    # ── PAE / DE on secondary Y ───────────────────────────────────────────
     eff_col <- if ("pae_pct" %in% names(df) && any(!is.na(df$pae_pct))) "pae_pct" else
                if ("de_pct"  %in% names(df) && any(!is.na(df$de_pct)))  "de_pct"  else NULL
-    eff_lbl <- if (!is.null(eff_col)) switch(eff_col, pae_pct="PAE (%)", de_pct="DE (%)") else ""
-    if (!is.null(eff_col)) {
-      if (multi) {
-        for (fi in seq_along(freqs)) {
-          fq  <- freqs[fi]
-          sel <- !is.na(df$freq_ghz) & df$freq_ghz == fq
-          dff <- df[sel, , drop=FALSE]; hvf <- hover_eff[sel]
-          xvf <- dff[[x_var]]; yv2 <- dff[[eff_col]]; ok2 <- !is.na(xvf) & !is.na(yv2)
-          col <- MPAL[(fi - 1L) %% length(MPAL) + 1L]
-          p <- p %>% add_trace(type="scattergl", mode="markers",
-                   x=xvf[ok2], y=yv2[ok2], yaxis="y2",
-                   name=.trunc_lbl(sprintf("%s @ %.4g GHz", eff_lbl, fq)),
-                   marker=list(color=col, size=6, symbol="circle-open", opacity=pt_op),
-                   hovertext=hvf[ok2], hoverinfo="text")
-        }
-      } else {
-        yv2 <- df[[eff_col]]; ok2 <- !is.na(xv) & !is.na(yv2)
-        p   <- p %>% add_trace(type="scattergl", mode="markers",
-               x=xv[ok2], y=yv2[ok2], yaxis="y2", name=eff_lbl,
-               marker=list(color="#1f77b4", size=6, symbol="circle-open", opacity=pt_op),
-               hovertext=hover_eff[ok2], hoverinfo="text")
+    if (is.null(eff_col)) return(ep("No PAE / DE data available"))
+    eff_lbl <- if (eff_col == "pae_pct") "PAE (%)" else "DE (%)"
+
+    pts <- .nose_reduce(df, eff_col)
+    if (is.null(pts)) return(ep(paste0("Cannot compute nose — need gl_r/gl_i + ", eff_lbl)))
+    if (!x_var %in% names(pts)) return(ep(paste0("Column '", x_var, "' not found")))
+
+    MPAL  <- c("#1f77b4","#ff7f11","#2ca02c","#d62728","#9467bd",
+               "#8c564b","#e377c2","#17becf","#bcbd22","#7f7f7f")
+    freqs <- if ("freq_ghz" %in% names(pts)) sort(unique(na.omit(pts$freq_ghz))) else numeric(0)
+    multi <- length(freqs) > 1
+
+    zl   <- .gamma_to_z(pts$gl_r, pts$gl_i, z0)
+    pdbm <- if ("pout_dbm" %in% names(pts)) pts$pout_dbm else rep(NA_real_, nrow(pts))
+    gdb  <- if ("gain_db"  %in% names(pts)) pts$gain_db  else rep(NA_real_, nrow(pts))
+    htxt <- sprintf(
+      "\u0393L = %.3f%+.3fj<br>ZL = %.1f%+.1fj \u03a9<br>Pout = %.1f dBm<br>%s = %.1f%%<br>Gain = %.2f dB",
+      pts$gl_r, pts$gl_i, zl$r, zl$x, pdbm, eff_lbl, pts[[eff_col]], gdb)
+
+    xv <- pts[[x_var]]; yv <- pts[[eff_col]]; ok <- !is.na(xv) & !is.na(yv)
+    p  <- plot_ly()
+
+    if (multi) {
+      for (fi in seq_along(freqs)) {
+        fq  <- freqs[fi]; sel <- ok & !is.na(pts$freq_ghz) & pts$freq_ghz == fq
+        col <- MPAL[(fi - 1L) %% length(MPAL) + 1L]
+        p <- p %>% add_trace(type="scattergl", mode="markers",
+          x=xv[sel], y=yv[sel], name=.trunc_lbl(sprintf("%.4g GHz", fq)),
+          marker=list(color=col, size=8, opacity=pt_op,
+                      line=list(color="rgba(255,255,255,0.4)", width=0.8)),
+          hovertext=htxt[sel], hoverinfo="text")
       }
+    } else {
+      p <- p %>% add_trace(type="scattergl", mode="markers",
+        x=xv[ok], y=yv[ok], name=eff_lbl,
+        marker=list(color="#1f77b4", size=8, opacity=pt_op,
+                    line=list(color="rgba(255,255,255,0.4)", width=0.8)),
+        hovertext=htxt[ok], hoverinfo="text")
     }
 
-    # ── Back-off vertical line ─────────────────────────────────────────────
-    bo_db      <- as.numeric(input$lp_backoff_db %||% 6)
     shapes_list <- list()
-    if (x_var == "pout_dbm" && is.finite(bo_db) && bo_db >= 0 &&
-        "pout_dbm" %in% names(df) && any(!is.na(df$pout_dbm))) {
-      pmax <- max(df$pout_dbm, na.rm=TRUE)
-      if (is.finite(pmax)) {
-        bo_x <- pmax - bo_db
-        shapes_list[[1]] <- list(
-          type="line", x0=bo_x, x1=bo_x, y0=0, y1=1, yref="paper",
+    if (x_var == "pout_dbm" && is.finite(bo_db) && bo_db >= 0 && any(!is.na(xv))) {
+      pmax <- max(xv, na.rm=TRUE)
+      if (is.finite(pmax))
+        shapes_list[[1]] <- list(type="line", x0=pmax-bo_db, x1=pmax-bo_db,
+          y0=0, y1=1, yref="paper",
           line=list(color="rgba(200,200,200,0.35)", width=1.5, dash="dash"))
-      }
     }
 
-    # ── Mark MXP / MXE / MXG ─────────────────────────────────────────────
-    if (mark_opt) {
-      opt <- .find_optima(df)
-      OC  <- list(MXP=list(col="pout_dbm",sym="star",      color="#ff7f11", y2=FALSE),
-                  MXE=list(col="pae_pct", sym="diamond",   color="#1f77b4", y2=TRUE),
-                  MXG=list(col="gain_db", sym="triangle-up",color="#2ca02c", y2=FALSE))
-      for (nm in names(OC)) {
-        bi <- opt[[nm]]; if (is.na(bi)) next; cfg <- OC[[nm]]
-        yv_opt <- if (cfg$y2 && !is.null(eff_col)) df[[eff_col]][bi] else {
-          if ("gain_db" %in% names(df)) df$gain_db[bi] else next
-        }
-        xv_opt <- if (x_var %in% names(df)) df[[x_var]][bi] else next
-        if (is.na(xv_opt) || is.na(yv_opt)) next
-        p <- p %>% add_trace(type="scatter", mode="markers+text",
-          x=xv_opt, y=yv_opt,
-          yaxis=if(cfg$y2)"y2" else "y",
-          text=sprintf("%s\n%.2f",nm,yv_opt), textposition="top center",
-          textfont=list(color=cfg$color,size=9),
-          marker=list(color=cfg$color,size=12,symbol=cfg$sym,
-                      line=list(color="white",width=1.5)),
-          name=nm, showlegend=TRUE)
-      }
-    }
-
-    xl <- switch(x_var, pin_dbm="Pin (dBm)", pout_dbm="Pout (dBm)",
-                         pout_w="Pout (W)", gsub("_"," ",x_var))
+    xl <- switch(x_var, pout_dbm="Pout (dBm)", pin_dbm="Pin (dBm)", pout_w="Pout (W)", x_var)
     p %>% layout(
       paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
-      shapes = if (length(shapes_list) > 0) shapes_list else NULL,
-      xaxis  = list(title=xl, color="#aaa", showgrid=TRUE,
-                    gridcolor="rgba(100,100,100,0.25)"),
-      yaxis  = list(title="Gain (dB)", color="#ff7f11",
-                    showgrid=TRUE, gridcolor="rgba(100,100,100,0.25)",
-                    tickfont=list(color="#ff7f11")),
-      yaxis2 = list(title=eff_lbl, color="#1f77b4",
-                    overlaying="y", side="right", showgrid=FALSE,
-                    zeroline=FALSE, tickfont=list(color="#1f77b4")),
-      legend=list(font=list(color="#aaa"),bgcolor="rgba(0,0,0,0.3)"),
-      title=list(text=paste0("Nose Plot \u2014 Gain & Efficiency vs ",xl),
-                 font=list(color="#eee",size=13)),
-      font=list(color="#aaa"), margin=list(l=65,r=70,t=40,b=50))
+      shapes=if (length(shapes_list) > 0) shapes_list else NULL,
+      xaxis=list(title=xl, color="#aaa", showgrid=TRUE,
+                 gridcolor="rgba(100,100,100,0.25)"),
+      yaxis=list(title=eff_lbl, color="#1f77b4", showgrid=TRUE,
+                 gridcolor="rgba(100,100,100,0.25)", tickfont=list(color="#1f77b4")),
+      legend=list(font=list(color="#aaa"), bgcolor="rgba(0,0,0,0.3)"),
+      title=list(text=paste0("Efficiency Nose \u2014 MXE per load point vs ", xl),
+                 font=list(color="#eee", size=13)),
+      font=list(color="#aaa"), margin=list(l=65, r=20, t=40, b=50))
+  })
+
+  # ── Nose Plot 2: Gain Nose — MXG per load point ────────────────────────────
+  # For each unique ZL in the sweep, pick the row with max Gain.
+  # Scatter: X = Pout at that max, Y = Gain at that max.
+  output$lp_nose_xy <- renderPlotly({
+    id    <- input$lp_nose_dataset_selector
+    if (is.null(id) || length(id) == 0) return(
+      plot_ly() %>% layout(paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+        title=list(text="Select a dataset", font=list(color="#aaa"))))
+    id    <- id[1L]
+    x_var <- input$lp_nose_x_pw  %||% "pout_dbm"
+    z0    <- as.numeric(input$lp_nose_z0_norm %||% 50)
+    if (!is.finite(z0) || z0 <= 0) z0 <- 50
+    pt_op <- min(1, max(0.1, as.numeric(input$lp_point_opacity %||% 0.75)))
+    bo_db <- as.numeric(input$lp_backoff_db %||% 6)
+
+    need <- c("gl_r","gl_i","gain_db","pae_pct","de_pct","pout_dbm","pin_dbm","pout_w","freq_ghz")
+    df   <- .get_df(id, cols = need)
+    ep   <- function(m) plot_ly() %>% layout(paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+               title=list(text=m, font=list(color="#aaa")))
+    if (is.null(df)) return(ep("No data"))
+    if (!"gain_db" %in% names(df) || all(is.na(df$gain_db)))
+      return(ep("No gain_db data available"))
+
+    pts <- .nose_reduce(df, "gain_db")
+    if (is.null(pts)) return(ep("Cannot compute nose — need gl_r/gl_i + gain_db"))
+    if (!x_var %in% names(pts)) return(ep(paste0("Column '", x_var, "' not found")))
+
+    eff_col <- if ("pae_pct" %in% names(pts) && any(!is.na(pts$pae_pct))) "pae_pct" else
+               if ("de_pct"  %in% names(pts) && any(!is.na(pts$de_pct)))  "de_pct"  else NULL
+    eff_lbl <- if (!is.null(eff_col)) switch(eff_col, pae_pct="PAE (%)", de_pct="DE (%)") else "Eff"
+    eff_v   <- if (!is.null(eff_col)) pts[[eff_col]] else rep(NA_real_, nrow(pts))
+
+    MPAL  <- c("#2ca02c","#ff7f11","#1f77b4","#d62728","#9467bd",
+               "#8c564b","#e377c2","#17becf","#bcbd22","#7f7f7f")
+    freqs <- if ("freq_ghz" %in% names(pts)) sort(unique(na.omit(pts$freq_ghz))) else numeric(0)
+    multi <- length(freqs) > 1
+
+    zl   <- .gamma_to_z(pts$gl_r, pts$gl_i, z0)
+    pdbm <- if ("pout_dbm" %in% names(pts)) pts$pout_dbm else rep(NA_real_, nrow(pts))
+    htxt <- sprintf(
+      "\u0393L = %.3f%+.3fj<br>ZL = %.1f%+.1fj \u03a9<br>Pout = %.1f dBm<br>Gain = %.2f dB<br>%s = %.1f%%",
+      pts$gl_r, pts$gl_i, zl$r, zl$x, pdbm, pts$gain_db, eff_lbl, eff_v)
+
+    xv <- pts[[x_var]]; yv <- pts$gain_db; ok <- !is.na(xv) & !is.na(yv)
+    p  <- plot_ly()
+
+    if (multi) {
+      for (fi in seq_along(freqs)) {
+        fq  <- freqs[fi]; sel <- ok & !is.na(pts$freq_ghz) & pts$freq_ghz == fq
+        col <- MPAL[(fi - 1L) %% length(MPAL) + 1L]
+        p <- p %>% add_trace(type="scattergl", mode="markers",
+          x=xv[sel], y=yv[sel], name=.trunc_lbl(sprintf("%.4g GHz", fq)),
+          marker=list(color=col, size=8, opacity=pt_op,
+                      line=list(color="rgba(255,255,255,0.4)", width=0.8)),
+          hovertext=htxt[sel], hoverinfo="text")
+      }
+    } else {
+      p <- p %>% add_trace(type="scattergl", mode="markers",
+        x=xv[ok], y=yv[ok], name="Gain (dB)",
+        marker=list(color="#2ca02c", size=8, opacity=pt_op,
+                    line=list(color="rgba(255,255,255,0.4)", width=0.8)),
+        hovertext=htxt[ok], hoverinfo="text")
+    }
+
+    shapes_list <- list()
+    if (x_var == "pout_dbm" && is.finite(bo_db) && bo_db >= 0 && any(!is.na(xv))) {
+      pmax <- max(xv, na.rm=TRUE)
+      if (is.finite(pmax))
+        shapes_list[[1]] <- list(type="line", x0=pmax-bo_db, x1=pmax-bo_db,
+          y0=0, y1=1, yref="paper",
+          line=list(color="rgba(200,200,200,0.35)", width=1.5, dash="dash"))
+    }
+
+    xl <- switch(x_var, pout_dbm="Pout (dBm)", pin_dbm="Pin (dBm)", pout_w="Pout (W)", x_var)
+    p %>% layout(
+      paper_bgcolor="#1b1b2b", plot_bgcolor="#1b1b2b",
+      shapes=if (length(shapes_list) > 0) shapes_list else NULL,
+      xaxis=list(title=xl, color="#aaa", showgrid=TRUE,
+                 gridcolor="rgba(100,100,100,0.25)"),
+      yaxis=list(title="Gain (dB)", color="#2ca02c", showgrid=TRUE,
+                 gridcolor="rgba(100,100,100,0.25)", tickfont=list(color="#2ca02c")),
+      legend=list(font=list(color="#aaa"), bgcolor="rgba(0,0,0,0.3)"),
+      title=list(text=paste0("Gain Nose \u2014 MXG per load point vs ", xl),
+                 font=list(color="#eee", size=13)),
+      font=list(color="#aaa"), margin=list(l=65, r=20, t=40, b=50))
   })
 
   # ── Table helpers ──────────────────────────────────────────────────────────

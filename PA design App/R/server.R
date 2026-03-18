@@ -452,18 +452,6 @@ server <- function(input, output, session) {
                           h5("Tradeoff plot controls", style = "color:#f0f0f0; margin-top:0;"),
                           uiOutput("lp_nose_dataset_selector_ui"),
                           hr(),
-                          strong("Smith chart colouring", style = "color:#ccc; font-size:12px;"),
-                          selectInput("lp_nose_x_var", "Colour metric",
-                            choices = c(
-                              "Pout (dBm)" = "pout_dbm",
-                              "PAE (%)"    = "pae_pct",
-                              "Gain (dB)"  = "gain_db",
-                              "DE (%)"     = "de_pct",
-                              "Pin (dBm)"  = "pin_dbm",
-                              "Pout (W)"   = "pout_w"),
-                            selected = "pout_dbm"),
-                          hr(),
-                          strong("Impedance XY plot axes", style = "color:#ccc; font-size:12px;"),
                           selectInput("lp_nose_x_pw", "X axis (Pout / Pin)",
                             choices = c(
                               "Pout (dBm)" = "pout_dbm",
@@ -498,15 +486,15 @@ server <- function(input, output, session) {
                           column(6,
                             div(class = "well",
                               style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
-                              h6(icon("bullseye"), " Smith Chart \u2014 \u0393 cloud coloured by metric",
+                              h6(icon("tachometer-alt"), " Efficiency Nose \u2014 MXE per load point",
                                 style = "color:#f0f0f0; margin-top:0; margin-bottom:6px;"),
-                              plotlyOutput("lp_nose_smith", height = "420px")
+                              plotlyOutput("lp_nose_mxe", height = "420px")
                             )
                           ),
                           column(6,
                             div(class = "well",
                               style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
-                              h6(icon("chart-line"), " Gain & Efficiency vs Pout (nose plot)",
+                              h6(icon("chart-line"), " Gain Nose \u2014 MXG per load point",
                                 style = "color:#f0f0f0; margin-top:0; margin-bottom:6px;"),
                               plotlyOutput("lp_nose_xy", height = "420px")
                             )
