@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # app.R — PA Design App entry point
 #
 # This file is the ONLY file Shiny needs to run the app.
@@ -5657,3 +5657,6 @@ server <- function(input, output, session) {
 # Run the application
 shinyApp(ui = ui, server = server)
 } # end if(FALSE) — legacy code block
+
+# ── Launch ──────────────────────────────────────────────────────────────────
+shinyApp(ui = ui, server = server)

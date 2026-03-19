@@ -41,7 +41,7 @@
 #' @param format_override  "auto" (default) or one of: spl, focus, mdf, amcad,
 #'                         anteverta, mdif.
 #' @return Named list as described in file header.
-parse_lp_file <- function(filepath, format_override = "auto") {
+parse_lp_file <- function(filepath, format_override = "auto", filename_hint = NULL) {
   if (!file.exists(filepath))
     return(.lp_err("auto", filepath, paste("File not found:", filepath)))
 
@@ -51,7 +51,7 @@ parse_lp_file <- function(filepath, format_override = "auto") {
   )
 
   fmt <- if (format_override != "auto") format_override
-         else detect_lp_format(lines)
+         else detect_lp_format(lines, if (!is.null(filename_hint)) filename_hint else filepath)
 
   result <- tryCatch(
     switch(fmt,
@@ -62,6 +62,7 @@ parse_lp_file <- function(filepath, format_override = "auto") {
       amcad     = parse_amcad(lines, filepath),
       anteverta = parse_anteverta(lines, filepath),
       mdif      = parse_mdif(lines, filepath),
+      cst       = parse_cst(lines, filepath),
       .lp_err(fmt, filepath, paste("Unsupported format:", fmt))
     ),
     error = function(e) .lp_err(fmt, filepath, conditionMessage(e))
@@ -76,14 +77,22 @@ parse_lp_file <- function(filepath, format_override = "auto") {
 # ── Format auto-detection ─────────────────────────────────────────────────────
 
 #' Detect the format of a load-pull file from its first ~25 lines.
-detect_lp_format <- function(lines) {
+detect_lp_format <- function(lines, filepath = NULL) {
   n_lines <- length(lines)
   head10  <- lines[seq_len(min(10, n_lines))]
-  nz_lines <- lines[nzchar(trimws(lines))]
+  # Trim nz_lines so ^#BEGIN$ matches even with trailing CR or spaces
+  nz_lines <- trimws(lines[nzchar(trimws(lines))])
   hd <- paste(
-    toupper(trimws(nz_lines[seq_len(min(50, length(nz_lines)))])),
+    toupper(nz_lines[seq_len(min(50, length(nz_lines)))]),
     collapse = "\n"
   )
+  # Strongest hint: file extension
+  if (!is.null(filepath)) {
+    ext <- tolower(sub("^.*\\.([^.]+)$", "\\1", basename(filepath)))
+    if (ext == "cst")  return("cst")
+    if (ext == "mdif") return("mdif")
+    if (ext == "mdf")  return("mdf")
+  }
   # Focus LPCWAVE: has "# NNN" point-block markers AND column header in !-comment
   if (any(grepl("^#[[:space:]]*[0-9]+", head10)) ||
       grepl("POINT[[:space:]]+GAMMA[[:space:]]+PHASE", hd))
@@ -97,6 +106,11 @@ detect_lp_format <- function(lines) {
   if (grepl("ANTEVERTA",                              hd)) return("anteverta")
   if (grepl("#SOURCE PULL|#LOAD PULL|CCMT|#FORMAT",   hd)) return("focus")
   if (any(grepl("^!", head10))) return("spl")
+  # Mestech/Auriga CST wave-quantity format
+  if ((any(grepl("^#VERSION:", nz_lines[seq_len(min(5L, length(nz_lines)))], ignore.case = TRUE)) ||
+       any(grepl("^#FUNDAMENTAL FREQUENCY", nz_lines[seq_len(min(30L, length(nz_lines)))], ignore.case = TRUE))) &&
+      any(grepl("^#BEGIN$|^#END$", nz_lines, ignore.case = TRUE)) )
+    return("cst")
   if (any(grepl(",",  head10))) return("amcad")
   "spl"  # safe fallback
 }
@@ -776,6 +790,17 @@ parse_mdif <- function(lines, filepath) {
     df$de_pct[!is.finite(df$de_pct) | df$pdc_w <= 0] <- NA_real_
   }
 
+  # Physical sanity: DE must be in [0, 100]; PAE <= DE
+  # Values outside these bounds indicate PDC measurement error — cap them
+  if ("de_pct" %in% names(df)) {
+    bad_de <- which(is.finite(df$de_pct) & (df$de_pct > 100 | df$de_pct < 0))
+    if (length(bad_de) > 0) df$de_pct[bad_de] <- NA_real_
+  }
+  if ("pae_pct" %in% names(df) && "de_pct" %in% names(df)) {
+    fix_pae <- which(is.finite(df$pae_pct) & is.finite(df$de_pct) & df$pae_pct > df$de_pct)
+    if (length(fix_pae) > 0) df$pae_pct[fix_pae] <- df$de_pct[fix_pae]
+  }
+
   # Add freq from meta if missing per-row
   if (!"freq_ghz" %in% names(df)) {
     fq <- suppressWarnings(as.numeric(meta$freq_ghz %||% NA))
@@ -912,6 +937,137 @@ parse_mdif <- function(lines, filepath) {
       vdc_v=numeric(), pdc_w=numeric(), freq_ghz=numeric()
     ),
     raw = character()
+  )
+}
+
+# ── Format 8: Mestech/Auriga CST wave-quantity format ───────────────────────
+# File structure:
+#   - Global header at file top: #KEY: VALUE pairs
+#   - Multiple measurement blocks, each enclosed by #BEGIN ... #END
+#   - Per-block header: #FUNDAMENTAL FREQUENCY, #Z0SOURCE, #Z0LOAD,
+#     #GAMMASOURCE (mag angle_deg), #GAMMALOAD (mag angle_deg),
+#     #QUIESCENT BIAS POINT (Vg Ig Vd Id)
+#   - Data columns: Freq(Hz) V1(V) I1(A) V2(V) I2(A) Re[a1] Im[a1]
+#                   Re[b1] Im[b1] Re[a2] Im[a2] Re[b2] Im[b2]
+# Power from wave-quantities:
+#   Pin_W  = (|a1|^2 - |b1|^2) / (2*Z0)
+#   Pout_W = (|b2|^2 - |a2|^2) / (2*Z0)
+#   PDC_W  = V2(Vd) * I2(Id)
+parse_cst <- function(lines, filepath) {
+  n <- length(lines)
+  rows <- list()
+  meta_global <- list()
+
+  # current block metadata (reset each #BEGIN)
+  reset_meta <- function() list(
+    freq_ghz = NA_real_, z0 = 50, z0_load = 50,
+    gl_r = NA_real_, gl_i = NA_real_,
+    gs_r = NA_real_, gs_i = NA_real_
+  )
+  cur <- reset_meta()
+  in_block <- FALSE
+
+  for (i in seq_len(n)) {
+    ln <- trimws(lines[i])
+    if (!nzchar(ln)) next
+
+    if (grepl("^#BEGIN$", ln, ignore.case = TRUE)) {
+      in_block <- TRUE
+      next
+    }
+    if (grepl("^#END$", ln, ignore.case = TRUE)) {
+      in_block <- FALSE
+      cur <- reset_meta()   # reset for next block
+      next
+    }
+
+    if (grepl("^#", ln)) {
+      # ---- header / metadata line ----
+      # Remove leading # and optional colon separator
+      val_str <- trimws(sub("^#[[:alpha:][:space:]]+[:[:space:]]*", "", ln, perl = FALSE))
+
+      lnu <- toupper(ln)
+      if (grepl("^#VERSION",             lnu)) meta_global$version     <- trimws(sub("^#VERSION[:[:space:]]*","",ln,ignore.case=TRUE))
+      else if (grepl("^#FUNDAMENTAL FREQUENCY", lnu)) {
+        fq <- suppressWarnings(as.numeric(regmatches(ln, regexpr("[0-9]+\\.?[0-9]*([eE][+-]?[0-9]+)?", ln))))
+        if (length(fq) > 0 && is.finite(fq)) cur$freq_ghz <- if (fq > 1e6) fq / 1e9 else fq
+      } else if (grepl("^#Z0SOURCE", lnu)) {
+        v <- suppressWarnings(as.numeric(trimws(sub("^#Z0SOURCE[:[:space:]]*","",ln,ignore.case=TRUE))))
+        if (length(v) > 0 && is.finite(v) && v > 0) cur$z0 <- v
+      } else if (grepl("^#Z0LOAD", lnu)) {
+        v <- suppressWarnings(as.numeric(trimws(sub("^#Z0LOAD[:[:space:]]*","",ln,ignore.case=TRUE))))
+        if (length(v) > 0 && is.finite(v) && v > 0) cur$z0_load <- v
+      } else if (grepl("^#GAMMALOAD", lnu)) {
+        parts <- suppressWarnings(as.numeric(strsplit(trimws(sub("^#GAMMALOAD[:[:space:]]*","",ln,ignore.case=TRUE)), "[[:space:]]+")[[1]]))
+        if (length(parts) >= 2 && all(is.finite(parts[1:2]))) {
+          cur$gl_r <- parts[1] * cos(parts[2] * pi / 180)
+          cur$gl_i <- parts[1] * sin(parts[2] * pi / 180)
+        }
+      } else if (grepl("^#GAMMASOURCE", lnu)) {
+        parts <- suppressWarnings(as.numeric(strsplit(trimws(sub("^#GAMMASOURCE[:[:space:]]*","",ln,ignore.case=TRUE)), "[[:space:]]+")[[1]]))
+        if (length(parts) >= 2 && all(is.finite(parts[1:2]))) {
+          cur$gs_r <- parts[1] * cos(parts[2] * pi / 180)
+          cur$gs_i <- parts[1] * sin(parts[2] * pi / 180)
+        }
+      } else if (grepl("^#QUIESCENT BIAS POINT", lnu)) {
+        parts <- suppressWarnings(as.numeric(strsplit(val_str, "[[:space:]]+")[[1]]))
+        if (length(parts) >= 4) meta_global$vd_q <- parts[3]
+      }
+      next
+    }
+
+    # ---- data row (non-comment, non-blank, inside or outside block) ----
+    if (!in_block) next   # data only valid inside #BEGIN...#END
+
+    # Skip column-header row (first token is not numeric)
+    nums <- suppressWarnings(as.numeric(strsplit(ln, "[[:space:]]+")[[1]]))
+    if (length(nums) < 13 || !all(is.finite(nums[1:13]))) next
+
+    z0 <- if (is.finite(cur$z0) && cur$z0 > 0) cur$z0 else 50
+    # wave quantities: a1, b1, a2, b2
+    a1sq <- nums[6]^2  + nums[7]^2
+    b1sq <- nums[8]^2  + nums[9]^2
+    a2sq <- nums[10]^2 + nums[11]^2
+    b2sq <- nums[12]^2 + nums[13]^2
+
+    pin_w  <- max(0, (a1sq - b1sq) / (2 * z0))
+    pout_w <- max(0, (b2sq - a2sq) / (2 * z0))
+    pdc_w  <- nums[4] * nums[5]   # Vd * Id
+
+    rows[[length(rows) + 1L]] <- list(
+      freq_ghz = if (is.finite(cur$freq_ghz)) cur$freq_ghz else nums[1] / 1e9,
+      gl_r     = cur$gl_r,
+      gl_i     = cur$gl_i,
+      gs_r     = cur$gs_r,
+      gs_i     = cur$gs_i,
+      vdc_v    = nums[4],
+      idc_a    = nums[5],
+      pdc_w    = pdc_w,
+      pin_w    = pin_w,
+      pout_w   = pout_w,
+      pin_dbm  = 10 * log10(max(pin_w,  1e-15) / 1e-3),
+      pout_dbm = 10 * log10(max(pout_w, 1e-15) / 1e-3),
+      gain_db  = if (pin_w > 1e-20) 10 * log10(pout_w / pin_w) else NA_real_,
+      de_pct   = if (pdc_w > 1e-20) pout_w / pdc_w * 100  else NA_real_,
+      pae_pct  = if (pdc_w > 1e-20) (pout_w - pin_w) / pdc_w * 100 else NA_real_
+    )
+  }
+
+  if (length(rows) == 0)
+    return(.lp_err("cst", filepath, "No valid data rows parsed from CST file"))
+
+  pts <- do.call(rbind, lapply(rows, as.data.frame))
+
+  # Round trip through .normalise_df to alias-map and derive missing cols
+  pts <- .normalise_df(pts, list(), "cst")
+
+  list(
+    success  = TRUE,
+    format   = "cst",
+    filename = basename(filepath),
+    meta     = c(meta_global, list(format = "cst")),
+    points   = pts,
+    raw      = lines
   )
 }
 

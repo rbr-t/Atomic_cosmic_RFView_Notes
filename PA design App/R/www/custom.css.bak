@@ -1,0 +1,847 @@
+/* PA Design App Custom Styles */
+
+/* ============================================================ */
+/* Sticky Canvas Box - Make canvas stay at top during scroll    */
+/* ============================================================ */
+
+/* Critical: Prevent parent containers from breaking sticky */
+.content-wrapper {
+  overflow: visible !important;
+  height: auto !important;
+}
+
+#pa_lineup_tab,
+.tab-content {
+  overflow: visible !important;
+}
+
+/* Sticky canvas box */
+#sticky_canvas_box {
+  position: -webkit-sticky !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 900 !important;
+  background: #1b1b1b;
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+  display: block;
+  width: 100%;
+}
+
+/* Visual feedback when stuck */
+#sticky_canvas_box.stuck {
+  box-shadow: 0 4px 20px rgba(255, 127, 17, 0.3);
+  border-bottom: 2px solid rgba(255, 127, 17, 0.5);
+}
+
+/* Fallback for older browsers */
+@supports not (position: sticky) {
+  #sticky_canvas_box {
+    position: relative;
+    background: #2a2a2a;
+  }
+}
+
+/* ============================================================ */
+
+.skin-black .main-header .logo { 
+  background-color: #1b1b1b; 
+}
+
+.skin-black .main-header .navbar { 
+  background-color: #1b1b1b; 
+}
+
+.content-wrapper { 
+  background-color: #0b0b0b; 
+}
+
+.box { 
+  background-color: #1b1b1b; 
+  border-top-color: #ff7f11; 
+}
+
+/* Additional custom styles */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.btn-primary {
+  background-color: #ff7f11 !important;
+  border-color: #ff7f11 !important;
+}
+
+.btn-primary:hover {
+  background-color: #e66d00 !important;
+  border-color: #e66d00 !important;
+}
+
+.btn-success {
+  background-color: #00cc66 !important;
+  border-color: #00cc66 !important;
+}
+
+/* ============================================================ */
+/* Canvas Sidebar - Floating Right Panel with Hide/Hover       */
+/* ============================================================ */
+
+.canvas-sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 100%;
+  background: rgba(26, 26, 26, 0.95);
+  border-left: 2px solid #ff7f11;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  z-index: 1000;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.canvas-sidebar.collapsed {
+  transform: translateX(calc(100% - 40px));
+  opacity: 0.8;
+}
+
+.canvas-sidebar:hover {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.canvas-sidebar.expanded {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  left: -40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 60px;
+  background: #ff7f11;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.2s, left 0.3s;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar-toggle:hover {
+  background: #e66d00;
+}
+
+.canvas-sidebar.expanded .sidebar-toggle i {
+  transform: rotate(180deg);
+  transition: transform 0.3s;
+}
+
+.sidebar-content {
+  padding: 15px 10px;
+  padding-top: 10px;
+}
+
+.sidebar-section {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.sidebar-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.sidebar-section-title {
+  color: #ff7f11;
+  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-section .btn {
+  margin-bottom: 5px;
+  font-size: 12px;
+  padding: 6px 10px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-section .btn i {
+  margin-right: 5px;
+  width: 14px;
+  display: inline-block;
+}
+
+/* Scrollbar styling for sidebar */
+.canvas-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.canvas-sidebar::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.canvas-sidebar::-webkit-scrollbar-thumb {
+  background: #ff7f11;
+  border-radius: 3px;
+}
+
+.canvas-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #e66d00;
+}
+
+/* Make canvas container accommodate sidebar */
+#pa_lineup_canvas_container {
+  position: relative;
+  min-height: 650px;
+}
+
+/* Component palette should overlay canvas - high z-index to stay on top */
+.component-palette {
+  z-index: 1100 !important;
+  pointer-events: auto;
+}
+
+/* ============================================================ */
+/* Canvas Top Sidebar - Floating Template Panel with Hide/Hover */
+/* ============================================================ */
+
+.canvas-top-sidebar {
+  position: absolute;
+  top: 0;
+  left: 60px; /* Account for component palette */
+  right: 40px; /* Leave space for right sidebar */
+  height: auto;
+  max-height: 200px;
+  background: rgba(26, 26, 26, 0.95);
+  border-bottom: 2px solid #ff7f11;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  z-index: 999;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.canvas-top-sidebar.collapsed {
+  transform: translateY(calc(-100% + 40px));
+  opacity: 0.8;
+}
+
+.canvas-top-sidebar:hover {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.canvas-top-sidebar.expanded {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.top-sidebar-toggle {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 40px;
+  background: #ff7f11;
+  border: none;
+  border-radius: 0 0 8px 8px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s, bottom 0.3s;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.top-sidebar-toggle:hover {
+  background: #e66d00;
+}
+
+.canvas-top-sidebar.expanded .top-sidebar-toggle i {
+  transform: rotate(180deg);
+  transition: transform 0.3s;
+}
+
+.top-sidebar-content {
+  padding: 15px 20px;
+  padding-bottom: 10px;
+  padding-left: 10%; /* 10% left padding to avoid left sidebar */
+}
+
+.top-sidebar-title {
+  color: #ff7f11;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  text-align: center;  /* Center the title */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.5px;
+}
+
+.top-sidebar-templates {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 equal columns */
+  gap: 15px;
+  padding-right: 10px;
+}
+
+.top-sidebar-templates .preset-template {
+  padding: 12px 15px;
+  background: #2a2a2a;
+  border: 2px solid #444;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.top-sidebar-templates .preset-template:hover {
+  border-color: #ff7f11;
+  background: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 127, 17, 0.3);
+}
+
+.top-sidebar-templates .preset-template.active {
+  border-color: #ff7f11;
+  background: #3a2a1a;
+  box-shadow: 0 0 15px rgba(255, 127, 17, 0.4);
+}
+
+.top-sidebar-templates .preset-template h5 {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 5px 0;
+}
+
+.top-sidebar-templates .preset-template p {
+  color: #aaa;
+  font-size: 11px;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* Scrollbar styling for top sidebar */
+.canvas-top-sidebar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.canvas-top-sidebar::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.canvas-top-sidebar::-webkit-scrollbar-thumb {
+  background: #ff7f11;
+  border-radius: 3px;
+}
+
+.canvas-top-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #e66d00;
+}
+
+/* ============================================================ */
+/* Fullscreen Mode Styles                                      */
+/* ============================================================ */
+
+#pa_lineup_canvas_container.fullscreen-mode {
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #0b0b0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#pa_lineup_canvas_container.fullscreen-mode svg {
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+/* Ensure sidebars remain visible in fullscreen */
+#pa_lineup_canvas_container.fullscreen-mode .canvas-sidebar,
+#pa_lineup_canvas_container.fullscreen-mode .canvas-top-sidebar,
+#pa_lineup_canvas_container.fullscreen-mode .component-palette {
+  position: fixed;
+}
+
+/* ============================================================ */
+/* Icon Button Groups - Horizontal Compact Layout             */
+/* ============================================================ */
+
+.icon-button-group {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 8px;
+  justify-content: center;
+}
+
+.btn-icon {
+  width: 40px !important;
+  height: 40px !important;
+  padding: 8px !important;
+  font-size: 16px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.btn-icon i {
+  margin: 0 !important;
+}
+
+.btn-icon:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s;
+}
+
+/* Selection box styling */
+.selection-box {
+  position: absolute;
+  border: 2px dashed #ff7f11;
+  background: rgba(255, 127, 17, 0.1);
+  pointer-events: none;
+  z-index: 1000;
+}
+/* ============================================================ */
+/* Lower Sidebar - Hide/Hover Functionality                    */
+/* ============================================================ */
+
+.canvas-lower-sidebar {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(calc(100% - 10px));
+  background: rgba(44, 62, 80, 0.95);
+  padding: 12px 25px;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.canvas-lower-sidebar:hover {
+  transform: translateX(-50%) translateY(0);
+}
+
+.canvas-lower-sidebar .btn {
+  transition: all 0.2s ease;
+}
+
+.canvas-lower-sidebar .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================================
+   TEXT VISIBILITY — dark skin fixes
+   shinydashboard skin-black uses very dark backgrounds;
+   these overrides ensure labels, inputs, and tab text remain
+   readable on #1b1b1b / #0b0b0b box backgrounds.
+   ============================================================ */
+
+/* Input labels */
+.control-label,
+.shiny-input-container label,
+.shiny-input-container .checkbox label,
+.shiny-input-container .radio label {
+  color: #e0e0e0 !important;
+}
+
+/* Text/number/select form inputs */
+.form-control {
+  color: #ddd;
+  background-color: #2c2c2c;
+  border-color: #444;
+}
+.form-control:focus {
+  color: #fff;
+  background-color: #333;
+  border-color: #ff7f11;
+}
+
+/* Select2 / selectize */
+.selectize-input {
+  color: #ddd !important;
+  background: #2c2c2c !important;
+  border-color: #444 !important;
+}
+.selectize-dropdown,
+.selectize-dropdown-content {
+  color: #ddd;
+  background: #2c2c2c;
+}
+.selectize-dropdown .option.selected,
+.selectize-dropdown .option:hover {
+  background: #3a3a3a;
+  color: #fff;
+}
+
+/* Box headers */
+.box .box-header .box-title,
+.box .box-header h3.box-title {
+  color: #ffffff !important;
+}
+
+/* Nav tabs inside boxes (sub-tabs) */
+.nav-tabs > li > a {
+  color: #bbb;
+  background-color: #1a1a1a;
+  border-color: #333;
+}
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:focus,
+.nav-tabs > li.active > a:hover {
+  color: #fff !important;
+  background-color: #252525;
+  border-color: #ff7f11 #333 transparent;
+}
+.nav-tabs > li > a:hover {
+  color: #fff;
+  background-color: #222;
+}
+
+/* Tab content pane text */
+.tab-content,
+.tab-pane {
+  color: #e0e0e0;
+}
+
+/* Well / callout boxes */
+.well {
+  background-color: #1e1e1e;
+  border-color: #333;
+  color: #ddd;
+}
+
+/* Small helper text / paragraph text inside boxes */
+.box-body p,
+.box-body small,
+.box-body .text-muted {
+  color: #aaa !important;
+}
+
+/* Checkbox / radio inline text */
+.checkbox-inline label,
+.radio-inline label {
+  color: #ddd;
+}
+
+/* DT DataTables on dark background */
+.dataTables_wrapper,
+.dataTables_info,
+.dataTables_paginate,
+.dataTables_length label,
+.dataTables_filter label {
+  color: #ccc !important;
+}
+table.dataTable thead th,
+table.dataTable thead td {
+  color: #fff;
+  background-color: #1e1e1e;
+  border-bottom: 1px solid #444;
+}
+table.dataTable tbody tr {
+  background-color: #1b1b1b;
+  color: #ddd;
+}
+table.dataTable tbody tr:nth-child(even) {
+  background-color: #222;
+}
+table.dataTable tbody tr:hover {
+  background-color: #2a2a2a !important;
+  color: #fff !important;
+}
+.dataTables_paginate .paginate_button {
+  color: #bbb !important;
+}
+.dataTables_paginate .paginate_button.current {
+  color: #fff !important;
+  background: #333 !important;
+  border-color: #555 !important;
+}
+
+/* Shiny notifications */
+.shiny-notification {
+  background-color: #222;
+  color: #e0e0e0;
+  border-left: 4px solid #ff7f11;
+}
+.shiny-notification-message {
+  background-color: #1a2a1a;
+  border-left-color: #27ae60;
+}
+
+/* numericInput/textInput placeholder text */
+input::placeholder,
+textarea::placeholder {
+  color: #666 !important;
+}
+
+/* ============================================================
+   DARK THEME BASELINE
+   Bootstrap sets body { color: #333 } which is near-invisible
+   on the dark #0b0b0b / #1b1b1b box backgrounds.
+   These rules restore readable text for all un-styled elements.
+   ============================================================ */
+body {
+  color: #e0e0e0;
+}
+h1, h2, h3, h4, h5, h6 {
+  color: #f0f0f0;
+}
+p, li {
+  color: inherit;
+}
+/* Any heading or paragraph directly inside a tab pane */
+.tab-pane h2, .tab-pane h3, .tab-pane h4,
+.tab-content h2, .tab-content h3, .tab-content h4 {
+  color: #f0f0f0;
+}
+/* Slider labels */
+.irs-single, .irs-from, .irs-to, .irs-min, .irs-max {
+  color: #ddd;
+  background: #333;
+}
+.irs-bar { background: #ff7f11; border-top-color: #ff7f11; border-bottom-color: #ff7f11; }
+/* infoBox / valueBox text */
+.info-box-text, .info-box-number { color: #fff; }
+/* sidebar labels */
+.sidebar-menu > li > a { color: #c8c8c8; }
+.sidebar-menu > li.active > a { color: #fff; }
+
+/* ============================================================
+   LIGHT THEME  (applied when: body.theme-light)
+   Sidebar stays dark, content area flips to light.
+   ============================================================ */
+body.theme-light {
+  color: #1a1a1a;
+}
+body.theme-light .content-wrapper {
+  background-color: #f0f2f5 !important;
+  color: #1a1a1a !important;
+}
+/* Keep header/sidebar dark for clear navigation contrast */
+body.theme-light.skin-black .main-header .logo,
+body.theme-light.skin-black .main-header .navbar {
+  background-color: #2c3e50 !important;
+}
+body.theme-light .box {
+  background-color: #ffffff !important;
+  border-top-color: #c05200 !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+body.theme-light .box .box-header {
+  background-color: #f7f7f7 !important;
+}
+body.theme-light .box .box-header h3,
+body.theme-light .box .box-header .box-title {
+  color: #222 !important;
+}
+body.theme-light h1, body.theme-light h2,
+body.theme-light h3, body.theme-light h4,
+body.theme-light h5, body.theme-light h6 {
+  color: #1a1a1a !important;
+}
+body.theme-light p,
+body.theme-light li,
+body.theme-light span,
+body.theme-light .tab-pane,
+body.theme-light .tab-content {
+  color: #1a1a1a !important;
+}
+body.theme-light .control-label,
+body.theme-light .shiny-input-container label {
+  color: #222 !important;
+}
+body.theme-light .form-control {
+  color: #1a1a1a !important;
+  background-color: #fff !important;
+  border-color: #bbb !important;
+}
+body.theme-light .form-control:focus {
+  color: #000 !important;
+  background-color: #fff !important;
+  border-color: #c05200 !important;
+}
+body.theme-light .selectize-input {
+  color: #1a1a1a !important;
+  background: #fff !important;
+  border-color: #bbb !important;
+}
+body.theme-light .selectize-dropdown,
+body.theme-light .selectize-dropdown-content {
+  color: #1a1a1a !important;
+  background: #fff !important;
+}
+body.theme-light .selectize-dropdown .option:hover,
+body.theme-light .selectize-dropdown .option.selected {
+  background: #eef4ff !important;
+  color: #000 !important;
+}
+body.theme-light .nav-tabs > li > a {
+  color: #555 !important;
+  background-color: #dde0e5 !important;
+  border-color: #bbb !important;
+}
+body.theme-light .nav-tabs > li.active > a,
+body.theme-light .nav-tabs > li.active > a:focus,
+body.theme-light .nav-tabs > li.active > a:hover {
+  color: #1a1a1a !important;
+  background-color: #fff !important;
+  border-top-color: #c05200 !important;
+}
+body.theme-light .nav-tabs > li > a:hover {
+  color: #111 !important;
+  background-color: #e8eaed !important;
+}
+body.theme-light .well {
+  background-color: #e8eaed !important;
+  border-color: #ccc !important;
+  color: #1a1a1a !important;
+}
+body.theme-light .box-body p,
+body.theme-light .box-body small,
+body.theme-light .box-body .text-muted {
+  color: #555 !important;
+}
+body.theme-light .checkbox-inline label,
+body.theme-light .radio-inline label,
+body.theme-light .shiny-input-container .checkbox label,
+body.theme-light .shiny-input-container .radio label {
+  color: #222 !important;
+}
+body.theme-light table.dataTable thead th,
+body.theme-light table.dataTable thead td {
+  background-color: #e4e7ec !important;
+  color: #1a1a1a !important;
+  border-bottom-color: #bbb !important;
+}
+body.theme-light table.dataTable tbody tr {
+  background-color: #fff !important;
+  color: #1a1a1a !important;
+}
+body.theme-light table.dataTable tbody tr:nth-child(even) {
+  background-color: #f4f6f9 !important;
+}
+body.theme-light table.dataTable tbody tr:hover {
+  background-color: #dceeff !important;
+  color: #000 !important;
+}
+body.theme-light .dataTables_wrapper,
+body.theme-light .dataTables_info,
+body.theme-light .dataTables_paginate,
+body.theme-light .dataTables_length label,
+body.theme-light .dataTables_filter label {
+  color: #333 !important;
+}
+body.theme-light .dataTables_paginate .paginate_button {
+  color: #555 !important;
+}
+body.theme-light .btn-primary {
+  background-color: #c05200 !important;
+  border-color: #c05200 !important;
+  color: #fff !important;
+}
+body.theme-light .btn-primary:hover {
+  background-color: #983f00 !important;
+  border-color: #983f00 !important;
+}
+body.theme-light .shiny-notification {
+  background-color: #fff;
+  color: #1a1a1a;
+  border-left-color: #c05200;
+}
+body.theme-light .irs-single,
+body.theme-light .irs-from,
+body.theme-light .irs-to,
+body.theme-light .irs-min,
+body.theme-light .irs-max {
+  color: #222;
+  background: #dde0e5;
+}
+body.theme-light .irs-bar {
+  background: #c05200;
+  border-top-color: #c05200;
+  border-bottom-color: #c05200;
+}
+
+/* ============================================================
+   COLORBLIND-FRIENDLY THEME  (body.theme-colorblind)
+   Keeps the dark base but replaces orange/red/green signals
+   with a blue–amber palette safe for deuteranopia/protanopia.
+   ============================================================ */
+body.theme-colorblind .box {
+  border-top-color: #0099cc !important;
+}
+body.theme-colorblind .btn-primary {
+  background-color: #0077bb !important;
+  border-color: #0077bb !important;
+}
+body.theme-colorblind .btn-primary:hover {
+  background-color: #005a8a !important;
+  border-color: #005a8a !important;
+}
+body.theme-colorblind .btn-success {
+  background-color: #009988 !important;
+  border-color: #009988 !important;
+}
+body.theme-colorblind .nav-tabs > li.active > a,
+body.theme-colorblind .nav-tabs > li.active > a:focus {
+  border-top-color: #0099cc !important;
+}
+body.theme-colorblind .irs-bar {
+  background: #0099cc;
+  border-top-color: #0099cc;
+  border-bottom-color: #0099cc;
+}
+body.theme-colorblind .shiny-notification {
+  border-left-color: #0099cc !important;
+}
+body.theme-colorblind .sidebar-section-title {
+  color: #0099cc !important;
+}
+body.theme-colorblind .canvas-sidebar {
+  border-left-color: #0099cc !important;
+}
+body.theme-colorblind .sidebar-toggle,
+body.theme-colorblind .top-sidebar-toggle {
+  background: #0099cc !important;
+}
+body.theme-colorblind .sidebar-toggle:hover,
+body.theme-colorblind .top-sidebar-toggle:hover {
+  background: #007aa3 !important;
+}
+/* Replace the orange star marker text in descriptions */
+body.theme-colorblind .stuck {
+  box-shadow: 0 4px 20px rgba(0, 153, 204, 0.3);
+  border-bottom: 2px solid rgba(0, 153, 204, 0.5);
+}
+

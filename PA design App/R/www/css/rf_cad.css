@@ -1,0 +1,963 @@
+/* ============================================================
+ * RF CAD Tool — Dark Theme Stylesheet
+ * Phase 1: 2D Layout Canvas
+ * Matches the PA Design App dark skin (shinydashboard black).
+ * ============================================================ */
+
+/* ── Root variables ────────────────────────────────────────── */
+:root {
+  --rfcad-bg-dark:    #0f0f1a;
+  --rfcad-bg-medium:  #15151f;
+  --rfcad-bg-panel:   #1a1a2e;
+  --rfcad-bg-card:    #1e1e30;
+  --rfcad-border:     #2a2a44;
+  --rfcad-border-hi:  #3a3a5a;
+  --rfcad-text:       #d0d0e8;
+  --rfcad-text-dim:   #8888aa;
+  --rfcad-accent:     #c8a84b;
+  --rfcad-accent2:    #7b9fc7;
+  --rfcad-sel:        #f5c518;
+  --rfcad-port:       #ff6b6b;
+  --rfcad-success:    #4caf72;
+  --rfcad-warning:    #e6a817;
+  --rfcad-danger:     #e05050;
+  /* Toolbar row height (compact) */
+  --rfcad-tb-row-h:   34px;
+  --rfcad-palette-w:  120px;
+  --rfcad-props-w:    240px;
+  --rfcad-status-h:   24px;
+}
+
+/* ── Outer wrapper (carries rfcad-expanded class) ───────────── */
+.rfcad-outer {
+  display: block;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Expand mode: float over sidebar taking 95vw */
+.rfcad-outer.rfcad-expanded {
+  position: fixed;
+  top: 0;
+  left: 2.5vw;
+  width: 95vw;
+  height: 100vh;
+  z-index: 9000;
+  background: var(--rfcad-bg-dark);
+  box-shadow: 0 0 0 100vw rgba(0,0,0,0.6);
+}
+.rfcad-outer.rfcad-expanded .rfcad-app-wrapper {
+  height: 100vh !important;
+}
+
+/* ── Full-page standalone wrapper ──────────────────────────── */
+.rfcad-app-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--rfcad-bg-dark);
+  color: var(--rfcad-text);
+  font-family: 'Roboto', 'Segoe UI', sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * MULTI-ROW TOOLBAR BAND
+ * ═══════════════════════════════════════════════════════════════ */
+.rfcad-tb-band {
+  display: flex;
+  flex-direction: column;
+  background: var(--rfcad-bg-panel);
+  border-bottom: 2px solid var(--rfcad-border);
+  flex-shrink: 0;
+}
+
+/* Each row */
+.rfcad-tb-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  height: var(--rfcad-tb-row-h);
+  border-bottom: 1px solid var(--rfcad-border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rfcad-border-hi) transparent;
+}
+.rfcad-tb-row:last-child { border-bottom: none; }
+.rfcad-tb-row::-webkit-scrollbar { height: 3px; }
+.rfcad-tb-row::-webkit-scrollbar-thumb { background: var(--rfcad-border-hi); }
+
+/* Row group label (left-aligned, monospace caps) */
+.rfcad-tb-group-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--rfcad-accent);
+  opacity: 0.7;
+  white-space: nowrap;
+  min-width: 52px;
+  padding-right: 4px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* Separator */
+.rfcad-tb-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--rfcad-border-hi);
+  margin: 0 3px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* ── Toolbar button ────────────────────────────────────────── */
+.rfcad-tb-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 28px;
+  padding: 0 5px;
+  gap: 1px;
+  border: 1px solid var(--rfcad-border);
+  border-radius: 4px;
+  background: var(--rfcad-bg-card);
+  color: var(--rfcad-text-dim);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  line-height: 1;
+}
+.rfcad-tb-btn:hover {
+  background: var(--rfcad-bg-medium);
+  border-color: var(--rfcad-border-hi);
+  color: var(--rfcad-text);
+}
+.rfcad-tb-btn.active {
+  background: rgba(200,168,75,0.18);
+  border-color: var(--rfcad-accent);
+  color: var(--rfcad-accent);
+}
+.rfcad-tb-icon  { font-size: 13px; line-height: 1; }
+.rfcad-tb-label { font-size: 8px;  line-height: 1; color: inherit; }
+
+/* Inline grid/snap controls inside toolbar row */
+.rfcad-tb-inline-label {
+  font-size: 10px;
+  color: var(--rfcad-text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+.rfcad-tb-select {
+  height: 24px;
+  padding: 0 4px;
+  font-size: 10px;
+  background: var(--rfcad-bg-card);
+  border: 1px solid var(--rfcad-border);
+  border-radius: 4px;
+  color: var(--rfcad-text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.rfcad-tb-snap-label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--rfcad-text-dim);
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+.rfcad-tb-snap-label input[type='checkbox'] {
+  accent-color: var(--rfcad-accent);
+  width: 12px; height: 12px;
+}
+
+/* Keep the old single-row toolbar classes working (backwards compat) */
+.rfcad-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  height: 46px;
+  min-height: 46px;
+  background: var(--rfcad-bg-panel);
+  border-bottom: 1px solid var(--rfcad-border);
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.rfcad-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+}
+.rfcad-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+.rfcad-toolbar-sep {
+  width: 1px;
+  height: 26px;
+  background: var(--rfcad-border-hi);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+.rfcad-toolbar-group { display: flex; align-items: center; gap: 3px; }
+
+/* Existing single-row button styles (kept) */
+.rfcad-tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 38px;
+  padding: 2px 4px;
+  border: 1px solid var(--rfcad-border);
+  border-radius: 4px;
+  background: var(--rfcad-bg-card);
+  color: var(--rfcad-text);      /* brighter — was text-dim */
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  user-select: none;
+  line-height: 1.1;
+  gap: 1px;
+}
+.rfcad-tool-btn:hover {
+  background: var(--rfcad-bg-medium);
+  border-color: var(--rfcad-border-hi);
+  color: var(--rfcad-text);
+}
+.rfcad-tool-btn.active {
+  background: rgba(200, 168, 75, 0.18);
+  border-color: var(--rfcad-accent);
+  color: var(--rfcad-accent);
+}
+
+/* Schematic / symbol-mode button — teal accent when active */
+.rfcad-tool-btn[data-tool="schematic"].active {
+  background: rgba(0, 188, 212, 0.18);
+  border-color: #00bcd4;
+  color: #00bcd4;
+  box-shadow: 0 0 6px rgba(0, 188, 212, 0.45);
+}
+
+/* Banner badge shown when symbol mode is on */
+.rfcad-symbol-mode-badge {
+  display: none;
+  position: absolute;
+  top: 3px; right: 6px;
+  background: #00bcd4;
+  color: #000;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  z-index: 10;
+}
+.rfcad-symbol-mode-on .rfcad-symbol-mode-badge {
+  display: inline-block;
+}
+
+/* Drawing hint row in status bar */
+.rfcad-status-hint {
+  color: #80deea;
+  font-style: italic;
+  font-size: 10px;
+  margin-left: 8px;
+}
+.rfcad-ctrl-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid var(--rfcad-border);
+  border-radius: 4px;
+  background: var(--rfcad-bg-card);
+  color: var(--rfcad-text);    /* brighter — was text-dim */
+  cursor: pointer;
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.rfcad-ctrl-btn:hover {
+  background: var(--rfcad-bg-medium);
+  color: var(--rfcad-text);
+  border-color: var(--rfcad-border-hi);
+}
+.rfcad-select-sm {
+  height: 26px; padding: 0 4px;
+  background: var(--rfcad-bg-card);
+  border: 1px solid var(--rfcad-border);
+  border-radius: 4px;
+  color: var(--rfcad-text); font-size: 11px;
+  cursor: pointer;
+}
+.rfcad-snap-label {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 11px; color: var(--rfcad-text-dim);
+  cursor: pointer; user-select: none;
+}
+
+/* ── Main body: palette | canvas | properties ───────────────── */
+.rfcad-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Component palette (left sidebar) ──────────────────────── */
+.rfcad-palette {
+  width: var(--rfcad-palette-w);
+  min-width: var(--rfcad-palette-w);
+  background: var(--rfcad-bg-panel);
+  border-right: 1px solid var(--rfcad-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+}
+
+.rfcad-palette-header {
+  padding: 8px 6px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--rfcad-text-dim);
+  border-bottom: 1px solid var(--rfcad-border);
+  flex-shrink: 0;
+}
+
+.rfcad-palette-group-label {
+  padding: 6px 6px 2px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--rfcad-accent);
+  opacity: 0.7;
+}
+
+.rfcad-palette-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: auto;          /* grid controls width */
+  margin: 0;
+  padding: 5px 2px;
+  background: var(--rfcad-bg-card);
+  border: 1px solid var(--rfcad-border);
+  border-radius: 5px;
+  color: var(--rfcad-text);   /* brighter — was text-dim */
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 500;
+  text-align: center;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  user-select: none;
+  gap: 2px;
+  line-height: 1.2;
+}
+
+.rfcad-palette-btn:hover {
+  background: var(--rfcad-bg-medium);
+  border-color: var(--rfcad-accent);
+  color: var(--rfcad-accent);
+}
+
+.rfcad-palette-btn.active {
+  background: rgba(200, 168, 75, 0.15);
+  border-color: var(--rfcad-accent);
+  color: var(--rfcad-accent);
+}
+
+.rfcad-palette-btn .palette-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.rfcad-palette-btn .palette-label {
+  font-size: 9px;
+  line-height: 1;
+  word-break: break-word;
+}
+
+/* Inline SVG icons for component shapes */
+.rfcad-icon-ms    { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 12'%3E%3Crect x='0' y='3' width='40' height='6' fill='%23c8a84b' rx='1'/%3E%3C/svg%3E") center/contain no-repeat; height: 24px; width: 36px; }
+.rfcad-icon-bend  { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='0' y='9' width='15' height='6' fill='%23c8a84b'/%3E%3Crect x='9' y='0' width='6' height='15' fill='%23c8a84b'/%3E%3C/svg%3E") center/contain no-repeat; height: 24px; width: 24px; }
+.rfcad-icon-tee   { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='0' y='9' width='24' height='6' fill='%23c8a84b'/%3E%3Crect x='9' y='0' width='6' height='14' fill='%23c8a84b'/%3E%3C/svg%3E") center/contain no-repeat; height: 24px; width: 24px; }
+.rfcad-icon-cpl   { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 16'%3E%3Crect x='0' y='0' width='40' height='5' fill='%23c8a84b' rx='1'/%3E%3Crect x='0' y='11' width='40' height='5' fill='%237b9fc7' rx='1'/%3E%3C/svg%3E") center/contain no-repeat; height: 24px; width: 36px; }
+.rfcad-icon-via   { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='8' fill='%23c8a84b'/%3E%3Ccircle cx='10' cy='10' r='4' fill='%23888'/%3E%3Ccircle cx='10' cy='10' r='2' fill='%23111'/%3E%3C/svg%3E") center/contain no-repeat; height: 24px; width: 24px; }
+.rfcad-icon-port  { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 16'%3E%3Cpolygon points='8,2 0,8 8,14' fill='%23ff6b6b'/%3E%3Crect x='8' y='6' width='16' height='4' fill='%23c8a84b'/%3E%3C/svg%3E") center/contain no-repeat; height: 24px; width: 24px; }
+
+/* ── Palette 2-column grid ───────────────────────────────── */
+.rfcad-palette-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 4px;
+}
+
+/* ── Canvas area ────────────────────────────────────────────── */
+.rfcad-canvas-wrapper {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: var(--rfcad-bg-dark);
+}
+
+#rfcad_canvas,
+[id^="rfcad_canvas_"],
+.rfcad-canvas-container {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--rfcad-bg-dark);
+}
+
+/* Crosshair cursor when a placement tool is active */
+.rfcad-canvas-wrapper.tool-active {
+  cursor: crosshair;
+}
+
+/* Draw-mode indicator overlay */
+.rfcad-draw-indicator {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(245, 197, 24, 0.18);
+  border: 1px solid var(--rfcad-sel);
+  color: var(--rfcad-sel);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 12px;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 10;
+  display: none;
+}
+.rfcad-draw-indicator.visible { display: block; }
+
+/* ── Properties panel (right sidebar) ───────────────────────── */
+.rfcad-properties {
+  width: var(--rfcad-props-w);
+  min-width: var(--rfcad-props-w);
+  max-width: var(--rfcad-props-w);
+  background: var(--rfcad-bg-panel);
+  border-left: 1px solid var(--rfcad-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+}
+
+.rfcad-panel-header {
+  padding: 8px 10px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--rfcad-accent);
+  border-bottom: 1px solid var(--rfcad-border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rfcad-panel-section {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--rfcad-border);
+}
+
+.rfcad-panel-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--rfcad-text-dim);
+  margin-bottom: 6px;
+}
+
+.rfcad-prop-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.rfcad-prop-label {
+  width: 72px;
+  min-width: 72px;
+  font-size: 11px;
+  color: var(--rfcad-text-dim);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.rfcad-prop-input {
+  flex: 1;
+  height: 26px;
+  padding: 0 6px;
+  background: var(--rfcad-bg-card);
+  border: 1px solid var(--rfcad-border);
+  border-radius: 4px;
+  color: var(--rfcad-text);
+  font-size: 12px;
+  outline: none;
+  min-width: 0;
+}
+.rfcad-prop-input:focus {
+  border-color: var(--rfcad-accent);
+  background: var(--rfcad-bg-dark);
+}
+
+.rfcad-prop-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.rfcad-prop-input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+.rfcad-prop-unit {
+  font-size: 10px;
+  color: var(--rfcad-text-dim);
+  min-width: 24px;
+  flex-shrink: 0;
+}
+
+/* No component selected state */
+.rfcad-no-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 8px;
+  color: var(--rfcad-text-dim);
+  text-align: center;
+  padding: 20px 10px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+.rfcad-no-selection i { font-size: 32px; }
+
+/* ── Substrate panel ─────────────────────────────────────────── */
+.rfcad-substrate-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rfcad-stack-preview {
+  margin: 6px 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.rfcad-stack-layer {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 4px;
+  letter-spacing: 0.4px;
+}
+.rfcad-stack-metal   { background: #3a2e10; color: #c8a84b; }
+.rfcad-stack-sub     { background: #1a2e1a; color: #88cc88; }
+.rfcad-stack-ground  { background: #2a2a2a; color: #aaaaaa; }
+
+/* ── Status bar ──────────────────────────────────────────────── */
+.rfcad-statusbar {
+  height: var(--rfcad-status-h);
+  min-height: var(--rfcad-status-h);
+  background: var(--rfcad-bg-panel);
+  border-top: 1px solid var(--rfcad-border);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--rfcad-text-dim);
+  font-family: 'Roboto Mono', monospace;
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.rfcad-statusbar-sep   { color: var(--rfcad-border-hi); padding: 0 1px; }
+.rfcad-statusbar-tool  { color: var(--rfcad-sel); font-weight: 600; }
+.rfcad-statusbar-layer { color: var(--rfcad-accent); }
+.rfcad-statusbar-coords{ color: var(--rfcad-text); font-family: inherit; }
+.rfcad-statusbar-info  { color: var(--rfcad-text-dim); flex: 1; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Shiny integration overrides ─────────────────────────────── */
+/* When embedded inside utility drawer */
+.drawer-content .rfcad-app-wrapper {
+  height: 100%;
+  min-height: 480px;
+}
+
+/* Responsive: hide properties panel label when narrow */
+@media (max-width: 900px) {
+  :root { --rfcad-props-w: 200px; }
+}
+@media (max-width: 700px) {
+  .rfcad-properties { display: none; }
+}
+@media (max-width: 500px) {
+  .rfcad-palette { display: none; }
+}
+
+/* ── Scrollbar styling ────────────────────────────────────────── */
+.rfcad-palette::-webkit-scrollbar,
+.rfcad-properties::-webkit-scrollbar {
+  width: 4px;
+}
+.rfcad-palette::-webkit-scrollbar-thumb,
+.rfcad-properties::-webkit-scrollbar-thumb {
+  background: var(--rfcad-border-hi);
+  border-radius: 2px;
+}
+
+/* ── Utility ─────────────────────────────────────────────────── */
+.rfcad-badge {
+  display: inline-block;
+  padding: 1px 5px;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 4px;
+  background: rgba(200, 168, 75, 0.2);
+  color: var(--rfcad-accent);
+  border: 1px solid rgba(200, 168, 75, 0.35);
+}
+
+.rfcad-hint {
+  font-size: 10px;
+  color: var(--rfcad-text-dim);
+  font-style: italic;
+  padding: 4px 0 0 0;
+}
+
+/* ── Keyboard shortcut hints ─────────────────────────────────── */
+.rfcad-kbd {
+  display: inline-block;
+  padding: 0 4px;
+  background: var(--rfcad-bg-card);
+  border: 1px solid var(--rfcad-border-hi);
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--rfcad-text-dim);
+  line-height: 1.5;
+}
+
+/* ── Phase 2: RF Params Display ────────────────────────────────── */
+.rfcad-rf-params-wrapper {
+  padding: 4px 0 0 0;
+  border-top: 1px solid var(--rfcad-border);
+  margin-top: 4px;
+  min-height: 20px;
+}
+
+.rfcad-rf-section {
+  padding: 4px 8px 2px 8px;
+}
+
+.rfcad-rf-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--rfcad-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 3px;
+}
+
+.rfcad-rf-row {
+  display: flex;
+  align-items: baseline;
+  padding: 1px 0;
+  line-height: 1.35;
+}
+
+.rfcad-rf-label {
+  width: 70px;
+  min-width: 70px;
+  font-size: 10px;
+  color: var(--rfcad-text-dim);
+}
+
+.rfcad-rf-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rfcad-text);
+  font-family: monospace;
+}
+
+.rfcad-rf-value.rfcad-warn   { color: #e09060; }
+.rfcad-rf-value.rfcad-accent { color: var(--rfcad-accent); }
+
+.rfcad-rf-unit {
+  font-size: 9px;
+  color: var(--rfcad-text-dim);
+  margin-left: 2px;
+  font-weight: 400;
+}
+
+.rfcad-rf-placeholder {
+  font-size: 10px;
+  color: #555;
+  font-style: italic;
+  padding: 4px 8px;
+}
+
+/* ── Phase 4: Compact property tabs + layer indicators ─────── */
+.rfcad-properties .nav-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 4px 6px 2px 6px;
+  padding: 0;
+}
+.rfcad-properties .nav-pills > li { margin: 0; }
+.rfcad-properties .nav-pills > li > a {
+  padding: 2px 9px;
+  font-size: 10px;
+  line-height: 1.6;
+  border-radius: 3px;
+  color: var(--rfcad-text-dim);
+  background: var(--rfcad-bg-card);
+  border: 1px solid var(--rfcad-border);
+  transition: background 0.15s, color 0.15s;
+}
+.rfcad-properties .nav-pills > li > a:hover {
+  background: var(--rfcad-border-hi);
+  color: var(--rfcad-text);
+}
+.rfcad-properties .nav-pills > li.active > a,
+.rfcad-properties .nav-pills > li.active > a:hover,
+.rfcad-properties .nav-pills > li.active > a:focus {
+  background: var(--rfcad-accent);
+  color: #1a1400;
+  border-color: var(--rfcad-accent);
+}
+.rfcad-properties .tab-content { padding: 0; }
+.rfcad-properties .tab-pane    { padding: 0; }
+
+/* Layer swatch in select option (visual cue via CSS — select text colour) */
+.rfcad-properties .selectize-input,
+.rfcad-properties select {
+  font-size: 10px;
+}
+
+/* Miter checkbox row */
+.rfcad-properties .checkbox { margin: 2px 0; font-size: 10px; color: var(--rfcad-text-dim); }
+.rfcad-properties .checkbox label { font-size: 10px; }
+
+/* Material override panel */
+.rfcad-mat-note {
+  font-size: 9px;
+  color: var(--rfcad-text-dim);
+  font-style: italic;
+  padding: 2px 8px 4px 8px;
+}
+
+/* ─── 3D viewer ─────────────────────────────────────────────────────────── */
+.rfcad-3d-container {
+  width: 100%;
+  height: 100%;
+  background: #0d0d1e;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* 3D toggle button active state */
+.rfcad-ctrl-btn.rfcad-btn-3d.active {
+  background: var(--rfcad-accent, #00bcd4);
+  color: #000;
+  border-color: var(--rfcad-accent, #00bcd4);
+}
+
+/* Ruler tool button active state */
+.rfcad-ctrl-btn.rfcad-btn-ruler.active {
+  background: #00e5ff;
+  color: #000;
+  border-color: #00e5ff;
+}
+
+/* Active layer badge in properties panel header */
+.rfcad-active-layer-badge {
+  display: inline-block;
+  margin-left: auto;
+  padding: 1px 7px;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * LAYER PANEL (floating)
+ * ═══════════════════════════════════════════════════════════════ */
+.rfcad-layer-panel {
+  position: absolute;
+  top: 8px;
+  right: calc(var(--rfcad-props-w) + 12px);
+  z-index: 500;
+  width: 210px;
+  background: var(--rfcad-bg-panel);
+  border: 1px solid var(--rfcad-border-hi);
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+  overflow: hidden;
+  user-select: none;
+}
+.rfcad-layer-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--rfcad-bg-card);
+  border-bottom: 1px solid var(--rfcad-border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rfcad-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.rfcad-layer-panel-close {
+  background: none;
+  border: none;
+  color: var(--rfcad-text-dim);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.rfcad-layer-panel-close:hover { color: var(--rfcad-danger); }
+
+.rfcad-layer-list { padding: 4px 0; }
+
+.rfcad-layer-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  transition: background 0.1s;
+}
+.rfcad-layer-row:hover { background: rgba(255,255,255,0.04); }
+
+/* Eye button */
+.rfcad-layer-eye,
+.rfcad-layer-lock {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--rfcad-border-hi);
+  cursor: pointer;
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.12s, border-color 0.12s;
+}
+.rfcad-layer-eye:hover,
+.rfcad-layer-lock:hover { border-color: var(--rfcad-border-hi); }
+.rfcad-layer-eye.active  { color: var(--rfcad-text); }
+.rfcad-layer-lock.active { color: var(--rfcad-warning); }
+
+/* Color swatch */
+.rfcad-layer-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* Layer name button */
+.rfcad-layer-name {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--rfcad-text-dim);
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: color 0.12s, background 0.12s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rfcad-layer-name:hover  { color: var(--rfcad-text); background: rgba(255,255,255,0.05); }
+.rfcad-layer-name.active { color: var(--rfcad-accent); font-weight: 600; }
+
+/* ─── Export dropdown ───────────────────────────────────────────────────── */
+.rfcad-export-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.rfcad-export-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 9999;
+  min-width: 160px;
+  background: #1e1e2e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  padding: 4px 0;
+}
+
+.rfcad-export-item {
+  display: block;
+  padding: 6px 14px;
+  font-size: 11px;
+  color: var(--rfcad-text, #c8c8d8);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.rfcad-export-item:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  text-decoration: none;
+}

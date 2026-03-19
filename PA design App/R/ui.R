@@ -105,6 +105,7 @@ ui <- dashboardPage(
       tags$script(src = "js/pa_lineup_canvas.js"),
       tags$script(src = "js/utility_drawer.js"),
       tags$script(src = "js/standalone.js"),
+      tags$script(src = "js/lp_sidebar_toggle.js"),
       tags$style(HTML("
         /* Hardcoded fallbacks removed — all theming now in custom.css */
       ")),

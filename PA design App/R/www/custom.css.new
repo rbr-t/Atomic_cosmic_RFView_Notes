@@ -170,31 +170,6 @@ code            { font-family: var(--font-mono); font-size: 0.9em;
 .skin-black .main-sidebar {
   background-color: var(--s-nav) !important;
   border-right: 1px solid var(--bdr-sub) !important;
-  width: 218px !important;   /* 5% narrower than AdminLTE default 230 px */
-}
-
-/* Compensate content wrapper for narrower sidebar */
-.content-wrapper,
-.main-footer {
-  margin-left: 218px !important;
-}
-.skin-black .main-header .navbar {
-  margin-left: 218px !important;
-}
-
-/* ── When main nav-sidebar is collapsed (icon-only), let content fill the freed space ── */
-body.sidebar-collapse .content-wrapper,
-body.sidebar-collapse .main-footer {
-  margin-left: 50px !important;
-}
-body.sidebar-collapse .main-header .navbar {
-  margin-left: 50px !important;
-}
-
-/* AdminLTE .wrapper default has overflow-x:hidden which breaks position:sticky.
-   Override so the sticky canvas box can function correctly. */
-.wrapper {
-  overflow: visible !important;
 }
 
 /* All sidebar links */
@@ -238,8 +213,8 @@ body.sidebar-collapse .main-header .navbar {
   background: rgba(0, 0, 0, 0.25) !important;
 }
 .skin-black .treeview-menu > li > a {
-  padding-left: 24px !important;
-  font-size: 12px !important;
+  padding-left: 30px !important;
+  font-size: 13px;
 }
 
 /* — Content wrapper -------------------------------------------- */
@@ -375,31 +350,6 @@ body.sidebar-collapse .main-header .navbar {
 .tab-pane small,
 .tab-pane .text-muted           { color: var(--tx-med) !important; }
 
-/* AdminLTE forces background:#fff on .nav-tabs-custom > .tab-content —
-   override to keep our themed background and readable text in all modes. */
-.nav-tabs-custom {
-  background:    var(--s-card)   !important;
-  border:        1px solid var(--bdr-norm) !important;
-  border-radius: var(--r) !important;
-}
-.nav-tabs-custom > .nav-tabs {
-  background:    var(--s-raised) !important;
-  border-bottom: 1px solid var(--bdr-norm) !important;
-}
-.nav-tabs-custom > .tab-content {
-  background: var(--s-card) !important;
-  color:      var(--tx-hi)  !important;
-  padding:    10px 15px;
-}
-/* All form labels inside custom nav tabs inherit readable colour */
-.nav-tabs-custom .control-label,
-.nav-tabs-custom .shiny-input-container label,
-.nav-tabs-custom .checkbox label,
-.nav-tabs-custom .radio    label,
-.nav-tabs-custom .radio-inline label {
-  color: var(--tx-hi) !important;
-}
-
 
 /* ================================================================
    6.  FORM ELEMENTS
@@ -464,7 +414,6 @@ textarea::placeholder {
   color:            var(--tx-hi)   !important;
   border:           1px solid var(--bdr-norm) !important;
   border-radius:    0 0 var(--r-sm) var(--r-sm) !important;
-  z-index:          9999 !important;
 }
 .selectize-dropdown .option {
   color:      var(--tx-hi) !important;
@@ -667,40 +616,6 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 
 
 /* ================================================================
-   9b. DARK-MODE — THEME-AGNOSTIC INLINE BACKGROUNDS
-   Override server-rendered elements that embed hard-coded light
-   colours inline.  CSS !important beats non-!important inline.
-   RGBA tints are transparent, so they read on dark AND light bgs.
-   ================================================================ */
-
-/* Calc-summary boxes (Full Power / Backoff / Total) */
-[style*="background-color: #f0f8ff"] {
-  background-color: rgba(33, 150, 243, 0.15) !important;
-}
-[style*="background-color: #fff8f0"] {
-  background-color: rgba(255, 152, 0, 0.15) !important;
-}
-[style*="background-color: #f5f5f5"] {
-  background-color: rgba(128, 128, 128, 0.12) !important;
-}
-
-/* PAE / equations section summary mini-cards */
-[style*="background:#f5fff5"] {
-  background-color: rgba(76, 175, 80, 0.15) !important;
-}
-[style*="background:#fff8f0"] {
-  background-color: rgba(255, 152, 0, 0.15) !important;
-}
-[style*="background:#fff0f0"] {
-  background-color: rgba(244, 67, 54, 0.15) !important;
-}
-
-/* Alert boxes: ensure readable */
-.alert-warning { color: var(--tx-hi) !important; }
-.alert-info    { color: var(--tx-hi) !important; }
-
-
-/* ================================================================
    10. NOTIFICATIONS
    ================================================================ */
 .shiny-notification {
@@ -744,14 +659,13 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 #sticky_canvas_box {
   position: -webkit-sticky !important;
   position:  sticky !important;
-  top:  50px !important;   /* stick below the 50 px AdminLTE navbar */
+  top:  0 !important;
   z-index: 900 !important;
   background: var(--s-card);
   transition: box-shadow 0.3s;
   margin-bottom: 20px;
   display: block;
   width: 100%;
-  /* Do NOT set overflow or max-height here — they break position:sticky */
 }
 #sticky_canvas_box.stuck {
   box-shadow: 0 4px 20px var(--accent-glow);
@@ -759,47 +673,6 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 }
 @supports not (position: sticky) {
   #sticky_canvas_box { position: relative; }
-}
-
-
-/* ================================================================
-   12b. LAYOUT — PA LINEUP COLUMN WIDTHS
-   ================================================================ */
-
-/* ── Fix position:sticky in Bootstrap 3 floated columns ─────────────────
-   Bootstrap 3 uses float:left on .col-sm-*, which prevents children from
-   using position:sticky (the float creates a block-formatting context that
-   breaks sticky lookup of the scroll container).  Convert this specific
-   row to flexbox so sticky works correctly.                              */
-.row:has(#canvas-col) {
-  display:         flex         !important;
-  flex-wrap:       nowrap       !important;
-  align-items:     flex-start   !important;
-  margin-left:    -15px;
-  margin-right:   -15px;
-}
-.row:has(#canvas-col) > [class*='col-'] {
-  float: none !important;
-  padding-left:  15px;
-  padding-right: 15px;
-}
-
-/* Canvas column (col-sm-9): reduce left padding so the canvas
-   hugs the left edge more → effectively extends ~10 px left.      */
-#canvas-col {
-  padding-left: 5px !important;
-}
-
-/* Right panel (col-sm-3): reduce left padding (shrinks the gap
-   between canvas and right panel) and widen the usable area by
-   increasing the column to ~27 %.                               */
-#right-panel-col {
-  padding-left: 6px !important;
-  width: 27% !important;
-}
-/* Compensate the canvas column width so both columns stay ≤ 100 % */
-#canvas-col {
-  width: 73% !important;
 }
 
 
@@ -878,54 +751,18 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 
 
 /* ================================================================
-   13c. RIGHT SIDEBAR — ELEMENT FIT & OVERFLOW
-   ================================================================ */
-/* Prevent any control inside the right panel from spilling outside */
-#right-panel-col .box { overflow: hidden; }
-
-#right-panel-col input[type="number"],
-#right-panel-col input[type="text"],
-#right-panel-col select,
-#right-panel-col .selectize-control,
-#right-panel-col .form-control {
-  max-width: 100% !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
-
-/* Labels in right panel: wrap instead of overflow */
-#right-panel-col label,
-#right-panel-col .control-label {
-  white-space: normal !important;
-  word-break: break-word;
-  font-size: 12px;
-}
-
-/* Numeric inputs next to buttons: use flex so they don't overflow */
-#right-panel-col .input-group {
-  display: flex !important;
-  flex-wrap: nowrap;
-  max-width: 100%;
-}
-#right-panel-col .input-group .form-control {
-  flex: 1 1 0%;
-  min-width: 0;
-}
-
-
-/* ================================================================
    14. STRUCTURAL — CANVAS TOP SIDEBAR
    ================================================================ */
 .canvas-top-sidebar {
   position: absolute;
   top: 0; left: 60px; right: 40px;
-  height: auto; max-height: 340px;     /* enough for 2+ rows of cards */
+  height: auto; max-height: 200px;
   background: rgba(18, 19, 32, 0.97);
   border-bottom: 2px solid var(--accent);
   box-shadow: var(--sd-2);
   transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
   z-index: 999;
-  overflow: hidden;                    /* columns handle their own scroll */
+  overflow-y: auto; overflow-x: hidden;
 }
 .canvas-top-sidebar.collapsed {
   transform: translateY(calc(-100% + 40px));
@@ -940,12 +777,11 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
   transform: rotate(180deg);
   transition: transform 0.3s;
 }
-/* Toggle tab — wider to fit "Templates & Devices" label */
 .top-sidebar-toggle {
   position: absolute;
   bottom: -40px; left: 50%;
   transform: translateX(-50%);
-  width: 180px; height: 40px;
+  width: 120px; height: 40px;
   background: var(--accent);
   border: none; border-radius: 0 0 8px 8px;
   color: #fff; font-size: 14px; cursor: pointer;
@@ -957,43 +793,9 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 .top-sidebar-toggle:hover { background: var(--accent-hi); }
 
 .top-sidebar-content {
-  padding: 12px 15px 10px;
+  padding: 15px 20px 10px;
+  padding-left: 10%;
 }
-
-/* Two-column layout for top sidebar — wraps on narrow screens */
-.top-sidebar-two-col {
-  display: flex;
-  flex-wrap: wrap;          /* columns stack when width is tight */
-  gap: 0;
-  align-items: flex-start;
-  height: 100%;
-}
-.top-sidebar-col {
-  flex: 1 1 220px;          /* wraps below ~440 px total */
-  min-width: 180px;
-  max-height: 290px;        /* independent scroll per column */
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 0 15px;
-  border-right: 1px solid rgba(255,255,255,0.08);
-  box-sizing: border-box;
-}
-.top-sidebar-col:last-child {
-  border-right: none;
-}
-.top-sidebar-col-devices .top-sidebar-templates {
-  /* Device column: single-column grid so cards stack vertically */
-  grid-template-columns: 1fr;
-}
-.top-sidebar-empty-hint {
-  color: var(--tx-low);
-  font-size: 12px;
-  font-style: italic;
-  text-align: center;
-  padding: 20px 10px;
-  margin: 0;
-}
-
 .top-sidebar-title {
   color: var(--accent);
   font-weight: 700;
@@ -1005,9 +807,8 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
 }
 .top-sidebar-templates {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 8px;
-  padding-bottom: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px; padding-right: 10px;
 }
 .top-sidebar-templates .preset-template {
   padding: 12px 15px;
@@ -1044,13 +845,11 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
   bottom: 0; left: 50%;
   transform: translateX(-50%) translateY(calc(100% - 10px));
   background: rgba(18, 19, 32, 0.97);
-  padding: 10px 18px;
+  padding: 12px 25px;
   border-radius: 8px 8px 0 0;
   box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.4);
   z-index: 100;
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-  justify-content: center;
-  max-width: 900px;
+  display: flex; gap: 15px; align-items: center;
   transition: transform 0.3s ease;
   cursor: pointer;
 }
@@ -1102,554 +901,4 @@ table.dataTable td { border-top: none !important; padding: 7px 10px !important; 
   background: var(--accent-tint);
   pointer-events: none;
   z-index: 1000;
-}
-
-
-/* ================================================================
-   17.  CROSS-THEME INLINE COLOUR SAFETY NET
-   CSS attribute selectors target hardcoded inline style= values so
-   all colours adapt to the active theme.
-   CSS !important in an author stylesheet beats inline styles.
-   ================================================================ */
-
-/* ── Semantic card backgrounds → CSS-variable-aware surfaces ──── */
-/* Bootstrap-style light card backgrounds (e.g. from HTML() blocks) */
-*[style*="background-color: #f8f9fa"],
-*[style*="background-color:#f8f9fa"],
-*[style*="background: #f8f9fa"]              { background-color: var(--s-raised)  !important; }
-
-*[style*="background-color: #fffbf5"],
-*[style*="background-color:#fffbf5"]          { background-color: var(--s-raised)  !important; }
-
-*[style*="background-color: #d4edda"],
-*[style*="background-color:#d4edda"]          { background-color: var(--c-ok-bg)   !important; }
-
-*[style*="background-color: #fff3cd"],
-*[style*="background-color:#fff3cd"]          { background-color: var(--c-warn-bg) !important; }
-
-*[style*="background-color: #f8d7da"],
-*[style*="background-color:#f8d7da"]          { background-color: var(--c-err-bg)  !important; }
-
-*[style*="background-color: #e7f3ff"],
-*[style*="background-color:#e7f3ff"],
-*[style*="background-color: #d1ecf1"],
-*[style*="background-color:#d1ecf1"]          { background-color: var(--c-info-bg) !important; }
-
-/* ── Background overrides PLUS explicit text for the element AND its children ── */
-/* Without setting color on children, near-white inherited text stays invisible    */
-*[style*="background-color: #f8f9fa"] *,
-*[style*="background-color:#f8f9fa"] *,
-*[style*="background: #f8f9fa"] * { color: var(--tx-hi) !important; }
-
-*[style*="background-color: #fffbf5"] *,
-*[style*="background-color:#fffbf5"] * { color: var(--tx-hi) !important; }
-
-*[style*="background-color: #d4edda"] *,
-*[style*="background-color:#d4edda"] * { color: var(--tx-hi) !important; }
-
-*[style*="background-color: #fff3cd"] *,
-*[style*="background-color:#fff3cd"] * { color: var(--tx-hi) !important; }
-
-*[style*="background-color: #f8d7da"] *,
-*[style*="background-color:#f8d7da"] * { color: var(--tx-hi) !important; }
-
-*[style*="background-color: #e7f3ff"] *,
-*[style*="background-color:#e7f3ff"] *,
-*[style*="background-color: #d1ecf1"] *,
-*[style*="background-color:#d1ecf1"] * { color: var(--tx-hi) !important; }
-
-/* Also force readable text on the container element itself */
-*[style*="background-color: #f8f9fa"],
-*[style*="background-color:#f8f9fa"],
-*[style*="background: #f8f9fa"],
-*[style*="background-color: #fffbf5"],
-*[style*="background-color: #d4edda"],
-*[style*="background-color: #fff3cd"],
-*[style*="background-color: #f8d7da"],
-*[style*="background-color: #e7f3ff"],
-*[style*="background-color: #d1ecf1"],
-*[style*="background-color: #d1ecf1"] { color: var(--tx-hi) !important; }
-
-/* ── All themes: medium-grey inline text → readable in both themes ── */
-/* Appears in HTML() blocks and R renderUI alongside light inner-div bgs */
-*[style*="color: #666"], *[style*="color:#666"],
-*[style*="color: #777"], *[style*="color:#777"],
-*[style*="color: #888"], *[style*="color:#888"],
-*[style*="color: #999"], *[style*="color:#999"] { color: var(--tx-med) !important; }
-
-/* ── Light theme: white / near-white inline text → dark readable ── */
-/* These colours are invisible on the white card backgrounds of light mode */
-body.theme-light *[style*="color: #fff"],
-body.theme-light *[style*="color:#fff"],
-body.theme-light *[style*="color: white"],
-body.theme-light *[style*="color:#eee"],  body.theme-light *[style*="color: #eee"],
-body.theme-light *[style*="color:#ddd"],  body.theme-light *[style*="color: #ddd"],
-body.theme-light *[style*="color:#ccc"],  body.theme-light *[style*="color: #ccc"],
-body.theme-light *[style*="color:#bbb"],  body.theme-light *[style*="color: #bbb"],
-body.theme-light *[style*="color:#aaa"],  body.theme-light *[style*="color: #aaa"],
-body.theme-light *[style*="color:#7fff7f"],
-body.theme-light *[style*="color: #7fff7f"],
-body.theme-light *[style*="color:#ecedf8"],
-body.theme-light *[style*="color:#9a9bac"],
-body.theme-light *[style*="color:#b8b9cc"]   { color: var(--tx-hi) !important; }
-
-/* Restore explicit CSS-variable status text (set via R renderUI sprintf) */
-body.theme-light *[style*="color:var(--c-ok)"],
-body.theme-light *[style*="color: var(--c-ok)"]   { color: var(--c-ok)   !important; }
-body.theme-light *[style*="color:var(--c-warn)"],
-body.theme-light *[style*="color: var(--c-warn)"]  { color: var(--c-warn) !important; }
-body.theme-light *[style*="color:var(--c-err)"],
-body.theme-light *[style*="color: var(--c-err)"]   { color: var(--c-err)  !important; }
-
-
-/* ================================================================
-   18.  CALLOUT CARD CLASSES
-   Themed replacements for Bootstrap's light-only callout patterns.
-   Use .callout + .callout-{type} instead of inline background-color.
-   Both background AND text adapt automatically to every theme.
-   ================================================================ */
-
-.callout {
-  padding:       14px 16px;
-  border-radius: var(--r);
-  margin:        10px 0;
-}
-
-/* All text inside a callout — forced to readable colours */
-.callout,
-.callout h4, .callout h5, .callout h6,
-.callout strong, .callout b, .callout em,
-.callout a { color: var(--tx-hi)  !important; }
-
-.callout p,
-.callout li,
-.callout small,
-.callout [style*="font-size:"] { color: var(--tx-med) !important; }
-
-/* Card variants */
-.callout-neutral {
-  background:  var(--s-raised)   !important;
-  border:      1px solid var(--bdr-norm) !important;
-}
-.callout-info {
-  background:  var(--c-info-bg)  !important;
-  border-left: 4px solid var(--c-info)   !important;
-}
-.callout-ok {
-  background:  var(--c-ok-bg)    !important;
-  border-left: 4px solid var(--c-ok)     !important;
-}
-.callout-warn {
-  background:  var(--c-warn-bg)  !important;
-  border-left: 4px solid var(--c-warn)   !important;
-}
-.callout-danger {
-  background:  var(--c-err-bg)   !important;
-  border-left: 4px solid var(--c-err)    !important;
-}
-.callout-accent {
-  background:  var(--accent-tint) !important;
-  border-left: 4px solid var(--accent)   !important;
-}
-
-/* Inner highlight wrapper around form inputs (primary lineup params) */
-.input-highlight {
-  background:    var(--s-raised)  !important;
-  border:        2px solid var(--accent) !important;
-  border-radius: 4px !important;
-  padding:       5px !important;
-}
-.input-highlight .control-label,
-.input-highlight label { color: var(--tx-hi) !important; }
-
-/* Plain code / formula block inside tab content */
-.code-block {
-  background:    var(--s-raised) !important;
-  border:        1px solid var(--bdr-norm) !important;
-  border-radius: var(--r-sm) !important;
-  padding:       10px !important;
-  font-family:   monospace !important;
-  color:         var(--tx-hi) !important;
-  display:       block;
-}
-
-/* Bootstrap table text fix — tables inside HTML() blocks */
-.content-wrapper table th,
-.content-wrapper table td { color: var(--tx-hi) !important; }
-
-/* ── Utility Nav Bar (top header items) ─────────────────────────────────── */
-
-/* Thin vertical rule before the first utility item — separates logo/title from tools */
-.utility-nav:first-of-type > a.utility-link {
-  border-left: 1px solid rgba(255,255,255,0.12) !important;
-  margin-left: 6px !important;
-}
-
-.utility-nav > a.utility-link {
-  padding: 8px 13px !important;
-  font-size: 11.5px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--tx-med, #aaa) !important;
-  border-bottom: 2px solid transparent;
-  border-radius: 0 !important;
-  transition: color 0.18s, border-color 0.18s, background 0.18s;
-  display: inline-flex !important;
-  align-items: center;
-  gap: 5px;
-}
-.utility-nav > a.utility-link:hover {
-  color: var(--accent, #ff7f11) !important;
-  border-bottom-color: var(--accent, #ff7f11);
-  background: rgba(255,127,17,0.07) !important;
-}
-/* Active state — set by JS when a utility tab is the current sidebar tab */
-.utility-nav.active-utility > a.utility-link {
-  color: var(--accent, #ff7f11) !important;
-  border-bottom: 2px solid var(--accent, #ff7f11) !important;
-  background: rgba(255,127,17,0.10) !important;
-}
-.utility-nav > a.utility-link .fa,
-.utility-nav > a.utility-link .fas,
-.utility-nav > a.utility-link .far {
-  font-size: 13px;
-}
-
-/* ── Utility bar label (label above the group, hidden on narrow screens) ── */
-.utility-nav-label {
-  display: inline-block;
-  font-size: 9px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.28);
-  line-height: 1;
-  padding: 14px 6px 0 12px;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-@media (max-width: 900px) { .utility-nav-label { display: none; } }
-
-/* Sidebar "DESIGN FLOW" section header label */
-.sidebar-menu .header {
-  font-size: 10px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.1em !important;
-  text-transform: uppercase !important;
-  color: var(--accent, #ff7f11) !important;
-  padding: 12px 15px 4px 15px !important;
-}
-
-/* ── Reporting / Download cards ──────────────────────────────────────────── */
-.report-stage-card {
-  background: var(--s-raised, #2a2a2a);
-  border: 1px solid var(--bdr-norm, #444);
-  border-radius: 6px;
-  padding: 12px 14px;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.report-stage-card .stage-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--tx-hi, #eee);
-  min-width: 160px;
-}
-.report-stage-card .stage-status {
-  font-size: 11px;
-  color: var(--tx-low, #888);
-  flex: 1;
-}
-.download-option-box {
-  border: 1px solid var(--bdr-norm, #444);
-  border-radius: 8px;
-  padding: 18px;
-  text-align: center;
-  background: var(--s-raised, #2a2a2a);
-  transition: border-color 0.2s;
-}
-.download-option-box:hover { border-color: var(--accent, #ff7f11); }
-.download-option-box .download-icon { font-size: 32px; color: var(--accent, #ff7f11); margin-bottom: 8px; }
-.download-option-box h5 { color: var(--tx-hi, #eee); margin: 6px 0 4px 0; font-size: 13px; }
-.download-option-box p  { color: var(--tx-low, #888); font-size: 11px; margin: 0; }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   UTILITY DRAWER — right-side sliding panel
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* Drawer container — slides in from the right, 75 % of viewport width.
-   This keeps ~25 % of the main canvas visible for spatial context while
-   working with Smith Chart / LP Viewer / Knowledge Base. */
-#utility-drawer {
-  position: fixed;
-  top: 50px;                              /* flush under the header bar      */
-  right: calc(-75vw - 10px);             /* hidden off-screen by default     */
-  width: 75vw;                           /* 75 % of viewport width           */
-  min-width: 480px;                      /* never narrower than 480 px       */
-  max-width: calc(100vw - 240px);        /* never overruns the left sidebar  */
-  height: calc(100vh - 50px);
-  z-index: 2000;
-  display: flex;
-  flex-direction: column;
-  background: #1b1b2b;
-  border-left: 2px solid var(--accent, #ff7f11);
-  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.55);
-  transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-}
-#utility-drawer.open        { right: 0; }
-/* Full-width mode — toggled by the expand button in the drawer header */
-#utility-drawer.drawer-full {
-  width: calc(100vw - 230px);            /* edge-to-edge from left sidebar   */
-  max-width: none;
-}
-/* Transition also applies to width changes */
-#utility-drawer { transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-                               width 0.22s ease; }
-
-/* Drawer title bar */
-#utility-drawer-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding: 0 10px;
-  height: 42px;
-  background: #13131f;
-  border-bottom: 1px solid rgba(255, 127, 17, 0.35);
-}
-#utility-drawer-title {
-  flex: 1;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent, #ff7f11);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-#utility-drawer-header .drawer-icon {
-  font-size: 14px;
-  color: var(--accent, #ff7f11);
-  flex-shrink: 0;
-}
-
-/* Drawer action buttons (row in header) */
-.drawer-hdr-btn {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #aaa;
-  border-radius: 4px;
-  padding: 3px 8px;
-  font-size: 11px;
-  cursor: pointer;
-  line-height: 1.4;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-.drawer-hdr-btn:hover {
-  border-color: var(--accent, #ff7f11);
-  color: var(--accent, #ff7f11);
-  background: rgba(255, 127, 17, 0.08);
-}
-.drawer-hdr-btn.btn-close-drawer {
-  border-color: rgba(255,255,255,0.22);
-}
-.drawer-hdr-btn.btn-close-drawer:hover {
-  border-color: #e55;
-  color: #e55;
-  background: rgba(220, 50, 50, 0.08);
-}
-
-/* Scrollable body area */
-#utility-drawer-body {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 14px 14px 20px 14px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--accent, #ff7f11) #1b1b2b;
-}
-
-/* ================================================================
-   LP Viewer — collapsible sidebar toggle
-   ================================================================ */
-.lp-sidebar-toggle-btn {
-  background:    transparent;
-  border:        1px solid rgba(255,255,255,0.15);
-  color:         #888;
-  padding:       2px 7px;
-  border-radius: 3px;
-  cursor:        pointer;
-  font-size:     11px;
-  line-height:   1.5;
-  transition:    color 0.15s, border-color 0.15s;
-}
-.lp-sidebar-toggle-btn:hover {
-  color:         #ddd;
-  border-color:  rgba(255,255,255,0.35);
-  background:    rgba(255,255,255,0.06);
-}
-/* Flip the chevron when the row is in collapsed state */
-.lp-sidebar-hidden .lp-sidebar-toggle-btn i {
-  display:   inline-block;
-  transform: scaleX(-1);
-}
-/* When .lp-sidebar-hidden is on the Bootstrap .row: hide col-sm-3 + expand col-sm-9 */
-.lp-sidebar-hidden > .col-sm-3:first-child {
-  display: none !important;
-}
-.lp-sidebar-hidden > .col-sm-9 {
-  width:     100% !important;
-  max-width: 100% !important;
-}
-#utility-drawer-body::-webkit-scrollbar { width: 5px; }
-#utility-drawer-body::-webkit-scrollbar-track  { background: #1b1b2b; }
-#utility-drawer-body::-webkit-scrollbar-thumb  { background: var(--accent, #ff7f11); border-radius: 3px; }
-
-/* Content inside the drawer */
-.drawer-section-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.38);
-  margin: 14px 0 6px 0;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.drawer-section-label:first-child { margin-top: 0; }
-
-.drawer-link-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  color: var(--tx-med, #bbb);
-  font-size: 12px;
-}
-.drawer-link-row:last-child { border-bottom: none; }
-.drawer-link-row .drawer-link-icon {
-  width: 18px;
-  text-align: center;
-  color: var(--accent, #ff7f11);
-  font-size: 12px;
-  flex-shrink: 0;
-}
-
-/* Full-view nav arrow inside drawer */
-.drawer-fullview-link {
-  display: block;
-  margin-top: 16px;
-  padding: 9px 14px;
-  background: rgba(255, 127, 17, 0.10);
-  border: 1px solid rgba(255, 127, 17, 0.30);
-  border-radius: 5px;
-  color: var(--accent, #ff7f11) !important;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.drawer-fullview-link:hover {
-  background: rgba(255, 127, 17, 0.20);
-  text-decoration: none;
-}
-
-/* Quick converter cards inside the RF Tools drawer */
-.drawer-converter-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 6px;
-  padding: 10px 12px 8px 12px;
-  margin-bottom: 10px;
-}
-.drawer-converter-card label {
-  font-size: 11px;
-  color: var(--tx-low, #888);
-  margin-bottom: 3px;
-  display: block;
-}
-.drawer-converter-card .form-control {
-  background: #13131f !important;
-  border-color: rgba(255,255,255,0.12) !important;
-  color: var(--tx-hi, #eee) !important;
-  font-size: 12px;
-  height: 28px;
-  padding: 2px 8px;
-}
-.drawer-result-badge {
-  display: inline-block;
-  background: rgba(255, 127, 17, 0.15);
-  border: 1px solid rgba(255, 127, 17, 0.3);
-  color: var(--accent, #ff7f11);
-  border-radius: 4px;
-  padding: 3px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  margin-top: 6px;
-}
-
-/* Drawer is a pure floating overlay — content-wrapper is never pushed */
-
-/* ── Knowledge Base ─────────────────────────────────────────── */
-.kb-detail-section {
-  border-left: 2px solid rgba(255,127,17,0.25);
-  padding: 6px 12px;
-  margin: 6px 0;
-  background: rgba(0,0,0,0.15);
-  border-radius: 0 4px 4px 0;
-}
-.kb-detail-section b {
-  color: #ccc;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.dataTable th, .dataTable td {
-  font-size: 12px !important;
-}
-
-/* ── Prevent long filenames from overflowing sidebar input controls ──────── */
-/* selectInput: constrain the selectize rendered input box */
-.shiny-input-container .selectize-input,
-.shiny-input-container select {
-  max-width: 100% !important;
-  overflow: hidden !important;
-}
-/* The selectize single-value text blob */
-.shiny-input-container .selectize-input .item,
-.shiny-input-container .selectize-input input {
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  max-width: 100% !important;
-}
-/* checkboxGroupInput / radioButtons – label text beside each checkbox */
-.shiny-input-container .checkbox label,
-.shiny-input-container .radio label {
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  max-width: 100% !important;
-  display: block !important;
-}
-/* Sidebar well columns: hard clip so nothing bleeds into plot area */
-.col-sm-3 .well,
-.col-md-3 .well,
-[class*="col-"][class*="-3"] .well {
-  overflow: hidden !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-}
-/* Also clip shiny-input-container itself */
-.col-sm-3 .shiny-input-container,
-.col-md-3 .shiny-input-container {
-  max-width: 100% !important;
-  overflow: hidden !important;
 }

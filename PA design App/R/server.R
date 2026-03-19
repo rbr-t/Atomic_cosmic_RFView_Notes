@@ -177,6 +177,28 @@ server <- function(input, output, session) {
                   icon("chart-area"),
                   " Import and visualise load-pull / source-pull measurement files.",
                   " Formats: SPL, Focus Microwaves, Maury MDF, AMCAD, Anteverta-mw, ADS MDIF."),
+
+                # ── Global split variable bar ────────────────────────────
+                div(
+                  style = "background:#181828; border:1px solid #2a2a3a;
+                           border-radius:4px; padding:6px 14px;
+                           margin-bottom:10px; display:flex;
+                           align-items:center; gap:18px;",
+                  strong(icon("layer-group"), " Global split / color by:",
+                    style = "color:#ccc; font-size:12px; white-space:nowrap;"),
+                  div(style = "flex:0 0 190px;",
+                    selectInput("lp_global_split_var", NULL,
+                      choices  = c(
+                        "Frequency (GHz)"  = "freq_ghz",
+                        "Dataset Tag"      = "dataset_tag",
+                        "Drain Voltage (V)"= "vdc_v"),
+                      selected = "freq_ghz",
+                      width    = "100%")),
+                  p(style = "font-size:11px; color:#666; margin:0;",
+                    icon("info-circle"),
+                    " Default for all LP plots. Each plot tab can override locally.")
+                ),
+
                 tabsetPanel(id = "lp_tabs",
 
                   # ── Tab 1: Upload & Parse ────────────────────────────
@@ -190,7 +212,7 @@ server <- function(input, output, session) {
                           fileInput("lp_upload", NULL,
                             multiple    = TRUE,
                             accept      = c(".spl",".lpt",".txt",".dat",
-                                            ".mdf",".csv",".ant",".mdif",".s2p"),
+                                            ".mdf",".csv",".ant",".mdif",".s2p",".cst"),
                             buttonLabel = icon("upload"),
                             placeholder = "No file selected"),
                           selectInput("lp_format_override", "Format override",
@@ -201,8 +223,18 @@ server <- function(input, output, session) {
                               "Maury MDF"           = "mdf",
                               "AMCAD"               = "amcad",
                               "Anteverta-mw"        = "anteverta",
-                              "ADS MDIF"            = "mdif"),
+                              "ADS MDIF"            = "mdif",
+                              "Mestech/Auriga CST"  = "cst"),
                             selected = "auto"),
+                          hr(style = "border-color:#2a2a3a; margin:8px 0;"),
+                          strong(icon("tag"), " Dataset tag",
+                            style = "color:#ccc; font-size:12px;"),
+                          p(style = "font-size:11px; color:#888; margin:2px 0 4px 0;",
+                            "Identifies this dataset when comparing multiple files."),
+                          checkboxInput("lp_auto_tag",
+                            "Auto-tag from filename", value = TRUE),
+                          textInput("lp_dataset_tag", NULL,
+                            placeholder = "Optional: type a custom tag"),
                           actionButton("lp_parse_btn", "Parse file(s)",
                             icon = icon("cog"), class = "btn-primary btn-block"),
                           hr(),
@@ -217,7 +249,21 @@ server <- function(input, output, session) {
                               style = "padding:2px 10px; font-size:11px;
                                        line-height:1.6; border-radius:3px;")
                           ),
-                          uiOutput("lp_dataset_list")
+                          uiOutput("lp_dataset_list"),
+                          hr(style = "border-color:#2a2a3a; margin:8px 0;"),
+                          div(
+                            style = "display:flex; align-items:center;
+                                     justify-content:space-between; margin-bottom:4px;",
+                            h5("Merge datasets",
+                               style = "color:#f0f0f0; margin:0; font-size:13px;")
+                          ),
+                          uiOutput("lp_merge_select_ui"),
+                          textInput("lp_merge_label", NULL,
+                            placeholder = "Merged dataset name (optional)"),
+                          actionButton("lp_merge_btn", "Merge selected",
+                            icon  = icon("object-group"),
+                            class = "btn-warning btn-block",
+                            style = "margin-top:4px;")
                         )
                       ),
                       column(8,
@@ -243,6 +289,17 @@ server <- function(input, output, session) {
                           h5(icon("sliders-h"), " Contour controls",
                              style = "color:#f0f0f0; margin-top:0;"),
                           uiOutput("lp_dataset_selector_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          strong("Split / color by",
+                            style = "color:#ccc; font-size:11px;"),
+                          radioButtons("lp_contour_split_local", NULL,
+                            choiceNames  = list("Use global setting",
+                              HTML("<small>Frequency (GHz)</small>"),
+                              HTML("<small>Dataset Tag</small>"),
+                              HTML("<small>Drain Voltage (V)</small>")),
+                            choiceValues = list("global","freq_ghz",
+                                                "dataset_tag","vdc_v"),
+                            selected = "global"),
                           hr(),
                           checkboxGroupInput("lp_contour_vars", "Overlay contours",
                             choices  = c(
@@ -287,6 +344,11 @@ server <- function(input, output, session) {
                         )
                       ),
                       column(9,
+                        div(style = "text-align:right; margin-bottom:3px;",
+                          tags$button(class = "lp-sidebar-toggle-btn",
+                            title = "Toggle controls sidebar",
+                            tags$i(class = "fa fa-chevron-left"))
+                        ),
                         div(class = "well",
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
                           h5(icon("chart-pie"), " Contours \u2014 All Datasets on One Smith Chart",
@@ -306,6 +368,18 @@ server <- function(input, output, session) {
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
                           h5("Plot controls", style = "color:#f0f0f0; margin-top:0;"),
                           uiOutput("lp_xy_dataset_selector_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          strong("Split / color by",
+                            style = "color:#ccc; font-size:11px;"),
+                          radioButtons("lp_xy_split_local", NULL,
+                            choiceNames  = list("Use global setting",
+                              HTML("<small>Frequency (GHz)</small>"),
+                              HTML("<small>Dataset Tag</small>"),
+                              HTML("<small>Drain Voltage (V)</small>")),
+                            choiceValues = list("global","freq_ghz",
+                                                "dataset_tag","vdc_v"),
+                            selected = "global"),
+                          hr(),
                           selectInput("lp_xy_x_var", "X axis",
                             choices = c(
                               "Pout (dBm)" = "pout_dbm",
@@ -328,6 +402,11 @@ server <- function(input, output, session) {
                         )
                       ),
                       column(9,
+                        div(style = "text-align:right; margin-bottom:3px;",
+                          tags$button(class = "lp-sidebar-toggle-btn",
+                            title = "Toggle controls sidebar",
+                            tags$i(class = "fa fa-chevron-left"))
+                        ),
                         div(class = "well",
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
                           h5("Gain / PAE / DE vs Power",
@@ -348,6 +427,18 @@ server <- function(input, output, session) {
                           h5(icon("sliders-h"), " Controls",
                              style = "color:#f0f0f0; margin-top:0;"),
                           uiOutput("lp_perf_dataset_selector_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          strong("Split / color by",
+                            style = "color:#ccc; font-size:11px;"),
+                          radioButtons("lp_perf_split_local", NULL,
+                            choiceNames  = list("Use global setting",
+                              HTML("<small>Frequency (GHz)</small>"),
+                              HTML("<small>Dataset Tag</small>"),
+                              HTML("<small>Drain Voltage (V)</small>")),
+                            choiceValues = list("global","freq_ghz",
+                                                "dataset_tag","vdc_v"),
+                            selected = "global"),
+                          hr(),
                           selectInput("lp_perf_x_var", "X axis",
                             choices = c(
                               "Pout (dBm)" = "pout_dbm",
@@ -402,6 +493,11 @@ server <- function(input, output, session) {
                         )
                       ),
                       column(9,
+                        div(style = "text-align:right; margin-bottom:3px;",
+                          tags$button(class = "lp-sidebar-toggle-btn",
+                            title = "Toggle controls sidebar",
+                            tags$i(class = "fa fa-chevron-left"))
+                        ),
                         fluidRow(
                           column(6,
                             div(class = "well",
@@ -451,6 +547,17 @@ server <- function(input, output, session) {
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
                           h5("Tradeoff plot controls", style = "color:#f0f0f0; margin-top:0;"),
                           uiOutput("lp_nose_dataset_selector_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          strong("Split / color by",
+                            style = "color:#ccc; font-size:11px;"),
+                          radioButtons("lp_nose_split_local", NULL,
+                            choiceNames  = list("Use global setting",
+                              HTML("<small>Frequency (GHz)</small>"),
+                              HTML("<small>Dataset Tag</small>"),
+                              HTML("<small>Drain Voltage (V)</small>")),
+                            choiceValues = list("global","freq_ghz",
+                                                "dataset_tag","vdc_v"),
+                            selected = "global"),
                           hr(),
                           selectInput("lp_nose_x_pw", "X axis (Pout / Pin)",
                             choices = c(
@@ -459,6 +566,8 @@ server <- function(input, output, session) {
                               "Pout (W)"   = "pout_w"),
                             selected = "pout_dbm"),
                           checkboxInput("lp_nose_mark_opt", "Mark MXP/MXE/MXG",
+                            value = TRUE),
+                          checkboxInput("lp_nose_show_labels", "Show annotation labels",
                             value = TRUE),
                           hr(),
                           strong(icon("compress-arrows-alt"), " Normalization",
@@ -482,6 +591,11 @@ server <- function(input, output, session) {
                         )
                       ),
                       column(9,
+                        div(style = "text-align:right; margin-bottom:3px;",
+                          tags$button(class = "lp-sidebar-toggle-btn",
+                            title = "Toggle controls sidebar",
+                            tags$i(class = "fa fa-chevron-left"))
+                        ),
                         fluidRow(
                           column(6,
                             div(class = "well",
@@ -514,13 +628,24 @@ server <- function(input, output, session) {
                           h5("AM-PM / AM-AM controls", style = "color:#f0f0f0; margin-top:0;"),
                           # ← own selector ID to avoid DOM duplication with XY tab
                           uiOutput("lp_ampm_dataset_selector_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          strong("Split / color by",
+                            style = "color:#ccc; font-size:11px;"),
+                          radioButtons("lp_ampm_split_local", NULL,
+                            choiceNames  = list("Use global setting",
+                              HTML("<small>Frequency (GHz)</small>"),
+                              HTML("<small>Dataset Tag</small>"),
+                              HTML("<small>Drain Voltage (V)</small>")),
+                            choiceValues = list("global","freq_ghz",
+                                                "dataset_tag","vdc_v"),
+                            selected = "global"),
                           hr(),
                           selectInput("lp_ampm_x_var", "X axis",
                             choices = c(
                               "Pin (dBm)"  = "pin_dbm",
                               "Pout (dBm)" = "pout_dbm",
                               "Pout (W)"   = "pout_w"),
-                            selected = "pin_dbm"),
+                            selected = "pout_dbm"),
                           hr(),
                           p(style = "font-size:11px; color:#999;",
                             icon("info-circle"),
@@ -529,6 +654,11 @@ server <- function(input, output, session) {
                         )
                       ),
                       column(9,
+                        div(style = "text-align:right; margin-bottom:3px;",
+                          tags$button(class = "lp-sidebar-toggle-btn",
+                            title = "Toggle controls sidebar",
+                            tags$i(class = "fa fa-chevron-left"))
+                        ),
                         div(class = "well",
                           style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
                           h5(icon("compress-arrows-alt"), " AM-AM Compression (dB)",
@@ -561,6 +691,18 @@ server <- function(input, output, session) {
                           br(),
                           downloadButton("lp_table_csv", "Download CSV",
                             class = "btn-default btn-sm"))
+                      ),
+                      fluidRow(
+                        column(12,
+                          tags$div(
+                            style = "margin-top:4px; display:flex; align-items:center; flex-wrap:wrap; gap:12px;",
+                            tags$strong(icon("layer-group"), " Split rows by:"),
+                            radioButtons("lp_table_split_local", NULL, inline = TRUE,
+                              choiceNames  = list("Global", "Frequency (GHz)", "Dataset Tag", "Drain Voltage (V)"),
+                              choiceValues = list("global", "freq_ghz", "dataset_tag", "vdc_v"),
+                              selected = "global")
+                          )
+                        )
                       ),
                       hr(),
                       h5(icon("star"), " Optimal operating points: MXP / MXE / MXG",
@@ -605,55 +747,148 @@ server <- function(input, output, session) {
                     )
                   ),
 
-                  # ── Tab 6: Compare Devices ───────────────────────────
-                  tabPanel("Compare",
+                  # ── Tab 7: Frequency ──────────────────────────────────
+                  tabPanel(tagList(icon("chart-line"), " Freq / split(var)"),
                     br(),
-                    fluidRow(
-                      column(3,
-                        div(class = "well",
-                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                          h5("Comparison controls", style = "color:#f0f0f0; margin-top:0;"),
-                          uiOutput("lp_compare_selector_ui"),
-                          hr(),
-                          strong("X axis", style = "color:#ccc; font-size:12px;"),
-                          selectInput("lp_compare_x_var", NULL,
-                            choices = c(
-                              "Pin (dBm)"  = "pin_dbm",
-                              "Pout (dBm)" = "pout_dbm",
-                              "Pout (W)"   = "pout_w"),
-                            selected = "pin_dbm"),
-                          hr(),
-                          strong("Y axis traces", style = "color:#ccc; font-size:12px;"),
-                          checkboxGroupInput("lp_compare_y_vars", NULL,
-                            choices = c(
-                              "PAE (%)"    = "pae_pct",
-                              "DE (%)"     = "de_pct",
-                              "Gain (dB)"  = "gain_db",
-                              "Pout (dBm)" = "pout_dbm",
-                              "Pout (W)"   = "pout_w"),
-                            selected = c("pae_pct", "gain_db")),
-                          hr(),
-                          strong("Options", style = "color:#ccc; font-size:12px;"),
-                          checkboxInput("lp_compare_optimum", "Mark MXP/MXE/MXG",
-                            value = TRUE),
-                          checkboxInput("lp_compare_per_freq",
-                            "Separate lines per frequency", value = FALSE),
-                          numericInput("lp_compare_lttb",
-                            "Max points / trace (LTTB)",
-                            value = 500L, min = 50L, max = 5000L, step = 50L)
+                    tabsetPanel(
+                      # Sub-tab: vs Frequency
+                      tabPanel("vs Frequency",
+                        br(),
+                        fluidRow(
+                          column(3,
+                            div(class = "well",
+                              style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                              h5(icon("sliders-h"), " Frequency sweep controls",
+                                 style = "color:#f0f0f0; margin-top:0;"),
+                              uiOutput("lp_freq_dataset_selector_ui"),
+                              hr(),
+                              radioButtons("lp_freq_split_local",
+                                tagList(icon("layer-group"), " Split / color by:"),
+                                inline = TRUE,
+                                choiceNames  = list("Global", "Frequency", "Dataset Tag", "Vdc (V)"),
+                                choiceValues = list("global", "freq_ghz", "dataset_tag", "vdc_v"),
+                                selected = "global"),
+                              hr(),
+                              checkboxInput("lp_freq_show_p1db", "Show P1dB", value = TRUE),
+                              checkboxInput("lp_freq_show_pavg", "Show Pavg (back-off)", value = TRUE),
+                              checkboxInput("lp_freq_show_mxp",  "Show MXP",  value = TRUE),
+                              checkboxInput("lp_freq_show_mxe",  "Show MXE",  value = TRUE),
+                              checkboxInput("lp_freq_show_mxg",  "Show MXG",  value = TRUE),
+                              numericInput("lp_freq_backoff", "Pavg back-off (dB)",
+                                           value = 6, min = 0, max = 20, step = 0.5),
+                              hr(),
+                              p(class = "text-muted", style = "font-size:11px;",
+                                "MXP: max Pout │ MXE: max PAE │ MXG: max Gain.")
+                            )
+                          ),
+                          column(9,
+                            fluidRow(
+                              column(6,
+                                div(class = "well",
+                                  style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                                  h6("Power vs Frequency", style = "color:#ff7f11; margin:0 0 6px;"),
+                                  plotlyOutput("lp_freq_pout_plot", height = "230px"))
+                              ),
+                              column(6,
+                                div(class = "well",
+                                  style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                                  h6("Efficiency vs Frequency", style = "color:#1f77b4; margin:0 0 6px;"),
+                                  plotlyOutput("lp_freq_eff_plot", height = "230px"))
+                              )
+                            ),
+                            br(),
+                            fluidRow(
+                              column(6,
+                                div(class = "well",
+                                  style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                                  h6("Gain vs Frequency", style = "color:#2ca02c; margin:0 0 6px;"),
+                                  plotlyOutput("lp_freq_gain_plot", height = "230px"))
+                              ),
+                              column(6,
+                                div(class = "well",
+                                  style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                                  h6("ZL vs Frequency", style = "color:#9467bd; margin:0 0 6px;"),
+                                  plotlyOutput("lp_freq_zl_plot", height = "230px"))
+                              )
+                            ),
+                            br(),
+                            fluidRow(
+                              column(6,
+                                div(class = "well",
+                                  style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                                  h6("ZS vs Frequency", style = "color:#8c564b; margin:0 0 6px;"),
+                                  plotlyOutput("lp_freq_zs_plot", height = "230px"))
+                              ),
+                              column(6,
+                                div(class = "well",
+                                  style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                                  h6("AM-AM (Gain) vs Frequency", style = "color:#e377c2; margin:0 0 6px;"),
+                                  plotlyOutput("lp_freq_amam_plot", height = "230px"))
+                              )
+                            ),
+                            br(),
+                            fluidRow(
+                              column(6,
+                                div(class = "well",
+                                  style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                                  h6("AM-PM vs Frequency", style = "color:#9467bd; margin:0 0 6px;"),
+                                  plotlyOutput("lp_freq_ampm_plot", height = "230px"))
+                              )
+                            )
+                          )
                         )
                       ),
-                      column(9,
-                        div(class = "well",
-                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                          h5("Multi-device Overlay", style = "color:#f0f0f0; margin-top:0;"),
-                          plotlyOutput("lp_compare_plot", height = "520px")
+                      # Sub-tab: Spider
+                      tabPanel(tagList(icon("circle-notch"), " Spider"),
+                        br(),
+                        fluidRow(
+                          column(3,
+                            div(class = "well",
+                              style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                              h5(icon("circle-notch"), " Spider controls",
+                                 style = "color:#f0f0f0; margin-top:0;"),
+                              uiOutput("lp_spider_dataset_selector_ui"),
+                              hr(),
+                              p(class = "text-muted", style = "font-size:11px;",
+                                "Spokes = frequency points; traces = metrics.",
+                                br(), "Metrics (normalised 0\u2013100 %):",
+                                br(), "Pout@MXP/P1dB, PAE@MXE/P1dB,",
+                                br(), "Gain@MXG/P1dB, |AM-PM|@MXE.")
+                            )
+                          ),
+                          column(9,
+                            div(class = "well",
+                              style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                              h5("Spider plot: performance vs frequency",
+                                 style = "color:#f0f0f0; margin-top:0;"),
+                              tabsetPanel(
+                                tabPanel("Peak (MXP/MXE/MXG)",
+                                  br(),
+                                  plotlyOutput("lp_spider_peak_plot", height = "440px")),
+                                tabPanel("Peak (Rev.)",
+                                  br(),
+                                  plotlyOutput("lp_spider_peak_rev_plot", height = "440px")),
+                                tabPanel("P1dB",
+                                  br(),
+                                  plotlyOutput("lp_spider_p1db_plot", height = "440px")),
+                                tabPanel("P1dB (Rev.)",
+                                  br(),
+                                  plotlyOutput("lp_spider_p1db_rev_plot", height = "440px")),
+                                tabPanel("Pavg",
+                                  br(),
+                                  plotlyOutput("lp_spider_pavg_plot", height = "440px")),
+                                tabPanel("Pavg (Rev.)",
+                                  br(),
+                                  plotlyOutput("lp_spider_pavg_rev_plot", height = "440px"))
+                              )
+                            )
+                          )
                         )
                       )
                     )
                   ),
 
-                  # ── Tab 7: LP Report ─────────────────────────────────
+                  # ── Tab 8: LP Report ───────────────────────────────────
                   tabPanel("LP Report",
                     br(),
                     fluidRow(
