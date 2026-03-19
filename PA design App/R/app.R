@@ -42,6 +42,7 @@ if (FALSE) {
 library(shiny)
 library(shinydashboard)
 library(shinyjs)
+library(shinycssloaders)
 library(plotly)
 library(DT)
 library(R6)

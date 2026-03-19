@@ -40,6 +40,10 @@ source("modules/rf_tools/lp_parsers.R")
 source("modules/rf_tools/rf_calculators_drawer_ui.R")
 source("modules/server/server_lp_viewer.R")
 
+# ── S-Parameter Viewer subsystem ────────────────────────────────────────────
+source("modules/rf_tools/sp_parsers.R")
+source("modules/server/server_sp_viewer.R")
+
 # ── Knowledge Base subsystem ─────────────────────────────────────────────
 source("knowledge_base/kb_loader.R")
 source("knowledge_base/kb_query.R")
@@ -940,6 +944,328 @@ server <- function(input, output, session) {
             ),
 
             # \u2500\u2500 RF CAD Tool tab \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+            # ── S-Parameter Viewer tab ───────────────────────────────────────────────
+            tabPanel(tagList(icon("wave-square"), " S-Parameters"),
+              div(style = "padding:8px 0 4px 0;",
+                p(style = "color:#aaa; font-size:12px; margin:0 0 10px 0;",
+                  icon("wave-square"),
+                  " Import and visualise S-parameter files (Touchstone .s1p/.s2p/.s3p/.s4p).",
+                  " Convert between S, Z, Y, h, ABCD and inspect stability."),
+
+                # ── Global parameter type + split-var bar ───────────────────
+                div(
+                  style = "background:#181828; border:1px solid #2a2a3a;
+                           border-radius:4px; padding:6px 14px;
+                           margin-bottom:10px; display:flex;
+                           align-items:center; flex-wrap:wrap; gap:18px;",
+                  div(style = "flex:0 0 auto;",
+                    strong(icon("exchange-alt"), " Parameter type:",
+                      style = "color:#ccc; font-size:12px; white-space:nowrap;")
+                  ),
+                  div(style = "flex:0 0 auto;",
+                    radioButtons("sp_param_type", NULL,
+                      choices  = c("S" = "S", "Z" = "Z", "Y" = "Y",
+                                   "h" = "h", "ABCD" = "ABCD"),
+                      selected = "S", inline = TRUE)
+                  ),
+                  div(style = "flex:0 0 190px;",
+                    selectInput("sp_global_split_var", NULL,
+                      choices  = c("Dataset Tag"     = "dataset_tag",
+                                   "Frequency (GHz)" = "freq_ghz"),
+                      selected = "dataset_tag", width = "100%")
+                  ),
+                  p(style = "font-size:11px; color:#666; margin:0;",
+                    icon("info-circle"), " Global split/color by")
+                ),
+
+                tabsetPanel(id = "sp_tabs",
+
+                  # ── Tab 1: Upload & Manage ────────────────────────────────
+                  tabPanel("Upload & Manage",
+                    br(),
+                    fluidRow(
+                      column(4,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                          h5("File Import", style = "color:#f0f0f0; margin-top:0;"),
+                          fileInput("sp_upload", NULL,
+                            multiple    = TRUE,
+                            accept      = c(".s1p",".s2p",".s3p",".s4p",
+                                            ".snp",".ts",".txt"),
+                            buttonLabel = icon("upload"),
+                            placeholder = "No file selected"),
+                          hr(style = "border-color:#2a2a3a; margin:8px 0;"),
+                          strong(icon("tag"), " Dataset tag",
+                            style = "color:#ccc; font-size:12px;"),
+                          p(style = "font-size:11px; color:#888; margin:2px 0 4px 0;",
+                            "Identifies this dataset when comparing multiple files."),
+                          checkboxInput("sp_auto_tag",
+                            "Auto-tag from filename", value = TRUE),
+                          textInput("sp_dataset_tag", NULL,
+                            placeholder = "Optional: custom tag"),
+                          actionButton("sp_parse_btn", "Parse file(s)",
+                            icon = icon("cog"), class = "btn-primary btn-block"),
+                          hr(),
+                          div(
+                            style = "display:flex; align-items:baseline;
+                                     justify-content:space-between;
+                                     margin-bottom:6px;",
+                            h5("Loaded datasets",
+                               style = "color:#f0f0f0; margin:0;"),
+                            actionButton("sp_clear_all_btn", "Clear all",
+                              class = "btn btn-danger",
+                              style = "padding:2px 10px; font-size:11px;
+                                       line-height:1.6; border-radius:3px;")
+                          ),
+                          uiOutput("sp_dataset_list"),
+                          hr(style = "border-color:#2a2a3a; margin:8px 0;"),
+                          h5("Merge datasets",
+                             style = "color:#f0f0f0; margin:0; font-size:13px;"),
+                          br(),
+                          uiOutput("sp_merge_select_ui"),
+                          textInput("sp_merge_label", NULL,
+                            placeholder = "Merged dataset name (optional)"),
+                          actionButton("sp_merge_btn", "Merge selected",
+                            icon  = icon("object-group"),
+                            class = "btn-warning btn-block",
+                            style = "margin-top:4px;")
+                        )
+                      ),
+                      column(8,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                          h5("Parse Log", style = "color:#f0f0f0; margin-top:0;"),
+                          verbatimTextOutput("sp_parse_log"),
+                          hr(),
+                          h5("Parsed metadata", style = "color:#f0f0f0;"),
+                          verbatimTextOutput("sp_meta_preview")
+                        )
+                      )
+                    )
+                  ),
+
+                  # ── Tab 2: Mag & Phase ────────────────────────────────────
+                  tabPanel(tagList(icon("chart-line"), " Mag & Phase"),
+                    br(),
+                    fluidRow(
+                      column(3,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                          h5(icon("sliders-h"), " Controls",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          uiOutput("sp_mp_ds_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          uiOutput("sp_mp_param_choices_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          strong("Split / color by",
+                            style = "color:#ccc; font-size:11px;"),
+                          radioButtons("sp_mp_split_local", NULL,
+                            choiceNames  = list("Use global setting",
+                              HTML("<small>Dataset Tag</small>"),
+                              HTML("<small>Frequency (GHz)</small>")),
+                            choiceValues = list("global","dataset_tag","freq_ghz"),
+                            selected = "global"),
+                          hr(),
+                          p(class = "text-muted", style = "font-size:11px;",
+                            icon("info-circle"),
+                            " Parameter type (S/Z/Y/h/ABCD) is set in the bar above.",
+                            " For converted types, a 2-port file with per-freq matrices is required.")
+                        )
+                      ),
+                      column(9,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                          h5(icon("chart-bar"), " Magnitude (dB) vs Frequency",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          plotlyOutput("sp_mag_plot", height = "300px")
+                        ),
+                        br(),
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                          h5(icon("wave-square"), " Phase (\u00b0) vs Frequency",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          plotlyOutput("sp_phase_plot", height = "300px")
+                        )
+                      )
+                    )
+                  ),
+
+                  # ── Tab 3: Smith Chart ────────────────────────────────────
+                  tabPanel(tagList(icon("crosshairs"), " Smith Chart"),
+                    br(),
+                    fluidRow(
+                      column(3,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                          h5(icon("crosshairs"), " Smith Chart controls",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          uiOutput("sp_smith_ds_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          uiOutput("sp_smith_param_choices_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          strong("Split / color by",
+                            style = "color:#ccc; font-size:11px;"),
+                          radioButtons("sp_smith_split_local", NULL,
+                            choiceNames  = list("Use global setting",
+                              HTML("<small>Dataset Tag</small>"),
+                              HTML("<small>Frequency (GHz)</small>")),
+                            choiceValues = list("global","dataset_tag","freq_ghz"),
+                            selected = "global"),
+                          hr(),
+                          p(class = "text-muted", style = "font-size:11px;",
+                            icon("info-circle"),
+                            " S11/S22 are plotted as reflection coefficient \u0393.",
+                            " S21/S12 are shown for reference (not \u0393).")
+                        )
+                      ),
+                      column(9,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                          h5(icon("crosshairs"),
+                             " Smith Chart \u2014 S11/S22/\u0393 frequency sweep",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          plotlyOutput("sp_smith_plot", height = "560px")
+                        )
+                      )
+                    )
+                  ),
+
+                  # ── Tab 4: Stability ──────────────────────────────────────
+                  tabPanel(tagList(icon("shield-alt"), " Stability"),
+                    br(),
+                    fluidRow(
+                      column(3,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                          h5(icon("shield-alt"), " Stability controls",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          uiOutput("sp_stab_ds_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          uiOutput("sp_stab_circ_freq_ui"),
+                          hr(),
+                          p(class = "text-muted", style = "font-size:11px;",
+                            icon("info-circle"),
+                            " K > 1 AND \u03bc > 1 \u2192 unconditionally stable.",
+                            br(),
+                            " Stability circles: solid = load plane, dashed = source plane.",
+                            br(),
+                            " |\u0394| = |S11\u00b7S22 \u2212 S12\u00b7S21|")
+                        )
+                      ),
+                      column(9,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                          h5(icon("chart-line"),
+                             " K (Rollett), \u03bc (input/output), |\u0394| vs Frequency",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          plotlyOutput("sp_stab_kmu_plot", height = "310px")
+                        ),
+                        br(),
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                          h5(icon("crosshairs"), " Stability Circles (Smith Chart)",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          plotlyOutput("sp_stab_circles_plot", height = "450px")
+                        ),
+                        br(),
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                          h5(icon("chart-bar"), " MSG / MAG vs Frequency",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          p(class = "text-muted", style = "font-size:11px;",
+                            icon("info-circle"),
+                            " MSG (dashed orange) shown where K < 1 (potentially unstable).",
+                            " MAG (green) shown where K ≥ 1 (unconditionally stable)."),
+                          plotlyOutput("sp_stab_msg_plot", height = "260px")
+                        ),
+                        br(),
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                          h5(icon("wave-square"), " Group Delay vs Frequency",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          p(class = "text-muted", style = "font-size:11px;",
+                            icon("info-circle"),
+                            " Computed as \u2212d\u03c6/d\u03c9 from unwrapped S-parameter phase."),
+                          plotlyOutput("sp_stab_gd_plot", height = "260px")
+                        )
+                      )
+                    )
+                  ),
+
+                  # ── Tab 5: Converted Parameters ───────────────────────────
+                  tabPanel(tagList(icon("calculator"), " Parameters"),
+                    br(),
+                    fluidRow(
+                      column(3,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                          h5(icon("calculator"), " Parameter conversion controls",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          uiOutput("sp_conv_ds_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          uiOutput("sp_conv_param_choices_ui"),
+                          hr(style = "border-color:#2a2a3a; margin:6px 0;"),
+                          strong("Split / color by",
+                            style = "color:#ccc; font-size:11px;"),
+                          radioButtons("sp_conv_split_local", NULL,
+                            choiceNames  = list("Use global setting",
+                              HTML("<small>Dataset Tag</small>"),
+                              HTML("<small>Frequency (GHz)</small>")),
+                            choiceValues = list("global","dataset_tag","freq_ghz"),
+                            selected = "global"),
+                          hr(),
+                          p(class = "text-muted", style = "font-size:11px;",
+                            icon("info-circle"),
+                            " Conversions require 2-port S-matrix data per frequency.",
+                            " Not available for merged datasets without sp_list."),
+                          tags$ul(style = "color:#999; font-size:11px; padding-left:18px;",
+                            tags$li(strong("S:"), " Scattering parameters"),
+                            tags$li(strong("Z:"), " Impedance matrix"),
+                            tags$li(strong("Y:"), " Admittance matrix"),
+                            tags$li(strong("h:"), " Hybrid parameters (h11=Z\u1d35\u2099)"),
+                            tags$li(strong("ABCD:"), " Chain/transmission matrix")
+                          )
+                        )
+                      ),
+                      column(9,
+                        div(class = "well",
+                          style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:10px;",
+                          h5(icon("chart-bar"), " Converted Parameter Magnitude vs Frequency",
+                             style = "color:#f0f0f0; margin-top:0;"),
+                          plotlyOutput("sp_conv_plot", height = "460px")
+                        )
+                      )
+                    )
+                  ),
+
+                  # ── Tab 6: Tabular ────────────────────────────────────────
+                  tabPanel(tagList(icon("table"), " Tabular"),
+                    br(),
+                    div(class = "well",
+                      style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
+                      h5(icon("table"), " S-Parameter data table",
+                         style = "color:#f0f0f0; margin-top:0;"),
+                      fluidRow(
+                        column(4, uiOutput("sp_tbl_ds_ui")),
+                        column(4,
+                          br(),
+                          p(class = "text-muted", style = "font-size:11px;",
+                            "Shows data in the selected parameter type (bar above).")
+                        ),
+                        column(4,
+                          br(),
+                          downloadButton("sp_table_csv", "Download CSV",
+                            class = "btn-default btn-sm"))
+                      ),
+                      hr(),
+                      DT::DTOutput("sp_table_out", height = "540px")
+                    )
+                  )
+
+                )  # end sp_tabs
+              )
+            ),  # end S-Parameters tabPanel
+
             tabPanel(tagList(icon("drafting-compass"), " RF CAD"),
               div(style = "padding:4px 0 2px 0;",
                 rfCadUI("rfcad",
@@ -1131,6 +1457,7 @@ server <- function(input, output, session) {
   serverSettings(input, output, session, state)
   serverReporting(input, output, session, state)
   serverLpViewer(input, output, session, state)
+  serverSpViewer(input, output, session, state)
   serverKnowledgeBase(input, output, session, state)
   serverDeviceLib(input, output, session, state)
 
