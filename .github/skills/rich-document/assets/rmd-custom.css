@@ -1,0 +1,101 @@
+/* rmd-custom.css — custom styles for R Markdown HTML output */
+
+/* ── Google Fonts ──────────────────────────────────────────────────────────── */
+body, .main-container {
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+code, pre, .sourceCode {
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace !important;
+  font-size: 0.875rem;
+}
+
+/* ── Light mode defaults ───────────────────────────────────────────────────── */
+:root, [data-theme="light"] {
+  --body-bg:        #ffffff;
+  --body-color:     #1c1c2e;
+  --heading-color:  #0d0d1a;
+  --link-color:     #0072B2;
+  --code-bg:        #f5f5f5;
+  --code-color:     #1c1c2e;
+  --border-color:   #d8d8e8;
+  --accent:         #0072B2;
+}
+
+/* ── Dark mode overrides ───────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --body-bg:        #1a1a2e;
+  --body-color:     #e6e6f0;
+  --heading-color:  #f0f0f8;
+  --link-color:     #56B4E9;
+  --code-bg:        #12122a;
+  --code-color:     #d0d0e8;
+  --border-color:   #2e2e4e;
+  --accent:         #56B4E9;
+}
+
+/* ── Apply CSS variables ───────────────────────────────────────────────────── */
+body {
+  background-color: var(--body-bg)    !important;
+  color:            var(--body-color) !important;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, h5, h6 { color: var(--heading-color); }
+
+a { color: var(--link-color); }
+a:hover { color: var(--link-color); filter: brightness(1.2); }
+
+/* Section heading accent */
+h2 {
+  border-left: 4px solid var(--accent);
+  padding-left: 0.6rem;
+  margin-top: 2rem;
+}
+
+/* Code blocks */
+pre, code {
+  background-color: var(--code-bg)    !important;
+  color:            var(--code-color) !important;
+  border-radius: 6px;
+}
+
+code { padding: 0.15em 0.35em; }
+
+/* Tables */
+table {
+  border-color: var(--border-color) !important;
+}
+table thead th {
+  border-bottom-color: var(--accent) !important;
+}
+table tbody tr:nth-child(even) {
+  background-color: rgba(0, 114, 178, 0.05);
+}
+
+/* TOC */
+#TOC {
+  font-size: 0.875rem;
+}
+#TOC a { color: var(--body-color); }
+#TOC a:hover, #TOC a.active { color: var(--link-color); font-weight: 600; }
+
+/* Tabset pills */
+.nav-pills .nav-link.active {
+  background-color: var(--accent) !important;
+}
+.nav-pills .nav-link {
+  color: var(--link-color);
+}
+
+/* ── Print ─────────────────────────────────────────────────────────────────── */
+@media print {
+  body {
+    background: #ffffff !important;
+    color:       #000000 !important;
+  }
+  #theme-toggle { display: none !important; }
+  h2 { border-left: none; padding-left: 0; }
+}

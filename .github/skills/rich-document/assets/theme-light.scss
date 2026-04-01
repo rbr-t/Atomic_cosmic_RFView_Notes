@@ -1,0 +1,84 @@
+/*
+ * theme-light.scss
+ * Light mode overrides for rich-document skill
+ * Applied as: theme: [flatly, assets/theme-light.scss]
+ *
+ * Okabe-Ito primary colors (color-blind safe):
+ *   #E69F00  orange
+ *   #56B4E9  sky blue
+ *   #009E73  bluish green
+ *   #0072B2  blue
+ *   #D55E00  vermillion
+ *   #CC79A7  reddish purple
+ */
+
+// ── Typography ───────────────────────────────────────────────────────────────
+$font-family-sans-serif: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+$font-family-monospace:  "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+$font-size-base:         1rem;
+$line-height-base:       1.7;
+
+// ── Palette ──────────────────────────────────────────────────────────────────
+$body-bg:            #ffffff;
+$body-color:         #1c1c2e;
+$headings-color:     #0d0d1a;
+$link-color:         #0072B2;       // Okabe-Ito blue
+$link-hover-color:   #005a8e;
+
+// ── Callout accent colors (Okabe-Ito mapped) ───────────────────────────────
+$callout-color-note:    #0072B2;    // blue
+$callout-color-tip:     #009E73;    // bluish green
+$callout-color-warning: #E69F00;    // orange
+$callout-color-caution: #D55E00;    // vermillion
+$callout-color-important: #CC79A7;  // reddish purple
+
+// ── TOC ───────────────────────────────────────────────────────────────────────
+$toc-color:           #444466;
+$toc-active-color:    #0072B2;
+$toc-font-size:       0.875rem;
+
+// ── Code blocks ───────────────────────────────────────────────────────────────
+$code-bg:            #f5f5f5;
+$code-color:         #1c1c2e;
+$pre-bg:             #f5f5f5;
+$pre-color:          #1c1c2e;
+$pre-border-color:   #e0e0e0;
+$pre-border-radius:  6px;
+
+// ── Tables ────────────────────────────────────────────────────────────────────
+$table-border-color:        #d8d8e8;
+$table-striped-bg:          rgba(0, 114, 178, 0.05);
+$table-hover-bg:            rgba(0, 114, 178, 0.10);
+
+// ── Custom styles ─────────────────────────────────────────────────────────────
+
+// Smooth hover on all links
+a {
+  transition: color 0.15s ease;
+}
+
+// Slightly rounded code
+code {
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+}
+
+// Section headings with subtle left accent
+h2 {
+  border-left: 4px solid #0072B2;
+  padding-left: 0.6rem;
+  margin-top: 2rem;
+}
+
+// TOC active indicator
+#TOC a.active {
+  color: $toc-active-color;
+  font-weight: 600;
+}
+
+// Print: hide toggle button and sidebar
+@media print {
+  #quarto-margin-sidebar,
+  .quarto-color-scheme-toggle { display: none !important; }
+  h2 { border-left: none; padding-left: 0; }
+}

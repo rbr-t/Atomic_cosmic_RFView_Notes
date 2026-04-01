@@ -1,0 +1,180 @@
+---
+title: "Document Title"
+subtitle: "Subtitle or Project Name"
+author: "Author Name"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+
+# ── Output formats ────────────────────────────────────────────────────────────
+# Render both: rmarkdown::render("document.Rmd", output_format = "all")
+output:
+  html_document:
+    theme: flatly           # base Bootstrap theme
+    highlight: kate
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    number_sections: true
+    code_folding: hide      # show/hide toggle per chunk
+    fig_caption: true
+    fig_width: 7
+    fig_height: 4.5
+    df_print: kable
+    includes:
+      in_header: "../assets/rmd-header.html"    # fonts + day/night JS
+    css: "../assets/rmd-custom.css"
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    fig_width: 6.5
+    fig_height: 4
+    latex_engine: xelatex
+    includes:
+      in_header: "../assets/rmd-latex-header.tex"
+    citation_package: natbib
+
+# ── Bibliography ──────────────────────────────────────────────────────────────
+bibliography: references.bib
+csl: https://www.zotero.org/styles/apa-7th-edition
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  warning   = FALSE,
+  message   = FALSE,
+  fig.align = "center"
+)
+
+# Color-blind-safe Okabe-Ito palette
+okabe_ito <- c(
+  "#E69F00", "#56B4E9", "#009E73", "#F0E442",
+  "#0072B2", "#D55E00", "#CC79A7", "#000000"
+)
+
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  options(
+    ggplot2.discrete.colour = okabe_ito,
+    ggplot2.discrete.fill   = okabe_ito
+  )
+}
+
+options(knitr.kable.NA = "—")
+```
+
+## Abstract {-}
+
+Replace this block with a 150–250 word abstract.
+
+---
+
+## Introduction
+
+Write your introduction here. Cite with `[@key2024]`.
+
+### Background
+
+Subsection content.
+
+### Objectives
+
+1. First objective
+2. Second objective
+
+---
+
+## Methods {.tabset .tabset-fade .tabset-pills}
+
+### Approach
+
+Describe the overall approach.
+
+### Data Sources
+
+```{r data-summary}
+df <- data.frame(
+  Source  = c("Source A", "Source B"),
+  Records = c(1200, 850),
+  Period  = c("2020–2024", "2021–2024")
+)
+knitr::kable(df, align = "lrr", caption = "Summary of data sources.")
+```
+
+### Statistical Analysis
+
+Describe the analysis.
+
+---
+
+## Results {.tabset .tabset-fade .tabset-pills}
+
+### Overview
+
+Summary of key findings.
+
+### Charts
+
+```{r fig-example, fig.cap="Example chart using the Okabe-Ito palette."}
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  library(ggplot2)
+  example_data <- data.frame(
+    category = c("Group A", "Group B", "Group C"),
+    value    = c(42, 67, 31)
+  )
+  ggplot(example_data, aes(x = category, y = value, fill = category)) +
+    geom_col(width = 0.6, show.legend = FALSE) +
+    scale_fill_manual(values = okabe_ito[1:3]) +
+    labs(x = NULL, y = "Value") +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.major.x = element_blank())
+}
+```
+
+### Tables
+
+```{r tbl-results}
+results <- data.frame(
+  Metric = c("Accuracy", "Precision", "Recall"),
+  Value  = c(0.94, 0.91, 0.96),
+  CI_95  = c("[0.91, 0.97]", "[0.88, 0.94]", "[0.93, 0.99]")
+)
+knitr::kable(results, digits = 2,
+             col.names = c("Metric", "Value", "95% CI"),
+             caption = "Key results summary.")
+```
+
+---
+
+## Discussion
+
+Discuss findings here.
+
+### Limitations
+
+> **Limitations**: Note any important caveats here.
+
+---
+
+## Conclusion
+
+Summarise in 3–5 sentences.
+
+---
+
+## References {-}
+
+<div id="refs"></div>
+
+---
+
+## Appendix {-}
+
+### Session Info {-}
+
+```{r session-info}
+sessionInfo()
+```

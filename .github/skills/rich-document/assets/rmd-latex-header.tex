@@ -1,0 +1,36 @@
+% rmd-latex-header.tex — injected into LaTeX preamble for PDF output
+
+\usepackage{booktabs}       % professional table rules (\toprule, \midrule, \bottomrule)
+\usepackage{longtable}      % tables that span multiple pages
+\usepackage{float}          % H float specifier for figures
+\usepackage{hyperref}       % clickable links in PDF
+
+% XeLaTeX font setup (Inter for body, JetBrains Mono for code)
+% Requires: tlmgr install fontspec inter jetbrainsmono
+\usepackage{fontspec}
+\setmainfont{Inter}[
+  BoldFont       = Inter-Bold,
+  ItalicFont     = Inter-Italic,
+  BoldItalicFont = Inter-BoldItalic
+]
+\setmonofont{JetBrainsMono-Regular}[Scale=0.875]
+
+% Fallback: comment out fontspec block above if fonts not installed,
+% and uncomment below for safe system fonts:
+% \usepackage{lmodern}
+
+% Okabe-Ito colors for hyperlinks
+\hypersetup{
+  colorlinks = true,
+  linkcolor  = {0072B2},    % blue
+  urlcolor   = {0072B2},
+  citecolor  = {D55E00}     % vermillion
+}
+
+% Tighter list spacing
+\usepackage{enumitem}
+\setlist{noitemsep, topsep=4pt}
+
+% Better paragraph spacing
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0em}

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<!--
+  DRAFT — NOT FOR PUBLICATION
+  Generated: {{EFFECTIVE_DATE}}
+  Version: 1.0-draft
+  Requires review by qualified legal counsel before publication.
+  TKR Studios Legal Guardian Agent
+-->
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Terms &amp; Conditions — {{APP_NAME}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../legal.css">
+</head>
+<body>
+
+<button id="theme-toggle" aria-label="Toggle colour scheme" title="Toggle day/night mode">☀</button>
+
+<div class="legal-wrapper">
+
+  <!-- Sidebar TOC -->
+  <nav class="legal-sidebar" aria-label="Document contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#acceptance">Acceptance</a></li>
+      <li><a href="#eligibility">Eligibility &amp; Age</a></li>
+      <li><a href="#account">Account &amp; Registration</a></li>
+      <li><a href="#service">Description of Service</a></li>
+      <li><a href="#user-content">User Content</a></li>
+      <li><a href="#ai-generated-content">AI-Generated Content</a></li>
+      <li><a href="#print-fulfilment">Print Fulfilment</a></li>
+      <li><a href="#cloud-storage">Cloud Storage Integration</a></li>
+      <li><a href="#prohibited">Prohibited Uses</a></li>
+      <li><a href="#ip">Intellectual Property</a></li>
+      <li><a href="#privacy">Privacy</a></li>
+      <li><a href="#disclaimers">Disclaimers</a></li>
+      <li><a href="#limitation">Limitation of Liability</a></li>
+      <li><a href="#indemnification">Indemnification</a></li>
+      <li><a href="#termination">Termination</a></li>
+      <li><a href="#governing-law">Governing Law</a></li>
+      <li><a href="#changes">Changes to Terms</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ol>
+  </nav>
+
+  <!-- Main content -->
+  <main class="legal-main" id="main-content">
+
+    <div class="draft-banner" role="alert">
+      ⚠ DRAFT — Not for publication. Requires qualified legal review before use.
+    </div>
+
+    <h1>Terms &amp; Conditions</h1>
+    <p><strong>{{APP_NAME}}</strong> — Effective Date: {{EFFECTIVE_DATE}}</p>
+    <p>Please read these Terms &amp; Conditions carefully before using {{APP_NAME}}.</p>
+
+    <!-- 1 -->
+    <section id="acceptance" aria-labelledby="h-acceptance">
+      <h2 id="h-acceptance">1. Acceptance of Terms</h2>
+      <p>By accessing or using {{APP_NAME}} ("Service", "we", "us"), you agree to be bound
+      by these Terms &amp; Conditions and our <a href="privacy-policy.html">Privacy Policy</a>.
+      If you do not agree, do not use the Service.</p>
+    </section>
+
+    <!-- 2 -->
+    <section id="eligibility" aria-labelledby="h-eligibility">
+      <h2 id="h-eligibility">2. Eligibility &amp; Age Requirements <span class="badge-jurisdiction coppa">COPPA</span> <span class="badge-jurisdiction dpdp">DPDP</span></h2>
+      <p>You must be at least <strong>{{MIN_AGE}} years old</strong> to use this Service.
+      By using the Service, you represent that you meet this requirement.</p>
+      <p>We do not knowingly collect personal data from individuals under {{MIN_AGE}}.
+      If you are a parent or guardian and believe your child has provided personal data to us,
+      please contact us at <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.</p>
+    </section>
+
+    <!-- 3 -->
+    <section id="account" aria-labelledby="h-account">
+      <h2 id="h-account">3. Account &amp; Registration</h2>
+      <p>You may register using Google Sign-In or email/password via Firebase Authentication.
+      You are responsible for maintaining the confidentiality of your credentials and for all
+      activity under your account. Notify us immediately of any unauthorised access.</p>
+    </section>
+
+    <!-- 4 -->
+    <section id="service" aria-labelledby="h-service">
+      <h2 id="h-service">4. Description of Service</h2>
+      <p>{{APP_NAME}} is a web-based photo album creation tool that enables users to:</p>
+      <ul>
+        <li>Upload personal photographs and arrange them into album layouts</li>
+        <li>Generate images using AI services (Stability AI, OpenAI DALL·E 3, Replicate, HuggingFace, DeepAI)</li>
+        <li>Remove image backgrounds (Remove.bg)</li>
+        <li>Save and export albums in digital and print-ready formats</li>
+        <li>Order physical prints via third-party fulfilment partners</li>
+      </ul>
+    </section>
+
+    <!-- 5 -->
+    <section id="user-content" aria-labelledby="h-user-content">
+      <h2 id="h-user-content">5. User Content &amp; Ownership</h2>
+      <p><strong>You retain full ownership</strong> of all photographs, designs, and other
+      content you upload or create using the Service ("User Content").</p>
+      <p>By uploading User Content, you grant {{APP_NAME}} a limited, non-exclusive,
+      royalty-free, worldwide licence to store, process, and display your content solely
+      for the purpose of providing the Service to you. This licence terminates when you
+      delete your content or close your account.</p>
+      <p>You represent and warrant that you own or have the necessary rights to your User Content,
+      and that it does not infringe any third-party intellectual property rights.</p>
+    </section>
+
+    <!-- 6 — AI clause (from partial) -->
+    <section id="ai-generated-content" aria-labelledby="h-ai">
+      <h2 id="h-ai">6. AI-Generated Content
+        <span class="badge-jurisdiction gdpr">EU AI Act</span>
+        <span class="badge-jurisdiction dpdp">DPDP</span>
+      </h2>
+
+      <h3>6.1 Supported AI Services</h3>
+      <p>{{APP_NAME}} integrates with Stability AI, OpenAI (DALL·E 3), Replicate,
+      HuggingFace, DeepAI, and Remove.bg ("AI Providers").
+      Use is subject to each provider's terms of service.</p>
+
+      <h3>6.2 Ownership of AI-Generated Images</h3>
+      <p>Subject to each AI Provider's terms, you may own or hold a licence to images
+      you generate through {{APP_NAME}}. <strong>{{APP_NAME}} makes no warranty that
+      AI-generated images are free from third-party intellectual property claims.</strong>
+      You are solely responsible for verifying commercial usability before use in commercial
+      print products or wider distribution.</p>
+
+      <h3>6.3 EU AI Act Transparency Notice <span class="badge-jurisdiction ai">AI Act Art. 50</span></h3>
+      <p>In compliance with EU AI Act Article 50 (applicable from 2 August 2026 for EU/EEA users),
+      images generated using AI tools within {{APP_NAME}} are identified as AI-generated.
+      If you publish or distribute such images, you must disclose that they were AI-generated
+      where required by applicable law.</p>
+
+      <h3>6.4 Prohibited AI Content</h3>
+      <p>You must not use AI generation features to produce:</p>
+      <ul>
+        <li>Content that violates any applicable law</li>
+        <li>Sexual or violent content involving minors</li>
+        <li>Non-consensual intimate imagery (deepfakes) of real individuals</li>
+        <li>Misinformation or deceptive content about real persons or events</li>
+        <li>Content infringing third-party intellectual property rights</li>
+      </ul>
+    </section>
+
+    <!-- 7 -->
+    <section id="print-fulfilment" aria-labelledby="h-print">
+      <h2 id="h-print">7. Print Fulfilment</h2>
+      <p>Print orders are fulfilled by third-party partners (Printful, Gelato, Printify)
+      ("Fulfilment Partners"). By placing an order, you confirm that you hold all necessary
+      rights to the content being printed and that it complies with the Fulfilment Partner's
+      content policies.</p>
+      <p>{{APP_NAME}} is not liable for orders containing infringing or prohibited content.
+      Orders may be cancelled by Fulfilment Partners without notice or refund if content
+      violates their policies.</p>
+      <p>Pricing, shipping, and refund terms are governed by the applicable Fulfilment
+      Partner's terms of service.</p>
+    </section>
+
+    <!-- 8 -->
+    <section id="cloud-storage" aria-labelledby="h-cloud">
+      <h2 id="h-cloud">8. Cloud Storage Integration</h2>
+      <p>If you choose to connect Google Drive or Dropbox, you authorise {{APP_NAME}} to
+      access your cloud storage solely to save and retrieve your album project files.
+      This access is limited to the designated app folder. Your OAuth credentials are
+      encrypted at rest. You may revoke access at any time via your Google or Dropbox
+      security settings.</p>
+    </section>
+
+    <!-- 9 -->
+    <section id="prohibited" aria-labelledby="h-prohibited">
+      <h2 id="h-prohibited">9. Prohibited Uses</h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Use the Service for any unlawful purpose</li>
+        <li>Attempt to reverse-engineer, decompile, or extract source code</li>
+        <li>Use automated tools to scrape, overload, or abuse the Service</li>
+        <li>Impersonate any person or entity</li>
+        <li>Circumvent any security or authentication measure</li>
+        <li>Upload malware, viruses, or malicious code</li>
+      </ul>
+    </section>
+
+    <!-- 10 -->
+    <section id="ip" aria-labelledby="h-ip">
+      <h2 id="h-ip">10. Intellectual Property</h2>
+      <p>The {{APP_NAME}} application, its design, code, and documentation are owned by
+      {{COMPANY_NAME}} and are protected by intellectual property law. You may not copy,
+      distribute, or create derivative works without written authorisation.</p>
+    </section>
+
+    <!-- 11 -->
+    <section id="privacy" aria-labelledby="h-privacy">
+      <h2 id="h-privacy">11. Privacy</h2>
+      <p>Your use of the Service is governed by our
+      <a href="privacy-policy.html">Privacy Policy</a>, which is incorporated into
+      these Terms by reference.</p>
+    </section>
+
+    <!-- 12 -->
+    <section id="disclaimers" aria-labelledby="h-disclaimers">
+      <h2 id="h-disclaimers">12. Disclaimers</h2>
+      <p>The Service is provided "as is" and "as available" without warranties of any kind,
+      express or implied, including but not limited to fitness for a particular purpose,
+      merchantability, or non-infringement. We do not warrant uninterrupted or error-free
+      operation.</p>
+    </section>
+
+    <!-- 13 -->
+    <section id="limitation" aria-labelledby="h-limitation">
+      <h2 id="h-limitation">13. Limitation of Liability</h2>
+      <p>To the fullest extent permitted by applicable law, {{COMPANY_NAME}} shall not be
+      liable for any indirect, incidental, consequential, or punitive damages arising from
+      your use of the Service. Our total liability to you shall not exceed the greater of
+      the amount you paid to us in the 12 months preceding the claim, or [VERIFY — confirm
+      with legal counsel for your jurisdiction].</p>
+    </section>
+
+    <!-- 14 -->
+    <section id="indemnification" aria-labelledby="h-indemnification">
+      <h2 id="h-indemnification">14. Indemnification</h2>
+      <p>You agree to indemnify and hold harmless {{COMPANY_NAME}} from any claims,
+      liabilities, damages, and costs (including legal fees) arising from your use of
+      the Service, your User Content, or your violation of these Terms.</p>
+    </section>
+
+    <!-- 15 -->
+    <section id="termination" aria-labelledby="h-termination">
+      <h2 id="h-termination">15. Termination</h2>
+      <p>We may suspend or terminate your account at any time for violation of these Terms,
+      with or without notice. You may close your account at any time by contacting
+      <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>. Clauses relating to
+      intellectual property, disclaimers, limitation of liability, and governing law
+      survive termination.</p>
+    </section>
+
+    <!-- 16 -->
+    <section id="governing-law" aria-labelledby="h-governing">
+      <h2 id="h-governing">16. Governing Law &amp; Dispute Resolution
+        <span class="badge-jurisdiction dpdp">DPDP</span>
+      </h2>
+      <p>These Terms are governed by the laws of <strong>{{GOVERNING_LAW}}</strong>,
+      without regard to conflict of law principles. Any disputes shall be subject to the
+      exclusive jurisdiction of <strong>{{DISPUTE_FORUM}}</strong>. [VERIFY — confirm
+      arbitration vs. court preference with legal counsel]</p>
+    </section>
+
+    <!-- 17 -->
+    <section id="changes" aria-labelledby="h-changes">
+      <h2 id="h-changes">17. Changes to These Terms</h2>
+      <p>We reserve the right to update these Terms at any time. Material changes will be
+      notified by email or prominent in-app notice at least 30 days before taking effect.
+      Continued use after the effective date constitutes acceptance.</p>
+    </section>
+
+    <!-- 18 -->
+    <section id="contact" aria-labelledby="h-contact">
+      <h2 id="h-contact">18. Contact Us <span class="badge-jurisdiction dpdp">Grievance Officer</span></h2>
+      <p>For questions about these Terms, or to exercise your legal rights:</p>
+      <address>
+        <strong>{{COMPANY_NAME}}</strong><br>
+        Grievance Officer: <strong>{{GRIEVANCE_OFFICER}}</strong><br>
+        Email: <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>
+      </address>
+      <p><em>India DPDP Act s.13 requires a named Grievance Officer — fill in {{GRIEVANCE_OFFICER}}.</em></p>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var btn  = document.getElementById("theme-toggle");
+  var stored = localStorage.getItem("tkr-legal-theme") || "light";
+  var apply = function(t){
+    root.setAttribute("data-theme", t);
+    btn.textContent = t==="dark" ? "☾" : "☀";
+    localStorage.setItem("tkr-legal-theme", t);
+  };
+  apply(stored);
+  btn.addEventListener("click", function(){
+    apply(root.getAttribute("data-theme")==="dark" ? "light" : "dark");
+  });
+})();
+</script>
+
+</body>
+</html>

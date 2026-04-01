@@ -1,0 +1,44 @@
+<!-- rmd-header.html — injected into <head> for all HTML R Markdown output -->
+
+<!-- Google Fonts: Inter (body) + JetBrains Mono (code) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Day / Night toggle button -->
+<script>
+(function () {
+  // Inject toggle button after DOM is ready
+  document.addEventListener("DOMContentLoaded", function () {
+    var btn = document.createElement("button");
+    btn.id = "theme-toggle";
+    btn.title = "Toggle day / night mode";
+    btn.setAttribute("aria-label", "Toggle colour scheme");
+    btn.innerHTML = "&#9788;"; // ☀ default icon
+    btn.style.cssText = [
+      "position:fixed", "top:12px", "right:16px", "z-index:9999",
+      "background:transparent", "border:1px solid currentColor",
+      "border-radius:6px", "padding:4px 10px", "cursor:pointer",
+      "font-size:1rem", "opacity:0.75", "transition:opacity 0.2s"
+    ].join(";");
+    btn.addEventListener("mouseenter", function () { btn.style.opacity = "1"; });
+    btn.addEventListener("mouseleave", function () { btn.style.opacity = "0.75"; });
+
+    var root       = document.documentElement;
+    var stored     = localStorage.getItem("rmd-colour-scheme") || "light";
+    var apply = function (scheme) {
+      root.setAttribute("data-theme", scheme);
+      document.body.setAttribute("data-bs-theme", scheme); // Bootstrap 5
+      btn.innerHTML = scheme === "dark" ? "&#9790;" : "&#9788;"; // ☾ or ☀
+      localStorage.setItem("rmd-colour-scheme", scheme);
+    };
+
+    apply(stored);
+    btn.addEventListener("click", function () {
+      apply(root.getAttribute("data-theme") === "dark" ? "light" : "dark");
+    });
+
+    document.body.appendChild(btn);
+  });
+})();
+</script>

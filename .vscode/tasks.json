@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Shiny App",
+			"type": "shell",
+			"command": "Rscript -e \"shiny::runApp('d:/GitHub/Atomic_cosmic_RFView_Notes/PA design App/R/app.R', launch.browser=TRUE)\"",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

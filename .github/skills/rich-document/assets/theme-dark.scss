@@ -1,0 +1,94 @@
+/*
+ * theme-dark.scss
+ * Dark mode overrides for rich-document skill
+ * Applied as: theme: [darkly, assets/theme-dark.scss]
+ *
+ * Uses the same Okabe-Ito palette with adjusted lightness for
+ * WCAG 2.1 AA contrast on dark backgrounds.
+ */
+
+// ── Typography ───────────────────────────────────────────────────────────────
+$font-family-sans-serif: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+$font-family-monospace:  "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+$font-size-base:         1rem;
+$line-height-base:       1.7;
+
+// ── Palette ──────────────────────────────────────────────────────────────────
+$body-bg:            #1a1a2e;
+$body-color:         #e6e6f0;
+$headings-color:     #f0f0f8;
+$link-color:         #56B4E9;       // Okabe-Ito sky blue — passes 4.5:1 on dark bg
+$link-hover-color:   #88ccf0;
+
+// ── Callout accent colors (lightened for dark bg contrast) ────────────────
+$callout-color-note:      #56B4E9;  // sky blue (lightened from 0072B2)
+$callout-color-tip:       #4dd4a0;  // lighter bluish green
+$callout-color-warning:   #E69F00;  // orange — already sufficient contrast
+$callout-color-caution:   #f07040;  // lighter vermillion
+$callout-color-important: #dd99bb;  // lighter reddish purple
+
+// ── TOC ───────────────────────────────────────────────────────────────────────
+$toc-color:           #aaaacc;
+$toc-active-color:    #56B4E9;
+$toc-font-size:       0.875rem;
+
+// ── Code blocks ───────────────────────────────────────────────────────────────
+$code-bg:            #12122a;
+$code-color:         #d0d0e8;
+$pre-bg:             #12122a;
+$pre-color:          #d0d0e8;
+$pre-border-color:   #2e2e4e;
+$pre-border-radius:  6px;
+
+// ── Tables ────────────────────────────────────────────────────────────────────
+$table-border-color:        #2e2e4e;
+$table-striped-bg:          rgba(86, 180, 233, 0.07);
+$table-hover-bg:            rgba(86, 180, 233, 0.14);
+
+// ── Custom styles ─────────────────────────────────────────────────────────────
+
+a {
+  transition: color 0.15s ease;
+}
+
+code {
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+  background-color: $code-bg;
+  color: $code-color;
+}
+
+// Section heading accent uses sky blue in dark mode
+h2 {
+  border-left: 4px solid #56B4E9;
+  padding-left: 0.6rem;
+  margin-top: 2rem;
+}
+
+// Soften table borders
+table {
+  border-color: $table-border-color;
+}
+
+// Day/night toggle button: ensure it's always visible
+.quarto-color-scheme-toggle {
+  opacity: 0.85;
+  &:hover { opacity: 1; }
+}
+
+// TOC active
+#TOC a.active {
+  color: $toc-active-color;
+  font-weight: 600;
+}
+
+// Print: always white/black regardless of colour scheme
+@media print {
+  body {
+    background: #ffffff !important;
+    color:       #000000 !important;
+  }
+  #quarto-margin-sidebar,
+  .quarto-color-scheme-toggle { display: none !important; }
+  h2 { border-left: none; padding-left: 0; }
+}
