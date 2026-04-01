@@ -74,3 +74,17 @@ Always present this before drawing conclusions:
 - DO NOT skip Stage 5 for any recommendation that requires hardware respins (irreversible cost)
 - NEVER conflate "model error" with "process variation" — they require different corrective actions
 - ALWAYS provide a falsification test — a fix without a test is an assumption, not a solution
+
+## POV Influence — Lineup Calculator Audit (Rubix 2026-04-01T18)
+
+**Blind spot identified:** DebugAgent is scoped for simulation-vs-measurement anomaly detection. But the "Doherty Polarity Flip" failure mode (PAE shown as *decreasing* at backoff for a Doherty topology) is exactly the kind of anomaly it should detect — and it would appear in measurement data too. A Doherty showing degrading efficiency at 6dB OBO is a major red flag that is currently invisible to the system.
+
+**Suggested tune:** Add a `calc_sanity_check(cascade_result, topology)` method to DebugAgent that runs on every R cascade result and flags:
+- PAE decreasing at backoff for Doherty topology (should be flat or improving to ~6dB OBO)
+- Ropt < 2Ω (suggests wrong architecture or data entry error)  
+- System PAE > 78.5% (Class-B limit — physically impossible)
+- Gain per stage > 25 dB (unrealistic for a single-stage PA)
+- P1dB > P3dB (stored in stage results — physical impossibility)
+- Tj_c > Tj_max from technology_guardrails.yaml (over-temperature condition)
+
+**Long-term aim:** Sanity checks fire inline during canvas use in server_pa_lineup.R, not only post-simulation. The debug_agent becomes a real-time physics watchdog for the lineup calculator — the first line of defence before transistor-level design uses corrupt data.

@@ -102,7 +102,8 @@ Atomic_cosmic_RFView_Notes/
 
 | Component | Complete | Notes |
 |---|---|---|
-| PA Design App — Core | 90% | Production-ready, Docker-deployable |
+| PA Design App — Core | 92% | Production-ready, Docker-deployable |
+| 4.2 Lineup Calculator | 95% | Physics-correct Ropt, Doherty PAE backoff, topology-aware gain distribution |
 | PA Lineup Canvas (Konva.js) | 100% | 7,941 lines, fully functional |
 | Spec-Driven Design (System → Stage) | 100% | Phases 1+2 complete: technology selection, gain dist, power cascade |
 | Transistor Design Level (Stage → Device) | 70% | calc_transistor_sizing.R + server_transistor_design.R LIVE |
@@ -278,7 +279,19 @@ Run: `docker-compose up -d` from `PA design App/`
 
 ---
 
-## 12. Transistor Design Level — Implementation Notes (added 2026-04-01)
+## 11b. Open Issues / Known Gaps — Lineup Calculator Physics (Rubix M1)
+
+| ID | Description | Status |
+|---|---|---|
+| FM-01 | Ropt formula used `(Vdd)²/(2P)` — missing Vknee, causing 15–23% error for GaN | **FIXED** — `(Vdd−Vknee)²/(2P)` + `_getVkneeFromTech()` in pa_lineup_canvas.js:4961 |
+| FM-02 | Doherty PAE backoff used generic `η^0.8` degradation — not topology-aware | **FIXED** — Doherty: `η_bo = η_peak × (0.5 + 0.5×√ratio)`; conventional model retained |
+| FM-03 | `recommend_technology()` returned display strings not YAML keys (`'Si LDMOS'` vs `'LDMOS'`) | **FIXED** — keys normalised: `LDMOS`, `GaN_SiC`, `InP`; guardrails lookup now resolves correctly |
+| FM-04 | `distributeGain()` placed Doherty main/peak stages in series — wrong topology | **FIXED** — explicit parallel main/peak branch rendering with correct signal-flow |
+| FM-05 | `spec_supply_voltage` default was 30 V — inconsistent with 28 V GaN standard | **FIXED** — ui.R default and JS `selectTechnology` vdd both corrected to 28 V |
+
+---
+
+## 12. Transistor Design Level— Implementation Notes (added 2026-04-01)
 
 ### What was added (Rubix M1 — 7 moves)
 

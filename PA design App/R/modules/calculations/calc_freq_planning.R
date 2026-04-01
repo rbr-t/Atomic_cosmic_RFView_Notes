@@ -32,20 +32,21 @@ eff_gan   <- function(f) pmax(70 - 0.3  * f, 20)
 #' @param f Frequency in GHz
 eff_sige  <- function(f) pmax(50 - 0.15 * f, 10)
 
+# Returns YAML keys from config/technology_guardrails.yaml
 #' Recommend technology based on operating frequency
 #' Rule of thumb: fT > 5 × fop
 #' @param freq_ghz Operating frequency in GHz
 #' @return Named list: tech, fT_range, expected_gain, color (Bootstrap class)
 recommend_technology <- function(freq_ghz) {
   if (freq_ghz < 4) {
-    list(tech = "Si LDMOS",           fT_range = "20-40 GHz",   expected_gain = "15-18 dB", color = "primary")
+    list(tech = "LDMOS",    fT_range = "20-40 GHz",   expected_gain = "15-18 dB", color = "primary")
   } else if (freq_ghz < 12) {
-    list(tech = "GaAs pHEMT or GaN HEMT", fT_range = "30-100 GHz",  expected_gain = "12-15 dB", color = "success")
+    list(tech = "GaN_SiC",  fT_range = "30-100 GHz",  expected_gain = "12-15 dB", color = "success")  # GaN preferred for >10W
   } else if (freq_ghz < 40) {
-    list(tech = "GaN HEMT",           fT_range = "50-100 GHz",  expected_gain = "10-12 dB", color = "success")
+    list(tech = "GaN_SiC",  fT_range = "50-100 GHz",  expected_gain = "10-12 dB", color = "success")
   } else if (freq_ghz < 100) {
-    list(tech = "SiGe HBT or GaN MMIC", fT_range = "200-300 GHz", expected_gain = "8-10 dB",  color = "warning")
+    list(tech = "SiGe",     fT_range = "200-300 GHz", expected_gain = "8-10 dB",  color = "warning")
   } else {
-    list(tech = "InP HEMT or Advanced SiGe", fT_range = "300-600 GHz", expected_gain = "6-8 dB", color = "danger")
+    list(tech = "InP",      fT_range = "300-600 GHz", expected_gain = "6-8 dB",   color = "danger")
   }
 }

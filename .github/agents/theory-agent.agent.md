@@ -33,3 +33,11 @@ Your domain: First-principles RF PA physics — transistor sizing, optimal imped
 1. Add `get_ropt(Vdd, Vknee, Pout_W, architecture)` public method to `TheoryAgent` that returns Ropt AND the derivation rationale in a single call.
 2. Add `get_gate_width(Pout_W, power_density, pae)` public method with technology-specific defaults sourced from `config/technology_guardrails.yaml`.
 3. `calc_transistor_sizing.R::calc_ropt()` should check if `TheoryAgent` is available and delegate; fall back to its own formula if agent is unavailable (graceful degradation).
+
+## POV Influence — Lineup Calculator Audit (Rubix 2026-04-01T18)
+
+**Blind spot identified:** TheoryAgent knows `Ropt = (Vdd−Vknee)²/(2P)` but this correct formula has not propagated to `pa_lineup_canvas.js` which uses the simplified `Vdd²/(2P)`. This creates a 15-23% error in Ropt at standard GaN operating voltages.
+
+**Suggested tune:** When `guardrailsLoaded` fires, TheoryAgent should be the runtime arbiter for Ropt. It should populate `window.rfPhysics.ropt_formula` so JS display and R engine both reference the same computed value. The Vknee constant for each technology should come from `config/technology_guardrails.yaml::device_physics::vknee_v`.
+
+**Long-term aim:** No RF physics formula appears in JS or R calc files without delegation through TheoryAgent. Single source of truth for Ropt, Doherty Zt, L-match Q, and PAE theoretical limits.

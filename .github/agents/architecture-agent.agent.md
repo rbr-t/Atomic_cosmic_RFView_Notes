@@ -70,3 +70,23 @@ Before generating topology paths, you lock the spec as an immovable goal referen
 2. If either guard trips, emit a topology re-evaluation event: `session$sendCustomMessage("topology_recheck_needed", list(Ropt=..., gate_width=...))`.
 3. `ArchitectureAgent` should listen for this event and produce an updated topology recommendation with the new constraints.
 4. The UI should show a yellow banner in the Transistor Design tab: "⚠ Ropt = X Ω — consider parallel combiner topology. Recheck in Architecture (4.2)."
+
+## POV Influence — Lineup Calculator Audit (Rubix 2026-04-01T18)
+
+**Blind spot identified:** ArchitectureAgent selects Doherty topology but the lineup calculator's `distributeGain()` function then treats the Doherty Main and Peak PAs as series amplifiers (sequential gain chain), not as parallel branches fed from a common driver. This FM-04 "Series Doherty" bug means the gain model is fundamentally wrong: a 43 dB total Doherty system assigns 15 dB to a Driver and 28 dB to a single "PA stage" — but the correct model is 15 dB Driver + splitter + 14 dB Main PA ‖ 14 dB Peak PA + combiner.
+
+**Suggested tune:** After topology selection, ArchitectureAgent should emit a `topology_gain_model` specification:
+```json
+{
+  "topology": "doherty",
+  "driver_stages": 1,
+  "driver_gain_db": 15,
+  "parallel_pa_branches": 2,
+  "gain_per_branch_db": 14,
+  "has_splitter": true,
+  "has_combiner": true
+}
+```
+`distributeGain()` reads this model instead of inferring from total_gain alone. The topology completely determines the gain distribution topology — gain distribution should never be topology-agnostic.
+
+**Long-term aim:** Topology selection and gain distribution are a single coupled decision. Selecting Doherty automatically configures the canvas with the correct parallel branch topology, not a placeholder series chain that must be manually corrected.

@@ -51,7 +51,7 @@ serverTransistorDesign <- function(input, output, session, state) {
         icon("info-circle"),
         " Run the PA Lineup Calculator first",
         tags$br(),
-        tags$small("(4.2 Architecture & Design Canvas)")
+        tags$small("(4.2 Line-up Calculator)")
       )
     )
   }

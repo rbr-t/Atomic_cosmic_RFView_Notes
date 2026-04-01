@@ -75,7 +75,7 @@ ui <- dashboardPage(
 
       menuItem("4 · Device Level", tabName = "device_level", icon = icon("draw-polygon"),
         menuSubItem("4.1  PA Specifications",          tabName = "dev_specs"),
-        menuSubItem("4.2  Architecture & Design Canvas", tabName = "dev_architecture"),
+        menuSubItem("4.2  Line-up Calculator",            tabName = "dev_architecture"),
         menuSubItem("4.3  Interstage & Passives",      tabName = "dev_interstage")
       ),
 
@@ -917,7 +917,7 @@ $(document).ready(function() {
               )
       ),  # closes tabItem(tech_guardrails)
 
-      # ── 4.2 Architecture & Design Canvas (PA Lineup) ────────────────────────
+      # ── 4.2 Line-up Calculator (PA Lineup) ────────────────────────────────
       tabItem(tabName = "dev_architecture",
               
               fluidRow(
@@ -1401,7 +1401,7 @@ $(document).ready(function() {
                             )
                           ),
                           column(6,
-                            numericInput("spec_supply_voltage", "Vdd (V)", value = 30, min = 5, max = 50, step = 1)
+                            numericInput("spec_supply_voltage", "Vdd (V)", value = 28, min = 5, max = 50, step = 1)
                           )
                         )
                       ), # end tab Power & Freq
@@ -2608,7 +2608,7 @@ $(document).ready(function() {
       # ── Device-level stubs ────────────────────────────────────────────────────
       tabItem(tabName = "device_level",
         h2(icon("draw-polygon"), " 4 · Device Level"),
-        p("Select a sub-topic from the sidebar. The architecture canvas (4.2) drives design choices for each stage.")
+        p("Select a sub-topic from the sidebar. The Line-up Calculator (4.2) drives design choices for each stage.")
       ),
       tabItem(tabName = "dev_specs",
         h2(icon("clipboard-list"), " 4.1 PA Specifications"),
@@ -2824,7 +2824,7 @@ $(document).ready(function() {
           ),
           tabPanel("Line-up Design",
             div(class = "callout callout-info",
-              p(icon("info-circle"), strong(" Architecture canvas (4.2)"),
+              p(icon("info-circle"), strong(" Line-up Calculator (4.2)"),
                 " defines the topology. Pull PA stages from the ",
                 strong("PA Stage Library (5.2)"),
                 " and assemble into a module, then run cascade simulations.")
@@ -3147,7 +3147,7 @@ $(document).ready(function() {
                       "3.1  Technology Selection"      = "tech_selection",
                       "3.4  Loss Curves"               = "tech_loss_curves",
                       "4 · Device Level"               = "device_level",
-                      "4.2  Architecture Canvas"       = "dev_architecture",
+                      "4.2  Line-up Calculator"        = "dev_architecture",
                       "5.1  Transistor Design"         = "prod_transistor",
                       "5.2  PA Stage Design"           = "prod_pa_stage",
                       "5.3  Module Design"             = "prod_module",

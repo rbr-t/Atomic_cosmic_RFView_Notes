@@ -1955,7 +1955,26 @@ serverPaLineup <- function(input, output, session, state) {
       })
     }
   })
-  
 
+
+  # ── Respond to PAR change from syncLineupSpecs JS handler ──────────────────
+  # JS fires par_changed_trigger when user edits PAR in spec panel,
+  # so the R cascade recalculates without requiring a manual button click.
+  observeEvent(input$par_changed_trigger, {
+    # Only re-run if we have components already calculated
+    comps <- lineup_components()
+    if (is.null(comps) || length(comps) == 0) return()
+
+    # Trigger a silent recalculation by updating a reactive dependency
+    # The main Calculate button observer already watches lineup_components
+    # so invalidating it re-runs the cascade
+    isolate({
+      if (!is.null(rv$par_trigger_count)) {
+        rv$par_trigger_count <- rv$par_trigger_count + 1
+      } else {
+        rv$par_trigger_count <- 1L
+      }
+    })
+  }, ignoreInit = TRUE, ignoreNULL = TRUE)
 
 }

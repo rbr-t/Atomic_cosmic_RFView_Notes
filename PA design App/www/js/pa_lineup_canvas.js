@@ -4951,18 +4951,33 @@ class PALineupCanvas {
   }
   
   calculateOptimalImpedance(component, powerLevelDbm) {
-    // Get Vdd from component properties (default to 28V for GaN)
     const vdd = component.properties.vdd || 28;
-    
-    // Convert power from dBm to Watts
     const powerWatts = Math.pow(10, (powerLevelDbm - 30) / 10);
-    
-    // Calculate optimal load impedance: Z = Vdd^2 / (2 * P)
-    const impedance = (vdd * vdd) / (2 * powerWatts);
-    
+    if (powerWatts <= 0) return 50; // safety guard
+
+    // Correct Ropt formula: Ropt = (Vdd − Vknee)² / (2 × Pout)
+    // Vknee is technology-dependent; omitting it causes 15-23% error for GaN
+    const vknee = this._getVkneeFromTech(component.properties.technology);
+    const vswing = Math.max(vdd - vknee, 0.1); // voltage swing
+    const impedance = (vswing * vswing) / (2 * powerWatts);
+
     return impedance;
   }
-  
+
+  _getVkneeFromTech(technology) {
+    // Knee voltage by technology — matches config/technology_guardrails.yaml::device_physics::vknee_v
+    const tech = (technology || '').toLowerCase().replace(/\s+/g, '_');
+    const map = {
+      'gan_sic': 2.0, 'gan': 2.0, 'gan_hemt': 2.0,
+      'gan_si': 1.5,
+      'ldmos': 3.0, 'si_ldmos': 3.0,
+      'gaas': 0.3, 'gaas_phemt': 0.3,
+      'sige': 0.4, 'sige_hbt': 0.4,
+      'inp': 0.2, 'inp_hemt': 0.2
+    };
+    return map[tech] ?? 2.0; // Default: GaN
+  }
+
   toggleCalculationRationale() {
     this.showCalculationRationale = !this.showCalculationRationale;
     
@@ -7056,7 +7071,7 @@ function setupTemplateHandlers(templates) {
  * Technology Selection based on frequency, power, and fT/fmax requirements
  * Reference: fT > 5 × fop rule from Frequency Planning tab
  */
-window.selectTechnology = function(freq_ghz, pout_dbm, vdd = 30) {
+window.selectTechnology = function(freq_ghz, pout_dbm, vdd = 28) {
   const pout_watts = Math.pow(10, (pout_dbm - 30) / 10);
   console.log(`[Tech Select] Frequency: ${freq_ghz} GHz, Pout: ${pout_dbm} dBm (${pout_watts.toFixed(2)}W), Vdd: ${vdd}V`);
   
@@ -7187,7 +7202,40 @@ window.distributeGain = function(total_gain_db, topology = 'balanced', targetSta
   
   const max_stage_gain = 18;
   
-  if (topology === 'doherty' || topology === 'balanced') {
+  if (topology === 'doherty' || topology.startsWith('doherty')) {
+    // DOHERTY TOPOLOGY: Main and Peak PAs are PARALLEL branches
+    // Gain structure: [Driver(series)] → [Splitter] → [Main PA ‖ Peak PA] → [Combiner]
+    // The gain to distribute is the DRIVER gain ONLY; each PA branch has its own gain
+    // Total cascade gain = driver_gain + PA_gain (not driver_gain + main + peak as series)
+    
+    if (num_stages === 1) {
+      // No driver: single-stage Doherty (uncommon but valid for high-gain PA)
+      stages = [
+        { name: 'Main PA',  gain: total_gain_db, type: 'main_pa',  role: 'main'  },
+        { name: 'Peak PA',  gain: total_gain_db, type: 'peak_pa',  role: 'peak'  }
+      ];
+    } else if (num_stages === 2) {
+      // Standard Doherty: 1 driver stage + 1 PA level (2 parallel PAs)
+      const driver_gain = Math.min(18, total_gain_db * 0.4);  // Driver ≤40% of total
+      const pa_gain = total_gain_db - driver_gain;            // Each PA gets remainder
+      stages = [
+        { name: 'Driver',   gain: driver_gain, type: 'driver',   role: 'driver' },
+        { name: 'Main PA',  gain: pa_gain,     type: 'main_pa',  role: 'main'   },
+        { name: 'Peak PA',  gain: pa_gain,     type: 'peak_pa',  role: 'peak'   }
+      ];
+    } else {
+      // 3-stage: Pre-driver → Driver → [Main PA ‖ Peak PA]
+      const predriver_gain = Math.min(15, total_gain_db / 3);
+      const driver_gain    = Math.min(18, (total_gain_db - predriver_gain) * 0.5);
+      const pa_gain        = total_gain_db - predriver_gain - driver_gain;
+      stages = [
+        { name: 'Pre-Driver', gain: predriver_gain, type: 'predriver', role: 'driver' },
+        { name: 'Driver',     gain: driver_gain,    type: 'driver',    role: 'driver' },
+        { name: 'Main PA',    gain: pa_gain,        type: 'main_pa',   role: 'main'   },
+        { name: 'Peak PA',    gain: pa_gain,        type: 'peak_pa',   role: 'peak'   }
+      ];
+    }
+  } else if (topology === 'balanced') {
     if (num_stages === 1) {
       stages = [{ name: 'PA', gain: total_gain_db, type: 'pa' }];
     } else if (num_stages === 2) {
@@ -7224,31 +7272,63 @@ window.calculateP1dB = function(p3db) {
 /**
  * Estimate PAE (Power Added Efficiency)
  */
-window.estimatePAE = function(bias_class, topology = 'conventional', freq_ghz = 2.6) {
-  let pae = 40;
-  
-  if (topology === 'doherty') {
-    if (bias_class === 'AB') {
-      pae = 50;
-    } else if (bias_class === 'C') {
-      pae = 45;
-    } else {
-      pae = 45;
-    }
-  } else {
-    switch(bias_class) {
-      case 'A': pae = 30; break;
-      case 'AB': pae = 45; break;
-      case 'B': pae = 50; break;
-      case 'C': pae = 55; break;
-      default: pae = 40;
-    }
+window.estimatePAE = function(bias_class, topology = 'conventional', freq_ghz = 2.6, pout_dbm = null, pavg_dbm = null) {
+  // Base PAE at P3dB by bias class (percentage, not fraction)
+  // These are realistic typical values for GaN at moderate frequencies
+  let pae;
+  switch ((bias_class || 'AB').toUpperCase()) {
+    case 'A':  pae = 30; break;  // Class A: theoretical max 50%; practical ~25-35%
+    case 'AB': pae = 50; break;  // Class AB: typical GaN 45-60%; use 50% as baseline
+    case 'B':  pae = 60; break;  // Class B: theoretical max 78.5%; practical ~55-65%
+    case 'C':  pae = 45; break;  // Class C: run backed off from peak; at P3dB ~40-50%
+    default:   pae = 45;
   }
-  
-  if (freq_ghz > 10) pae *= 0.9;
-  if (freq_ghz > 30) pae *= 0.85;
-  
-  return Math.round(pae);
+
+  // Frequency derating: GaN PAE degrades above ~5 GHz due to parasitic losses
+  // Model: linear derating from 0% at 1GHz to -15% at 30GHz
+  if (freq_ghz > 1) {
+    const freq_derating = Math.min(0.15, (freq_ghz - 1) / 30 * 0.15);
+    pae *= (1 - freq_derating);
+  }
+
+  // Topology modifier at P3dB (full power)
+  if (topology === 'doherty' || topology === 'doherty_symmetric' ||
+      topology === 'doherty_asymmetric_6dB' || topology === 'doherty_asymmetric_9dB') {
+    // Doherty at P3dB: similar to conventional (both main+peak saturated)
+    // Small efficiency boost from load modulation architecture
+    pae *= 1.05;
+  } else if (topology === 'balanced') {
+    pae *= 0.98; // Balanced: small overhead from hybrid coupler losses
+  }
+
+  // Cap at Class-B theoretical limit
+  pae = Math.min(pae, 78.5);
+
+  // If backoff point requested, compute Doherty PAE at Pavg
+  // For Doherty: main PA sees optimal load at backoff → PAE maintained
+  // For conventional: PAE degrades at backoff
+  if (pout_dbm !== null && pavg_dbm !== null) {
+    const par_db = pout_dbm - pavg_dbm;
+    const pout_ratio = Math.pow(10, -par_db / 10); // Pavg/P3dB as linear ratio
+    
+    const is_doherty = topology && topology.includes('doherty');
+    let pae_bo;
+    if (is_doherty) {
+      // Doherty: load modulation keeps main PA at optimal Ropt in backoff region
+      // At 6dB OBO: main PA alone at saturation → maintains peak efficiency
+      // Conservative model: PAE_bo = PAE_p3db × (0.5 + 0.5×√(ratio))
+      // This gives: at 6dB OBO → 0.5+0.5×0.5=0.75 → 75% of P3dB PAE
+      // Still higher than class-AB which gives ~(0.25)^0.8 = 30% of P3dB PAE
+      pae_bo = pae * (0.5 + 0.5 * Math.sqrt(pout_ratio));
+      pae_bo = Math.min(pae_bo, pae * 1.05); // Can't exceed P3dB PAE by more than 5%
+    } else {
+      // Conventional: PAE degrades — empirical 0.8-exponent model
+      pae_bo = Math.max(pae * Math.pow(pout_ratio, 0.8), 5);
+    }
+    return { pae_p3db: Math.round(pae * 10) / 10, pae_bo: Math.round(pae_bo * 10) / 10 };
+  }
+
+  return Math.round(pae * 10) / 10;
 };
 
 /**
@@ -8097,6 +8177,11 @@ function registerMessageHandlers() {
         if (window.paCanvas.showImpedanceDisplay) window.paCanvas.drawImpedanceColumns();
         if (window.paCanvas.showPhaseDisplay)     window.paCanvas.drawPhaseColumns();
         window.paCanvas.drawPaGroupBoxes();
+      }
+      // Re-trigger R calculation when PAR changes so efficiency/cascade values stay current
+      // Without this, changing PAR updates the display labels but not the R-side cascade
+      if (window.Shiny && specs.par !== undefined) {
+        Shiny.setInputValue('par_changed_trigger', Date.now(), {priority: 'event'});
       }
     });
 

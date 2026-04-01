@@ -7,17 +7,53 @@
 # ═══════════════════════════════════════════════════════════════════════════
 
 
+# ── Technology Vknee defaults ────────────────────────────────────────────────
+#' Get default knee voltage for a technology
+#'
+#' Returns the knee voltage (Vknee) for a given technology string.
+#' Values sourced from technology_guardrails.yaml::device_physics::vknee_v
+#' These are the same values the JS layer uses in getVkneeFromTech().
+#'
+#' @param technology Character: technology key (e.g. "GaN_SiC", "LDMOS", "GaAs")
+#' @return Numeric Vknee in Volts
+default_vknee <- function(technology = "GaN_SiC") {
+  tech <- tolower(trimws(technology))
+  vknee_map <- c(
+    "gan_sic"    = 2.0,
+    "gan"        = 2.0,
+    "gan hemt"   = 2.0,
+    "gan_si"     = 1.5,
+    "ldmos"      = 3.0,
+    "si ldmos"   = 3.0,
+    "gaas"       = 0.3,
+    "gaas phemt" = 0.3,
+    "sige"       = 0.4,
+    "sige hbt"   = 0.4,
+    "inp"        = 0.2,
+    "inp hemt"   = 0.2
+  )
+  unname(vknee_map[tech] %||% 2.0)  # Default to GaN if unknown
+}
+
+
 # ── 1. Optimum load resistance ───────────────────────────────────────────────
 
 #' Calculate optimum load resistance for Class-AB/B PA
 #'
 #' Ropt = (Vdd − Vknee)² / (2 × Pout)
 #'
-#' @param Vdd_V    Supply voltage [V]
-#' @param Vknee_V  Knee voltage [V]  (typically 2 V for GaN, 0.3 V for GaAs)
-#' @param Pout_W   Desired output power [W]
+#' @param Vdd_V      Supply voltage [V]
+#' @param Vknee_V    Knee voltage [V]  (typically 2 V for GaN, 0.3 V for GaAs);
+#'                   if NULL or NA, derived from \code{technology}
+#' @param Pout_W     Desired output power [W]
+#' @param technology Technology key used to look up Vknee when Vknee_V is not supplied
 #' @return Named list: Ropt_ohm, formula_str, Vdd_V, Vknee_V, Pout_W
-calc_ropt <- function(Vdd_V, Vknee_V, Pout_W) {
+calc_ropt <- function(Vdd_V, Vknee_V = NULL, Pout_W, technology = "GaN_SiC") {
+
+  # Use technology-specific Vknee if not explicitly provided
+  if (is.null(Vknee_V) || is.na(Vknee_V)) {
+    Vknee_V <- default_vknee(technology)
+  }
 
   if (!is.numeric(Pout_W) || Pout_W <= 0) {
     return(list(

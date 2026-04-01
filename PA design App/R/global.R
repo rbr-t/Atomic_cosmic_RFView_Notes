@@ -70,3 +70,30 @@ if (!demo_mode) {
 }
 
 agent_mgr <- AgentManager$new(config = app_config$ai_agents)
+
+# ── Prepare technology guardrails for JavaScript exposure ─────────────────────
+# Called in server.R after session starts: session$sendCustomMessage("guardrailsLoaded", .rf_guardrails_js)
+.build_js_guardrails <- function(guardrails_path = "config/technology_guardrails.yaml") {
+  if (!file.exists(guardrails_path)) return(list())
+
+  guardrails <- tryCatch(yaml::read_yaml(guardrails_path), error = function(e) list())
+  techs <- guardrails$technologies
+  if (is.null(techs)) return(list())
+
+  # Extract just what JS needs: vknee, power_density, pae limits
+  js_data <- lapply(names(techs), function(key) {
+    t <- techs[[key]]
+    list(
+      key            = key,
+      label          = t$label %||% key,
+      color          = t$color %||% "#888",
+      vknee_v        = t$device_physics$vknee_v %||% 2.0,
+      power_density  = t$device_physics$power_density_w_per_mm_typical %||% 2.5,
+      vdd_typical    = t$vdd$typical %||% 28,
+      pae_typical    = t$pae_pct$typical_p3db %||% 50,
+      freq_max_ghz   = t$freq_range_ghz$max %||% 40
+    )
+  })
+  names(js_data) <- names(techs)
+  js_data
+}

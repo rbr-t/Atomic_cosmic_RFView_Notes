@@ -67,6 +67,10 @@ technologies:
       max_tj_c: 150
       theta_jc_c_per_w_typical: 1.5
       thermal_conductivity_si: 150  # W/m·K
+    device_physics:
+      vknee_v: 3.0          # Knee voltage — used in Ropt = (Vdd-Vknee)^2 / (2*Pout)
+      power_density_w_per_mm_typical: 1.0
+      idss_ma_per_mm_typical: 300
     reliability_note: "Hot carrier degradation limits; keep Vdd < 28 V for 10-year MTTF > 1e6 h"
 
 
@@ -128,6 +132,10 @@ technologies:
       max_channel_temp_c: 175       # practical reliability limit
       theta_jc_c_per_w_typical: 2.5
       thermal_conductivity_sic: 490 # W/m·K — key asset
+    device_physics:
+      vknee_v: 2.0
+      power_density_w_per_mm_typical: 5.0
+      idss_ma_per_mm_typical: 800
     reliability_note: "Trapping and dispersion effects in GaN; avoid Vgs below pinch-off under RF drive"
 
 
@@ -179,6 +187,10 @@ technologies:
       max_tj_c: 175
       max_channel_temp_c: 150
       theta_jc_c_per_w_typical: 5.0  # Si substrate runs hotter; key weakness
+    device_physics:
+      vknee_v: 1.5
+      power_density_w_per_mm_typical: 3.5
+      idss_ma_per_mm_typical: 600
     reliability_note: "Buffer layer quality and thermal management critical; wafer bow issues at large die"
 
 
@@ -230,6 +242,10 @@ technologies:
     thermal:
       max_tj_c: 150
       theta_jc_c_per_w_typical: 5.0  # GaAs thermal conductivity ~46 W/m·K — poor
+    device_physics:
+      vknee_v: 0.3
+      power_density_w_per_mm_typical: 0.8
+      idss_ma_per_mm_typical: 200
     reliability_note: "Low Vdd limits power; GaAs thermal conductivity 46 W/m·K is major constraint above 10 GHz"
 
 
@@ -283,6 +299,10 @@ technologies:
     thermal:
       max_tj_c: 125                 # BiCMOS compatibility limits
       theta_jc_c_per_w_typical: 30  # High thermal resistance per unit; requires parallel
+    device_physics:
+      vknee_v: 0.4
+      power_density_w_per_mm_typical: 0.5
+      idss_ma_per_mm_typical: 500
     reliability_note: "BVCEO is critical; RF overdrive can cause avalanche breakdown. Keep Vce < BVCEO × 0.7"
 
 
@@ -334,6 +354,10 @@ technologies:
     thermal:
       max_tj_c: 150
       theta_jc_c_per_w_typical: 10.0
+    device_physics:
+      vknee_v: 0.2
+      power_density_w_per_mm_typical: 0.5
+      idss_ma_per_mm_typical: 300
     reliability_note: "Fragile; handle with care. InP substrate brittle. Primary application is LNA/mmWave small-signal, not PA"
 
 

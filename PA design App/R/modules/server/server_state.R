@@ -14,7 +14,8 @@ initServerState <- function(input, output, session) {
     project_technology = "GaN_SiC",
     project_vdd      = 28,
     canvas_names = c("Canvas 1", "Canvas 2", "Canvas 3", "Canvas 4",
-                     "Canvas 5", "Canvas 6", "Canvas 7", "Canvas 8", "Canvas 9")
+                     "Canvas 5", "Canvas 6", "Canvas 7", "Canvas 8", "Canvas 9"),
+    par_trigger_count = 0L    # bumped by par_changed_trigger JS message to re-run cascade
   )
 
   # Shared counter: bumped whenever a device is written to device_portfolio/
