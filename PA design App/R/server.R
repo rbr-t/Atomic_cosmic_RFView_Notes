@@ -53,6 +53,10 @@ source("modules/server/server_settings.R")
 source("modules/server/server_reporting.R")
 source("modules/server/server_rf_cad.R")
 
+# ── Transistor Design (Product Level) ────────────────────────────────────
+source("modules/calculations/calc_transistor_sizing.R")
+source("modules/server/server_transistor_design.R")
+
 # ── Server function ───────────────────────────────────────────────────────
 server <- function(input, output, session) {
 
@@ -1460,6 +1464,7 @@ server <- function(input, output, session) {
   serverSpViewer(input, output, session, state)
   serverKnowledgeBase(input, output, session, state)
   serverDeviceLib(input, output, session, state)
+  serverTransistorDesign(input, output, session, state)
 
   # ── Session cleanup ──────────────────────────────────────────────────────
   onStop(function() {

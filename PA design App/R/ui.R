@@ -2717,25 +2717,65 @@ $(document).ready(function() {
       # 5.1 Transistor Design (as product — builds Transistor Library)
       tabItem(tabName = "prod_transistor",
         h2(icon("microchip"), " 5.1 Transistor Design"),
-        tabsetPanel(
-          tabPanel("Specifications",
-            p("Under construction — Target specs: fT, Pout density, PAE, gain at Vdd/Id bias.")
+        fluidRow(
+          # ── Left control panel ──────────────────────────────────────────────────
+          column(3,
+            box(
+              title = tagList(icon("sliders-h"), " Design Controls"),
+              status = "warning", solidHeader = TRUE, width = NULL,
+              collapsible = TRUE,
+
+              tags$p(style = "color:#aaa; font-size:12px; margin-bottom:12px;",
+                "Transistor specs are derived from the PA lineup results (4.2).",
+                tags$br(), "Run the lineup calculator first."
+              ),
+
+              selectInput("transistor_topology", "Topology",
+                choices = c(
+                  "Doherty — Symmetric"     = "doherty_symmetric",
+                  "Doherty — Asymmetric 6dB"= "doherty_asymmetric_6dB",
+                  "Doherty — Asymmetric 9dB"= "doherty_asymmetric_9dB",
+                  "Single-ended"            = "single_ended",
+                  "Balanced (2×)"           = "balanced"
+                ),
+                selected = "doherty_symmetric"
+              ),
+
+              hr(style = "border-color:#2a2a3a;"),
+
+              h5(icon("layer-group"), " Substrate (Combiner)",
+                style = "color:#ff7f11; font-size:13px; margin-bottom:8px;"),
+              numericInput("combiner_er", "Dielectric constant εᵣ",
+                value = 3.55, min = 1, max = 15, step = 0.05),
+              numericInput("combiner_h_mm", "Substrate height h (mm)",
+                value = 0.508, min = 0.1, max = 3, step = 0.05),
+              tags$p(style = "color:#666; font-size:11px;",
+                "Default: Rogers 4003C (εᵣ=3.55, h=0.508 mm)"),
+
+              hr(style = "border-color:#2a2a3a;"),
+
+              h5(icon("microchip"), " Device Assumptions",
+                style = "color:#ff7f11; font-size:13px; margin-bottom:8px;"),
+              numericInput("device_vknee", "Vknee (V)",
+                value = 2.0, min = 0.1, max = 10, step = 0.1),
+              numericInput("device_power_density", "Power density (W/mm)",
+                value = 2.5, min = 0.1, max = 10, step = 0.1),
+              tags$p(style = "color:#666; font-size:11px;",
+                "GaN defaults: Vknee=2V, 2.5 W/mm @ class-AB"),
+
+              hr(style = "border-color:#2a2a3a;"),
+
+              actionButton("recalc_transistor", "Recalculate",
+                icon  = icon("sync-alt"),
+                class = "btn-warning btn-block",
+                style = "margin-top:8px;"
+              )
+            )
           ),
-          tabPanel("LP Performance",
-            p("Under construction — Bias, load-pull, gain circles, Cripps optimum load.")
-          ),
-          tabPanel("Linearity",
-            p("Under construction — AM/AM, AM/PM, IIP3, IMD3 analysis.")
-          ),
-          tabPanel("Stability",
-            p("Under construction — K-factor, MSG, MAG, stability circles, stabilisation networks.")
-          ),
-          tabPanel("Transistor Library",
-            div(class = "callout callout-info",
-              p(icon("info-circle"), " Characterised transistors appear in the Design Canvas palette (4.2)
-                and in PA Stage Design (5.2) as building blocks.")
-            ),
-            p("Under construction — Transistor library: browse, compare, tag, export.")
+
+          # ── Main results panel ─────────────────────────────────────────────────
+          column(9,
+            uiOutput("transistor_design_ui")
           )
         )
       ),
@@ -2745,7 +2785,13 @@ $(document).ready(function() {
         h2(icon("bolt"), " 5.2 PA Stage Design"),
         tabsetPanel(
           tabPanel("Specifications",
-            p("Under construction — Stage-level target spec (Driver / Main / Aux).")
+            div(class = "callout callout-info",
+              p(icon("info-circle"),
+                strong(" PA stage specs are derived from the transistor design (5.1)."),
+                " Complete the transistor sizing in tab 5.1 first.")
+            ),
+            p(style = "color:#aaa;",
+              "Under construction — Stage-level target spec (Driver / Main / Aux).")
           ),
           tabPanel("Architecture Choices",
             p("Under construction — Class selection, biasing, topology (Class A/AB/B/F/Doherty).")

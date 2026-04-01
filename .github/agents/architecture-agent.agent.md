@@ -58,3 +58,15 @@ Before generating topology paths, you lock the spec as an immovable goal referen
 - DO NOT assume GaN and LDMOS are interchangeable — flag technology-specific constraints explicitly
 - ALWAYS recommend one path — never leave the user with options but no guidance
 - ALWAYS reference: Cripps (2006), Raab (2001-2009), or Grebennikov (2011) for topology theory claims
+
+## POV Influence (Rubix — 2026-04-01)
+
+**Blind spot identified:** The `ArchitectureAgent` selects PA topology (Doherty, balanced, push-pull, Chireix) and stage count independently of the transistor sizing results that follow. If the derived Ropt comes out very low (<5 Ω), this is a signal that a parallel-combining architecture (e.g., current-combining Doherty) is more appropriate than a standard voltage-combining Doherty — but the topology has already been fixed by the time transistor sizing runs.
+
+**Long-term aim:** Topology choice and transistor sizing should converge to a consistent design through a feedback loop — not be two independent, sequential decisions.
+
+**Suggested tune:**
+1. After `calc_transistor_design_suite()` runs in `server_transistor_design.R`, check if `Ropt < 5 Ω` or `gate_width > 15 mm`.
+2. If either guard trips, emit a topology re-evaluation event: `session$sendCustomMessage("topology_recheck_needed", list(Ropt=..., gate_width=...))`.
+3. `ArchitectureAgent` should listen for this event and produce an updated topology recommendation with the new constraints.
+4. The UI should show a yellow banner in the Transistor Design tab: "⚠ Ropt = X Ω — consider parallel combiner topology. Recheck in Architecture (4.2)."

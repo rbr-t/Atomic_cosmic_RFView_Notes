@@ -2,7 +2,7 @@
 
 > This file is read automatically at the start of every AI session.
 > It provides ground truth about what this repository is, what is built, what is pending, and how to work here.
-> Last updated from T-IKIA-T audit: 2026-04-01
+> Last updated: 2026-04-01 (Rubix M1 implementation — transistor design level added)
 
 ---
 
@@ -41,7 +41,8 @@ Atomic_cosmic_RFView_Notes/
 │   │       │   ├── calc_loss_curves.R
 │   │       │   ├── calc_freq_planning.R
 │   │       │   ├── calc_link_budget.R
-│   │       │   └── calc_rf_tools.R
+│   │       │   ├── calc_rf_tools.R
+│   │       │   └── calc_transistor_sizing.R  ← NEW: Ropt, gate width, Doherty sizing, matching
 │   │       ├── server/             ← Shiny reactivity layer (20+ modules)
 │   │       └── rf_tools/           ← LP/SP parsers
 │   ├── core/
@@ -101,11 +102,13 @@ Atomic_cosmic_RFView_Notes/
 
 | Component | Complete | Notes |
 |---|---|---|
-| PA Design App — Core | 85% | Production-ready, Docker-deployable |
+| PA Design App — Core | 90% | Production-ready, Docker-deployable |
 | PA Lineup Canvas (Konva.js) | 100% | 7,941 lines, fully functional |
-| Calculation Engines | 100% | Pure functions, no Shiny deps |
+| Spec-Driven Design (System → Stage) | 100% | Phases 1+2 complete: technology selection, gain dist, power cascade |
+| Transistor Design Level (Stage → Device) | 70% | calc_transistor_sizing.R + server_transistor_design.R LIVE |
+| Calculation Engines | 100% | 7 pure-function files: calc_pa_lineup, guardrails, loss_curves, freq_planning, link_budget, rf_tools, transistor_sizing |
 | Theory Agent (AI) | 100% | LLM + KB, mock fallback without API key |
-| Architecture/Simulation/Layout/Measurement/Debug/Doc/Strategy Agents | 0% | Framework ready, not implemented |
+| Architecture/Simulation/Layout/Measurement/Debug/Doc/Strategy Agents | 15% | .agent.md + .R files created; LLM bodies are stubs; not wired to server.R |
 | Device Portfolio KB | 100% | 50+ devices in Chroma vector DB |
 | Load-Pull + S-Param Viewers | 100% | Parsers + Smith chart |
 | RF CAD Tool | 60% | Basic layout, no advanced routing |
@@ -265,11 +268,47 @@ Run: `docker-compose up -d` from `PA design App/`
 
 | Gap | Risk | Mitigation |
 |---|---|---|
-| No unit tests for calculation engines | HIGH — silent numeric errors possible | Write tests before expanding agent layer |
-| 6 of 8 AI agents are empty stubs | HIGH — core product functionality | Follow theory_agent.R pattern to fill |
+| No unit tests for calculation engines | HIGH — silent numeric errors possible | Write `tests/testthat/test_calc_transistor_sizing.R` first (has most risk) |
+| 6 of 8 AI agents are LLM stubs | HIGH — core product functionality | Follow theory_agent.R pattern; `.agent.md` POV influence sections added |
+| Transistor design → topology feedback loop | MEDIUM — Ropt<5Ω signals wrong topology | server_transistor_design.R emits topology_recheck_needed; architecture_agent needs listener |
 | MCP simulation integration unverified | MEDIUM — ADS/AWR access not confirmed | Verify tool access before enabling flag |
 | Auth disabled in dev config | MEDIUM — must enable before production | Set `auth_enabled: true` + env var secrets |
+| Building block synthesis incomplete | MEDIUM — Phase 3+4 of spec-driven POC | Multi-stage support (3+ stages), other topologies, auto-fix on spec mismatch |
 | Large LP file performance untested | LOW-MEDIUM | Profile before user testing |
+
+---
+
+## 12. Transistor Design Level — Implementation Notes (added 2026-04-01)
+
+### What was added (Rubix M1 — 7 moves)
+
+| File | Role |
+|---|---|
+| `R/modules/calculations/calc_transistor_sizing.R` | Pure-R transistor sizing: Ropt, gate width, Idq, Doherty sizing, L-match, combiner dimensions |
+| `R/modules/server/server_transistor_design.R` | Shiny server: drives tab 5.1, decision log, spec compliance, markdown export |
+| `R/ui.R` prod_transistor tab | Real UI replacing placeholder: topology selector, substrate inputs, device assumptions |
+| `.github/agents/theory-agent.agent.md` | Created; POV influence: expose Ropt methods to server layer |
+| `.github/agents/documentation-agent.agent.md` | POV influence: living decision journal via EventBus |
+| `.github/agents/architecture-agent.agent.md` | POV influence: topology re-evaluation when Ropt < 5Ω |
+
+### Key formulas implemented
+
+```r
+Ropt     = (Vdd − Vknee)² / (2 × Pout)          # Cripps optimum load
+W_gate   = Pout / (power_density × PAE)           # Gate width sizing
+Zt       = √(Ropt_main × 50Ω)                     # Doherty combiner impedance
+len_mm   = λg/4 = c / (4 × f × √εr)              # Quarter-wave combiner length
+Q        = √(Rmax/Rmin − 1)                        # L-match Q factor
+L, C     = Standard L-match synthesis formulas     # Element values
+```
+
+### What the transistor design tab does NOT yet do (next steps)
+
+1. **3+ stage support** — currently processes only transistor components from 2-stage Doherty
+2. **Auto-fix on spec mismatch** — validation panel shows AMBER/RED but does not propose fixes
+3. **topology re-evaluation listener** — architecture_agent does not yet respond to `topology_recheck_needed` event
+4. **theory_agent delegation** — calc_transistor_sizing.R duplicates formulas from theory_agent.R; should delegate
+5. **Unit tests** — `tests/testthat/test_calc_transistor_sizing.R` not yet written
 
 ---
 

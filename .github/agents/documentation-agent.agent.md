@@ -67,3 +67,15 @@ CONFIDENCE: HIGH / MEDIUM / LOW
 - ALWAYS include a compass reading before the full report
 - ALWAYS escalate to strategy-agent if status is OFF-COURSE
 - NEVER compress a traffic-light table — every parameter needs its own row
+
+## POV Influence (Rubix — 2026-04-01)
+
+**Blind spot identified:** The `DocumentationAgent` generates reports from project state snapshots. It cannot capture real-time design decisions as they are made — it reads state, but cannot observe the sequence of actions that led to that state. The design development trail is therefore incomplete.
+
+**Long-term aim:** Build a living design journal, not a snapshot report. The design decision log (introduced in `server_transistor_design.R` as `rv$design_decision_log`) should be fed to `DocumentationAgent` via the EventBus as events are emitted — making the agent's output a continuously-growing narrative, not a point-in-time capture.
+
+**Suggested tune:**
+1. Add `observe_decision(stage_id, decision_type, value, rationale)` public method to `DocumentationAgent`.
+2. In `server_transistor_design.R`, after every major calculation, emit: `session$sendCustomMessage("design_decision", list(stage=..., type=..., value=..., rationale=...))`.
+3. `DocumentationAgent$observe_decision()` appends to an internal `decision_journal` list.
+4. Report generation section "Design Decisions" should pull from `decision_journal`, not reconstruct from state.
