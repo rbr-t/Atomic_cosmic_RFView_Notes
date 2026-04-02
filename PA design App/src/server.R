@@ -45,8 +45,8 @@ source("modules/rf_tools/sp_parsers.R")
 source("modules/server/server_sp_viewer.R")
 
 # ── Knowledge Base subsystem ─────────────────────────────────────────────
-source("knowledge_base/kb_loader.R")
-source("knowledge_base/kb_query.R")
+source("utils/kb_loader.R")
+source("utils/kb_query.R")
 source("modules/server/server_knowledge_base.R")
 source("modules/server/server_device_lib.R")
 source("modules/server/server_settings.R")
