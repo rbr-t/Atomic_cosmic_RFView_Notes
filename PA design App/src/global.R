@@ -17,21 +17,27 @@ library(yaml)
 library(DBI)
 library(pool)
 library(duckdb)
+# -- Register resource paths for assets
+addResourcePath("assets", normalizePath("../assets"))
+addResourcePath("js",     normalizePath("../assets/js/common"))
+addResourcePath("css",    normalizePath("../assets/css/theme"))
+addResourcePath("images", normalizePath("../assets/images"))
+addResourcePath("data",   normalizePath("../assets/data"))
 
 # Source core systems
-source("../core/project_mgmt/project_manager.R")
-source("../core/data_mgmt/data_manager.R")
-source("../core/security/auth_manager.R")
-source("../core/state_config/config_manager.R")
-source("../core/tagging_metadata/tag_manager.R")
-source("../core/ai_agents/base_agent.R")
-source("../core/ai_agents/agent_manager.R")
+source("core/project_mgmt/project_manager.R")
+source("core/data_mgmt/data_manager.R")
+source("core/security/auth_manager.R")
+source("core/state_config/config_manager.R")
+source("core/tagging_metadata/tag_manager.R")
+source("core/ai_agents/base_agent.R")
+source("core/ai_agents/agent_manager.R")
 
 # Source RF PA Design plugin
-source("../plugins/rf_pa_design/plugin_init.R")
+source("plugins/rf_pa_design/plugin_init.R")
 
 # ── Configuration ─────────────────────────────────────────────
-config     <- ConfigManager$new("../config/app_config.yaml")
+config     <- ConfigManager$new("config/app_config.yaml")
 app_config <- config$get_config()
 
 # ── Database (with fallback to demo mode) ─────────────────────

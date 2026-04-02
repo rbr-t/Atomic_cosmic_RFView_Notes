@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 # app.R — PA Design App entry point
 #
 # This file is the ONLY file Shiny needs to run the app.
