@@ -1,0 +1,93 @@
+name: Test & Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: pa_design_app_test
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up R
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.3.0'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libpq-dev libssl-dev libcurl4-openssl-dev
+        cd "PA design App"
+        Rscript -e "install.packages(c('shiny', 'R6', 'DBI', 'RPostgres', 'yaml', 'testthat', 'devtools'))"
+
+    - name: Run unit tests
+      run: |
+        cd "PA design App"
+        Rscript -e "testthat::test_dir('tests/testthat')"
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: pa_design_app_test
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up R
+      uses: r-lib/actions/setup-r@v2
+
+    - name: Install lintr
+      run: Rscript -e "install.packages('lintr')"
+
+    - name: Lint R code
+      run: |
+        cd "PA design App"
+        Rscript -e "lintr::lint_dir('src', linters = lintr::default_linters)"
+
+  docker:
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push
+      uses: docker/build-push-action@v4
+      with:
+        context: ./PA design App/infra/docker
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/pa-design-app:latest
+          ${{ secrets.DOCKER_USERNAME }}/pa-design-app:${{ github.sha }}

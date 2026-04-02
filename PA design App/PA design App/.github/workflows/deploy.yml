@@ -1,0 +1,46 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Deploy to production
+      env:
+        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      run: |
+        mkdir -p ~/.ssh
+        echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+
+        ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+          cd /opt/pa-design-app
+          git pull origin main
+          docker-compose -f infra/docker/docker-compose.yml pull
+          docker-compose -f infra/docker/docker-compose.yml up -d
+          docker-compose -f infra/docker/docker-compose.yml exec -T app Rscript database/seeds/01_init.sql
+        EOF
+
+    - name: Health check
+      run: |
+        for i in {1..30}; do
+          if curl -f http://${{ secrets.DEPLOY_HOST }}:3838 > /dev/null 2>&1; then
+            echo "✓ Application is healthy"
+            exit 0
+          fi
+          echo "Waiting for application... ($i/30)"
+          sleep 10
+        done
+        echo "✗ Health check failed"
+        exit 1
