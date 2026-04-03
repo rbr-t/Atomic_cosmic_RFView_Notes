@@ -32,7 +32,7 @@ cat("Loading application...\n\n")
 
 # Run the app
 tryCatch({
-  shiny::runApp("R/app.R", host = "0.0.0.0", port = 3838, launch.browser = FALSE)
+  shiny::runApp("src/app.R", host = "0.0.0.0", port = 3838, launch.browser = FALSE)
 }, error = function(e) {
   cat("\n")
   cat("========================================\n")

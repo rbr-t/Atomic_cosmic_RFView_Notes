@@ -1,0 +1,40 @@
+version: 1
+crawl_policy:
+  max_concurrency: 2
+  delay_seconds: 1.5
+  respect_robots_txt: true
+  user_agent: "RFView-KBIngestionBot/0.1 (+internal-rnd; contact: app-owner)"
+  allowed_domains:
+    - ampleon.com
+    - nxp.com
+vendors:
+  ampleon:
+    discovery_url: "https://www.ampleon.com/products/mobile-broadband/1.4-2.2-ghz-transistors/#/"
+    products:
+      - part_number: "BLF7G22LS-160P"
+        product_url: "https://www.ampleon.com/products/rf-power-transistors/mobile-broadband-1.4-2.2-ghz/BLF7G22LS-160P.html"
+        expected:
+          manufacturer: "Ampleon"
+          technology: "LDMOS"
+          freq_min_mhz: 1400
+          freq_max_mhz: 2200
+      - part_number: "BLP9G0722-20"
+        product_url: "https://www.ampleon.com/products/rf-power-transistors/mobile-broadband-1.4-2.2-ghz/BLP9G0722-20.html"
+        expected:
+          manufacturer: "Ampleon"
+          technology: "LDMOS"
+          freq_min_mhz: 700
+          freq_max_mhz: 2200
+  nxp:
+    discovery_url: "https://www.nxp.com/products/product-selector:PRODUCT-SELECTOR?category=c250_c65&page=1"
+    products:
+      - part_number: "MRF1K50H"
+        product_url: "https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf1k50h:MRF1K50H"
+        expected:
+          manufacturer: "NXP"
+          technology: "LDMOS"
+      - part_number: "MRF6VP11KH"
+        product_url: "https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf6vp11kh:MRF6VP11KH"
+        expected:
+          manufacturer: "NXP"
+          technology: "LDMOS"

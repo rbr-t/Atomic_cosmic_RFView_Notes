@@ -159,6 +159,11 @@ class PALineupCanvas {
     this.showPowerDisplay = false;
     this.powerColumns = [];
     this.powerUnit = 'dBm'; // 'dBm', 'W', or 'both'
+
+    // Value display mode for power info cards:
+    //   'stage'  — per-component Pin/Pout/P1dB/P_BO at a single operating point
+    //   'dual'   — per-component Pin and Pout at BOTH Pavg (backoff) and P3dB (full)
+    this.valueDisplayMode = 'stage';
     
     // Impedance display columns
     this.showImpedanceDisplay = false;
@@ -174,6 +179,10 @@ class PALineupCanvas {
 
     // Phase display
     this.showPhaseDisplay = false;
+
+    // Guardrail limits received from R (keyed by YAML technology key e.g. 'GaN_SiC')
+    // Shape: { GaN_SiC: { pout_max, pae_min, pae_typical, pae_max, freq_max, vdd_max, ft_typical }, … }
+    this.guardrailLimits = {};
 
     // Calculation rationale display
     this.showCalculationRationale = false;
@@ -1018,214 +1027,10 @@ class PALineupCanvas {
       .attr('font-weight', 'bold')
       .text(technology);
     
-    // Display options
-    const display = component.properties.display || ['pout'];
-    let yOffset = 50;  // Start below the component
-    
-    if (display.includes('label')) {
-      textGroup.append('text')
-        .attr('x', 15)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#ffffff')
-        .attr('font-size', '8px')
-        .attr('font-weight', 'bold')
-        .text(component.properties.label || 'PA');
-      yOffset += 10;
-    }
-    
-    if (display.includes('biasClass')) {
-      textGroup.append('text')
-        .attr('x', 15)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#aaddff')
-        .attr('font-size', '8px')
-        .text(`Class ${component.properties.biasClass || 'AB'}`);
-      yOffset += 10;
-    }
-    
-    if (display.includes('gain')) {
-      textGroup.append('text')
-        .attr('x', 15)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#88ff88')
-        .attr('font-size', '8px')
-        .text(`Gain: ${component.properties.gain || 10} dB`);
-      yOffset += 10;
-    }
-    
-    if (display.includes('pae')) {
-      // Check if dual operating point efficiency data is available
-      const hasDualOp = component.properties.pae_pavg !== undefined && component.properties.pae_p3db !== undefined;
-      
-      if (hasDualOp) {
-        // Display efficiency at both operating points
-        textGroup.append('text')
-          .attr('x', 15)
-          .attr('y', yOffset)
-          .attr('text-anchor', 'middle')
-          .attr('fill', '#ffdd44')
-          .attr('font-size', '8px')
-          .attr('font-weight', 'bold')
-          .text(`PAE@Pavg: ${component.properties.pae_pavg}%`);
-        yOffset += 10;
-        
-        textGroup.append('text')
-          .attr('x', 15)
-          .attr('y', yOffset)
-          .attr('text-anchor', 'middle')
-          .attr('fill', '#ffee88')
-          .attr('font-size', '8px')
-          .text(`PAE@P3dB: ${component.properties.pae_p3db}%`);
-        yOffset += 10;
-      } else {
-        // Legacy single efficiency display
-        textGroup.append('text')
-          .attr('x', 15)
-          .attr('y', yOffset)
-          .attr('text-anchor', 'middle')
-          .attr('fill', '#ffdd44')
-          .attr('font-size', '8px')
-          .text(`PAE: ${component.properties.pae || 50}%`);
-        yOffset += 10;
-      }
-    }
-    
-// ===== DUAL OPERATING POINT DISPLAY =====
-      // Show Pin at BOTH Pavg and P3dB if available
-      if (display.includes('pin')) {
-        // Check if dual operating point data is available
-        const hasDualOp = component.properties.pin_pavg !== undefined && component.properties.pin_p3db !== undefined;
-        
-        if (hasDualOp) {
-          // Display both operating points
-          const pinPavgText = this.formatPower(component.properties.pin_pavg, this.powerUnit);
-          const pinP3dbText = this.formatPower(component.properties.pin_p3db, this.powerUnit);
-          
-          textGroup.append('text')
-            .attr('x', 15)
-            .attr('y', yOffset)
-            .attr('text-anchor', 'middle')
-            .attr('fill', '#66ccff')
-            .attr('font-size', '8px')
-            .attr('font-weight', 'bold')
-            .text(`Pin@Pavg: ${pinPavgText}`);
-          yOffset += 10;
-          
-          textGroup.append('text')
-            .attr('x', 15)
-            .attr('y', yOffset)
-            .attr('text-anchor', 'middle')
-            .attr('fill', '#88ddff')
-            .attr('font-size', '8px')
-            .text(`Pin@P3dB: ${pinP3dbText}`);
-          yOffset += 10;
-        } else {
-          // Legacy single operating point display
-          const pinValue = component.properties.pin || 30;
-          const pinText = this.formatPower(pinValue, this.powerUnit);
-          textGroup.append('text')
-            .attr('x', 15)
-            .attr('y', yOffset)
-            .attr('text-anchor', 'middle')
-            .attr('fill', '#66ccff')
-            .attr('font-size', '8px')
-            .text(`Pin: ${pinText}`);
-          yOffset += 10;
-        }
-      }
-      
-      // Show Pout at BOTH Pavg and P3dB if available
-      if (display.includes('pout') || display.includes('p3db')) {
-        // Check if dual operating point data is available
-        const hasDualOp = component.properties.pout_pavg !== undefined && component.properties.pout_p3db !== undefined;
-        
-        if (hasDualOp) {
-          // Display both operating points
-          const poutPavgText = this.formatPower(component.properties.pout_pavg, this.powerUnit);
-          const poutP3dbText = this.formatPower(component.properties.pout_p3db, this.powerUnit);
-          
-          textGroup.append('text')
-            .attr('x', 15)
-            .attr('y', yOffset)
-            .attr('text-anchor', 'middle')
-            .attr('fill', '#ff88ff')
-            .attr('font-size', '8px')
-            .attr('font-weight', 'bold')
-            .text(`Pout@Pavg: ${poutPavgText}`);
-          yOffset += 10;
-          
-          textGroup.append('text')
-            .attr('x', 15)
-            .attr('y', yOffset)
-            .attr('text-anchor', 'middle')
-            .attr('fill', '#ffaaff')
-            .attr('font-size', '8px')
-            .text(`Pout@P3dB: ${poutP3dbText}`);
-          yOffset += 10;
-        } else {
-          // Legacy single operating point display
-          const p3dbValue = component.properties.p3db || component.properties.pout || 40;
-          const p3dbText = this.formatPower(p3dbValue, this.powerUnit);
-          textGroup.append('text')
-            .attr('x', 15)
-            .attr('y', yOffset)
-            .attr('text-anchor', 'middle')
-            .attr('fill', '#ff88ff')
-            .attr('font-size', '8px')
-            .text(`Pout(P3dB): ${p3dbText}`);
-          yOffset += 10;
-        }
-      }
-      
-      // P1dB must always be below P3dB (1dB compression point)
-      if (display.includes('p1db')) {
-        const p3dbValue = component.properties.p3db || component.properties.pout || 40;
-        // P1dB should be 2dB below P3dB for solid state devices (typical)
-        const p1dbValue = component.properties.p1db || (p3dbValue - 2);
-        
-        // Sanity check: P1dB must be less than P3dB
-        const validP1db = Math.min(p1dbValue, p3dbValue - 0.5);
-        
-        // Debug logging if P1dB validation fails
-        if (p1dbValue > p3dbValue) {
-          console.warn(`[Display] ${component.label}: P1dB (${p1dbValue.toFixed(2)}) > P3dB (${p3dbValue.toFixed(2)}) - correcting to ${validP1db.toFixed(2)}`);
-        }
-        
-        const p1dbText = this.formatPower(validP1db, this.powerUnit);
-      textGroup.append('text')
-        .attr('x', 15)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#ffaa00')
-        .attr('font-size', '8px')
-        .text(`P1dB: ${p1dbText}`);
-      yOffset += 10;
-    }
-    
-    if (display.includes('vdd')) {
-      textGroup.append('text')
-        .attr('x', 15)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#ff6666')
-        .attr('font-size', '8px')
-        .text(`VDD: ${component.properties.vdd || 28}V`);
-      yOffset += 10;
-    }
-    
-    if (display.includes('freq')) {
-      textGroup.append('text')
-        .attr('x', 15)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#cc88ff')
-        .attr('font-size', '8px')
-        .text(`f: ${component.properties.freq || 2.6} GHz`);
-      yOffset += 10;
-    }
+    // Inline value display has been removed — all computed values (Pin, Pout, Gain,
+    // PAE, P1dB, etc.) are shown exclusively via the overlay system (drawPowerColumns,
+    // drawGainColumns, drawPAEColumns). This prevents clutter on the component symbol
+    // and stops inline text from overlapping overlay cards in multi-row Doherty layouts.
     
     // Zin / Zout impedance annotations (shown when properties are explicitly set)
     // zLbl: show symbolic string as-is; show numeric value with Ω suffix
@@ -1511,82 +1316,19 @@ class PALineupCanvas {
       .on('mouseenter', () => this.onPortHover(matchOutputPort.node(), true))
       .on('mouseleave', () => this.onPortHover(matchOutputPort.node(), false));
     
-    // Labels - configurable display
-    const display = component.properties.display || ['label', 'loss'];
-    
-    // Position label ABOVE the component to avoid overlap
-    if (display.includes('label')) {
-      group.append('text')
-        .attr('x', 0)
-        .attr('y', -25)  // Above the component
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#fff')
-        .attr('font-size', '12px')
-        .attr('font-weight', 'bold')
-        .text(component.properties.label || 'Match');
-    }
-    
-    // Property text below the component with proper spacing
-    let yOffset = 20;
-    
-    if (display.includes('loss')) {
-      group.append('text')
-        .attr('x', 0)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#88ffaa')
-        .attr('font-size', '9px')
-        .text(`Loss: ${component.properties.loss || 0.5}dB`);
-      yOffset += 11;
-    }
-    
-    if (display.includes('type')) {
-      group.append('text')
-        .attr('x', 0)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#aaffaa')
-        .attr('font-size', '8px')
-        .text(matchType);
-      yOffset += 10;
-    }
-    
-    if (display.includes('z_in')) {
-      const zInVal = component.properties.z_in;
-      const zInStr = (typeof zInVal === 'string') ? zInVal : ((zInVal != null ? zInVal : 50) + 'Ω');
-      group.append('text')
-        .attr('x', 0)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#88ddff')
-        .attr('font-size', '8px')
-        .text(`Zin: ${zInStr}`);
-      yOffset += 10;
-    }
-    
-    if (display.includes('z_out')) {
-      const zOutVal = component.properties.z_out;
-      const zOutStr = (typeof zOutVal === 'string') ? zOutVal : ((zOutVal != null ? zOutVal : 50) + 'Ω');
-      group.append('text')
-        .attr('x', 0)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#ff88dd')
-        .attr('font-size', '8px')
-        .text(`Zout: ${zOutStr}`);
-      yOffset += 10;
-    }
-    
-    if (display.includes('bandwidth')) {
-      group.append('text')
-        .attr('x', 0)
-        .attr('y', yOffset)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#ffdd88')
-        .attr('font-size', '8px')
-        .text(`BW: ${component.properties.bandwidth || 10}%`);
-      yOffset += 10;
-    }
+    // Always show component label above the symbol
+    group.append('text')
+      .attr('x', 0)
+      .attr('y', -25)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#fff')
+      .attr('font-size', '12px')
+      .attr('font-weight', 'bold')
+      .text(component.properties.label || 'Match');
+
+    // Inline property text (loss, type, z_in, z_out, bandwidth) has been removed.
+    // All computed values are shown exclusively via the overlay system
+    // (drawImpedanceColumns, drawGainColumns, drawPowerColumns, etc.).
   }
   
   renderSplitter(group, component) {
@@ -2644,19 +2386,19 @@ class PALineupCanvas {
     // Grid columns (120px): 60,180,300,420,540,660,780,900,1020,1140,1260,1380
     const source    = this.addComponent('termination', 60,   300, { label: 'Source',       impedance: 50 });
     const drvIMN    = this.addComponent('matching',    180,  300, { label: 'Driver IMN',   matchType: 'Pi',     loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
-    const driver    = this.addComponent('transistor',  300,  300, { label: 'Driver',       technology: 'GaN', biasClass: 'A',  gain: 15, pae: 40, p1db: 35, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
+    const driver    = this.addComponent('transistor',  300,  300, { label: 'Driver',       technology: 'GaN_SiC', biasClass: 'A',  gain: 17, gain_p3db: 15, gain_bo: 16, pae: 55, p1db: 30, pout: 30, vdd: 28, freq_ghz: 3.5, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
     const drvOMN    = this.addComponent('matching',    420,  300, { label: 'Driver OMN',   matchType: 'Pi',     loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
     const isMatch   = this.addComponent('matching',    540,  300, { label: 'Interstage',   matchType: 'Pi',     loss: 0.5, z_in: 50,           z_out: 50 });
     const splitter  = this.addComponent('splitter',    660,  300, { label: 'Splitter',     type: 'Wilkinson' });
     // Main path (y=180): direct phase from splitter
     const mainIMN   = this.addComponent('matching',    780,  180, { label: 'Main IMN',     matchType: 'Pi',     loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
-    const mainPA    = this.addComponent('transistor',  900,  180, { label: 'Main PA',      technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, p1db: 46, pout: 46, z_in: 'Z_in_m',  z_out: 'Z_out_m',  pa_group: 'Main PA' });
+    const mainPA    = this.addComponent('transistor',  900,  180, { label: 'Main PA',      technology: 'GaN_SiC', biasClass: 'AB', gain: 15, gain_p3db: 13, gain_bo: 14, pae: 60, p1db: 43, pout: 43, vdd: 28, freq_ghz: 3.5, z_in: 'Z_in_m',  z_out: 'Z_out_m',  pa_group: 'Main PA' });
     const mainOMN   = this.addComponent('matching',    1020, 180, { label: 'Main OMN',     matchType: 'Pi',     loss: 0.3, z_in: 'Z_out_m',    z_out: 'Z_inv',    pa_role: 'omn' });
     const mainInv   = this.addComponent('offset_line', 1140, 180, { label: 'λ/4 Inv',      phase_shift_deg: 90, impedance: 35.35, loss: 0.2,  offset_role: 'inverter' });
     // Aux path (y=420): 90° input offset compensates inverter delay
     const auxOffset = this.addComponent('offset_line', 780,  420, { label: '90° Offset',   phase_shift_deg: 90, impedance: 50,    loss: 0.2,  offset_role: 'phase' });
     const auxIMN    = this.addComponent('matching',    900,  420, { label: 'Aux IMN',      matchType: 'TL-stub', loss: 0.3, z_in: 50,          z_out: 'Z_in_a',   pa_role: 'imn' });
-    const auxPA     = this.addComponent('transistor',  1020, 420, { label: 'Aux PA',       technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, p1db: 43, pout: 43, z_in: 'Z_in_a',  z_out: 'Z_out_a',  pa_group: 'Aux PA' });
+    const auxPA     = this.addComponent('transistor',  1020, 420, { label: 'Aux PA',       technology: 'GaN_SiC', biasClass: 'C',  gain: 15, gain_p3db: 13, gain_bo: 14, pae: 55, p1db: 43, pout: 43, vdd: 28, freq_ghz: 3.5, z_in: 'Z_in_a',  z_out: 'Z_out_a',  pa_group: 'Aux PA' });
     const auxOMN    = this.addComponent('matching',    1140, 420, { label: 'Aux OMN',      matchType: 'TL-stub', loss: 0.2, z_in: 'Z_out_a',   z_out: 50,         pa_role: 'omn' });
     const combiner  = this.addComponent('combiner',    1260, 300, { label: 'Doherty',      type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
     const load      = this.addComponent('termination', 1380, 300, { label: 'Load',         impedance: 50 });
@@ -2694,21 +2436,21 @@ class PALineupCanvas {
     const source       = this.addComponent('termination', 60,   300, { label: 'Source',        impedance: 50 });
     const mainDrvIMN   = this.addComponent('matching',    180,  180, { label: 'Main Drv IMN',  matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
     const auxDrvIMN    = this.addComponent('matching',    180,  420, { label: 'Aux Drv IMN',   matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
-    const mainDriver   = this.addComponent('transistor',  300,  180, { label: 'Main Driver',   technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Main Driver PA' });
-    const auxDriver    = this.addComponent('transistor',  300,  420, { label: 'Aux Driver',    technology: 'GaN', biasClass: 'A',  gain: 15, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Aux Driver PA' });
+    const mainDriver   = this.addComponent('transistor',  300,  180, { label: 'Main Driver',   technology: 'GaN_SiC', biasClass: 'A',  gain: 17, gain_p3db: 15, gain_bo: 16, pae: 55, p1db: 30, pout: 30, vdd: 28, freq_ghz: 3.5, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Main Driver PA' });
+    const auxDriver    = this.addComponent('transistor',  300,  420, { label: 'Aux Driver',    technology: 'GaN_SiC', biasClass: 'A',  gain: 17, gain_p3db: 15, gain_bo: 16, pae: 55, p1db: 30, pout: 30, vdd: 28, freq_ghz: 3.5, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Aux Driver PA' });
     const mainDrvOMN   = this.addComponent('matching',    420,  180, { label: 'Main Drv OMN',  matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
     const auxDrvOMN    = this.addComponent('matching',    420,  420, { label: 'Aux Drv OMN',   matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
     const mainIS       = this.addComponent('matching',    540,  180, { label: 'Main IS Match', matchType: 'Pi',      loss: 0.4, z_in: 50,           z_out: 50 });
     const auxIS        = this.addComponent('matching',    540,  420, { label: 'Aux IS Match',  matchType: 'Pi',      loss: 0.4, z_in: 50,           z_out: 50 });
     // Main path: direct (0° phase)
     const mainIMN      = this.addComponent('matching',    660,  180, { label: 'Main IMN',      matchType: 'Pi',      loss: 0.3, z_in: 50,           z_out: 'Z_in_m',   pa_role: 'imn' });
-    const mainPA       = this.addComponent('transistor',  780,  180, { label: 'Main PA',       technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, pout: 46, z_in: 'Z_in_m', z_out: 'Z_out_m', pa_group: 'Main PA' });
+    const mainPA       = this.addComponent('transistor',  780,  180, { label: 'Main PA',       technology: 'GaN_SiC', biasClass: 'AB', gain: 15, gain_p3db: 13, gain_bo: 14, pae: 60, p1db: 43, pout: 43, vdd: 28, freq_ghz: 3.5, z_in: 'Z_in_m', z_out: 'Z_out_m', pa_group: 'Main PA' });
     const mainOMN      = this.addComponent('matching',    900,  180, { label: 'Main OMN',      matchType: 'Pi',      loss: 0.3, z_in: 'Z_out_m',    z_out: 'Z_inv',    pa_role: 'omn' });
     const mainInv      = this.addComponent('offset_line', 1020, 180, { label: 'λ/4 Inv',       phase_shift_deg: 90,  impedance: 35.35, loss: 0.2,  offset_role: 'inverter' });
     // Aux path: 90° input offset
     const auxOffset    = this.addComponent('offset_line', 660,  420, { label: '90° Offset',    phase_shift_deg: 90,  impedance: 50,    loss: 0.2,  offset_role: 'phase' });
     const auxIMN       = this.addComponent('matching',    780,  420, { label: 'Aux IMN',       matchType: 'TL-stub', loss: 0.3, z_in: 50,           z_out: 'Z_in_a',   pa_role: 'imn' });
-    const auxPA        = this.addComponent('transistor',  900,  420, { label: 'Aux PA',        technology: 'GaN', biasClass: 'C',  gain: 12, pae: 50, pout: 43, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
+    const auxPA        = this.addComponent('transistor',  900,  420, { label: 'Aux PA',        technology: 'GaN_SiC', biasClass: 'C',  gain: 15, gain_p3db: 13, gain_bo: 14, pae: 55, p1db: 43, pout: 43, vdd: 28, freq_ghz: 3.5, z_in: 'Z_in_a', z_out: 'Z_out_a', pa_group: 'Aux PA' });
     const auxOMN       = this.addComponent('matching',    1020, 420, { label: 'Aux OMN',       matchType: 'TL-stub', loss: 0.2, z_in: 'Z_out_a',    z_out: 50,         pa_role: 'omn' });
     const combiner     = this.addComponent('combiner',    1140, 300, { label: 'Doherty',       type: 'doherty', subtype: 'Load-Modulation', ways: 2 });
     const load         = this.addComponent('termination', 1260, 300, { label: 'Load',          impedance: 50 });
@@ -2746,15 +2488,15 @@ class PALineupCanvas {
     // All at y=300 (single row). Grid columns from x=60, step=120.
     const source     = this.addComponent('termination', 60,   300, { label: 'Source',      impedance: 50 });
     const pdrIMN     = this.addComponent('matching',    180,  300, { label: 'PreDrv IMN',  matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_pdr', pa_role: 'imn' });
-    const predriver  = this.addComponent('transistor',  300,  300, { label: 'Pre-driver',  technology: 'GaN', biasClass: 'A',  gain: 12, pae: 40, pout: 30, z_in: 'Z_in_pdr', z_out: 'Z_out_pdr', pa_group: 'Pre-Driver PA' });
+    const predriver  = this.addComponent('transistor',  300,  300, { label: 'Pre-driver',  technology: 'GaN_SiC', biasClass: 'A',  gain: 20, gain_p3db: 18, gain_bo: 19, pae: 50, p1db: 27, pout: 27, vdd: 28, freq_ghz: 3.5, z_in: 'Z_in_pdr', z_out: 'Z_out_pdr', pa_group: 'Pre-Driver PA' });
     const pdrOMN     = this.addComponent('matching',    420,  300, { label: 'PreDrv OMN',  matchType: 'Pi',          loss: 0.3, z_in: 'Z_out_pdr',  z_out: 50,         pa_role: 'omn' });
     const isMatch1   = this.addComponent('matching',    540,  300, { label: 'IS Match 1',  matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 50 });
     const drvIMN     = this.addComponent('matching',    660,  300, { label: 'Driver IMN',  matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_drv', pa_role: 'imn' });
-    const driver     = this.addComponent('transistor',  780,  300, { label: 'Driver',      technology: 'GaN', biasClass: 'A',  gain: 15, pae: 45, pout: 35, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
+    const driver     = this.addComponent('transistor',  780,  300, { label: 'Driver',      technology: 'GaN_SiC', biasClass: 'A',  gain: 17, gain_p3db: 15, gain_bo: 16, pae: 55, p1db: 34, pout: 34, vdd: 28, freq_ghz: 3.5, z_in: 'Z_in_drv', z_out: 'Z_out_drv', pa_group: 'Driver PA' });
     const drvOMN     = this.addComponent('matching',    900,  300, { label: 'Driver OMN',  matchType: 'Pi',          loss: 0.3, z_in: 'Z_out_drv',  z_out: 50,         pa_role: 'omn' });
     const isMatch2   = this.addComponent('matching',    1020, 300, { label: 'IS Match 2',  matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 50 });
     const finalIMN   = this.addComponent('matching',    1140, 300, { label: 'Final IMN',   matchType: 'Pi',          loss: 0.3, z_in: 50,           z_out: 'Z_in_fin', pa_role: 'imn' });
-    const finalPA    = this.addComponent('transistor',  1260, 300, { label: 'Final PA',    technology: 'GaN', biasClass: 'AB', gain: 12, pae: 55, pout: 46, z_in: 'Z_in_fin', z_out: 'Z_out_fin', pa_group: 'Final PA' });
+    const finalPA    = this.addComponent('transistor',  1260, 300, { label: 'Final PA',    technology: 'GaN_SiC', biasClass: 'AB', gain: 15, gain_p3db: 13, gain_bo: 14, pae: 60, p1db: 46, pout: 46, vdd: 28, freq_ghz: 3.5, z_in: 'Z_in_fin', z_out: 'Z_out_fin', pa_group: 'Final PA' });
     const finalOMN   = this.addComponent('matching',    1380, 300, { label: 'Final OMN',   matchType: 'Transformer', loss: 0.2, z_in: 'Z_out_fin',  z_out: 50,         pa_role: 'omn' });
     const load       = this.addComponent('termination', 1500, 300, { label: 'Load',        impedance: 50 });
 
@@ -3649,8 +3391,8 @@ class PALineupCanvas {
       console.error('this.drag is undefined in updateComponent!');
     }
     
-    // Update Shiny
-    if (window.Shiny) {
+    // Update Shiny — but SKIP if this update was triggered by R (prevents echo loop)
+    if (window.Shiny && !window._updatingFromR) {
       Shiny.setInputValue('lineup_components', JSON.stringify(this.components), {priority: 'event'});
     }
     
@@ -4807,6 +4549,30 @@ class PALineupCanvas {
     }
   }
   
+  toggleValueDisplayMode() {
+    this.valueDisplayMode = (this.valueDisplayMode === 'stage') ? 'dual' : 'stage';
+
+    const btn = document.getElementById('value_display_mode_toggle');
+    if (btn) {
+      const isDual = this.valueDisplayMode === 'dual';
+      btn.style.backgroundColor = isDual ? '#6f42c1' : '';
+      btn.style.color = isDual ? '#fff' : '';
+      btn.title = isDual
+        ? 'Now showing: Pavg + P3dB for each stage — click to revert to single-point view'
+        : 'Now showing: per-stage values at full power — click to show both Pavg and P3dB';
+      // Update button label
+      const labelSpan = btn.querySelector('.value-mode-label');
+      if (labelSpan) {
+        labelSpan.textContent = isDual ? ' Dual OP Point' : ' Stage Values';
+      }
+    }
+
+    if (this.showPowerDisplay) {
+      this.drawPowerColumns();
+    }
+    console.log('[ValueMode] switched to:', this.valueDisplayMode);
+  }
+
   togglePowerDisplay() {
     this.showPowerDisplay = !this.showPowerDisplay;
     
@@ -4976,6 +4742,22 @@ class PALineupCanvas {
       'inp': 0.2, 'inp_hemt': 0.2
     };
     return map[tech] ?? 2.0; // Default: GaN
+  }
+
+  // Normalize any user-facing or display technology string → canonical YAML key
+  // used as lookup key into this.guardrailLimits
+  _guardrailTechKey(technology) {
+    const tech = (technology || '').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/, '');
+    const map = {
+      'gan_sic': 'GaN_SiC', 'gan_hemt_sic': 'GaN_SiC', 'gan_hemt_sic_': 'GaN_SiC',
+      'gan': 'GaN_SiC', 'gan_hemt': 'GaN_SiC',
+      'gan_si': 'GaN_Si', 'gan_hemt_si': 'GaN_Si', 'gan_hemt_silicon': 'GaN_Si',
+      'ldmos': 'LDMOS', 'si_ldmos': 'LDMOS',
+      'gaas_phemt': 'GaAs_pHEMT', 'gaas': 'GaAs_pHEMT',
+      'sige': 'SiGe_HBT', 'sige_hbt': 'SiGe_HBT',
+      'inp': 'InP_HEMT', 'inp_hemt': 'InP_HEMT'
+    };
+    return map[tech] || null;
   }
 
   toggleCalculationRationale() {
@@ -5180,6 +4962,24 @@ class PALineupCanvas {
 
     if (componentsWithImpedance.length === 0) return;
 
+    // Pre-compute IMN / OMN role for each matching network using connection topology.
+    // A matching net whose output connects to a transistor input => IMN.
+    // A matching net whose input is fed from a transistor output => OMN.
+    const matchingRole = new Map();  // comp.id → 'IMN' | 'OMN' | null
+    if (this.connections) {
+      this.components.filter(c => c.type === 'matching').forEach(mn => {
+        const feedsTxInput = this.connections.some(conn =>
+          String(conn.from) === String(mn.id) &&
+          this.components.find(c => String(c.id) === String(conn.to) && c.type === 'transistor')
+        );
+        const fedByTxOutput = this.connections.some(conn =>
+          String(conn.to) === String(mn.id) &&
+          this.components.find(c => String(c.id) === String(conn.from) && c.type === 'transistor')
+        );
+        matchingRole.set(String(mn.id), feedsTxInput ? 'IMN' : (fedByTxOutput ? 'OMN' : null));
+      });
+    }
+
     componentsWithImpedance.forEach((comp) => {
       let zFullPower, zBackoff, p1dbValue, backoffPower;
 
@@ -5227,7 +5027,7 @@ class PALineupCanvas {
       }
 
       // Canonical absolute slot — slot 3 = Impedance (just below component)
-      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 3, comp.y);
+      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 3, comp.y, midY);
       const cellH = Math.max(30, botY - topY);
 
       const BOX_W  = 2 * HC - 2 * PAD;  // 112 px — fills 120 px column
@@ -5260,8 +5060,12 @@ class PALineupCanvas {
         .on('end', () => { infoGroup.style('opacity', 1); this.saveHistory(); });
       infoGroup.call(drag);
 
+      const matchRole = matchingRole.get(String(comp.id));
       const titleText = comp.type === 'transistor' ? 'Z_opt' :
-                        comp.type === 'termination' ? 'Z_load' : 'Z_match';
+                        comp.type === 'termination' ? 'Z_load' :
+                        comp.type === 'matching'    ? (matchRole || 'Z_match') :
+                        comp.type === 'splitter'    ? 'Z_split' :
+                        comp.type === 'combiner'    ? 'Z_comb'  : 'Z_match';
       const titleColor = isMatched ? '#00e5ff' : '#ff7f11';
 
       // Background — border turns cyan when matched (50Ω assumption confirmed)
@@ -5582,14 +5386,19 @@ class PALineupCanvas {
       }
 
       // Canonical absolute slot — slot 0 = Power (farthest above component)
-      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 0, comp.y);
+      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 0, comp.y, midY);
       const cellH = Math.max(30, botY - topY);
 
       // Box sized to fill the 120 px column cell
       const BOX_W = 2 * HC - 2 * PAD;          // 112 px
       const lineH  = Math.max(9, Math.min(13, Math.floor(cellH / 8)));
       const titleH = lineH + 2;
-      const nLines = 2 + (powerInfo.p1db_dbm ? 1 : 0) + (powerInfo.power_bo_dbm ? 1 : 0);
+      const isDual = this.valueDisplayMode === 'dual';
+      // Stage mode: Pin, Pout, [P1dB], [P_BO]
+      // Dual  mode: Pin@P3dB, Pin@Pavg, Pout@P3dB, Pout@Pavg, [PAE@P3dB, PAE@Pavg]
+      const nLines = isDual
+        ? 4 + (comp.properties.pae_p3db != null ? 2 : 0)
+        : 2 + (powerInfo.p1db_dbm ? 1 : 0) + (powerInfo.power_bo_dbm ? 1 : 0);
       const contentH = titleH + lineH + nLines * lineH + PAD;  // full line-gap after title
       const BOX_H = Math.max(contentH, 40);  // auto-size to content; never crop lines
 
@@ -5617,11 +5426,19 @@ class PALineupCanvas {
         .on('end', () => { infoGroup.style('opacity', 1); this.saveHistory(); });
       infoGroup.call(drag);
 
-      // Background rect
+      // Background rect — purple border tint in dual mode; standard blue in stage mode
+      // Guardrail: stroke turns amber (warn) or red (violation) when Pout > pout_max
+      const _pwrTechKey = this._guardrailTechKey(comp.properties.technology);
+      const _pwrLimits  = (_pwrTechKey && this.guardrailLimits) ? this.guardrailLimits[_pwrTechKey] : null;
+      const _poutVal    = parseFloat(powerInfo.pout_dbm);
+      const _poutVio    = _pwrLimits && isFinite(_poutVal) && _poutVal > _pwrLimits.pout_max;
+      const _poutWarn   = _pwrLimits && isFinite(_poutVal) && _poutVal > (_pwrLimits.pout_max - 2);
+      const _pwrStroke  = _poutVio ? '#ff4444' : (_poutWarn ? '#ffaa00' : (isDual ? '#9c6fe4' : '#00aaff'));
       infoGroup.append('rect')
         .attr('x', 0).attr('y', 0)
         .attr('width', BOX_W).attr('height', BOX_H)
-        .attr('fill', '#1a1a1a').attr('stroke', '#00aaff')
+        .attr('fill', '#1a1a1a')
+        .attr('stroke', _pwrStroke)
         .attr('stroke-width', 1).attr('rx', 3);
 
       // Title
@@ -5631,29 +5448,81 @@ class PALineupCanvas {
         .attr('font-size', `${titleH}px`).attr('font-weight', 'bold')
         .text(comp.properties.label || comp.type);
 
+      // Pout violation badge (⚠ MAX) — shown when Pout exceeds technology pout_max
+      if (_poutVio) {
+        infoGroup.append('text')
+          .attr('x', BOX_W - PAD).attr('y', titleH)
+          .attr('text-anchor', 'end').attr('fill', '#ff4444')
+          .attr('font-size', `${titleH - 2}px`).attr('font-weight', 'bold')
+          .text('⚠MAX');
+      }
+
       let yo = titleH + lineH;  // full line-height gap separates heading from data
-      infoGroup.append('text').attr('x', PAD).attr('y', yo)
-        .attr('fill', '#00ff88').attr('font-size', `${lineH}px`)
-        .text(`Pin: ${this.formatPower(powerInfo.pin_dbm, this.powerUnit)}`);
-      yo += lineH;
 
-      infoGroup.append('text').attr('x', PAD).attr('y', yo)
-        .attr('fill', '#ff7f11').attr('font-size', `${lineH}px`)
-        .text(`Pout: ${this.formatPower(powerInfo.pout_dbm, this.powerUnit)}`);
-      yo += lineH;
-
-      if (powerInfo.p1db_dbm) {
+      if (isDual) {
+        // ── Dual operating-point mode ───────────────────────────────────────
+        // Pin at both operating points
+        const pinPavg  = powerInfo.pin_dbm - (powerInfo.backoff_db || 6);
+        const pinP3dB  = powerInfo.pin_dbm;
         infoGroup.append('text').attr('x', PAD).attr('y', yo)
-          .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
-          .text(`P1dB: ${this.formatPower(powerInfo.p1db_dbm, this.powerUnit)}`);
+          .attr('fill', '#66ccff').attr('font-size', `${lineH}px`)
+          .text(`Pin@P3dB: ${this.formatPower(pinP3dB, this.powerUnit)}`);
         yo += lineH;
-      }
-
-      if (powerInfo.power_bo_dbm) {
         infoGroup.append('text').attr('x', PAD).attr('y', yo)
-          .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
-          .text(`P_BO: ${this.formatPower(powerInfo.power_bo_dbm, this.powerUnit)}`);
-      }
+          .attr('fill', '#88ddff').attr('font-size', `${lineH}px`)
+          .text(`Pin@Pavg: ${this.formatPower(pinPavg, this.powerUnit)}`);
+        yo += lineH;
+
+        // Pout at both operating points
+        infoGroup.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#ff88ff').attr('font-size', `${lineH}px`)
+          .text(`Pout@P3dB: ${this.formatPower(powerInfo.pout_dbm, this.powerUnit)}`);
+        yo += lineH;
+        infoGroup.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#ffaaff').attr('font-size', `${lineH}px`)
+          .text(`Pout@Pavg: ${this.formatPower(powerInfo.power_bo_dbm, this.powerUnit)}`);
+        yo += lineH;
+
+        // PAE at both points if available from R
+        const paeP3dB = parseFloat(comp.properties.pae_p3db);
+        const paePavg = parseFloat(comp.properties.pae_pavg);
+        if (isFinite(paeP3dB)) {
+          infoGroup.append('text').attr('x', PAD).attr('y', yo)
+            .attr('fill', '#ffdd44').attr('font-size', `${lineH}px`)
+            .text(`PAE@P3dB: ${paeP3dB.toFixed(1)}%`);
+          yo += lineH;
+        }
+        if (isFinite(paePavg)) {
+          infoGroup.append('text').attr('x', PAD).attr('y', yo)
+            .attr('fill', '#ffee88').attr('font-size', `${lineH}px`)
+            .text(`PAE@Pavg: ${paePavg.toFixed(1)}%`);
+        }
+
+      } else {
+        // ── Stage (single point) mode — original behaviour ──────────────────
+        infoGroup.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#00ff88').attr('font-size', `${lineH}px`)
+          .text(`Pin: ${this.formatPower(powerInfo.pin_dbm, this.powerUnit)}`);
+        yo += lineH;
+
+        infoGroup.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', '#ff7f11').attr('font-size', `${lineH}px`)
+          .text(`Pout: ${this.formatPower(powerInfo.pout_dbm, this.powerUnit)}`);
+        yo += lineH;
+
+        if (powerInfo.p1db_dbm) {
+          infoGroup.append('text').attr('x', PAD).attr('y', yo)
+            .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
+            .text(`P1dB: ${this.formatPower(powerInfo.p1db_dbm, this.powerUnit)}`);
+          yo += lineH;
+        }
+
+        if (powerInfo.power_bo_dbm) {
+          infoGroup.append('text').attr('x', PAD).attr('y', yo)
+            .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
+            .text(`P_BO: ${this.formatPower(powerInfo.power_bo_dbm, this.powerUnit)}`);
+        }
+      } // end else (stage mode)
     });
 
     console.log('Power columns drawn for', sorted.length, 'components');
@@ -5681,10 +5550,44 @@ class PALineupCanvas {
       default:    return `${v.toFixed(1)} dBm`;
     }
   }
+
+  _isThreeWayDoherty(component) {
+    if (!component || component.type !== 'combiner') return false;
+    const props = component.properties || {};
+    const subtype = String(props.subtype || props.label || '').toLowerCase();
+    return Number(props.ways || props.portCount || 0) === 3 || subtype.includes('3-way');
+  }
+
+  _resolveBackoffProfile(component = null) {
+    const specs = window.currentLineupSpecs || {};
+    const profile = specs.bo_profile || {};
+    const primaryRaw = specs.par ?? profile.primary ?? 8;
+    const primary = Number.isFinite(parseFloat(primaryRaw)) ? parseFloat(primaryRaw) : 8;
+    let secondaryRaw = specs.par_secondary ?? profile.secondary;
+
+    const hasThreeWayDoherty = component
+      ? this._isThreeWayDoherty(component)
+      : this.components.some(comp => this._isThreeWayDoherty(comp));
+
+    if (!Number.isFinite(parseFloat(secondaryRaw)) && hasThreeWayDoherty) {
+      secondaryRaw = primary * 2;
+    }
+
+    const secondary = Number.isFinite(parseFloat(secondaryRaw)) && parseFloat(secondaryRaw) > 0
+      ? parseFloat(secondaryRaw)
+      : null;
+
+    return {
+      primary,
+      secondary,
+      hasSecondary: secondary !== null
+    };
+  }
   
   calculateComponentPower(component, previousPout, isFirst) {
     const props = component.properties;
-    let pin_dbm, pout_dbm, p1db_dbm, backoff_db, power_bo_dbm;
+    const backoffProfile = this._resolveBackoffProfile(component);
+    let pin_dbm, pout_dbm, p1db_dbm, backoff_db, power_bo_dbm, backoff_db_secondary, power_bo2_dbm;
     
     // Get input power — prefer R-synced values when available
     if (isFirst) {
@@ -5702,20 +5605,42 @@ class PALineupCanvas {
     const rPout = parseFloat(props.pout_p3db);
     if (props.pout_p3db !== undefined && props.pout_p3db !== null && isFinite(rPout)) {
       pout_dbm = rPout;
-      // For P1dB: must be AT MOST equal to pout (P1dB ≤ Pout — compression point is at or below operating Pout)
-      const rawP1dB = props.p1db ?? props.pout ?? 40;
-      p1db_dbm = Math.min(parseFloat(rawP1dB), pout_dbm);
+      // For P1dB: combiners combine multiple transistor branches — props.p1db is the
+      // INDIVIDUAL device P1dB, which is far below the combined output.  Showing it
+      // alongside Pin (combined input) gives a misleading "Pin > P1dB" warning.
+      // Leave p1db_dbm = null for combiners so the overlay omits the P1dB row.
+      if (component.type === 'combiner') {
+        p1db_dbm = null;
+      } else {
+        // For transistors/passives: P1dB must be ≤ Pout
+        const rawP1dB = props.p1db ?? props.pout ?? 40;
+        p1db_dbm = Math.min(parseFloat(rawP1dB), pout_dbm);
+      }
       // Backoff from R-synced values
       const rPavg = parseFloat(props.pout_pavg);
       if (props.pout_pavg !== undefined && props.pout_pavg !== null && isFinite(rPavg)) {
         power_bo_dbm = rPavg;
         backoff_db   = pout_dbm - power_bo_dbm;
       } else {
-        const par = window.currentLineupSpecs ? (window.currentLineupSpecs.par || 8) : 8;
-        backoff_db   = par;
+        backoff_db   = backoffProfile.primary;
         power_bo_dbm = pout_dbm - backoff_db;
       }
-      return { pin_dbm, pout_dbm, p1db_dbm, backoff_db, power_bo_dbm };
+
+      const rPavg2 = parseFloat(props.pout_pavg2 ?? props.pout_bo2);
+      if ((props.pout_pavg2 !== undefined || props.pout_bo2 !== undefined) && isFinite(rPavg2)) {
+        power_bo2_dbm = rPavg2;
+        backoff_db_secondary = pout_dbm - power_bo2_dbm;
+      } else if (backoffProfile.hasSecondary) {
+        backoff_db_secondary = backoffProfile.secondary;
+        power_bo2_dbm = pout_dbm - backoff_db_secondary;
+      }
+
+      if (isFinite(power_bo2_dbm)) {
+        props.pout_pavg2 = power_bo2_dbm;
+        props.pin_pavg2 = props.pin_pavg2 ?? (pin_dbm - backoff_db_secondary);
+      }
+
+      return { pin_dbm, pout_dbm, p1db_dbm, backoff_db, power_bo_dbm, backoff_db_secondary, power_bo2_dbm };
     }
     
     // Calculate output power based on component type (fallback when R hasn't synced yet)
@@ -5729,13 +5654,12 @@ class PALineupCanvas {
         p1db_dbm = Math.min(parseFloat(rawP1dB), pout_dbm);
         
         // Back-off power
-        const par = window.currentLineupSpecs ? (window.currentLineupSpecs.par || 8) : 8;
         if (props.backoff_db !== undefined) {
           backoff_db = props.backoff_db;
         } else if (props.papr_db !== undefined) {
           backoff_db = props.papr_db;
         } else {
-          backoff_db = par;
+          backoff_db = backoffProfile.primary;
         }
         power_bo_dbm = pout_dbm - backoff_db;
         break;
@@ -5831,13 +5755,25 @@ class PALineupCanvas {
       default:
         pout_dbm = pin_dbm;
     }
+
+    if (backoffProfile.hasSecondary) {
+      backoff_db_secondary = backoffProfile.secondary;
+      power_bo2_dbm = pout_dbm - backoff_db_secondary;
+      props.pout_pavg2 = props.pout_pavg2 ?? power_bo2_dbm;
+      props.pin_pavg2 = props.pin_pavg2 ?? (pin_dbm - backoff_db_secondary);
+      if (component.type === 'transistor' && props.pae_pavg2 === undefined && props.pae_pavg !== undefined) {
+        props.pae_pavg2 = Math.max(0, Math.round(parseFloat(props.pae_pavg) * 0.75));
+      }
+    }
     
     return {
       pin_dbm,
       pout_dbm,
       p1db_dbm,
       backoff_db,
-      power_bo_dbm
+      power_bo_dbm,
+      backoff_db_secondary,
+      power_bo2_dbm
     };
   }
 
@@ -5859,7 +5795,7 @@ class PALineupCanvas {
   // CH = component half-height (38 px), SH = slot height (62 px).
   // Boxes may extend above/below adjacent component rows on a crowded canvas
   // — that is acceptable on a pan/zoom canvas.
-  _getDisplaySlotBounds(topY, botY, slotIndex, compY) {
+  _getDisplaySlotBounds(topY, botY, slotIndex, compY, midY) {
     const SLOT_H    = 62;  // px per slot — enough for ~5 text lines
     const COMP_HALF = 38;  // half-height of the rendered component body
 
@@ -5876,7 +5812,14 @@ class PALineupCanvas {
     const anchor = (compY !== undefined) ? compY : (topY + botY) / 2;
     if (!cfg) return { topY, botY };
 
-    if (cfg.dir === 'above') {
+    // Aux-side components sit below the canvas midpoint.  Flip the canonical
+    // direction so Power/Gain/PAE boxes appear BELOW the aux component
+    // (clearing the Doherty stage grouping box) and Impedance/Phase flip
+    // to appear above it (towards the centre of the canvas).
+    const isAux = (midY !== undefined) && (compY !== undefined) && (compY > midY);
+    const dir   = isAux ? (cfg.dir === 'above' ? 'below' : 'above') : cfg.dir;
+
+    if (dir === 'above') {
       return {
         topY: anchor - COMP_HALF - cfg.dist * SLOT_H,
         botY: anchor - COMP_HALF - (cfg.dist - 1) * SLOT_H,
@@ -5930,7 +5873,7 @@ class PALineupCanvas {
           : (ri - 1 < 0 || !occupied.has(`${ri-1},${ci}`) ? ri - 1 : prefer);
       }
 
-      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 1, comp.y);
+      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 1, comp.y, midY);
       const cellH = Math.max(24, botY - topY);
 
       const BOX_W = 2 * HC - 2 * PAD;
@@ -5957,31 +5900,35 @@ class PALineupCanvas {
 
       g.append('rect').attr('x', 0).attr('y', 0)
         .attr('width', BOX_W).attr('height', BOX_H)
-        .attr('fill', '#1a2010').attr('stroke', '#4CAF50')
+        .attr('fill', '#1a2010')
+        .attr('stroke', comp.type === 'transistor' ? '#4CAF50' : '#ff8c42')
         .attr('stroke-width', 1).attr('rx', 3);
 
+      const isActiveStage = comp.type === 'transistor';
       g.append('text').attr('x', BOX_W/2).attr('y', titleH)
         .attr('text-anchor', 'middle').attr('fill', '#fff')
         .attr('font-size', `${titleH}px`).attr('font-weight', 'bold')
-        .text('Gain');
+        .text(isActiveStage ? 'Gain' : 'Loss');
 
       let yo = titleH + lineH;
       const props = comp.properties;
 
       // Prefer R-synced values; fall back to component property inputs
-      const gainP3dB = props.gain_full_db ?? props.gain_p3db ?? props.gain ?? null;
-      const gainBO   = props.gain_bo_db   ?? props.gain_bo   ?? gainP3dB;
+      // Use isFinite() to guard against NaN from R (NaN is not caught by ?? operator)
+      const toFin = v => (v !== null && v !== undefined && isFinite(Number(v))) ? Number(v) : null;
+      const gainP3dB = toFin(props.gain_full_db) ?? toFin(props.gain_p3db) ?? toFin(props.gain);
+      const gainBO   = toFin(props.gain_bo_db)   ?? toFin(props.gain_bo)   ?? gainP3dB;
 
       if (gainP3dB !== null) {
         g.append('text').attr('x', PAD).attr('y', yo)
           .attr('fill', '#00ff88').attr('font-size', `${lineH}px`)
-          .text(`@P3dB: ${parseFloat(gainP3dB).toFixed(1)} dB`);
+          .text(`@P3dB: ${gainP3dB.toFixed(1)} dB`);
         yo += lineH;
       }
       if (gainBO !== null) {
         g.append('text').attr('x', PAD).attr('y', yo)
           .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
-          .text(`@BO:   ${parseFloat(gainBO).toFixed(1)} dB`);
+          .text(`@BO:   ${gainBO.toFixed(1)} dB`);
         yo += lineH;
       }
       if (comp.type === 'matching' || comp.type === 'splitter' || comp.type === 'combiner') {
@@ -6036,17 +5983,43 @@ class PALineupCanvas {
           : (ri - 1 < 0 || !occupied.has(`${ri-1},${ci}`) ? ri - 1 : prefer);
       }
 
-      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 2, comp.y);
+      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 2, comp.y, midY);
       const cellH = Math.max(24, botY - topY);
 
       const BOX_W = 2 * HC - 2 * PAD;
       const lineH  = Math.max(8, Math.min(12, Math.floor(cellH / 6)));
       const titleH = lineH + 2;
-      const BOX_H  = Math.max(titleH + 2 * lineH + PAD, 28);  // auto-size; never crop
       const boxX = comp.x - BOX_W / 2;
+      const props = comp.properties;
+      const backoffProfile = this._resolveBackoffProfile(comp);
+      const paeP3dB = props.pae_p3db ?? props.pae ?? null;
+      const paeBO   = props.pae_pavg ?? props.pae_bo ?? paeP3dB;
+      const paeBO2Raw = props.pae_pavg2 ?? props.pae_bo2;
+      const paeBO2 = paeBO2Raw ?? ((backoffProfile.hasSecondary && paeBO !== null)
+        ? Math.max(0, Math.round(parseFloat(paeBO) * 0.75))
+        : null);
+      if (paeBO2 !== null && props.pae_pavg2 === undefined) {
+        props.pae_pavg2 = paeBO2;
+      }
+      const paeLineCount = [paeP3dB, paeBO, paeBO2].filter(v => v !== null && v !== undefined).length;
+      const BOX_H  = Math.max(titleH + paeLineCount * lineH + PAD, 28);  // auto-size; never crop
       const boxY = topY + Math.max(0, (cellH - BOX_H) / 2);
 
       if (!comp.paeBoxOffset) comp.paeBoxOffset = { x: 0, y: 0 };
+
+      // ── Guardrail-aware PAE color coding ──────────────────────────────────
+      const _techKey = this._guardrailTechKey(comp.properties.technology);
+      const _limits  = (_techKey && this.guardrailLimits) ? this.guardrailLimits[_techKey] : null;
+      const _paeColor = (val) => {
+        if (!_limits || val == null || !isFinite(parseFloat(val))) return '#00ff88';
+        const v = parseFloat(val);
+        if (v < _limits.pae_min)     return '#ff4444';  // below minimum acceptable
+        if (v < _limits.pae_typical) return '#ffaa00';  // below typical (warning)
+        return '#00ff88';                                // within good range
+      };
+      const _hasViolation = _limits && [paeP3dB, paeBO].some(v => v !== null && isFinite(parseFloat(v)) && parseFloat(v) < _limits.pae_min);
+      const _hasWarning   = _limits && [paeP3dB, paeBO].some(v => v !== null && isFinite(parseFloat(v)) && parseFloat(v) < _limits.pae_typical);
+      const _boxStroke = _hasViolation ? '#ff4444' : (_hasWarning ? '#ffaa00' : '#9c27b0');
 
       const g = this.paeLayer.append('g')
         .attr('class', 'pae-info-group')
@@ -6063,7 +6036,7 @@ class PALineupCanvas {
 
       g.append('rect').attr('x', 0).attr('y', 0)
         .attr('width', BOX_W).attr('height', BOX_H)
-        .attr('fill', '#1a1020').attr('stroke', '#9c27b0')
+        .attr('fill', '#1a1020').attr('stroke', _boxStroke)
         .attr('stroke-width', 1).attr('rx', 3);
 
       g.append('text').attr('x', BOX_W/2).attr('y', titleH)
@@ -6071,23 +6044,32 @@ class PALineupCanvas {
         .attr('font-size', `${titleH}px`).attr('font-weight', 'bold')
         .text('PAE');
 
-      let yo = titleH + lineH;
-      const props = comp.properties;
+      // Violation badge (⚠) — shown when any value is below minimum acceptable
+      if (_hasViolation) {
+        g.append('text').attr('x', BOX_W - PAD).attr('y', titleH)
+          .attr('text-anchor', 'end').attr('fill', '#ff4444')
+          .attr('font-size', `${titleH - 2}px`).attr('font-weight', 'bold')
+          .text('⚠');
+      }
 
-      // Prefer R-synced values
-      const paeP3dB = props.pae_p3db ?? props.pae ?? null;
-      const paeBO   = props.pae_pavg ?? props.pae_bo ?? paeP3dB;
+      let yo = titleH + lineH;
 
       if (paeP3dB !== null) {
         g.append('text').attr('x', PAD).attr('y', yo)
-          .attr('fill', '#00ff88').attr('font-size', `${lineH}px`)
+          .attr('fill', _paeColor(paeP3dB)).attr('font-size', `${lineH}px`)
           .text(`PAE@P3dB: ${parseFloat(paeP3dB).toFixed(0)}%`);
         yo += lineH;
       }
       if (paeBO !== null) {
         g.append('text').attr('x', PAD).attr('y', yo)
-          .attr('fill', '#ffaa00').attr('font-size', `${lineH}px`)
+          .attr('fill', _paeColor(paeBO)).attr('font-size', `${lineH}px`)
           .text(`PAE@BO:   ${parseFloat(paeBO).toFixed(0)}%`);
+        yo += lineH;
+      }
+      if (paeBO2 !== null) {
+        g.append('text').attr('x', PAD).attr('y', yo)
+          .attr('fill', _paeColor(paeBO2)).attr('font-size', `${lineH}px`)
+          .text(`PAE@BO2: ${parseFloat(paeBO2).toFixed(0)}%`);
       }
     });
     console.log('PAE columns drawn for', this.components.filter(c => c.type === 'transistor').length, 'transistors');
@@ -6254,16 +6236,18 @@ class PALineupCanvas {
       const ci = cols.findIndex(c => Math.abs(c - comp.x) < 60);
       const isMainSide = comp.y <= midY;
 
-      // Phase (slot 4) is in Group B → prefer BELOW for main, ABOVE for aux
+      // Phase (slot 4): prefer OUTER zones (away from Doherty center).
+      // Main-side → above all rows (targetRi = ri-1, goes negative = zone above row 0).
+      // Aux-side  → below all rows (targetRi = ri+1, exceeds rows.length = zone below last row).
       let targetRi;
       if (isMainSide) {
-        const prefer = ri + 1;  // below
-        targetRi = (prefer < rows.length && !occupied.has(`${prefer},${ci}`)) ? prefer
-          : (ri - 1 >= 0 && !occupied.has(`${ri - 1},${ci}`) ? ri - 1 : prefer);
+        const prefer = ri - 1;  // outer: above main row
+        targetRi = (!occupied.has(`${prefer},${ci}`)) ? prefer
+          : (!occupied.has(`${ri + 1},${ci}`) ? ri + 1 : prefer);
       } else {
-        const prefer = ri - 1;  // above
-        targetRi = (prefer >= 0 && !occupied.has(`${prefer},${ci}`)) ? prefer
-          : (ri + 1 < rows.length && !occupied.has(`${ri + 1},${ci}`) ? ri + 1 : prefer);
+        const prefer = ri + 1;  // outer: below aux row
+        targetRi = (!occupied.has(`${prefer},${ci}`)) ? prefer
+          : (ri - 1 >= 0 && !occupied.has(`${ri - 1},${ci}`) ? ri - 1 : prefer);
       }
 
       // ── Count content lines first so BOX_H auto-sizes to content ──────────
@@ -6282,15 +6266,15 @@ class PALineupCanvas {
         nContentLines = 2 + (phOut.syms || []).length; // Δφ + φout numeric + one line per sym
       }
 
-      // Canonical slot position — slot 4 = Phase (below component)
-      const { topY, botY } = this._getDisplaySlotBounds(0, 0, 4, comp.y);
-      const slotH = botY - topY; // = 62 px (SLOT_H)
+      // Use outer rowZone for final box placement (avoids Doherty center overlap)
+      const { topY: zoneTopY, botY: zoneBotY } = rowZone(targetRi);
+      const zoneH = Math.max(32, zoneBotY - zoneTopY);
 
       const BOX_W = 2 * HC - 2 * PAD;
       const BOX_H = Math.max(32, titleH + lineH + nContentLines * lineH + PAD);
       const boxX  = comp.x - BOX_W / 2;
-      // Centre in slot if box fits; otherwise anchor to slot top
-      const boxY  = topY + Math.max(0, (slotH - BOX_H) / 2);
+      // Centre in zone if box fits; otherwise anchor to zone top
+      const boxY  = zoneTopY + Math.max(0, (zoneH - BOX_H) / 2);
 
       if (!comp.phaseBoxOffset) comp.phaseBoxOffset = { x: 0, y: 0 };
 
@@ -6772,24 +6756,34 @@ function initializeMultiCanvas(layout = "1x1") {
     mainContainer.appendChild(gridContainer);
   }
   
+  // Measure available width from the outer container before clearing innerHTML
+  const availW = mainContainer.clientWidth || mainContainer.offsetWidth || 1200;
+
+  // Each canvas cell is a fixed 500 px tall; grid grows vertically for multi-row layouts
+  const CELL_H     = 500;
+  const GAP        = 5;
+  const cellW      = Math.max(400, Math.floor((availW - (dimensions.cols - 1) * GAP) / dimensions.cols));
+  const cellH      = CELL_H;
+  const gridTotalH = dimensions.rows * CELL_H + (dimensions.rows - 1) * GAP;
+
   // Apply grid layout
   if (dimensions.special === "2plus1") {
     // Special 2+1 layout: 1 large canvas on top, 2 small below
     gridContainer.style.cssText = `
       display: grid;
-      gap: 5px;
+      gap: ${GAP}px;
       width: 100%;
-      height: 600px;
+      height: ${gridTotalH}px;
       grid-template-rows: 2fr 1fr;
       grid-template-columns: 1fr 1fr;
     `;
   } else {
     gridContainer.style.cssText = `
       display: grid;
-      gap: 5px;
+      gap: ${GAP}px;
       width: 100%;
-      height: 600px;
-      grid-template-rows: repeat(${dimensions.rows}, 1fr);
+      height: ${gridTotalH}px;
+      grid-template-rows: repeat(${dimensions.rows}, ${CELL_H}px);
       grid-template-columns: repeat(${dimensions.cols}, 1fr);
     `;
   }
@@ -6815,9 +6809,10 @@ function initializeMultiCanvas(layout = "1x1") {
     canvasDiv.style.cssText += `
       position: relative;
       border: 2px solid transparent;
-      background: #ecf0f1;
+      background: #1a1a1a;
       border-radius: 4px;
-      overflow: hidden;
+      overflow: auto;
+      height: ${CELL_H}px;
       transition: border-color 0.2s, box-shadow 0.2s;
     `;
     
@@ -6849,9 +6844,9 @@ function initializeMultiCanvas(layout = "1x1") {
     
     gridContainer.appendChild(canvasDiv);
     
-    // Initialize canvas instance
+    // Initialize canvas instance sized to fit the grid cell
     try {
-      const canvas = new PALineupCanvas(`pa_lineup_canvas_${i}`);
+      const canvas = new PALineupCanvas(`pa_lineup_canvas_${i}`, { width: cellW, height: cellH });
       window.paCanvases.push(canvas);
       console.log(`✅ Canvas ${i} initialized`);
       
@@ -7389,6 +7384,29 @@ function applySpecsToComponents(specs) {
   
   const components = window.paCanvas.components;
   console.log(`[Apply Specs] Found ${components.length} components`);
+
+  const hasThreeWayDoherty = components.some(component => {
+    if (component.type !== 'combiner') return false;
+    const props = component.properties || {};
+    const subtype = String(props.subtype || props.label || '').toLowerCase();
+    return Number(props.ways || props.portCount || 0) === 3 || subtype.includes('3-way');
+  });
+
+  const primaryBackoff = Number.isFinite(parseFloat(specs.par)) ? parseFloat(specs.par) : 8.0;
+  let secondaryBackoff = Number.isFinite(parseFloat(specs.par_secondary)) ? parseFloat(specs.par_secondary) : null;
+  if (secondaryBackoff === null && hasThreeWayDoherty) {
+    secondaryBackoff = primaryBackoff * 2;
+  }
+  specs.par = primaryBackoff;
+  specs.par_secondary = secondaryBackoff;
+  specs.bo_profile = {
+    primary: primaryBackoff,
+    secondary: secondaryBackoff,
+    has_secondary: secondaryBackoff !== null
+  };
+  if (secondaryBackoff !== null && Number.isFinite(parseFloat(specs.p3db))) {
+    specs.pavg2 = specs.p3db - secondaryBackoff;
+  }
   
   // Select technology based on frequency and power
   const techSelection = selectTechnology(specs.frequency_ghz, specs.p3db, specs.supply_voltage);
@@ -7943,18 +7961,23 @@ function registerMessageHandlers() {
         setTimeout(() => {
           if (window.paCanvas) {
             console.log('Canvas initialized, retrying update...');
+            window._updatingFromR = true;
             window.paCanvas.updateComponent(data.id, data.properties);
+            window._updatingFromR = false;
           }
         }, 500);
       } else {
         console.log('Calling paCanvas.updateComponent with ID:', data.id);
         try {
+          // Set flag: tell updateComponent not to echo back to R
+          window._updatingFromR = true;
           window.paCanvas.updateComponent(data.id, data.properties);
+          window._updatingFromR = false;
           console.log('Update completed successfully');
         } catch (e) {
+          window._updatingFromR = false;
           console.error('Error updating component:', e);
           console.error('Stack trace:', e.stack);
-          alert('Error updating component: ' + e.message);
         }
       }
     });
@@ -8147,7 +8170,7 @@ function registerMessageHandlers() {
       }
       
       // Store specs globally for current canvas
-      window.currentLineupSpecs = specs;
+      window.currentLineupSpecs = Object.assign(window.currentLineupSpecs || {}, specs);
       
       // Get current components to determine if we have a template loaded
       const components = window.paCanvas.components;
@@ -8160,7 +8183,7 @@ function registerMessageHandlers() {
       }
       
       // Apply specs to existing components
-      applySpecsToComponents(specs);
+      applySpecsToComponents(window.currentLineupSpecs);
       
       console.log('✓ Specifications applied to lineup');
     });
@@ -8168,7 +8191,40 @@ function registerMessageHandlers() {
     // Handler 8: Sync Lineup Specs — PAR/P3dB/frequency changes from R Specifications panel
     ShinyObj.addCustomMessageHandler('syncLineupSpecs', function(specs) {
       console.log('[Sync Lineup Specs] Received:', specs);
+      const toNumeric = function(value) {
+        if (value === null || value === undefined || value === '') return null;
+        const n = Number(value);
+        return Number.isFinite(n) ? n : NaN;
+      };
+      const numericChanged = function(a, b, tol = 1e-9) {
+        const aIsNull = a === null;
+        const bIsNull = b === null;
+        if (aIsNull || bIsNull) return a !== b;
+        const aIsNaN = Number.isNaN(a);
+        const bIsNaN = Number.isNaN(b);
+        if (aIsNaN || bIsNaN) return !(aIsNaN && bIsNaN);
+        return Math.abs(a - b) > tol;
+      };
+
+      const previousSpecs = window.currentLineupSpecs || {};
+      const prevPar = toNumeric(previousSpecs.par);
+      const prevParSecondary = toNumeric(previousSpecs.par_secondary);
+      const prevP3db = toNumeric(previousSpecs.p3db);
+
       window.currentLineupSpecs = Object.assign(window.currentLineupSpecs || {}, specs);
+      if (window.paCanvas && window.paCanvas.components) {
+        const profile = window.paCanvas._resolveBackoffProfile();
+        window.currentLineupSpecs.par = profile.primary;
+        window.currentLineupSpecs.par_secondary = profile.secondary;
+        window.currentLineupSpecs.bo_profile = {
+          primary: profile.primary,
+          secondary: profile.secondary,
+          has_secondary: profile.hasSecondary
+        };
+        if (profile.hasSecondary && window.currentLineupSpecs.p3db !== undefined) {
+          window.currentLineupSpecs.pavg2 = window.currentLineupSpecs.p3db - profile.secondary;
+        }
+      }
       // Redraw active display overlays so Pavg values (driven by PAR) refresh immediately
       if (window.paCanvas) {
         if (window.paCanvas.showPowerDisplay)     window.paCanvas.drawPowerColumns();
@@ -8178,9 +8234,16 @@ function registerMessageHandlers() {
         if (window.paCanvas.showPhaseDisplay)     window.paCanvas.drawPhaseColumns();
         window.paCanvas.drawPaGroupBoxes();
       }
-      // Re-trigger R calculation when PAR changes so efficiency/cascade values stay current
-      // Without this, changing PAR updates the display labels but not the R-side cascade
-      if (window.Shiny && specs.par !== undefined) {
+      const currPar = toNumeric(window.currentLineupSpecs ? window.currentLineupSpecs.par : null);
+      const currParSecondary = toNumeric(window.currentLineupSpecs ? window.currentLineupSpecs.par_secondary : null);
+      const currP3db = toNumeric(window.currentLineupSpecs ? window.currentLineupSpecs.p3db : null);
+      const operatingPointChanged =
+        numericChanged(prevPar, currPar) ||
+        numericChanged(prevParSecondary, currParSecondary) ||
+        numericChanged(prevP3db, currP3db);
+
+      // Re-trigger R calculation only when operating-point values actually change
+      if (window.Shiny && operatingPointChanged) {
         Shiny.setInputValue('par_changed_trigger', Date.now(), {priority: 'event'});
       }
     });
@@ -8188,6 +8251,15 @@ function registerMessageHandlers() {
     // Handler 9: Redraw Canvas Display — called after R Calculate/Optimize pushes new values
     ShinyObj.addCustomMessageHandler('redrawCanvasDisplay', function(msg) {
       if (!window.paCanvas) return;
+      // Log any components that still have no R-synced pout_p3db after the full
+      // updateComponent cycle — these are unmatched stages (label/ID mismatch).
+      const unsynced = window.paCanvas.components.filter(
+        c => c.properties.pout_p3db === undefined || c.properties.pout_p3db === null
+      );
+      if (unsynced.length > 0) {
+        console.warn('[RedrawCanvas] These components have no R-synced values (will use JS fallback):',
+          unsynced.map(c => `${c.properties.label || c.type}(id=${c.id})`).join(', '));
+      }
       if (window.paCanvas.showPowerDisplay)     window.paCanvas.drawPowerColumns();
       if (window.paCanvas.showGainDisplay)      window.paCanvas.drawGainColumns();
       if (window.paCanvas.showPAEDisplay)       window.paCanvas.drawPAEColumns();
@@ -8196,6 +8268,12 @@ function registerMessageHandlers() {
       window.paCanvas.drawPaGroupBoxes();
       window.paCanvas.render();
       console.log('[Redraw Canvas] All active display layers refreshed');
+    });
+
+    ShinyObj.addCustomMessageHandler('triggerLineupCalculate', function(msg) {
+      if (window.Shiny) {
+        Shiny.setInputValue('lineup_calculate', Date.now(), {priority: 'event'});
+      }
     });
 
     // Handler 10: Update Device Portfolio (saved single-transistor devices from Guardrails tab)
@@ -8373,6 +8451,17 @@ function registerMessageHandlers() {
     });
 
     console.log('✓ Shiny message handlers registered successfully');
+
+    // Handler: Set technology guardrail limits from R → used for live PAE/Pout color coding
+    // Called by server_pa_lineup.R after Calculate, before redrawCanvasDisplay.
+    // limits is an object keyed by YAML technology key e.g.:
+    //   { GaN_SiC: { pout_max, pae_min, pae_typical, pae_max, freq_max, vdd_max, ft_typical }, … }
+    ShinyObj.addCustomMessageHandler('setGuardrailLimits', function(limits) {
+      const canvases = window.paCanvases || (window.paCanvas ? [window.paCanvas] : []);
+      canvases.forEach(function(c) { if (c) c.guardrailLimits = limits; });
+      console.log('[Guardrails] Limits loaded for technologies:', Object.keys(limits || {}));
+    });
+
     return true;
   } else {
     console.error('ShinyObj.addCustomMessageHandler not available!');
@@ -8442,6 +8531,242 @@ window.getGlobalPAR = getGlobalPAR;
 console.log('✓ Global parameter accessors loaded');
 
 // ============================================================
+// PA Lineup Demo Walkthrough
+// ============================================================
+// 5-step guided tour of the Lineup Calculator workflow.
+// Triggered by window.lineupTour.start() or the "? Tour" button.
+// ============================================================
+
+(function () {
+  // ── Step definitions ─────────────────────────────────────────────────────
+  const STEPS = [
+    {
+      title: 'Step 1 — Choose an Architecture',
+      body:  'Click any template card in the <strong>Architecture Templates</strong> panel (top-left). ' +
+             'The canvas will immediately populate with the matching topology.',
+      targetId: 'canvas_top_sidebar',
+      arrowDir: 'top'
+    },
+    {
+      title: 'Step 2 — Set System Specifications',
+      body:  'Open the <strong>Specifications</strong> tab in the right panel. Enter your target ' +
+             'P3dB output power, total gain, supply voltage, and operating frequency.',
+      targetId: 'spec_p3db',
+      arrowDir: 'right'
+    },
+    {
+      title: 'Step 3 — Adjust Component Properties',
+      body:  'Click any component on the canvas to select it. The <strong>Properties</strong> ' +
+             'editor on the right lets you set technology, bias class, P3dB, gain, and PAE.',
+      targetId: 'lineup_property_editor',
+      arrowDir: 'right'
+    },
+    {
+      title: 'Step 4 — Calculate',
+      body:  'Click <strong>Calculate Lineup</strong>. The engine runs a physics-based cascade ' +
+             '(Ropt, Doherty PAE backoff, technology guardrails) and pushes results back to the canvas.',
+      targetId: 'lineup_calculate',
+      arrowDir: 'right'
+    },
+    {
+      title: 'Step 5 — Review Result Overlays',
+      body:  'Toggle the <strong>Power / PAE / Gain / Impedance</strong> overlay buttons below the canvas. ' +
+             'Colors indicate guardrail compliance: <span style="color:#00ff88">green = OK</span>, ' +
+             '<span style="color:#ffaa00">amber = below typical</span>, ' +
+             '<span style="color:#ff4444">red = below minimum</span>.',
+      targetId: 'canvas_lower_sidebar',
+      arrowDir: 'bottom'
+    }
+  ];
+
+  // ── Inject CSS once ───────────────────────────────────────────────────────
+  function injectStyles() {
+    if (document.getElementById('lineup-tour-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'lineup-tour-styles';
+    style.textContent = `
+      .lineup-tour-card {
+        position: fixed;
+        bottom: 100px;
+        left: 24px;
+        width: 320px;
+        background: #1a1a2e;
+        border: 2px solid #ff7f11;
+        border-radius: 10px;
+        z-index: 10001;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        font-family: 'Roboto', sans-serif;
+        color: #e0e0e0;
+        overflow: hidden;
+      }
+      .lineup-tour-header {
+        background: #ff7f11;
+        color: #000;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 8px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .lineup-tour-body {
+        padding: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .lineup-tour-footer {
+        padding: 8px 12px;
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+        border-top: 1px solid #333;
+      }
+      .lineup-tour-footer button {
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        border: 1px solid #555;
+        background: #2a2a3e;
+        color: #e0e0e0;
+        cursor: pointer;
+      }
+      .lineup-tour-footer button:hover { background: #3a3a4e; }
+      .lineup-tour-footer .btn-next { background: #ff7f11; color: #000; border-color: #ff7f11; font-weight: 700; }
+      .lineup-tour-footer .btn-next:hover { background: #e07010; }
+      .lineup-tour-highlight {
+        outline: 3px solid #ff7f11 !important;
+        outline-offset: 3px !important;
+        box-shadow: 0 0 0 4px rgba(255,127,17,0.25) !important;
+        transition: box-shadow 0.3s ease, outline 0.3s ease;
+        border-radius: 4px;
+        position: relative;
+        z-index: 10000;
+      }
+      .lineup-tour-dim {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 9999;
+        pointer-events: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let currentStep = 0;
+  let card = null;
+  let dim = null;
+  let highlightEl = null;
+
+  function removeHighlight() {
+    if (highlightEl) {
+      highlightEl.classList.remove('lineup-tour-highlight');
+      highlightEl = null;
+    }
+  }
+
+  function highlightTarget(id) {
+    removeHighlight();
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add('lineup-tour-highlight');
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      highlightEl = el;
+    }
+  }
+
+  function render() {
+    if (!card) return;
+    const step = STEPS[currentStep];
+    const num  = currentStep + 1;
+    const total = STEPS.length;
+
+    card.querySelector('.tour-step-label').textContent = `${num} / ${total}`;
+    card.querySelector('.tour-title').textContent = step.title;
+    card.querySelector('.tour-body').innerHTML = step.body;
+    card.querySelector('.btn-prev').disabled = currentStep === 0;
+    card.querySelector('.btn-next').textContent = currentStep === total - 1 ? 'Finish ✓' : 'Next →';
+
+    highlightTarget(step.targetId);
+  }
+
+  function start() {
+    injectStyles();
+
+    // Dim overlay
+    if (!dim) {
+      dim = document.createElement('div');
+      dim.className = 'lineup-tour-dim';
+      document.body.appendChild(dim);
+    }
+
+    // Card
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'lineup-tour-card';
+      card.innerHTML = `
+        <div class="lineup-tour-header">
+          <span>🎯 PA Lineup Tour</span>
+          <span class="tour-step-label">1 / ${STEPS.length}</span>
+        </div>
+        <div class="lineup-tour-body">
+          <div class="tour-title" style="font-weight:700; font-size:13px; margin-bottom:6px;"></div>
+          <div class="tour-body"></div>
+        </div>
+        <div class="lineup-tour-footer">
+          <button class="btn-prev" onclick="window.lineupTour.prev()">← Prev</button>
+          <button onclick="window.lineupTour.close()">✕ Exit</button>
+          <button class="btn-next" onclick="window.lineupTour.next()">Next →</button>
+        </div>
+      `;
+      document.body.appendChild(card);
+    }
+
+    currentStep = 0;
+    render();
+    console.log('[Tour] Started');
+  }
+
+  function next() {
+    if (currentStep < STEPS.length - 1) {
+      currentStep++;
+      render();
+    } else {
+      close();
+    }
+  }
+
+  function prev() {
+    if (currentStep > 0) {
+      currentStep--;
+      render();
+    }
+  }
+
+  function close() {
+    removeHighlight();
+    if (card)  { card.remove();  card  = null; }
+    if (dim)   { dim.remove();   dim   = null; }
+    console.log('[Tour] Closed');
+  }
+
+  // Expose globally
+  window.lineupTour = { start, next, prev, close };
+
+  // Shiny handler: R can trigger the tour via session$sendCustomMessage("startLineupTour", list())
+  document.addEventListener('shiny:connected', function () {
+    if (window.Shiny) {
+      Shiny.addCustomMessageHandler('startLineupTour', function () {
+        window.lineupTour.start();
+      });
+    }
+  });
+
+  console.log('✓ PA Lineup Demo Walkthrough loaded');
+})();
+
+// ============================================================
 // Canvas Sidebar Toggle Function
 // ============================================================
 
@@ -8480,6 +8805,30 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Top sidebar initialized in collapsed state');
   }
 });
+
+// ============================================================
+// Direct jQuery handler for canvas layout dropdown
+// Fires synchronously on the client, bypassing the Shiny roundtrip.
+// This is the primary mechanism; the Shiny handler below acts as backup.
+// ============================================================
+(function attachCanvasLayoutHandler() {
+  function _bindLayoutChange() {
+    $(document).off('change.canvasLayout', '#canvas_layout')
+               .on( 'change.canvasLayout', '#canvas_layout', function() {
+      var layout = $(this).val();
+      if (layout) {
+        console.log('\ud83d\udcd0 Canvas layout changed (direct jQuery):', layout);
+        initializeMultiCanvas(layout);
+      }
+    });
+    console.log('\u2705 Canvas layout jQuery handler registered');
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _bindLayoutChange);
+  } else {
+    _bindLayoutChange();
+  }
+})();
 
 // ============================================================
 // Shiny Custom Message Handlers

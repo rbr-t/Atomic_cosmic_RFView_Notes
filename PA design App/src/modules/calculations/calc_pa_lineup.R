@@ -29,7 +29,8 @@
 lineup_calculate_engine <- function(components,
                                     connections,
                                     input_power_dbm = 0,
-                                    backoff_db = 6) {
+                                    backoff_db = 6,
+                                    architecture = "conventional") {
 
   if (is.null(components) || length(components) == 0) {
     return(list(
@@ -218,7 +219,13 @@ lineup_calculate_engine <- function(components,
     # ════════════════════════════════════════════════════════════
     if (comp_type == "transistor") {
 
-      gain <- as.numeric(safeProp(props, "gain",  15))
+      gain_linear <- as.numeric(safeProp(props, "gain",      15))
+      # At P3dB the device is compressed; gain_p3db < gain_linear.
+      # At backoff (Pavg) the device is less compressed; gain_bo between the two.
+      # Fallback deltas: P3dB = linear − 2 dB, BO = midpoint.
+      gain_p3db   <- as.numeric(safeProp(props, "gain_p3db", gain_linear - 2))
+      gain_bo_val <- as.numeric(safeProp(props, "gain_bo",   (gain_linear + gain_p3db) / 2))
+      gain        <- gain_p3db   # cascade operates at P3dB (rated operating point)
       p1db <- as.numeric(safeProp(props, "p1db",  43))
       vdd  <- as.numeric(safeProp(props, "vdd",   28))
       rth  <- as.numeric(safeProp(props, "rth",   2.5))
@@ -233,12 +240,6 @@ lineup_calculate_engine <- function(components,
 
       has_dual_op <- !is.null(js_pout_p3db) && !is.null(js_pout_pavg) &&
                      !is.null(js_pin_p3db)  && !is.null(js_pin_pavg)
-
-      cat(sprintf("[%s] dual_op: pout_p3db=%s, pout_pavg=%s, has_dual_op=%s\n",
-          stage_name,
-          if (!is.null(js_pout_p3db)) as.character(js_pout_p3db) else "NULL",
-          if (!is.null(js_pout_pavg)) as.character(js_pout_pavg) else "NULL",
-          has_dual_op))
 
       if (has_dual_op) {
         pout_dbm    <- as.numeric(js_pout_p3db)
@@ -255,25 +256,30 @@ lineup_calculate_engine <- function(components,
                   as.numeric(js_pin_pavg), pout_bo_dbm, pae_bo * 100)
         )
       } else {
-        pout_dbm    <- current_pin    + gain
-        pout_bo_dbm <- current_pin_bo + gain
+        pout_dbm    <- current_pin    + gain          # P3dB cascade (compressed gain)
+        pout_bo_dbm <- current_pin_bo + gain_bo_val   # BO cascade (less compressed)
         pae_full    <- as.numeric(safeProp(props, "pae", 50)) / 100
         pout_ratio  <- 10^((pout_bo_dbm - pout_dbm) / 10)
-        # Topology-aware PAE backoff model
-        # Conventional class-AB: PAE degrades with backoff (empirical 0.8-exponent model)
-        # Doherty: load modulation maintains efficiency at backoff (main PA sees optimal Ropt)
-        # At 6dB OBO, Doherty main PA is at its saturation → maintains peak efficiency
-        # Conservative Doherty model: η_bo = η_peak × (0.5 + 0.5×√(ratio))
-        # This correctly shows efficiency maintained/improved vs degrading
-        comp_topology <- tolower(safeProp(props, "topology", ""))
-        is_doherty <- grepl("doherty", comp_topology, fixed = FALSE)
+        # Doherty detection: topology prop, pa_group label ("main"/"peak"/"aux"),
+        # component label, or the architecture parameter passed to this engine.
+        pa_group_lbl <- tolower(safeProp(props, "pa_group", ""))
+        comp_label   <- tolower(safeProp(props, "label",    ""))
+        is_doherty <- tolower(architecture) == "doherty" ||
+                      grepl("doherty", tolower(safeProp(props, "topology", ""))) ||
+                      grepl("main|peak|aux", pa_group_lbl) ||
+                      grepl("main|peak|aux", comp_label)
 
         pae_bo <- if (is_doherty) {
-          # Doherty: backoff PAE ≥ full-power PAE (load modulation effect)
-          # Main PA sees optimal impedance throughout backoff region
-          min(pae_full * (0.5 + 0.5 * sqrt(pout_ratio)), pae_full * 1.05)
+          # Doherty: load modulation keeps PAE flat in the OBO window (main PA at Ropt).
+          # Beyond OBO: only main PA active, efficiency falls like sqrt(Pout).
+          doherty_obo <- 6
+          if ((pout_dbm - pout_bo_dbm) <= doherty_obo) {
+            pae_full
+          } else {
+            ratio_at_obo <- 10^(-doherty_obo / 10)
+            min(pae_full * sqrt(pout_ratio / ratio_at_obo), pae_full)
+          }
         } else {
-          # Conventional: PAE degrades with backoff (empirical model)
           max(pae_full * (pout_ratio ^ 0.8), 0.05)
         }
         rationale <- c(rationale,
@@ -330,10 +336,11 @@ lineup_calculate_engine <- function(components,
       stage_results[[length(stage_results) + 1]] <- list(
         stage         = stage_name,  type          = "transistor",  id = cid,
         pin_dbm       = current_pin,  pout_dbm      = pout_dbm,
-        gain_db       = gain,         pae_pct       = pae_full * 100,
+        gain_db       = gain_linear,  # small-signal (linear) gain
+        pae_pct       = pae_full * 100,
         de_pct        = de_full,
-        gain_full_db  = pout_dbm - current_pin,
-        gain_bo_db    = pout_bo_dbm - current_pin_bo,
+        gain_full_db  = pout_dbm - current_pin,   # actual gain at P3dB operating point
+        gain_bo_db    = pout_bo_dbm - current_pin_bo, # actual gain at BO/Pavg point
         pdc_w         = pdc_w,        pdiss_w       = pdiss_w,
         idc_a         = idc_a,        tj_c          = tj_c,
         compressed    = compressed,   technology    = safeProp(props, "technology", "GaN"),
@@ -348,7 +355,7 @@ lineup_calculate_engine <- function(components,
       pout_bo_map[[cid]] <- pout_bo_dbm
       linear_pin    <- pout_dbm
       linear_pin_bo <- pout_bo_dbm
-      total_gain    <- total_gain + gain
+      total_gain    <- total_gain + gain   # gain = gain_p3db (P3dB cascade)
       total_pdc     <- total_pdc  + pdc_w
       total_pdc_bo  <- total_pdc_bo + pdc_bo_w
 

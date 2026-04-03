@@ -1,0 +1,35 @@
+app:
+  name: PA Design Assistant
+  version: 1.0.0
+  domain: rf_pa_design
+theme:
+  mode: dark
+  accent_color: '#ff7f11'
+  primary_color: '#1b1b1b'
+units:
+  frequency: GHz
+  power: dBm
+  impedance: Ohm
+  inductance: nH
+  capacitance: pF
+ai_agents:
+  enabled: yes
+  model: gpt-4
+  confidence_threshold: 0.7
+  max_retries: 3.0
+database:
+  host: localhost
+  port: 5432.0
+  name: pa_design
+  pool_size: 10.0
+mcp_servers:
+- name: ads_server
+  url: http://localhost:8081
+  enabled: no
+- name: awr_server
+  url: http://localhost:8082
+  enabled: no
+security:
+  auth_enabled: no
+  session_timeout: 3600.0
+  encryption_enabled: yes

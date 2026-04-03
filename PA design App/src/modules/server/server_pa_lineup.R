@@ -19,12 +19,117 @@ serverPaLineup <- function(input, output, session, state) {
   # ============================================================
   # PA Lineup Calculator (Interactive D3.js Canvas Version)
   # ============================================================
+
+  is_three_way_doherty_combiner <- function(component) {
+    comp_type <- if (is.list(component) && !is.null(component$type)) {
+      component$type
+    } else if (!is.null(names(component)) && "type" %in% names(component)) {
+      component[["type"]]
+    } else {
+      NULL
+    }
+
+    if (is.null(comp_type) || !identical(as.character(comp_type), "combiner")) {
+      return(FALSE)
+    }
+
+    props <- if (is.list(component) && !is.null(component$properties)) {
+      component$properties
+    } else if (!is.null(names(component)) && "properties" %in% names(component)) {
+      component[["properties"]]
+    } else {
+      list()
+    }
+
+    subtype_raw <- props$subtype %||% props$label %||% ""
+    ways_raw <- props$ways %||% props$portCount %||% 0
+    subtype <- tolower(as.character(subtype_raw))
+    ways <- suppressWarnings(as.numeric(ways_raw))
+
+    isTRUE(is.finite(ways) && ways == 3) || grepl("3-way", subtype, fixed = TRUE)
+  }
+
+  has_three_way_doherty_combiner <- function() {
+    components <- lineup_components()
+    if (is.null(components) || length(components) == 0) {
+      return(FALSE)
+    }
+
+    any(vapply(components, is_three_way_doherty_combiner, logical(1)))
+  }
+
+  get_primary_backoff_for_secondary <- function() {
+    if (!is.null(input$spec_par) && is.finite(input$spec_par)) {
+      return(input$spec_par)
+    }
+    if (!is.null(input$backoff_db) && is.finite(input$backoff_db)) {
+      return(input$backoff_db)
+    }
+    6
+  }
+
+  get_secondary_backoff <- function() {
+    if (!is.null(input$backoff_db_secondary) && is.finite(input$backoff_db_secondary) && input$backoff_db_secondary > 0) {
+      return(input$backoff_db_secondary)
+    }
+    if (!is.null(input$spec_par_secondary) && is.finite(input$spec_par_secondary) && input$spec_par_secondary > 0) {
+      return(input$spec_par_secondary)
+    }
+    if (has_three_way_doherty_combiner()) {
+      return(get_primary_backoff_for_secondary() * 2)
+    }
+    NULL
+  }
+
+  merge_secondary_backoff_result <- function(primary_result, secondary_result, secondary_backoff) {
+    merged <- primary_result
+    merged$backoff_db_secondary <- secondary_backoff
+    merged$bo_profile <- list(
+      primary = primary_result$backoff_db,
+      secondary = secondary_backoff,
+      has_secondary = TRUE
+    )
+    merged$final_pout_bo2_dbm <- secondary_result$final_pout_bo_dbm
+    merged$final_pout_bo2_w   <- secondary_result$final_pout_bo_w
+    merged$system_pae_bo2     <- secondary_result$system_pae_bo
+    merged$system_de_bo2      <- secondary_result$system_de_bo
+    merged$total_pdc_bo2      <- secondary_result$total_pdc_bo
+    merged$total_pdiss_bo2    <- secondary_result$total_pdiss_bo
+
+    secondary_stages <- secondary_result$stage_results %||% list()
+    merged$stage_results <- lapply(primary_result$stage_results %||% list(), function(stage) {
+      match_idx <- which(vapply(secondary_stages, function(other) {
+        same_id <- !is.null(stage$id) && !is.null(other$id) && identical(as.character(stage$id), as.character(other$id))
+        same_name <- !is.null(stage$stage) && !is.null(other$stage) && identical(stage$stage, other$stage)
+        same_id || same_name
+      }, logical(1)))
+
+      if (length(match_idx) == 0) return(stage)
+
+      secondary_stage <- secondary_stages[[match_idx[[1]]]]
+      stage$pin_bo2_dbm  <- secondary_stage$pin_bo_dbm
+      stage$pout_bo2_dbm <- secondary_stage$pout_bo_dbm
+      stage$gain_bo2_db  <- secondary_stage$gain_bo_db
+      stage$pdc_bo2_w    <- secondary_stage$pdc_bo_w
+      if (!is.null(secondary_stage$pae_bo_pct)) stage$pae_bo2_pct <- secondary_stage$pae_bo_pct
+      if (!is.null(secondary_stage$de_bo_pct))  stage$de_bo2_pct  <- secondary_stage$de_bo_pct
+      stage
+    })
+
+    secondary_warnings <- secondary_result$warnings %||% character(0)
+    if (length(secondary_warnings) > 0) {
+      merged$warnings <- unique(c(primary_result$warnings %||% character(0), paste0("[BO2] ", secondary_warnings)))
+    }
+
+    merged
+  }
   
   # ── Push spec changes (PAR / P3dB / frequency) to JavaScript immediately ──
   # This keeps canvas Pavg targets in sync without requiring a button click.
   observe({
     req(input$spec_p3db)
-    par_val  <- if (!is.null(input$spec_par))          input$spec_par          else 8.0
+    par_val  <- get_primary_backoff_for_secondary()
+    par2_val <- get_secondary_backoff()
     p3db_val <- input$spec_p3db
     freq_val <- if (!is.null(input$spec_frequency))    input$spec_frequency    else 2000
     gain_val <- if (!is.null(input$spec_gain))         input$spec_gain         else 30
@@ -34,8 +139,15 @@ serverPaLineup <- function(input, output, session, state) {
 
     session$sendCustomMessage("syncLineupSpecs", list(
       par              = par_val,
+      par_secondary    = par2_val,
       p3db             = p3db_val,
       pavg             = p3db_val - par_val,
+      pavg2            = if (!is.null(par2_val)) p3db_val - par2_val else NULL,
+      bo_profile       = list(
+        primary = par_val,
+        secondary = par2_val,
+        has_secondary = !is.null(par2_val)
+      ),
       frequency_ghz    = freq_val / 1000,
       gain             = gain_val,
       supply_voltage   = vdd_val,
@@ -47,7 +159,6 @@ serverPaLineup <- function(input, output, session, state) {
   observeEvent(input$active_canvas, {
     if(!is.null(input$active_canvas)) {
       active_canvas_index(input$active_canvas)
-      cat(sprintf("[Active Canvas] Changed to: %d\n", input$active_canvas))
     }
   })
   
@@ -57,25 +168,12 @@ serverPaLineup <- function(input, output, session, state) {
       # Components are sent as a JSON string from JavaScript
       comps_json <- input$lineup_components
       
-      cat(sprintf("[Components Update] Received data from JavaScript\n"))
-      cat(sprintf("[Components Update] Data class: %s, length: %d\n", class(comps_json), length(comps_json)))
-      cat(sprintf("[Components Update] First 200 chars: %s\n", substr(comps_json, 1, 200)))
-      
       # Parse JSON string to R list
       comps <- tryCatch({
         parsed <- jsonlite::fromJSON(comps_json, simplifyVector = FALSE)
-        cat(sprintf("[Components Update] Successfully parsed %d components\n", length(parsed)))
-        
-        if(length(parsed) > 0) {
-          cat(sprintf("[Components Update] First component - ID: %s, Type: %s\n", 
-                      if(!is.null(parsed[[1]]$id)) parsed[[1]]$id else "NULL",
-                      if(!is.null(parsed[[1]]$type)) parsed[[1]]$type else "NULL"))
-        }
-        
         parsed
       }, error = function(e) {
-        cat(sprintf("[Components Update] JSON parse error: %s\n", e$message))
-        cat(sprintf("[Components Update] Full JSON string length: %d\n", nchar(comps_json)))
+        warning(sprintf("[lineup] Components JSON parse error: %s", e$message))
         list()
       })
       
@@ -86,7 +184,6 @@ serverPaLineup <- function(input, output, session, state) {
       canvas_idx <- active_canvas_index()
       canvas_key <- paste0("canvas_", canvas_idx)
       canvas_data[[canvas_key]]$components <- comps
-      cat(sprintf("[Components Update] Stored %d components for canvas %d\n", length(comps), canvas_idx))
     }
   })
   
@@ -96,15 +193,12 @@ serverPaLineup <- function(input, output, session, state) {
       # Connections are sent as a JSON string from JavaScript
       conns_json <- input$lineup_connections
       
-      cat(sprintf("[Connections Update] Received data from JavaScript\n"))
-      
       # Parse JSON string to R list
       conns <- tryCatch({
         parsed <- jsonlite::fromJSON(conns_json, simplifyVector = FALSE)
-        cat(sprintf("[Connections Update] Successfully parsed %d connections\n", length(parsed)))
         parsed
       }, error = function(e) {
-        cat(sprintf("[Connections Update] JSON parse error: %s\n", e$message))
+        warning(sprintf("[lineup] Connections JSON parse error: %s", e$message))
         list()
       })
       
@@ -115,23 +209,121 @@ serverPaLineup <- function(input, output, session, state) {
       canvas_idx <- active_canvas_index()
       canvas_key <- paste0("canvas_", canvas_idx)
       canvas_data[[canvas_key]]$connections <- conns
-      cat(sprintf("[Connections Update] Stored %d connections for canvas %d\n", length(conns), canvas_idx))
     }
   })
   
   # Observer for canvas layout changes
   observeEvent(input$canvas_layout, {
     if(!is.null(input$canvas_layout)) {
-      cat(sprintf("[Canvas Layout] Changed to: %s\n", input$canvas_layout))
-      
       # Send layout update to JavaScript
       session$sendCustomMessage("updateCanvasLayout", list(
         layout = input$canvas_layout
       ))
     }
   }, ignoreInit = TRUE)
-  
-  # Observer for editing canvas names
+
+  # ── 4.1 ↔ 4.2 Spec sync ─────────────────────────────────────────────────
+  # dev_spec_gain (4.1) and spec_gain (4.2 canvas) must stay in sync.
+  # Renaming 4.1 input to dev_spec_gain eliminates the duplicate-ID bug.
+  # These observers keep both tabs consistent and warn on divergence.
+
+  .spec_syncing <- reactiveVal(FALSE)   # prevents infinite observer loops
+
+  observeEvent(input$dev_spec_gain, {
+    if (.spec_syncing()) return()
+    if (!is.null(input$spec_gain) && !isTRUE(all.equal(input$dev_spec_gain, input$spec_gain))) {
+      .spec_syncing(TRUE)
+      updateNumericInput(session, "spec_gain", value = input$dev_spec_gain)
+      .spec_syncing(FALSE)
+    }
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$spec_gain, {
+    if (.spec_syncing()) return()
+    if (!is.null(input$dev_spec_gain) && !isTRUE(all.equal(input$spec_gain, input$dev_spec_gain))) {
+      .spec_syncing(TRUE)
+      updateNumericInput(session, "dev_spec_gain", value = input$spec_gain)
+      .spec_syncing(FALSE)
+      showNotification(
+        paste0("\u26a0 Gain spec updated in 4.2 canvas (",
+               round(input$spec_gain, 1), " dB). 4.1 updated to match."),
+        type = "warning", duration = 5
+      )
+    }
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$dev_spec_pae, {
+    if (.spec_syncing()) return()
+    if (!is.null(input$spec_pae) && !isTRUE(all.equal(input$dev_spec_pae, input$spec_pae))) {
+      .spec_syncing(TRUE)
+      updateNumericInput(session, "spec_pae", value = input$dev_spec_pae)
+      .spec_syncing(FALSE)
+    }
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$spec_pae, {
+    if (.spec_syncing()) return()
+    if (!is.null(input$dev_spec_pae) && !isTRUE(all.equal(input$spec_pae, input$dev_spec_pae))) {
+      .spec_syncing(TRUE)
+      updateNumericInput(session, "dev_spec_pae", value = input$spec_pae)
+      .spec_syncing(FALSE)
+      showNotification(
+        paste0("\u26a0 PAE spec updated in 4.2 canvas (",
+               round(input$spec_pae, 1), "%). 4.1 updated to match."),
+        type = "warning", duration = 5
+      )
+    }
+  }, ignoreInit = TRUE)
+
+  # Spec mismatch warning panel (rendered in 4.1 tab)
+  output$spec_sync_warning <- renderUI({
+    g41 <- input$dev_spec_gain;  g42 <- input$spec_gain
+    p41 <- input$dev_spec_pae;   p42 <- input$spec_pae
+    if (is.null(g41) || is.null(g42) || is.null(p41) || is.null(p42)) return(NULL)
+    mismatches <- character(0)
+    if (!isTRUE(all.equal(round(g41, 1), round(g42, 1))))
+      mismatches <- c(mismatches, sprintf("Gain: 4.1 = %.1f dB, 4.2 = %.1f dB", g41, g42))
+    if (!isTRUE(all.equal(round(p41, 1), round(p42, 1))))
+      mismatches <- c(mismatches, sprintf("PAE: 4.1 = %.1f%%, 4.2 = %.1f%%", p41, p42))
+    if (length(mismatches) == 0) return(NULL)
+    div(style = "margin-top:6px; padding:6px 10px; background:rgba(255,193,7,.15);
+                 border-left:3px solid #ffc107; border-radius:3px;",
+      icon("exclamation-triangle", style = "color:#ffc107;"),
+      tags$strong(" Spec mismatch between 4.1 and 4.2:", style = "color:#ffc107;"),
+      tags$ul(lapply(mismatches, tags$li), style = "margin:4px 0 0 12px; padding:0;")
+    )
+  })
+
+  # ── 4.1 → 4.2 Explicit Sync Button ──────────────────────────────────────
+  # Pushes all 4.1 spec fields to the corresponding 4.2 canvas spec inputs.
+  observeEvent(input$sync_41_to_42, {
+    .spec_syncing(TRUE)
+    # Gain and PAE
+    if (!is.null(input$dev_spec_gain))
+      updateNumericInput(session, "spec_gain", value = input$dev_spec_gain)
+    if (!is.null(input$dev_spec_pae))
+      updateNumericInput(session, "spec_pae",  value = input$dev_spec_pae)
+    # Pout → P3dB
+    if (!is.null(input$spec_pout))
+      updateNumericInput(session, "spec_p3db", value = input$spec_pout)
+    # Back-off → PAR
+    if (!is.null(input$spec_backoff))
+      updateNumericInput(session, "spec_par",  value = input$spec_backoff)
+    # Supply voltage
+    if (!is.null(input$spec_vdd))
+      updateNumericInput(session, "spec_supply_voltage", value = input$spec_vdd)
+    # Frequency: convert GHz centre to MHz for the 4.2 frequency input
+    if (!is.null(input$spec_freq_lo) && !is.null(input$spec_freq_hi)) {
+      centre_mhz <- ((input$spec_freq_lo + input$spec_freq_hi) / 2) * 1000
+      updateNumericInput(session, "spec_frequency", value = round(centre_mhz, 0))
+    }
+    .spec_syncing(FALSE)
+    showNotification(
+      "\u2713 4.1 specs synced to 4.2 canvas.",
+      type = "message", duration = 4
+    )
+  }, ignoreInit = TRUE)
+
   observeEvent(input$edit_canvas_names, {
     layout <- input$canvas_layout
     canvas_count <- getCanvasCount(layout)
@@ -177,17 +369,12 @@ serverPaLineup <- function(input, output, session, state) {
       names = rv$canvas_names[1:canvas_count]
     ))
     
-    cat(sprintf("[Canvas Names] Updated: %s\n", paste(rv$canvas_names[1:canvas_count], collapse = ", ")))
-    
     removeModal()
   })
   
   # Dynamic Property Editor based on selected component
   output$lineup_property_editor <- renderUI({
     selected <- input$lineup_selected_component
-    
-    cat(sprintf("[Property Editor] renderUI called, selected = %s\n", 
-                if(is.null(selected)) "NULL" else selected))
     
     if(is.null(selected) || length(selected) == 0) {
       return(tags$div(
@@ -197,26 +384,9 @@ serverPaLineup <- function(input, output, session, state) {
     }
     
     components <- lineup_components()
-    cat(sprintf("[Property Editor] Components count: %d\n", length(components)))
-    
     if(is.null(components) || length(components) == 0) {
       return(tags$div(style = "padding: 20px;", "No components in lineup"))
     }
-    
-    # Debug: Print component structure
-    cat("[Property Editor] Component IDs in list:\n")
-    for(i in seq_along(components)) {
-      c <- components[[i]]
-      comp_id <- if(is.list(c) && !is.null(c$id)) c$id else "NO_ID"
-      comp_type <- if(is.list(c) && !is.null(c$type)) c$type else "NO_TYPE"
-      cat(sprintf("  [%d] ID=%s, Type=%s\n", i, comp_id, comp_type))
-    }
-    cat(sprintf("[Property Editor] Looking for component with ID: %s (class: %s)\n", 
-                selected, class(selected)))
-    
-    # Debug: Check component structure
-    # print(paste("Selected component ID:", selected))
-    # print(paste("Components structure:", str(components)))
     
     # Find the selected component
     comp <- NULL
@@ -226,23 +396,16 @@ serverPaLineup <- function(input, output, session, state) {
         # Handle both list and vector access
         comp_id <- if(is.list(c)) c$id else if(is.vector(c) && "id" %in% names(c)) c["id"] else NULL
         
-        cat(sprintf("[Property Editor] Checking component %d: ID=%s (class: %s), selected=%s (class: %s), match=%s\n", 
-                    i, comp_id, class(comp_id), selected, class(selected), 
-                    if(!is.null(comp_id)) comp_id == selected else "NULL_ID"))
-        
         if(!is.null(comp_id) && comp_id == selected) {
           comp <- c
-          cat(sprintf("[Property Editor] MATCH FOUND at index %d!\n", i))
           break
         }
       }
     }, error = function(e) {
-      cat(sprintf("[Property Editor] ERROR finding component: %s\n", e$message))
-      print(e)
+      warning(sprintf("[lineup] Property editor error: %s", e$message))
     })
     
     if(is.null(comp)) {
-      cat(sprintf("[Property Editor] Component %s NOT FOUND!\n", selected))
       return(tags$div(
         style = "padding: 20px; color: #888;",
         "Component not found. ID: ", selected,
@@ -250,9 +413,6 @@ serverPaLineup <- function(input, output, session, state) {
         tags$small("Try clicking on a component again")
       ))
     }
-    
-    cat(sprintf("[Property Editor] Component found! Type: %s\n", 
-                if(is.list(comp) && !is.null(comp$type)) comp$type else "unknown"))
     
     # Safely extract properties
     tryCatch({
@@ -286,21 +446,26 @@ serverPaLineup <- function(input, output, session, state) {
       
       # Generate property inputs based on component type
       if(comp_type == "transistor") {
-        cat(sprintf("[Property Editor] Generating UI for transistor component %s\n", selected))
         tagList(
           h4(paste0("Transistor: ", getProp("label", "Transistor"))),
           textInput(paste0("prop_", selected, "_label"), "Label", 
             value = getProp("label", "Transistor")),
-          selectizeInput(paste0("prop_", selected, "_technology"), "Technology", 
-            choices = c("GaN", "GaN_Si", "GaN_SiC", "LDMOS", "GaAs", "SiC", "Si-LDMOS", "InP", "GaN-HEMT"),
-            selected = getProp("technology", "GaN"),
-            options = list(
-              create = TRUE,
-              placeholder = 'Select or type custom technology'
-            )),
+          selectInput(paste0("prop_", selected, "_technology"), "Technology",
+            choices = c(
+              "GaN HEMT (SiC)"  = "GaN_SiC",
+              "GaN HEMT (Si)"   = "GaN_Si",
+              "Si LDMOS"        = "LDMOS",
+              "GaAs pHEMT"      = "GaAs_pHEMT",
+              "SiGe HBT"        = "SiGe",
+              "InP HEMT"        = "InP",
+              "Custom"          = "custom"
+            ),
+            selected = getProp("technology", "GaN_SiC"),
+            selectize = FALSE),
           selectInput(paste0("prop_", selected, "_biasClass"), "Biasing Class",
             choices = c("A", "AB", "B", "C", "D", "E", "F"),
-            selected = getProp("biasClass", "AB")),
+            selected = getProp("biasClass", "AB"),
+            selectize = FALSE),
           hr(),
           h5("Performance Parameters"),
           numericInput(paste0("prop_", selected, "_pout"), "Pout @ P3dB (dBm)", 
@@ -568,64 +733,114 @@ serverPaLineup <- function(input, output, session, state) {
 
   # Calculate button observer
   observeEvent(input$lineup_calculate, {
+    # ── Immediate confirmation the observer fired ────────────────────────
+    n_comps <- length(lineup_components())
+    showNotification(
+      sprintf("\u25cf Calculate fired \u2014 %d component(s) in R", n_comps),
+      type = "message", duration = 5, id = "calc_fire_notif"
+    )
+    message(sprintf("[lineup_calculate] Observer fired. Components in R: %d", n_comps))
+
     components <- lineup_components()
-    
-    if(is.null(components) || length(components) == 0) {
-      showNotification("No components to calculate", type = "warning")
+
+    if (is.null(components) || length(components) == 0) {
+      showNotification("No components to calculate — draw a topology first.", type = "warning")
       return()
     }
-    
-    # Validate connections via JavaScript (client-side validation)
+
+    # ── Inputs defined OUTSIDE tryCatch so they remain accessible throughout ──
+    input_power   <- if (!is.null(input$spec_p3db) && !is.null(input$spec_gain))
+                       input$spec_p3db - input$spec_gain
+                     else 0
+    backoff_value <- if (!is.null(input$spec_par)) input$spec_par
+                     else if (!is.null(input$backoff_db)) input$backoff_db
+                     else 6
+
+    # ── Local capture variables ─────────────────────────────────────────
+    # DO NOT call reactiveVal setters inside the tryCatch error handler:
+    # the reactive context can be lost there, causing a silent failure.
+    calc_result <- NULL
+    calc_error  <- NULL
+
+    tryCatch({
+
+      message(sprintf("[lineup_calculate] input_power=%.2f dBm, backoff=%.1f dB",
+                  input_power, backoff_value))
+
+      result <- lineup_calculate_engine(
+        components, lineup_connections(), input_power, backoff_value
+      )
+      message(sprintf("[lineup_calculate] engine returned success=%s, stages=%d",
+                  result$success, length(result$stage_results)))
+
+      secondary_backoff <- get_secondary_backoff()
+      if (!is.null(secondary_backoff) && abs(secondary_backoff - backoff_value) > 1e-9) {
+        secondary_result <- lineup_calculate_engine(
+          components, lineup_connections(), input_power, secondary_backoff
+        )
+        if (isTRUE(secondary_result$success)) {
+          result <- merge_secondary_backoff_result(result, secondary_result, secondary_backoff)
+        } else {
+          showNotification(
+            sprintf("Secondary BO2 calc failed at %.1f dB", secondary_backoff),
+            type = "warning", duration = 3
+          )
+        }
+      } else {
+        result$bo_profile <- list(
+          primary = backoff_value, secondary = NULL, has_secondary = FALSE
+        )
+      }
+
+      calc_result <- result
+
+    }, error = function(e) {
+      # Store message only — do NOT touch reactiveVals inside the error handler
+      calc_error <<- conditionMessage(e)
+      message(sprintf("[lineup_calculate] ERROR caught: %s", calc_error))
+    })
+
+    # ── Set reactive values OUTSIDE the tryCatch ─────────────────────────
+    if (!is.null(calc_error)) {
+      showNotification(
+        paste0("\u26a0 Calculate error: ", calc_error),
+        type = "error", duration = 15
+      )
+      lineup_calc_results(list(
+        success       = FALSE,
+        message       = calc_error,
+        stage_results = list()
+      ))
+      return()
+    }
+
+    if (is.null(calc_result)) {
+      showNotification("\u26a0 Calculation returned no result.", type = "error")
+      return()
+    }
+
+    # ── Store result — invalidates output$pa_lineup_table ────────────────
+    message("[lineup_calculate] Storing result in lineup_calc_results")
+    lineup_calc_results(calc_result)
+    message("[lineup_calculate] Done — reactive set")
+
+    # Trigger DataTables column-width recalculation in the Table View tab.
+    session$sendCustomMessage("adjustLineupTable", list())
+    # JS validation overlay (visual only — result already stored above)
     session$sendCustomMessage("validateAndCalculate", list(
-      components = components,
+      components  = components,
       connections = lineup_connections()
     ))
-    
-    # ═══ CRITICAL FIX: Calculate required input power from specifications ═══
-    # If specs available: Pin_required = P3dB - Total_Gain
-    # This ensures the cascade reaches the target P3dB output power
-    if(!is.null(input$spec_p3db) && !is.null(input$spec_gain)) {
-      input_power <- input$spec_p3db - input$spec_gain
-      cat(sprintf("[Calculate] Using specs: P3dB=%.1f dBm, Gain=%.1f dB → Pin=%.2f dBm\n", 
-        input$spec_p3db, input$spec_gain, input_power))
-    } else {
-      # Fallback: use default input power
-      input_power <- 0  # dBm
-      cat("[Calculate] Warning: No specs available, using default Pin=0 dBm\n")
-    }
-    
-    # ═══ CRITICAL FIX: Use PAR from specs if available, else backoff_db ═══
-    # Priority: 1) spec_par (correct), 2) backoff_db (legacy)
-    if(!is.null(input$spec_par) && !is.null(input$spec_p3db)) {
-      # Use PAR from specifications (P3dB-based approach)
-      backoff_value <- input$spec_par
-      showNotification(sprintf("Calculating with PAR = %.1f dB from specifications", backoff_value), 
-        type = "message", duration = 3)
-    } else {
-      # Fall back to generic backoff_db input
-      backoff_value <- if(!is.null(input$backoff_db)) input$backoff_db else 6
-      showNotification(sprintf("Calculating with generic backoff = %.1f dB", backoff_value), 
-        type = "warning", duration = 3)
-    }
-    
-    result <- lineup_calculate_engine(components, lineup_connections(), input_power, backoff_value)
-    
-    # Store results globally (backwards compatibility)
-    lineup_calc_results(result)
-    
+
     # Store results per-canvas
     canvas_idx <- active_canvas_index()
     canvas_key <- paste0("canvas_", canvas_idx)
-    canvas_data[[canvas_key]]$results <- result
-    cat(sprintf("[Calculate] Stored results for canvas %d\n", canvas_idx))
+    canvas_data[[canvas_key]]$results <- calc_result
 
-    # ── Push R-computed stage values back to JS canvas (single source of truth) ──
-    # After this, canvas display reads R-computed pin/pout/pae/gain rather than
-    # re-computing from gain cascade which depends on a linear chain assumption.
-    if (result$success && length(result$stage_results) > 0) {
+    # ── Push R-computed stage values back to JS canvas ────────────────────
+    if (calc_result$success && length(calc_result$stage_results) > 0) {
       comps <- lineup_components()
-      for (stage in result$stage_results) {
-        # Match by component ID (reliable) — fall back to label for legacy
+      for (stage in calc_result$stage_results) {
         if (!is.null(stage$id)) {
           cid     <- as.character(stage$id)
           matched <- Filter(function(c) !is.null(c$id) && as.character(c$id) == cid, comps)
@@ -638,44 +853,59 @@ serverPaLineup <- function(input, output, session, state) {
         }
         if (length(matched) > 0) {
           props_update <- list(
-            pin_p3db  = stage$pin_dbm,
-            pout_p3db = stage$pout_dbm,
-            pin_pavg  = if (!is.null(stage$pin_bo_dbm))  stage$pin_bo_dbm  else stage$pin_dbm  - backoff_value,
-            pout_pavg = if (!is.null(stage$pout_bo_dbm)) stage$pout_bo_dbm else stage$pout_dbm - backoff_value,
-            # Point 12: Assume matched impedance (50 Ω) at all ports.
-            # z_in / z_out default to 50 unless the user has explicitly overridden them.
-            z_in      = if (!is.null(matched[[1]]$properties$z_in))  matched[[1]]$properties$z_in  else 50,
-            z_out     = if (!is.null(matched[[1]]$properties$z_out)) matched[[1]]$properties$z_out else 50
+            pin_p3db  = as.numeric(stage$pin_dbm),
+            pout_p3db = as.numeric(stage$pout_dbm),
+            pin_pavg  = as.numeric(if (!is.null(stage$pin_bo_dbm))  stage$pin_bo_dbm  else stage$pin_dbm  - backoff_value),
+            pout_pavg = as.numeric(if (!is.null(stage$pout_bo_dbm)) stage$pout_bo_dbm else stage$pout_dbm - backoff_value),
+            pin_pavg2 = as.numeric(stage$pin_bo2_dbm),
+            pout_pavg2 = as.numeric(stage$pout_bo2_dbm),
+            backoff_db_secondary = as.numeric(calc_result$backoff_db_secondary),
+            z_in  = as.numeric(if (!is.null(matched[[1]]$properties$z_in))  matched[[1]]$properties$z_in  else 50),
+            z_out = as.numeric(if (!is.null(matched[[1]]$properties$z_out)) matched[[1]]$properties$z_out else 50)
           )
           if (stage$type == "transistor") {
-            props_update$pae_p3db     <- stage$pae_pct
-            props_update$pae_pavg     <- stage$pae_bo_pct
-            props_update$de_p3db      <- stage$de_pct
-            props_update$de_pavg      <- stage$de_bo_pct
-            props_update$gain_full_db <- stage$gain_full_db
-            props_update$gain_bo_db   <- stage$gain_bo_db
+            props_update$pae_p3db     <- as.numeric(stage$pae_pct)
+            props_update$pae_pavg     <- as.numeric(stage$pae_bo_pct)
+            props_update$pae_pavg2    <- as.numeric(stage$pae_bo2_pct)
+            props_update$de_p3db      <- as.numeric(stage$de_pct)
+            props_update$de_pavg      <- as.numeric(stage$de_bo_pct)
+            props_update$de_pavg2     <- as.numeric(stage$de_bo2_pct)
+            props_update$gain_full_db <- as.numeric(stage$gain_full_db)
+            props_update$gain_bo_db   <- as.numeric(stage$gain_bo_db)
+            props_update$gain_bo2_db  <- as.numeric(stage$gain_bo2_db)
           }
           session$sendCustomMessage("updateComponent", list(id = cid, properties = props_update))
         }
       }
-      # Signal JS to redraw all display overlays with fresh data
+      guardrails_raw <- tryCatch(loadGuardrails(), error = function(e) NULL)
+      if (!is.null(guardrails_raw) && !is.null(guardrails_raw$technologies)) {
+        limits_map <- lapply(guardrails_raw$technologies, function(t) list(
+          pout_max    = as.numeric(t$pout_dbm$max_practical),
+          pae_min     = as.numeric(t$pae_pct$min_acceptable),
+          pae_typical = as.numeric(t$pae_pct$typical_p3db),
+          pae_max     = as.numeric(t$pae_pct$max_practical_p3db),
+          freq_max    = as.numeric(t$freq_range_ghz$max),
+          vdd_max     = as.numeric(t$vdd$max_abs),
+          ft_typical  = as.numeric(t$gain_db$ft_ghz_typical)
+        ))
+        session$sendCustomMessage("setGuardrailLimits", limits_map)
+      }
       session$sendCustomMessage("redrawCanvasDisplay", list())
     }
 
     showNotification(
-      if(result$success) "Calculation complete" else "Calculation failed",
-      type = if(result$success) "message" else "error"
+      if (calc_result$success) "\u2713 Calculation complete" else "\u26a0 Calculation failed",
+      type = if (calc_result$success) "message" else "error"
     )
   })
-  
+
+  # ═══ DEBUG OBSERVER: Trace lineup_calc_results() population ═══
   # Calculate ALL canvases button observer
   observeEvent(input$lineup_calculate_all, {
     layout <- input$canvas_layout
     if(is.null(layout)) layout <- "1x1"
     
     canvas_count <- getCanvasCount(layout)
-    
-    cat(sprintf("[Calculate All] Layout: %s, Canvas Count: %d\n", layout, canvas_count))
     
     if(canvas_count == 1) {
       showNotification("Multi-canvas mode required for comparison", type = "warning")
@@ -694,11 +924,8 @@ serverPaLineup <- function(input, output, session, state) {
                      else 6
     if (!is.null(input$spec_p3db) && !is.null(input$spec_gain)) {
       input_power <- input$spec_p3db - input$spec_gain
-      cat(sprintf("[Calculate All] Specs: P3dB=%.1f, Gain=%.1f → Pin=%.2f dBm, BO=%.1f dB\n",
-                  input$spec_p3db, input$spec_gain, input_power, backoff_value))
     } else {
       input_power <- 0
-      cat("[Calculate All] No specs found, using Pin=0 dBm\n")
     }
     
     calculated_count <- 0
@@ -710,24 +937,17 @@ serverPaLineup <- function(input, output, session, state) {
       components <- canvas_data[[canvas_key]]$components
       connections <- canvas_data[[canvas_key]]$connections
       
-      cat(sprintf("[Calculate All] Canvas %d: %d components, %d connections\n", 
-                  i, length(components), length(connections)))
-      
       if(!is.null(components) && length(components) > 0) {
         result <- lineup_calculate_engine(components, connections, input_power, backoff_value)
         canvas_data[[canvas_key]]$results <- result
         
         if(result$success) {
           calculated_count <- calculated_count + 1
-          cat(sprintf("[Calculate All] Canvas %d: Success - Pout=%.2f dBm, PAE=%.1f%%\n", 
-                      i, result$final_pout_dbm, result$system_pae))
         } else {
           failed_count <- failed_count + 1
-          cat(sprintf("[Calculate All] Canvas %d: Failed - %s\n", i, result$message))
         }
       } else {
         empty_count <- empty_count + 1
-        cat(sprintf("[Calculate All] Canvas %d: Empty (skipped)\n", i))
       }
     }
     
@@ -740,9 +960,6 @@ serverPaLineup <- function(input, output, session, state) {
       type = if(failed_count == 0 && calculated_count > 0) "message" else "warning",
       duration = 5
     )
-    
-    cat(sprintf("[Calculate All] Complete: %d success, %d empty, %d failed\n", 
-                calculated_count, empty_count, failed_count))
   })
 
 
@@ -765,7 +982,6 @@ serverPaLineup <- function(input, output, session, state) {
 
     # ── Save pre-optimization snapshot for version control ─────────────────
     rv$pre_optimize_snapshot <- components
-    cat(sprintf("[Optimize] Saved pre-optimize snapshot (%d components)\n", length(components)))
 
     # Collect active specs
     freq_ghz <- if (!is.null(input$spec_frequency)) input$spec_frequency / 1000 else 2.0
@@ -876,8 +1092,6 @@ serverPaLineup <- function(input, output, session, state) {
         properties = updated_props
       ))
 
-      cat(sprintf("[Optimize] %s → tech=%s, Gain=%.1fdB, PAE=%d%%, Vdd=%.0fV, Pout=%.1f dBm, P1dB=%.1f dBm\n",
-                  label, best$key, prac_gain, best$pae, use_vdd, pout_req, p1db_val))
       n_updated <- n_updated + 1
     }
 
@@ -886,8 +1100,6 @@ serverPaLineup <- function(input, output, session, state) {
       sprintf("Optimized %d stage(s) using guardrails. Technology: %s. Old design saved for comparison.", n_updated, unique_techs),
       type = "message", duration = 6
     )
-    cat(sprintf("[Optimize] Complete: %d transistor(s) updated (%s)\n", n_updated, unique_techs))
-
     # Redraw canvas overlays and re-trigger calculation with optimized values
     session$sendCustomMessage("redrawCanvasDisplay", list())
   }) } # end disabled optimize observer
@@ -904,9 +1116,6 @@ serverPaLineup <- function(input, output, session, state) {
     # Only fire on real button clicks (value > 0), NOT on initialization (0/NULL)
     if (is.null(clicks) || clicks == 0) return()
 
-    cat(sprintf("[Property Observer] Apply clicked for %s (clicks=%s)\n",
-                selected, clicks))
-
     isolate({
       components <- lineup_components()
 
@@ -921,8 +1130,6 @@ serverPaLineup <- function(input, output, session, state) {
 
       comp      <- components[[comp_idx]]
       comp_type <- if (is.list(comp) && !is.null(comp$type)) comp$type else "transistor"
-
-      cat(sprintf("[Property Observer] Component type: %s\n", comp_type))
 
       properties <- list()
 
@@ -951,6 +1158,18 @@ serverPaLineup <- function(input, output, session, state) {
             type = "warning", duration = 5
           )
           properties$p1db <- as.numeric(properties$pout) - 2
+        }
+        # Validate: gain relationship — linear ≥ BO gain ≥ P3dB gain
+        glin  <- suppressWarnings(as.numeric(properties$gain))
+        gp3db <- suppressWarnings(as.numeric(properties$gain_p3db))
+        gbo   <- suppressWarnings(as.numeric(properties$gain_bo))
+        if (!is.na(glin) && !is.na(gp3db) && !is.na(gbo)) {
+          if (!(glin >= gbo && gbo >= gp3db)) {
+            showNotification(
+              "⚠ Gain order incorrect. Expected: Linear \u2265 Gain@BO \u2265 Gain@P3dB (device compresses at higher power).",
+              type = "warning", duration = 6
+            )
+          }
         }
       } else if (comp_type == "matching") {
         properties$label     <- input[[paste0("prop_", selected, "_label")]]
@@ -989,7 +1208,6 @@ serverPaLineup <- function(input, output, session, state) {
         properties$display        <- input[[paste0("prop_", selected, "_display")]]
       }
 
-      cat(sprintf("[Property Observer] Sending %d properties to JS\n", length(properties)))
       session$sendCustomMessage("updateComponent", list(id = selected, properties = properties))
       showNotification("Component properties updated", type = "message")
     })
@@ -1059,6 +1277,30 @@ serverPaLineup <- function(input, output, session, state) {
           tags$span(class = "metric-value warning", sprintf("%.3f W", results$total_pdiss_bo))
         )
       ),
+      if(!is.null(results$final_pout_bo2_dbm)) {
+        tags$tagList(
+          tags$h4(sprintf("Backoff Performance 2 (%.1f dB)", results$backoff_db_secondary), style = "color: #FFB74D; margin-bottom: 10px;"),
+          tags$div(class = "calc-summary", style = "background-color: #fff4e5; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
+            tags$div(class = "calc-metric",
+              tags$span(class = "metric-label", "Output Power"),
+              tags$span(class = "metric-value", sprintf("%.2f dBm", results$final_pout_bo2_dbm)),
+              tags$span(class = "metric-unit", sprintf("(%.3f W)", results$final_pout_bo2_w))
+            ),
+            tags$div(class = "calc-metric",
+              tags$span(class = "metric-label", "System PAE"),
+              tags$span(class = "metric-value success", sprintf("%.1f%%", results$system_pae_bo2))
+            ),
+            tags$div(class = "calc-metric",
+              tags$span(class = "metric-label", "DC Power"),
+              tags$span(class = "metric-value", sprintf("%.3f W", results$total_pdc_bo2))
+            ),
+            tags$div(class = "calc-metric",
+              tags$span(class = "metric-label", "Heat Dissipation"),
+              tags$span(class = "metric-value warning", sprintf("%.3f W", results$total_pdiss_bo2))
+            )
+          )
+        )
+      },
       tags$div(class = "calc-summary", style = "background-color: #f5f5f5; padding: 10px; border-radius: 5px;",
         tags$div(class = "calc-metric",
           tags$span(class = "metric-label", "Total Gain"),
@@ -1138,6 +1380,30 @@ serverPaLineup <- function(input, output, session, state) {
           tags$span(class = "metric-value warning", sprintf("%.3f W", results$total_pdiss_bo))
         )
       ),
+      if(!is.null(results$final_pout_bo2_dbm)) {
+        tags$tagList(
+          tags$h4(sprintf("Backoff Performance 2 (%.1f dB)", results$backoff_db_secondary), style = "color: #FFB74D; margin-bottom: 10px;"),
+          tags$div(class = "calc-summary", style = "background-color: #fff4e5; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
+            tags$div(class = "calc-metric",
+              tags$span(class = "metric-label", "Output Power"),
+              tags$span(class = "metric-value", sprintf("%.2f dBm", results$final_pout_bo2_dbm)),
+              tags$span(class = "metric-unit", sprintf("(%.3f W)", results$final_pout_bo2_w))
+            ),
+            tags$div(class = "calc-metric",
+              tags$span(class = "metric-label", "System PAE"),
+              tags$span(class = "metric-value success", sprintf("%.1f%%", results$system_pae_bo2))
+            ),
+            tags$div(class = "calc-metric",
+              tags$span(class = "metric-label", "DC Power"),
+              tags$span(class = "metric-value", sprintf("%.3f W", results$total_pdc_bo2))
+            ),
+            tags$div(class = "calc-metric",
+              tags$span(class = "metric-label", "Heat Dissipation"),
+              tags$span(class = "metric-value warning", sprintf("%.3f W", results$total_pdiss_bo2))
+            )
+          )
+        )
+      },
       tags$div(class = "calc-summary", style = "background-color: #f5f5f5; padding: 10px; border-radius: 5px;",
         tags$div(class = "calc-metric",
           tags$span(class = "metric-label", "Total Gain"),
@@ -1170,8 +1436,6 @@ serverPaLineup <- function(input, output, session, state) {
     if(is.null(layout)) layout <- "1x1"
     
     canvas_count <- getCanvasCount(layout)
-    
-    cat(sprintf("[Comparison View] Layout: %s, Canvas Count: %d\n", layout, canvas_count))
     
     if(canvas_count == 1) {
       return(tags$div(
@@ -1322,20 +1586,36 @@ serverPaLineup <- function(input, output, session, state) {
   output$pa_lineup_table <- renderDT({
     results <- lineup_calc_results()
 
-    # Use req() — do NOT return a 1-column placeholder datatable.
-    # Returning a placeholder causes DataTables to initialise with the wrong
-    # column structure; when the real 16-column result arrives DataTables
-    # refuses to reinitialise and the table stays blank.
-    # req() silently stops rendering until results are available.
-    req(results)
-    
+    # Show a structured placeholder before first Calculate instead of a bare blank.
+    # Context-aware: check whether there are components on the canvas to give a
+    # precise message.  We also use destroy = TRUE so DataTables can reinitialise
+    # from this 1-column placeholder to the full 16-column table without page reload.
+    if (is.null(results) || !isTRUE(results$success)) {
+      has_comps <- !is.null(lineup_components()) && length(lineup_components()) > 0
+      if (is.null(results)) {
+        msg <- if (has_comps)
+          "\u25ba Click \u2018Calculate Lineup\u2019 to generate results."
+        else
+          "Draw a topology on the canvas, then click \u25ba Calculate Lineup."
+      } else {
+        msg <- paste("\u26a0 Calculation error:", results$message %||% "unknown error",
+                     "\u2014 check the canvas for disconnected components.")
+      }
+      return(datatable(
+        data.frame(Status = msg, check.names = FALSE),
+        options = list(dom = 't', pageLength = 1, destroy = TRUE),
+        rownames = FALSE
+      ))
+    }
+
+    tryCatch({
     if(!results$success || length(results$stage_results) == 0) {
       msg <- if (!isTRUE(results$success))
                paste("Calculation failed:", results$message %||% "unknown error")
              else "No calculation stages to display. Add components and recalculate."
       return(datatable(
         data.frame(Message = msg),
-        options = list(dom = 't', pageLength = 5),
+        options = list(dom = 't', pageLength = 5, destroy = TRUE),
         rownames = FALSE
       ))
     }
@@ -1492,6 +1772,10 @@ serverPaLineup <- function(input, output, session, state) {
       options = list(
         pageLength = 20, 
         dom = 't',
+        destroy = TRUE,      # allows DT to reinitialise when column count changes
+        autoWidth = FALSE,   # prevent zero-width cols when init'd in hidden tab
+        scrollX = TRUE,      # allow horizontal scroll; forces width recalc on show
+        initComplete = JS("function(s){ this.api().columns.adjust(); }"),
         rowCallback = row_cb,
         columnDefs = list(
           list(className = 'dt-center', targets = 2:15)
@@ -1529,7 +1813,15 @@ serverPaLineup <- function(input, output, session, state) {
       formatStyle(4:8, backgroundColor = 'rgba(33,150,243,0.15)') %>% # blue tint - full power
       formatStyle(9:13, backgroundColor = 'rgba(255,152,0,0.15)') %>% # orange tint - backoff
       formatStyle(14:15, backgroundColor = 'rgba(76,175,80,0.15)')    # green tint - gain
-  })
+    }, error = function(e) {
+      cat(sprintf("[TABLE ERROR] renderDT failed: %s\n", e$message))
+      cat(sprintf("[TABLE ERROR] Call: %s\n", deparse(e$call %||% NULL)))
+      datatable(
+        data.frame(Error = paste("Table render error — check R console:", e$message)),
+        options = list(dom = 't', destroy = TRUE), rownames = FALSE
+      )
+    })
+  }, server = FALSE)
 
   # Ensure table is rendered even when hidden inside a tab
   outputOptions(output, "pa_lineup_table", suspendWhenHidden = FALSE)
@@ -1562,7 +1854,26 @@ serverPaLineup <- function(input, output, session, state) {
     cpt     <- as.integer(input$spec_compression_point %||% 3)
     cpt_lbl <- paste0("P", cpt, "dB")
 
-    # ── Helper: build per-stage table rows ──────────────────────────────────
+    # SSOT note: all values here come from the same lineup_calc_results() reactive
+    # that feeds the Table View. Canvas overlay values are set by the same R engine
+    # via updateComponent messages. All three views (Canvas / Table / Equations) are
+    # guaranteed to match after each Calculate run.
+    ssot_banner <- if (!is.null(results) && isTRUE(results$success)) {
+      div(style = "margin-bottom:8px; padding:4px 10px; background:rgba(76,175,80,.12);
+                   border-left:3px solid #4caf50; border-radius:3px; font-size:11px;",
+        icon("check-circle", style = "color:#4caf50;"),
+        " Values below match the Table View exactly — single source of truth: ",
+        tags$code("lineup_calc_results()")
+      )
+    } else {
+      div(style = "margin-bottom:8px; padding:4px 10px; background:rgba(255,193,7,.12);
+                   border-left:3px solid #ffc107; border-radius:3px; font-size:11px;",
+        icon("info-circle", style = "color:#ffc107;"),
+        " No results yet. Click \u25ba Calculate Lineup to populate equations."
+      )
+    }
+
+
     make_power_rows <- function(res) {
       if (is.null(res) || !res$success || length(res$stage_results) == 0) return(NULL)
       rows <- lapply(res$stage_results, function(s) {
@@ -1779,6 +2090,7 @@ serverPaLineup <- function(input, output, session, state) {
 
     if (is.null(layout) || layout == "1x1") {
       return(tagList(
+        ssot_banner,
         build_rationale_tabs(results),
         hr(),
         textAreaInput("lineup_custom_notes", "Design Notes:", 
@@ -1965,16 +2277,8 @@ serverPaLineup <- function(input, output, session, state) {
     comps <- lineup_components()
     if (is.null(comps) || length(comps) == 0) return()
 
-    # Trigger a silent recalculation by updating a reactive dependency
-    # The main Calculate button observer already watches lineup_components
-    # so invalidating it re-runs the cascade
-    isolate({
-      if (!is.null(rv$par_trigger_count)) {
-        rv$par_trigger_count <- rv$par_trigger_count + 1
-      } else {
-        rv$par_trigger_count <- 1L
-      }
-    })
+    cat("[PAR Trigger] Requesting lineup recalculation from PAR change\n")
+    session$sendCustomMessage("triggerLineupCalculate", list(reason = "par_changed"))
   }, ignoreInit = TRUE, ignoreNULL = TRUE)
 
 }

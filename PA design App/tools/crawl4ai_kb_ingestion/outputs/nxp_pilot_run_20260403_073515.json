@@ -1,0 +1,82 @@
+{
+  "run_context": {
+    "vendor": "nxp",
+    "started_at_utc": "2026-04-03T05:35:15.437931+00:00",
+    "crawl4ai_available": false,
+    "discovery_url": "https://www.nxp.com/products/product-selector:PRODUCT-SELECTOR?category=c250_c65&page=1",
+    "max_products": 2,
+    "policy": {
+      "respect_robots_txt": true,
+      "delay_seconds": 1.5,
+      "allowed_domains": [
+        "ampleon.com",
+        "nxp.com"
+      ]
+    }
+  },
+  "records": [
+    {
+      "device_id": "nxp_MRF1K50H",
+      "part_number": "MRF1K50H",
+      "manufacturer": "NXP",
+      "family": null,
+      "series": null,
+      "technology": "LDMOS",
+      "freq_min_mhz": 0.0,
+      "freq_max_mhz": 0.0,
+      "datasheet_url": "https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf1k50h:MRF1K50H",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "low",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "nxp",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-03T05:35:15.437614+00:00",
+        "crawl_success": false,
+        "http_status": null,
+        "source_domain": "www.nxp.com",
+        "source_title_hint": null,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "crawl_error": "crawl4ai_not_installed"
+      }
+    },
+    {
+      "device_id": "nxp_MRF6VP11KH",
+      "part_number": "MRF6VP11KH",
+      "manufacturer": "NXP",
+      "family": null,
+      "series": null,
+      "technology": "LDMOS",
+      "freq_min_mhz": 0.0,
+      "freq_max_mhz": 0.0,
+      "datasheet_url": "https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf6vp11kh:MRF6VP11KH",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "low",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "nxp",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-03T05:35:15.437724+00:00",
+        "crawl_success": false,
+        "http_status": null,
+        "source_domain": "www.nxp.com",
+        "source_title_hint": null,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "crawl_error": "crawl4ai_not_installed"
+      }
+    }
+  ],
+  "validation": {
+    "nxp_MRF1K50H": [],
+    "nxp_MRF6VP11KH": []
+  },
+  "blocked_for_auto_merge": false
+}

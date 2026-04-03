@@ -2,7 +2,7 @@
 
 > This file is read automatically at the start of every AI session.
 > It provides ground truth about what this repository is, what is built, what is pending, and how to work here.
-> Last updated: 2026-04-01 (Rubix M1 implementation — transistor design level added)
+> Last updated: 2026-04-03 (Crawl4AI guarded KB ingestion pilot added)
 
 ---
 
@@ -111,6 +111,7 @@ Atomic_cosmic_RFView_Notes/
 | Theory Agent (AI) | 100% | LLM + KB, mock fallback without API key |
 | Architecture/Simulation/Layout/Measurement/Debug/Doc/Strategy Agents | 15% | .agent.md + .R files created; LLM bodies are stubs; not wired to server.R |
 | Device Portfolio KB | 100% | 50+ devices in Chroma vector DB |
+| Crawl4AI KB Ingestion Pipeline | 35% | Guarded pilot scaffold added (allowlist, robots, provenance, validation gate) |
 | Load-Pull + S-Param Viewers | 100% | Parsers + Smith chart |
 | RF CAD Tool | 60% | Basic layout, no advanced routing |
 | PA Reference Manual Ch.1 | 100% | Transistor fundamentals + IFX data |
@@ -204,6 +205,12 @@ Zero tests exist for: `calc_pa_lineup.R`, `calc_guardrails.R`, `calc_loss_curves
 - Load testing for concurrent users
 - Enable `mcp_integration: true` + verify ADS/AWR access
 
+### Priority 6 — Crawl4AI ingestion hardening (new)
+- Extend extraction beyond seeded values into robust structured scraping (CSS/XPath + PDF metadata)
+- Add unit tests for parser and validation steps in `tools/crawl4ai_kb_ingestion/`
+- Add CI guard to block unsafe domains or missing provenance fields
+- Add manual approval workflow before `--apply` merges into `data/kb/*/devices.json`
+
 ---
 
 ## 7. Database Schema (PostgreSQL)
@@ -262,6 +269,8 @@ Run: `docker-compose up -d` from `PA design App/`
 6. **7 ZIP archives in root** — historical backups, do not unzip unless debugging a specific regression
 7. **`App_ology/` directory** — read before making architectural decisions; documents design philosophy, boundary conditions, component library
 8. **`PA_Design_Reference_Manual/RF_Engg_books/`** — 30+ reference PDFs; cite from these when writing technical content
+9. **Crawl4AI runs must stay allowlist-only** — never crawl outside approved domains in seed catalog
+10. **KB ingestion defaults to review mode** — generate artifacts first, apply only after human sign-off
 
 ---
 
@@ -322,6 +331,43 @@ L, C     = Standard L-match synthesis formulas     # Element values
 3. **topology re-evaluation listener** — architecture_agent does not yet respond to `topology_recheck_needed` event
 4. **theory_agent delegation** — calc_transistor_sizing.R duplicates formulas from theory_agent.R; should delegate
 5. **Unit tests** — `tests/testthat/test_calc_transistor_sizing.R` not yet written
+
+---
+
+## 13. Crawl4AI Guarded KB Ingestion Pilot (added 2026-04-03)
+
+### Objective
+Provide a compliant, auditable ingestion path to refresh vendor device libraries from public product pages and datasheet sources.
+
+### Files added
+- `PA design App/tools/crawl4ai_kb_ingestion/crawl_kb_pipeline.py`
+- `PA design App/tools/crawl4ai_kb_ingestion/configs/vendor_seed_catalog.yaml`
+- `PA design App/tools/crawl4ai_kb_ingestion/requirements.txt`
+- `PA design App/tools/crawl4ai_kb_ingestion/README.md`
+- `PA design App/docs/guides/CRAWL4AI_KB_INGESTION_GUARDRAILS.md`
+- `PA design App/THIRD_PARTY_NOTICES.md`
+- `PA design App/data/kb/nxp/devices.json`
+
+### Safeguards implemented
+1. Domain allowlist enforcement (`ampleon.com`, `nxp.com`)
+2. robots.txt check enabled by default in crawler run config
+3. Low crawl rate defaults (conservative delay + concurrency)
+4. Per-record provenance (`url`, UTC time, HTTP status, SHA-256 hash)
+5. Minimum schema validation gate before merge
+6. Artifact-first workflow (`--apply` required for KB write)
+7. Duplicate prevention by `device_id` at merge time
+
+### Pilot seed scope (verification)
+- Ampleon: 2 products
+- NXP: 2 products
+- Discovery anchors:
+  - `https://www.ampleon.com/products/mobile-broadband/1.4-2.2-ghz-transistors/#/`
+  - `https://www.nxp.com/products/product-selector:PRODUCT-SELECTOR?category=c250_c65&page=1`
+
+### Known limitations
+- Dynamic vendor pages may return partial text without additional wait/selectors.
+- Pilot currently focuses on safe scaffolding and verification artifacts, not full datasheet table extraction.
+- Engineering review remains mandatory before production merges.
 
 ---
 

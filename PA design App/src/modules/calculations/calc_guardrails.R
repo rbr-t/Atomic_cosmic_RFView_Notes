@@ -62,14 +62,16 @@ loadGuardrails <- function(yaml_path = "../config/technology_guardrails.yaml") {
 #' @return            Available gain (dB) — clamped to [0, 35] for realism
 calcAvailableGain <- function(freq_ghz, ft_ghz, fmax_ghz = NULL) {
   if (is.null(fmax_ghz)) fmax_ghz <- ft_ghz * 2.2
-  # MSG (Maximum Stable Gain proxy): 20*log10(fT/f)
-  msg_db  <- 20 * log10(pmax(ft_ghz / pmax(freq_ghz, 0.001), 1))
-  # MAG (Maximum Available Gain): 20*log10(fmax/f) is slightly optimistic
-  # blend the two: G_av = 0.7*MSG + 0.3*MAG
-  mag_db  <- 20 * log10(pmax(fmax_ghz / pmax(freq_ghz, 0.001), 1))
-  g_av_db <- 0.7 * msg_db + 0.3 * mag_db
-  # Clamp: real transistors don't go below 0 dB or above ~35 dB at low freq
-  pmin(pmax(g_av_db, 0), 35)
+  f <- pmax(freq_ghz, 0.001)
+  # MSG (conditionally stable, f near fT): 20*log10(fT/f) — Pozar 4e §12.2
+  msg_db <- 20 * log10(pmax(ft_ghz / f, 1))
+  # MAG (unconditionally stable, f << fT): 20*log10(fmax/f)
+  mag_db <- 20 * log10(pmax(fmax_ghz / f, 1))
+  # Transition at fT/3: below -> MAG regime; above -> MSG regime.
+  # Practical derating: -3 dB for matching losses and process spread.
+  in_mag_region <- f < (ft_ghz / 3)
+  g_av_db <- ifelse(in_mag_region, mag_db - 3, msg_db - 3)
+  pmin(pmax(g_av_db, 0), 33)
 }
 
 
@@ -102,17 +104,17 @@ calcPAEBackoff <- function(pae_p3db_pct, backoff_db, pa_class = "AB") {
       if (backoff_db <= 4) eta_p3db * (pout_ratio ^ 0.25)
       else                 eta_p3db * (pout_ratio ^ 0.50)
     },
-    # Doherty: flat efficiency in the backoff region (ideal), then drops like Class B
+    # Doherty: load modulation holds PAE flat in the OBO window (main PA at Ropt).
+    # Beyond OBO: only main PA active -> sqrt roll-off like Class B.
+    # Reference: Cripps "RF Power Amplifiers" 2e, Ch.10
     "Doherty" = {
-      doherty_bo <- 6   # ideal Doherty flat region
+      doherty_bo <- 6
       if (backoff_db <= doherty_bo) {
-        # In the Doherty BO window, PAE stays close to peak
-        eta_p3db * (pout_ratio ^ 0.15)
+        eta_p3db                                    # flat window: load modulation at work
       } else {
-        # Beyond the BO window, falls like Class B
-        eta_at_bo <- eta_p3db * ((10^(-doherty_bo/10)) ^ 0.15)
-        ratio_from_bo <- backoff_db - doherty_bo
-        eta_at_bo * ((10^(-ratio_from_bo/10)) ^ 0.55)
+        pout_ratio_at_bo <- 10^(-doherty_bo / 10)
+        pout_ratio_deep  <- 10^(-backoff_db  / 10)
+        eta_p3db * sqrt(pout_ratio_deep / pout_ratio_at_bo)
       }
     },
     # Default — Class AB

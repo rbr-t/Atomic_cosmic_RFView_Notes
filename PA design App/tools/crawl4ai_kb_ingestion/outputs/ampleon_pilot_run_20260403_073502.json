@@ -1,0 +1,82 @@
+{
+  "run_context": {
+    "vendor": "ampleon",
+    "started_at_utc": "2026-04-03T05:35:02.113062+00:00",
+    "crawl4ai_available": false,
+    "discovery_url": "https://www.ampleon.com/products/mobile-broadband/1.4-2.2-ghz-transistors/#/",
+    "max_products": 2,
+    "policy": {
+      "respect_robots_txt": true,
+      "delay_seconds": 1.5,
+      "allowed_domains": [
+        "ampleon.com",
+        "nxp.com"
+      ]
+    }
+  },
+  "records": [
+    {
+      "device_id": "ampleon_BLF7G22LS-160P",
+      "part_number": "BLF7G22LS-160P",
+      "manufacturer": "Ampleon",
+      "family": null,
+      "series": null,
+      "technology": "LDMOS",
+      "freq_min_mhz": 1400.0,
+      "freq_max_mhz": 2200.0,
+      "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/mobile-broadband-1.4-2.2-ghz/BLF7G22LS-160P.html",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "low",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "ampleon",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-03T05:35:02.112566+00:00",
+        "crawl_success": false,
+        "http_status": null,
+        "source_domain": "www.ampleon.com",
+        "source_title_hint": null,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "crawl_error": "crawl4ai_not_installed"
+      }
+    },
+    {
+      "device_id": "ampleon_BLP9G0722-20",
+      "part_number": "BLP9G0722-20",
+      "manufacturer": "Ampleon",
+      "family": null,
+      "series": null,
+      "technology": "LDMOS",
+      "freq_min_mhz": 700.0,
+      "freq_max_mhz": 2200.0,
+      "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/mobile-broadband-1.4-2.2-ghz/BLP9G0722-20.html",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "low",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "ampleon",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-03T05:35:02.112835+00:00",
+        "crawl_success": false,
+        "http_status": null,
+        "source_domain": "www.ampleon.com",
+        "source_title_hint": null,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "crawl_error": "crawl4ai_not_installed"
+      }
+    }
+  ],
+  "validation": {
+    "ampleon_BLF7G22LS-160P": [],
+    "ampleon_BLP9G0722-20": []
+  },
+  "blocked_for_auto_merge": false
+}

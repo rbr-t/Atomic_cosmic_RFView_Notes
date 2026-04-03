@@ -109,11 +109,13 @@ calc_gate_width <- function(Pout_W, power_density_W_per_mm, pae_frac) {
   }
 
   pae_pct      <- pae_frac * 100
-  gate_width   <- Pout_W / (power_density_W_per_mm * pae_frac)
+  # Gate width is set by power density alone; PAE affects DC budget, not device periphery.
+  # Cripps "RF Power Amplifiers", Ch.3: W_mm = Pout_W / power_density_W_per_mm
+  gate_width   <- Pout_W / power_density_W_per_mm
 
   formula_str <- sprintf(
-    "%.3fW / (%.2fW/mm \u00d7 %.0f%%)",
-    Pout_W, power_density_W_per_mm, pae_pct
+    "%.3fW / %.2fW/mm",
+    Pout_W, power_density_W_per_mm
   )
 
   list(
@@ -130,11 +132,11 @@ calc_gate_width <- function(Pout_W, power_density_W_per_mm, pae_frac) {
 
 #' Calculate quiescent drain current for Class AB/B biasing
 #'
-#' Idq_mA = Ids_max_mA × (conduction_angle_deg − 180) / 360 × 0.5
+#' Idq_mA = Ids_max_mA * (conduction_angle_deg - 180) / 360
 #'
-#' Class B  = 180°  (Idq ≈ 0)
-#' Class AB = 180°–360°  (Idq is a fraction of Imax)
-#' Class A  = 360°  (Idq = Imax/2)
+#' Class B  = 180 deg  (Idq = 0)
+#' Class AB = 180-360 deg  (Idq is a fraction of Imax)
+#' Class A  = 360 deg  (Idq = Imax/2)
 #'
 #' @param Ids_max_mA          Maximum drain current [mA]
 #' @param conduction_angle_deg Conduction angle [°], default 240° (Class AB)
@@ -154,10 +156,12 @@ calc_idq_class_ab <- function(Ids_max_mA, conduction_angle_deg = 240) {
 
   # Standard approximation: Idq fraction scales linearly between 0 (Class B)
   # and Imax/2 (Class A) as the conduction angle spans 180°→360°.
-  Idq_mA <- Ids_max_mA * (conduction_angle_deg - 180) / 360 * 0.5
+  # Formula: Idq = Imax * (theta - 180) / 360
+  # Verify: theta=180 -> 0 (Class B); theta=360 -> Imax/2 (Class A); theta=240 -> Imax/6 ~16.7%
+  Idq_mA <- Ids_max_mA * (conduction_angle_deg - 180) / 360
 
   formula_str <- sprintf(
-    "%.0fmA \u00d7 (%.0f\u00b0 \u2212 180\u00b0) / 360\u00b0 \u00d7 0.5",
+    "%.0fmA x (%.0fdeg - 180deg) / 360deg",
     Ids_max_mA, conduction_angle_deg
   )
 

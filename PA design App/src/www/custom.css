@@ -1,0 +1,1901 @@
+﻿/* ================================================================
+   PA Design App ΓÇö Complete Design System
+   Three themes via CSS custom properties:
+     ΓÇó Dark             (default ΓÇö no class required)
+     ΓÇó Light            ΓåÆ body.theme-light
+     ΓÇó Colorblind-Safe  ΓåÆ body.theme-colorblind  (IBM CVD palette)
+   
+   WCAG AA: all text/background pairs ΓëÑ 4.5 : 1
+   ================================================================ */
+
+
+/* ================================================================
+   1.  DESIGN TOKENS
+   ================================================================ */
+:root {
+  /* Surfaces (darkest ΓåÆ lightest) */
+  --s-page:   #0d0d16;   /* outermost page bg                  */
+  --s-nav:    #121320;   /* navigation sidebar                 */
+  --s-card:   #1a1b2e;   /* box / card face                    */
+  --s-raised: #20213a;   /* box header / elevated element      */
+  --s-input:  #252638;   /* form inputs, selectize             */
+  --s-hover:  #2c2e4a;   /* hover highlight                    */
+  --s-active: #363870;   /* selected / pressed                 */
+
+  /* Borders */
+  --bdr-sub:    #1e1f38;  /* hairline divider      */
+  --bdr-norm:   #2e3050;  /* default border        */
+  --bdr-strong: #484a68;  /* emphasis border       */
+
+  /* Text */
+  --tx-hi:    #ecedf8;   /* primary / high-emphasis  ΓÇö 13.6:1 on --s-card */
+  --tx-med:   #9a9bac;   /* secondary / muted        ΓÇö  5.0:1 on --s-card */
+  --tx-lo:    #5a5b76;   /* disabled / hint          */
+  --tx-nav:   #b8b9cc;   /* nav sidebar text (always on dark nav bg)       */
+
+  /* Brand accent */
+  --accent:       #f08030;
+  --accent-hi:    #ffa050;  /* lighter ΓÇö hover on dark bg */
+  --accent-dim:   #c96820;  /* darker  ΓÇö pressed          */
+  --accent-glow:  rgba(240, 128, 48, 0.18);
+  --accent-tint:  rgba(240, 128, 48, 0.07);
+
+  /* Semantic status */
+  --c-ok:      #4cbb7f;   --c-ok-bg:   rgba(76, 187, 127, 0.12);
+  --c-warn:    #e8b84b;   --c-warn-bg: rgba(232, 184, 75, 0.12);
+  --c-err:     #e05252;   --c-err-bg:  rgba(224, 82, 82, 0.12);
+  --c-info:    #5b9cf6;   --c-info-bg: rgba(91, 156, 246, 0.12);
+
+  /* Typography */
+  --font-body: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --lh: 1.55;
+
+  /* Shape */
+  --r:    5px;
+  --r-sm: 3px;
+  --r-lg: 8px;
+
+  /* Shadows */
+  --sd-1: 0 1px  4px rgba(0, 0, 0, 0.50);
+  --sd-2: 0 4px 14px rgba(0, 0, 0, 0.55);
+  --sd-3: 0 8px 28px rgba(0, 0, 0, 0.60);
+}
+
+/* ΓöÇΓöÇ Light theme token overrides ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+body.theme-light {
+  --s-page:   #edf0f5;
+  --s-nav:    #1e2233;   /* nav stays dark ΓÇö clear wayfinding  */
+  --s-card:   #ffffff;
+  --s-raised: #f4f5fb;
+  --s-input:  #ffffff;
+  --s-hover:  #eaecf3;
+  --s-active: #d6d9e8;
+
+  --bdr-sub:    #e4e6f0;
+  --bdr-norm:   #c8cad8;
+  --bdr-strong: #9698b0;
+
+  --tx-hi:  #1a1b2e;   /* 17.5:1 on white */
+  --tx-med: #4e5068;   /*  7.3:1 on white */
+  --tx-lo:  #9698b0;
+  /* --tx-nav stays #b8b9cc ΓÇö correct on dark nav */
+
+  --accent:      #c05a10;   /* 4.9:1 on white                  */
+  --accent-hi:   #e06a14;
+  --accent-dim:  #9e4808;
+  --accent-glow: rgba(192, 90, 16, 0.14);
+  --accent-tint: rgba(192, 90, 16, 0.06);
+
+  --c-ok:    #186f3d;   --c-ok-bg:   rgba(24, 111, 61, 0.09);
+  --c-warn:  #7a5800;   --c-warn-bg: rgba(122, 88, 0, 0.09);
+  --c-err:   #b02828;   --c-err-bg:  rgba(176, 40, 40, 0.09);
+  --c-info:  #1c52b0;   --c-info-bg: rgba(28, 82, 176, 0.09);
+
+  --sd-1: 0 1px  4px rgba(0, 0, 0, 0.10);
+  --sd-2: 0 4px 14px rgba(0, 0, 0, 0.12);
+  --sd-3: 0 8px 28px rgba(0, 0, 0, 0.14);
+}
+
+/* ΓöÇΓöÇ Colorblind-safe token overrides (IBM Design CVD palette) ΓöÇΓöÇ */
+/* Works on top of dark theme base ΓÇö only semantic colours change */
+body.theme-colorblind {
+  --accent:      #0085c5;   /* IBM Blue 60   ΓÇö deuteranopia-safe */
+  --accent-hi:   #00a3e0;
+  --accent-dim:  #006494;
+  --accent-glow: rgba(0, 133, 197, 0.18);
+  --accent-tint: rgba(0, 133, 197, 0.08);
+
+  --c-ok:    #009988;   --c-ok-bg:   rgba(0, 153, 136, 0.12);  /* Teal   */
+  --c-warn:  #e8c800;   --c-warn-bg: rgba(232, 200, 0, 0.12);  /* Yellow */
+  --c-err:   #994f00;   --c-err-bg:  rgba(153, 79, 0, 0.12);   /* Brown  */
+  --c-info:  #0057b8;   --c-info-bg: rgba(0, 87, 184, 0.12);
+}
+
+
+/* ================================================================
+   2.  BASE RESET & TYPOGRAPHY
+   ================================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  font-size:   14px;
+  line-height: var(--lh);
+  color:       var(--tx-hi);
+  background:  var(--s-page);
+  -webkit-font-smoothing:  antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 { color: var(--tx-hi);  font-weight: 600; line-height: 1.3; }
+h5, h6          { color: var(--tx-med); font-weight: 600; }
+p, li, dt, dd   { color: var(--tx-hi); }
+small           { color: var(--tx-med); }
+a               { color: var(--accent); text-decoration: none; }
+a:hover         { color: var(--accent-hi); }
+hr              { border: none; border-top: 1px solid var(--bdr-norm); margin: 16px 0; }
+code            { font-family: var(--font-mono); font-size: 0.9em;
+                  background: var(--s-raised); color: var(--accent);
+                  padding: 1px 5px; border-radius: var(--r-sm); }
+
+
+/* ================================================================
+   3.  LAYOUT SHELL  (shinydashboard skin-black overrides)
+   ================================================================ */
+
+/* ΓÇö Header bar ------------------------------------------------- */
+.skin-black .main-header .logo,
+.skin-black .main-header .logo:hover {
+  background-color: var(--s-nav) !important;
+  color: var(--tx-hi) !important;
+  border-bottom: 1px solid var(--bdr-sub) !important;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.skin-black .main-header .navbar {
+  background-color: var(--s-nav) !important;
+  border-bottom: 1px solid var(--bdr-sub) !important;
+}
+.skin-black .main-header .navbar .nav > li > a {
+  color: var(--tx-nav) !important;
+}
+.skin-black .main-header .navbar .nav > li > a:hover {
+  color: var(--tx-hi) !important;
+  background: var(--s-hover) !important;
+}
+
+/* ΓÇö Navigation sidebar ----------------------------------------- */
+.main-sidebar,
+.skin-black .main-sidebar {
+  background-color: var(--s-nav) !important;
+  border-right: 1px solid var(--bdr-sub) !important;
+  width: 218px !important;   /* 5% narrower than AdminLTE default 230 px */
+}
+
+/* Compensate content wrapper for narrower sidebar */
+.content-wrapper,
+.main-footer {
+  margin-left: 218px !important;
+}
+.skin-black .main-header .navbar {
+  margin-left: 218px !important;
+}
+
+/* ΓöÇΓöÇ When main nav-sidebar is collapsed (icon-only), let content fill the freed space ΓöÇΓöÇ */
+body.sidebar-collapse .content-wrapper,
+body.sidebar-collapse .main-footer {
+  margin-left: 50px !important;
+}
+body.sidebar-collapse .main-header .navbar {
+  margin-left: 50px !important;
+}
+
+/* AdminLTE .wrapper default has overflow-x:hidden which breaks position:sticky.
+   Override so the sticky canvas box can function correctly. */
+.wrapper {
+  overflow: visible !important;
+}
+
+/* All sidebar links */
+.skin-black .sidebar-menu > li > a,
+.skin-black .sidebar-menu > li.header,
+.skin-black .treeview-menu > li > a {
+  color: var(--tx-nav) !important;
+  border-left: 3px solid transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.skin-black .sidebar-menu > li > a:hover,
+.skin-black .treeview-menu > li > a:hover {
+  background: var(--s-hover) !important;
+  color: var(--tx-hi) !important;
+}
+
+/* Active / selected menu item */
+.skin-black .sidebar-menu > li.active > a,
+.skin-black .sidebar-menu > li.active > a:hover,
+.skin-black .sidebar-menu > li.active > a:focus {
+  background: var(--accent-tint) !important;
+  border-left-color: var(--accent) !important;
+  color: #ffffff !important;
+}
+.skin-black .treeview-menu > li.active > a,
+.skin-black .treeview-menu > li.active > a:hover {
+  color: var(--accent-hi) !important;
+}
+
+/* Section header labels inside sidebar */
+.skin-black .sidebar-menu > li.header {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--tx-lo) !important;
+  padding: 14px 16px 4px;
+}
+
+/* Submenu container */
+.skin-black .sidebar-menu .treeview-menu {
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+.skin-black .treeview-menu > li > a {
+  padding-left: 24px !important;
+  font-size: 12px !important;
+}
+
+/* ΓÇö Content wrapper -------------------------------------------- */
+.content-wrapper {
+  background-color: var(--s-page) !important;
+  color: var(--tx-hi) !important;
+  overflow: visible !important;
+  height: auto !important;
+}
+
+/* Tab content scrolling */
+#pa_lineup_tab,
+.tab-content {
+  overflow: visible !important;
+}
+
+/* Section heading (h2 at top of each tabItem) */
+.content-wrapper > .content-header > h1,
+.content-wrapper h2 {
+  color: var(--tx-hi) !important;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  border-bottom: 1px solid var(--bdr-norm);
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+
+/* ================================================================
+   4.  BOXES  (shinydashboard .box)
+   ================================================================ */
+.box {
+  background:    var(--s-card) !important;
+  border-top:    3px solid var(--accent) !important;
+  border-radius: var(--r) !important;
+  box-shadow:    var(--sd-1) !important;
+  color:         var(--tx-hi);
+}
+
+/* Status variants */
+.box.box-primary { border-top-color: var(--accent)  !important; }
+.box.box-success { border-top-color: var(--c-ok)    !important; }
+.box.box-warning { border-top-color: var(--c-warn)  !important; }
+.box.box-danger  { border-top-color: var(--c-err)   !important; }
+.box.box-info    { border-top-color: var(--c-info)  !important; }
+
+.box .box-header {
+  background:    var(--s-raised) !important;
+  border-bottom: 1px solid var(--bdr-norm) !important;
+  border-radius: var(--r) var(--r) 0 0 !important;
+  padding:       10px 15px;
+}
+.box .box-header .box-title,
+.box .box-header h3.box-title {
+  color:       var(--tx-hi) !important;
+  font-weight: 600;
+  font-size:   14px;
+  letter-spacing: 0.15px;
+}
+.box .box-body {
+  background: var(--s-card) !important;
+  color:      var(--tx-hi) !important;
+  padding:    12px 15px;
+}
+.box .box-footer {
+  background:    var(--s-raised) !important;
+  border-top:    1px solid var(--bdr-norm) !important;
+  color:         var(--tx-med) !important;
+  border-radius: 0 0 var(--r) var(--r) !important;
+}
+.box .box-tools .btn   { color: var(--tx-lo)  !important; }
+.box .box-tools .btn:hover { color: var(--tx-hi) !important; }
+
+/* Text inside boxes */
+.box-body p            { color: var(--tx-hi)  !important; }
+.box-body small,
+.box-body .text-muted  { color: var(--tx-med) !important; }
+
+/* Dashboard info / value boxes */
+.info-box {
+  background:    var(--s-card) !important;
+  box-shadow:    var(--sd-1) !important;
+  border-radius: var(--r) !important;
+}
+.info-box-text   { color: var(--tx-med) !important; }
+.info-box-number { color: var(--tx-hi)  !important; }
+.small-box       { border-radius: var(--r) !important; }
+.small-box h3, .small-box p { color: #fff !important; }
+
+
+/* ================================================================
+   5.  NAV TABS  (sub-tabs inside boxes)
+   ================================================================ */
+.nav-tabs {
+  border-bottom: 1px solid var(--bdr-norm) !important;
+  background: transparent;
+}
+.nav-tabs > li > a {
+  color:            var(--tx-med) !important;
+  background-color: var(--s-raised) !important;
+  border:           1px solid var(--bdr-norm) !important;
+  border-radius:    var(--r-sm) var(--r-sm) 0 0 !important;
+  font-size:        13px;
+  font-weight:      500;
+  letter-spacing:   0.2px;
+  transition:       background 0.15s, color 0.15s;
+}
+.nav-tabs > li > a:hover {
+  color:            var(--tx-hi) !important;
+  background-color: var(--s-hover) !important;
+  border-color:     var(--bdr-strong) !important;
+}
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:focus,
+.nav-tabs > li.active > a:hover {
+  color:            var(--tx-hi) !important;
+  background-color: var(--s-card) !important;
+  border-top:       2px solid var(--accent) !important;
+  border-left:      1px solid var(--bdr-norm) !important;
+  border-right:     1px solid var(--bdr-norm) !important;
+  border-bottom:    1px solid transparent !important;
+  font-weight:      600;
+}
+
+/* Tab content */
+.tab-content,
+.tab-pane             { color: var(--tx-hi) !important; }
+.tab-pane h1, .tab-pane h2,
+.tab-pane h3, .tab-pane h4,
+.tab-pane h5, .tab-pane h6     { color: var(--tx-hi)  !important; }
+.tab-pane p, .tab-pane li      { color: var(--tx-hi)  !important; }
+.tab-pane small,
+.tab-pane .text-muted           { color: var(--tx-med) !important; }
+
+/* AdminLTE forces background:#fff on .nav-tabs-custom > .tab-content ΓÇö
+   override to keep our themed background and readable text in all modes. */
+.nav-tabs-custom {
+  background:    var(--s-card)   !important;
+  border:        1px solid var(--bdr-norm) !important;
+  border-radius: var(--r) !important;
+}
+.nav-tabs-custom > .nav-tabs {
+  background:    var(--s-raised) !important;
+  border-bottom: 1px solid var(--bdr-norm) !important;
+}
+.nav-tabs-custom > .tab-content {
+  background: var(--s-card) !important;
+  color:      var(--tx-hi)  !important;
+  padding:    10px 15px;
+}
+/* All form labels inside custom nav tabs inherit readable colour */
+.nav-tabs-custom .control-label,
+.nav-tabs-custom .shiny-input-container label,
+.nav-tabs-custom .checkbox label,
+.nav-tabs-custom .radio    label,
+.nav-tabs-custom .radio-inline label {
+  color: var(--tx-hi) !important;
+}
+
+
+/* ================================================================
+   6.  FORM ELEMENTS
+   ================================================================ */
+
+/* Labels */
+.control-label,
+.shiny-input-container label,
+.shiny-input-container .checkbox label,
+.shiny-input-container .radio    label {
+  color:       var(--tx-hi) !important;
+  font-weight: 500;
+  font-size:   13px;
+}
+
+/* Text / number / textarea inputs */
+.form-control {
+  background-color: var(--s-input) !important;
+  color:            var(--tx-hi)   !important;
+  border:           1px solid var(--bdr-norm) !important;
+  border-radius:    var(--r-sm) !important;
+  box-shadow:       none       !important;
+  transition:       border-color 0.15s, box-shadow 0.15s;
+}
+.form-control:focus {
+  background-color: var(--s-input)  !important;
+  color:            var(--tx-hi)    !important;
+  border-color:     var(--accent)   !important;
+  box-shadow:       0 0 0 2px var(--accent-glow) !important;
+}
+.form-control:disabled,
+.form-control[readonly] {
+  background-color: var(--s-raised) !important;
+  color:            var(--tx-lo)    !important;
+  cursor: not-allowed;
+}
+.form-control::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: var(--tx-lo) !important;
+  opacity: 1;
+}
+
+/* Selectize */
+.selectize-control .selectize-input {
+  background-color: var(--s-input) !important;
+  color:            var(--tx-hi)   !important;
+  border:           1px solid var(--bdr-norm) !important;
+  border-radius:    var(--r-sm)    !important;
+  box-shadow:       none           !important;
+}
+.selectize-control.single .selectize-input.input-active,
+.selectize-control         .selectize-input.focus {
+  border-color: var(--accent) !important;
+  box-shadow:   0 0 0 2px var(--accent-glow) !important;
+}
+.selectize-input .item     { color: var(--tx-hi) !important; }
+.selectize-input .item a   { color: var(--tx-med) !important; }
+.selectize-dropdown,
+.selectize-dropdown-content {
+  background-color: var(--s-input) !important;
+  color:            var(--tx-hi)   !important;
+  border:           1px solid var(--bdr-norm) !important;
+  border-radius:    0 0 var(--r-sm) var(--r-sm) !important;
+  z-index:          9999 !important;
+}
+.selectize-dropdown .option {
+  color:      var(--tx-hi) !important;
+  background: transparent  !important;
+  padding:    6px 10px;
+}
+.selectize-dropdown .option:hover,
+.selectize-dropdown .option.active {
+  background-color: var(--s-hover) !important;
+  color:            var(--tx-hi)   !important;
+}
+.selectize-dropdown .option.selected {
+  background-color: var(--accent-glow) !important;
+  color:            var(--tx-hi)       !important;
+}
+
+/* Checkbox / radio */
+.checkbox label,
+.radio    label,
+.checkbox-inline label,
+.radio-inline    label { color: var(--tx-hi) !important; }
+
+/* Well */
+.well {
+  background-color: var(--s-raised) !important;
+  border:           1px solid var(--bdr-norm) !important;
+  border-radius:    var(--r) !important;
+  color:            var(--tx-hi) !important;
+  box-shadow:       none !important;
+}
+
+
+/* ================================================================
+   7.  SLIDERS  (ionrangeslider)
+   ================================================================ */
+.irs-bar,
+.irs-bar-edge {
+  background:  var(--accent) !important;
+  border-color: var(--accent-dim) !important;
+}
+.irs-single,
+.irs-from,
+.irs-to {
+  background:    var(--accent) !important;
+  color:         #fff !important;
+  border-radius: var(--r-sm);
+  font-size:     11px;
+}
+.irs-min,
+.irs-max {
+  background:    var(--s-hover) !important;
+  color:         var(--tx-med) !important;
+  border-radius: var(--r-sm);
+  font-size:     11px;
+}
+.irs-line-left,
+.irs-line-mid,
+.irs-line-right { background: var(--bdr-strong) !important; }
+.irs-slider {
+  background: var(--accent-hi) !important;
+  border:     2px solid #fff !important;
+  box-shadow: var(--sd-1) !important;
+}
+
+
+/* ================================================================
+   8.  BUTTONS
+   ================================================================ */
+.btn {
+  border-radius: var(--r-sm) !important;
+  font-weight:   500 !important;
+  transition:    background 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.btn:active { transform: scale(0.98); }
+
+.btn-primary,
+.btn-primary:visited {
+  background-color: var(--accent)     !important;
+  border-color:     var(--accent-dim) !important;
+  color:            #fff !important;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--accent-hi) !important;
+  border-color:     var(--accent)    !important;
+  color:            #fff !important;
+}
+.btn-success {
+  background-color: var(--c-ok) !important;
+  border-color:     var(--c-ok) !important;
+  color: #fff !important;
+}
+.btn-success:hover { filter: brightness(1.15) !important; }
+
+.btn-warning {
+  background-color: var(--c-warn) !important;
+  border-color:     var(--c-warn) !important;
+  color: #fff !important;
+}
+.btn-warning:hover { filter: brightness(1.10) !important; }
+
+.btn-danger {
+  background-color: var(--c-err) !important;
+  border-color:     var(--c-err) !important;
+  color: #fff !important;
+}
+.btn-danger:hover { filter: brightness(1.10) !important; }
+
+.btn-info {
+  background-color: var(--c-info) !important;
+  border-color:     var(--c-info) !important;
+  color: #fff !important;
+}
+
+.btn-default,
+.btn-secondary {
+  background-color: var(--s-raised) !important;
+  border-color:     var(--bdr-norm) !important;
+  color:            var(--tx-hi)    !important;
+}
+.btn-default:hover,
+.btn-secondary:hover {
+  background-color: var(--s-hover) !important;
+  color:            var(--tx-hi)   !important;
+}
+
+
+/* ================================================================
+   9.  DATATABLES
+   ================================================================ */
+.dataTables_wrapper,
+.dataTables_info,
+.dataTables_paginate,
+.dataTables_length label,
+.dataTables_filter label {
+  color: var(--tx-med) !important;
+  font-size: 12px;
+}
+.dataTables_filter input,
+.dataTables_length select {
+  background-color: var(--s-input) !important;
+  color:            var(--tx-hi)   !important;
+  border:           1px solid var(--bdr-norm) !important;
+  border-radius:    var(--r-sm) !important;
+  padding:          3px 7px;
+}
+
+table.dataTable { border-collapse: separate !important; border-spacing: 0 !important; }
+
+table.dataTable thead th,
+table.dataTable thead td {
+  background-color: var(--s-raised) !important;
+  color:            var(--tx-hi)    !important;
+  border-bottom:    2px solid var(--accent) !important;
+  font-size:        11px;
+  font-weight:      700;
+  letter-spacing:   0.5px;
+  text-transform:   uppercase;
+  padding:          8px 10px;
+}
+table.dataTable tbody tr {
+  background-color: var(--s-card)   !important;
+  color:            var(--tx-hi)    !important;
+  border-bottom:    1px solid var(--bdr-sub) !important;
+  transition:       background 0.1s;
+}
+table.dataTable tbody tr:nth-child(even) {
+  background-color: var(--s-raised) !important;
+}
+table.dataTable tbody tr:hover,
+table.dataTable tbody tr:hover td {
+  background-color: var(--s-hover) !important;
+  color:            var(--tx-hi)   !important;
+}
+table.dataTable td { border-top: none !important; padding: 7px 10px !important; }
+
+/* Pagination */
+.dataTables_paginate .paginate_button {
+  color:      var(--tx-med) !important;
+  background: transparent   !important;
+  border-color: transparent !important;
+  border-radius: var(--r-sm) !important;
+}
+.dataTables_paginate .paginate_button:hover {
+  background:   var(--s-hover) !important;
+  color:        var(--tx-hi)   !important;
+  border-color: var(--bdr-norm) !important;
+}
+.dataTables_paginate .paginate_button.current,
+.dataTables_paginate .paginate_button.current:hover {
+  background:   var(--accent-glow) !important;
+  color:        var(--accent-hi)   !important;
+  border-color: var(--accent)      !important;
+  font-weight:  600;
+}
+.dataTables_paginate .paginate_button.disabled,
+.dataTables_paginate .paginate_button.disabled:hover {
+  color: var(--tx-lo) !important;
+}
+
+
+/* ================================================================
+   9b. DARK-MODE ΓÇö THEME-AGNOSTIC INLINE BACKGROUNDS
+   Override server-rendered elements that embed hard-coded light
+   colours inline.  CSS !important beats non-!important inline.
+   RGBA tints are transparent, so they read on dark AND light bgs.
+   ================================================================ */
+
+/* Calc-summary boxes (Full Power / Backoff / Total) */
+[style*="background-color: #f0f8ff"] {
+  background-color: rgba(33, 150, 243, 0.15) !important;
+}
+[style*="background-color: #fff8f0"] {
+  background-color: rgba(255, 152, 0, 0.15) !important;
+}
+[style*="background-color: #f5f5f5"] {
+  background-color: rgba(128, 128, 128, 0.12) !important;
+}
+
+/* PAE / equations section summary mini-cards */
+[style*="background:#f5fff5"] {
+  background-color: rgba(76, 175, 80, 0.15) !important;
+}
+[style*="background:#fff8f0"] {
+  background-color: rgba(255, 152, 0, 0.15) !important;
+}
+[style*="background:#fff0f0"] {
+  background-color: rgba(244, 67, 54, 0.15) !important;
+}
+
+/* Alert boxes: ensure readable */
+.alert-warning { color: var(--tx-hi) !important; }
+.alert-info    { color: var(--tx-hi) !important; }
+
+
+/* ================================================================
+   10. NOTIFICATIONS
+   ================================================================ */
+.shiny-notification {
+  background:    var(--s-raised) !important;
+  color:         var(--tx-hi)    !important;
+  border:        1px solid var(--bdr-norm) !important;
+  border-left:   4px solid var(--accent)  !important;
+  border-radius: var(--r)  !important;
+  box-shadow:    var(--sd-2) !important;
+}
+.shiny-notification-message {
+  background:       var(--c-ok-bg)  !important;
+  border-left-color: var(--c-ok)   !important;
+  color:             var(--tx-hi)   !important;
+}
+.shiny-notification-warning {
+  background:       var(--c-warn-bg)  !important;
+  border-left-color: var(--c-warn)   !important;
+}
+.shiny-notification-error {
+  background:       var(--c-err-bg)  !important;
+  border-left-color: var(--c-err)   !important;
+}
+.shiny-notification-close { color: var(--tx-med) !important; }
+.shiny-output-error        { color: var(--c-err)  !important; }
+.shiny-output-error::before { content: 'ΓÜá '; }
+
+
+/* ================================================================
+   11. SCROLLBARS (webkit)
+   ================================================================ */
+::-webkit-scrollbar              { width: 6px; height: 6px; }
+::-webkit-scrollbar-track        { background: var(--s-page); }
+::-webkit-scrollbar-thumb        { background: var(--bdr-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover  { background: var(--accent); }
+
+
+/* ================================================================
+   12. STRUCTURAL ΓÇö STICKY CANVAS BOX
+   ================================================================ */
+#sticky_canvas_box {
+  position: -webkit-sticky !important;
+  position:  sticky !important;
+  top:  50px !important;   /* stick below the 50 px AdminLTE navbar */
+  z-index: 900 !important;
+  background: var(--s-card);
+  transition: box-shadow 0.3s;
+  margin-bottom: 20px;
+  display: block;
+  width: 100%;
+  /* Do NOT set overflow or max-height here ΓÇö they break position:sticky */
+}
+#sticky_canvas_box.stuck {
+  box-shadow: 0 4px 20px var(--accent-glow);
+  border-bottom: 2px solid var(--accent-glow);
+}
+@supports not (position: sticky) {
+  #sticky_canvas_box { position: relative; }
+}
+
+
+/* ================================================================
+   12b. LAYOUT ΓÇö PA LINEUP COLUMN WIDTHS
+   ================================================================ */
+
+/* ΓöÇΓöÇ Fix position:sticky in Bootstrap 3 floated columns ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   Bootstrap 3 uses float:left on .col-sm-*, which prevents children from
+   using position:sticky (the float creates a block-formatting context that
+   breaks sticky lookup of the scroll container).  Convert this specific
+   row to flexbox so sticky works correctly.                              */
+.row:has(#canvas-col) {
+  display:         flex         !important;
+  flex-wrap:       nowrap       !important;
+  align-items:     flex-start   !important;
+  margin-left:    -15px;
+  margin-right:   -15px;
+}
+.row:has(#canvas-col) > [class*='col-'] {
+  float: none !important;
+  padding-left:  15px;
+  padding-right: 15px;
+}
+
+/* Canvas column (col-sm-9): reduce left padding so the canvas
+   hugs the left edge more ΓåÆ effectively extends ~10 px left.      */
+#canvas-col {
+  padding-left: 5px !important;
+}
+
+/* Right panel (col-sm-3): reduce left padding (shrinks the gap
+   between canvas and right panel) and widen the usable area by
+   increasing the column to ~27 %.                               */
+#right-panel-col {
+  padding-left: 6px !important;
+  width: 27% !important;
+}
+/* Compensate the canvas column width so both columns stay Γëñ 100 % */
+#canvas-col {
+  width: 73% !important;
+}
+
+
+/* ================================================================
+   13. STRUCTURAL ΓÇö CANVAS RIGHT SIDEBAR
+   ================================================================ */
+.canvas-sidebar {
+  position: absolute;
+  top: 0; right: 0;
+  width: 200px; height: 100%;
+  background: rgba(18, 19, 32, 0.97);
+  border-left: 2px solid var(--accent);
+  box-shadow: var(--sd-2);
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  z-index: 1000;
+  overflow-y: auto; overflow-x: hidden;
+}
+.canvas-sidebar.collapsed {
+  transform: translateX(calc(100% - 40px));
+  opacity: 0.8;
+}
+.canvas-sidebar:hover,
+.canvas-sidebar.expanded {
+  transform: translateX(0);
+  opacity: 1;
+}
+.canvas-sidebar.expanded .sidebar-toggle i {
+  transform: rotate(180deg);
+  transition: transform 0.3s;
+}
+.sidebar-toggle {
+  position: absolute;
+  left: -40px; top: 50%;
+  transform: translateY(-50%);
+  width: 40px; height: 60px;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px 0 0 8px;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--sd-1);
+  transition: background 0.2s;
+  z-index: 1001;
+}
+.sidebar-toggle:hover { background: var(--accent-hi); }
+
+.sidebar-content { padding: 15px 10px; }
+
+.sidebar-section {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--bdr-norm);
+}
+.sidebar-section:last-child { border-bottom: none; margin-bottom: 0; }
+
+.sidebar-section-title {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 10px;
+}
+.sidebar-section .btn {
+  margin-bottom: 5px; font-size: 12px;
+  padding: 6px 10px; text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sidebar-section .btn i { margin-right: 5px; width: 14px; display: inline-block; }
+
+/* Canvas container */
+#pa_lineup_canvas_container { position: relative; min-height: 650px; }
+.component-palette { z-index: 1100 !important; pointer-events: auto; }
+
+
+/* ================================================================
+   13c. RIGHT SIDEBAR ΓÇö ELEMENT FIT & OVERFLOW
+   ================================================================ */
+/* Prevent any control inside the right panel from spilling outside */
+#right-panel-col .box { overflow: hidden; }
+
+#right-panel-col input[type="number"],
+#right-panel-col input[type="text"],
+#right-panel-col select,
+#right-panel-col .selectize-control,
+#right-panel-col .form-control {
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Labels in right panel: wrap instead of overflow */
+#right-panel-col label,
+#right-panel-col .control-label {
+  white-space: normal !important;
+  word-break: break-word;
+  font-size: 12px;
+}
+
+/* Numeric inputs next to buttons: use flex so they don't overflow */
+#right-panel-col .input-group {
+  display: flex !important;
+  flex-wrap: nowrap;
+  max-width: 100%;
+}
+#right-panel-col .input-group .form-control {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+
+/* ================================================================
+   14. STRUCTURAL ΓÇö CANVAS TOP SIDEBAR
+   ================================================================ */
+.canvas-top-sidebar {
+  position: absolute;
+  top: 0; left: 60px; right: 40px;
+  height: auto; max-height: 340px;     /* enough for 2+ rows of cards */
+  background: rgba(18, 19, 32, 0.97);
+  border-bottom: 2px solid var(--accent);
+  box-shadow: var(--sd-2);
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  z-index: 999;
+  overflow: hidden;                    /* columns handle their own scroll */
+}
+.canvas-top-sidebar.collapsed {
+  transform: translateY(calc(-100% + 40px));
+  opacity: 0.8;
+}
+.canvas-top-sidebar:hover,
+.canvas-top-sidebar.expanded {
+  transform: translateY(0);
+  opacity: 1;
+}
+.canvas-top-sidebar.expanded .top-sidebar-toggle i {
+  transform: rotate(180deg);
+  transition: transform 0.3s;
+}
+/* Toggle tab ΓÇö wider to fit "Templates & Devices" label */
+.top-sidebar-toggle {
+  position: absolute;
+  bottom: -40px; left: 50%;
+  transform: translateX(-50%);
+  width: 180px; height: 40px;
+  background: var(--accent);
+  border: none; border-radius: 0 0 8px 8px;
+  color: #fff; font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--sd-1);
+  transition: background 0.2s;
+  z-index: 1000;
+}
+.top-sidebar-toggle:hover { background: var(--accent-hi); }
+
+.top-sidebar-content {
+  padding: 12px 15px 10px;
+}
+
+/* Two-column layout for top sidebar ΓÇö wraps on narrow screens */
+.top-sidebar-two-col {
+  display: flex;
+  flex-wrap: wrap;          /* columns stack when width is tight */
+  gap: 0;
+  align-items: flex-start;
+  height: 100%;
+}
+.top-sidebar-col {
+  flex: 1 1 220px;          /* wraps below ~440 px total */
+  min-width: 180px;
+  max-height: 290px;        /* independent scroll per column */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 15px;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  box-sizing: border-box;
+}
+.top-sidebar-col:last-child {
+  border-right: none;
+}
+.top-sidebar-col-devices .top-sidebar-templates {
+  /* Device column: single-column grid so cards stack vertically */
+  grid-template-columns: 1fr;
+}
+.top-sidebar-empty-hint {
+  color: var(--tx-low);
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+  padding: 20px 10px;
+  margin: 0;
+}
+
+.top-sidebar-title {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 15px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.top-sidebar-templates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  padding-bottom: 8px;
+}
+.top-sidebar-templates .preset-template {
+  padding: 12px 15px;
+  background: var(--s-raised);
+  border: 2px solid var(--bdr-norm);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+.top-sidebar-templates .preset-template:hover {
+  border-color: var(--accent);
+  background: var(--s-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+.top-sidebar-templates .preset-template.active {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+.top-sidebar-templates .preset-template h5 {
+  color: var(--tx-hi); font-size: 14px; font-weight: 600; margin: 0 0 5px;
+}
+.top-sidebar-templates .preset-template p {
+  color: var(--tx-med); font-size: 11px; margin: 0; line-height: 1.3;
+}
+
+
+/* ================================================================
+   15. STRUCTURAL ΓÇö CANVAS LOWER SIDEBAR
+   ================================================================ */
+.canvas-lower-sidebar {
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%) translateY(calc(100% - 10px));
+  background: rgba(18, 19, 32, 0.97);
+  padding: 10px 18px;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  justify-content: center;
+  max-width: 900px;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+.canvas-lower-sidebar:hover {
+  transform: translateX(-50%) translateY(0);
+}
+.canvas-lower-sidebar .btn { transition: transform 0.2s, box-shadow 0.2s; }
+.canvas-lower-sidebar .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sd-1);
+}
+
+
+/* ================================================================
+   16. STRUCTURAL ΓÇö MISC
+   ================================================================ */
+#pa_lineup_canvas_container.fullscreen-mode {
+  width: 100vw !important; height: 100vh !important;
+  background: var(--s-page);
+  display: flex; align-items: center; justify-content: center;
+}
+#pa_lineup_canvas_container.fullscreen-mode svg {
+  max-width: 100vw; max-height: 100vh;
+}
+#pa_lineup_canvas_container.fullscreen-mode .canvas-sidebar,
+#pa_lineup_canvas_container.fullscreen-mode .canvas-top-sidebar,
+#pa_lineup_canvas_container.fullscreen-mode .component-palette {
+  position: fixed;
+}
+
+.icon-button-group {
+  display: flex; gap: 5px;
+  margin-bottom: 8px;
+  justify-content: center;
+}
+.btn-icon {
+  width: 40px !important; height: 40px !important;
+  padding: 8px !important; font-size: 16px !important;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-sm) !important;
+  transition: transform 0.2s !important;
+}
+.btn-icon i { margin: 0 !important; }
+.btn-icon:hover { transform: scale(1.1) !important; }
+
+.selection-box {
+  position: absolute;
+  border: 2px dashed var(--accent);
+  background: var(--accent-tint);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+
+/* ================================================================
+   17.  CROSS-THEME INLINE COLOUR SAFETY NET
+   CSS attribute selectors target hardcoded inline style= values so
+   all colours adapt to the active theme.
+   CSS !important in an author stylesheet beats inline styles.
+   ================================================================ */
+
+/* ΓöÇΓöÇ Semantic card backgrounds ΓåÆ CSS-variable-aware surfaces ΓöÇΓöÇΓöÇΓöÇ */
+/* Bootstrap-style light card backgrounds (e.g. from HTML() blocks) */
+*[style*="background-color: #f8f9fa"],
+*[style*="background-color:#f8f9fa"],
+*[style*="background: #f8f9fa"]              { background-color: var(--s-raised)  !important; }
+
+*[style*="background-color: #fffbf5"],
+*[style*="background-color:#fffbf5"]          { background-color: var(--s-raised)  !important; }
+
+*[style*="background-color: #d4edda"],
+*[style*="background-color:#d4edda"]          { background-color: var(--c-ok-bg)   !important; }
+
+*[style*="background-color: #fff3cd"],
+*[style*="background-color:#fff3cd"]          { background-color: var(--c-warn-bg) !important; }
+
+*[style*="background-color: #f8d7da"],
+*[style*="background-color:#f8d7da"]          { background-color: var(--c-err-bg)  !important; }
+
+*[style*="background-color: #e7f3ff"],
+*[style*="background-color:#e7f3ff"],
+*[style*="background-color: #d1ecf1"],
+*[style*="background-color:#d1ecf1"]          { background-color: var(--c-info-bg) !important; }
+
+/* ΓöÇΓöÇ Background overrides PLUS explicit text for the element AND its children ΓöÇΓöÇ */
+/* Without setting color on children, near-white inherited text stays invisible    */
+*[style*="background-color: #f8f9fa"] *,
+*[style*="background-color:#f8f9fa"] *,
+*[style*="background: #f8f9fa"] * { color: var(--tx-hi) !important; }
+
+*[style*="background-color: #fffbf5"] *,
+*[style*="background-color:#fffbf5"] * { color: var(--tx-hi) !important; }
+
+*[style*="background-color: #d4edda"] *,
+*[style*="background-color:#d4edda"] * { color: var(--tx-hi) !important; }
+
+*[style*="background-color: #fff3cd"] *,
+*[style*="background-color:#fff3cd"] * { color: var(--tx-hi) !important; }
+
+*[style*="background-color: #f8d7da"] *,
+*[style*="background-color:#f8d7da"] * { color: var(--tx-hi) !important; }
+
+*[style*="background-color: #e7f3ff"] *,
+*[style*="background-color:#e7f3ff"] *,
+*[style*="background-color: #d1ecf1"] *,
+*[style*="background-color:#d1ecf1"] * { color: var(--tx-hi) !important; }
+
+/* Also force readable text on the container element itself */
+*[style*="background-color: #f8f9fa"],
+*[style*="background-color:#f8f9fa"],
+*[style*="background: #f8f9fa"],
+*[style*="background-color: #fffbf5"],
+*[style*="background-color: #d4edda"],
+*[style*="background-color: #fff3cd"],
+*[style*="background-color: #f8d7da"],
+*[style*="background-color: #e7f3ff"],
+*[style*="background-color: #d1ecf1"],
+*[style*="background-color: #d1ecf1"] { color: var(--tx-hi) !important; }
+
+/* ΓöÇΓöÇ All themes: medium-grey inline text ΓåÆ readable in both themes ΓöÇΓöÇ */
+/* Appears in HTML() blocks and R renderUI alongside light inner-div bgs */
+*[style*="color: #666"], *[style*="color:#666"],
+*[style*="color: #777"], *[style*="color:#777"],
+*[style*="color: #888"], *[style*="color:#888"],
+*[style*="color: #999"], *[style*="color:#999"] { color: var(--tx-med) !important; }
+
+/* ΓöÇΓöÇ Light theme: white / near-white inline text ΓåÆ dark readable ΓöÇΓöÇ */
+/* These colours are invisible on the white card backgrounds of light mode */
+body.theme-light *[style*="color: #fff"],
+body.theme-light *[style*="color:#fff"],
+body.theme-light *[style*="color: white"],
+body.theme-light *[style*="color:#eee"],  body.theme-light *[style*="color: #eee"],
+body.theme-light *[style*="color:#ddd"],  body.theme-light *[style*="color: #ddd"],
+body.theme-light *[style*="color:#ccc"],  body.theme-light *[style*="color: #ccc"],
+body.theme-light *[style*="color:#bbb"],  body.theme-light *[style*="color: #bbb"],
+body.theme-light *[style*="color:#aaa"],  body.theme-light *[style*="color: #aaa"],
+body.theme-light *[style*="color:#7fff7f"],
+body.theme-light *[style*="color: #7fff7f"],
+body.theme-light *[style*="color:#ecedf8"],
+body.theme-light *[style*="color:#9a9bac"],
+body.theme-light *[style*="color:#b8b9cc"]   { color: var(--tx-hi) !important; }
+
+/* Restore explicit CSS-variable status text (set via R renderUI sprintf) */
+body.theme-light *[style*="color:var(--c-ok)"],
+body.theme-light *[style*="color: var(--c-ok)"]   { color: var(--c-ok)   !important; }
+body.theme-light *[style*="color:var(--c-warn)"],
+body.theme-light *[style*="color: var(--c-warn)"]  { color: var(--c-warn) !important; }
+body.theme-light *[style*="color:var(--c-err)"],
+body.theme-light *[style*="color: var(--c-err)"]   { color: var(--c-err)  !important; }
+
+
+/* ================================================================
+   18.  CALLOUT CARD CLASSES
+   Themed replacements for Bootstrap's light-only callout patterns.
+   Use .callout + .callout-{type} instead of inline background-color.
+   Both background AND text adapt automatically to every theme.
+   ================================================================ */
+
+.callout {
+  padding:       14px 16px;
+  border-radius: var(--r);
+  margin:        10px 0;
+}
+
+/* All text inside a callout ΓÇö forced to readable colours */
+.callout,
+.callout h4, .callout h5, .callout h6,
+.callout strong, .callout b, .callout em,
+.callout a { color: var(--tx-hi)  !important; }
+
+.callout p,
+.callout li,
+.callout small,
+.callout [style*="font-size:"] { color: var(--tx-med) !important; }
+
+/* Card variants */
+.callout-neutral {
+  background:  var(--s-raised)   !important;
+  border:      1px solid var(--bdr-norm) !important;
+}
+.callout-info {
+  background:  var(--c-info-bg)  !important;
+  border-left: 4px solid var(--c-info)   !important;
+}
+.callout-ok {
+  background:  var(--c-ok-bg)    !important;
+  border-left: 4px solid var(--c-ok)     !important;
+}
+.callout-warn {
+  background:  var(--c-warn-bg)  !important;
+  border-left: 4px solid var(--c-warn)   !important;
+}
+.callout-danger {
+  background:  var(--c-err-bg)   !important;
+  border-left: 4px solid var(--c-err)    !important;
+}
+.callout-accent {
+  background:  var(--accent-tint) !important;
+  border-left: 4px solid var(--accent)   !important;
+}
+
+/* Inner highlight wrapper around form inputs (primary lineup params) */
+.input-highlight {
+  background:    var(--s-raised)  !important;
+  border:        2px solid var(--accent) !important;
+  border-radius: 4px !important;
+  padding:       5px !important;
+}
+.input-highlight .control-label,
+.input-highlight label { color: var(--tx-hi) !important; }
+
+/* Plain code / formula block inside tab content */
+.code-block {
+  background:    var(--s-raised) !important;
+  border:        1px solid var(--bdr-norm) !important;
+  border-radius: var(--r-sm) !important;
+  padding:       10px !important;
+  font-family:   monospace !important;
+  color:         var(--tx-hi) !important;
+  display:       block;
+}
+
+/* Bootstrap table text fix ΓÇö tables inside HTML() blocks */
+.content-wrapper table th,
+.content-wrapper table td { color: var(--tx-hi) !important; }
+
+/* ΓöÇΓöÇ Utility Nav Bar (top header items) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+
+/* Thin vertical rule before the first utility item ΓÇö separates logo/title from tools */
+.utility-nav:first-of-type > a.utility-link {
+  border-left: 1px solid rgba(255,255,255,0.12) !important;
+  margin-left: 6px !important;
+}
+
+.utility-nav > a.utility-link,
+.utility-nav > a.utility-theme-link {
+  padding: 8px 13px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--tx-med, #aaa) !important;
+  border-bottom: 2px solid transparent;
+  border-radius: 0 !important;
+  transition: color 0.18s, border-color 0.18s, background 0.18s;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+}
+.utility-nav > a.utility-link:hover,
+.utility-nav > a.utility-theme-link:hover {
+  color: var(--accent, #ff7f11) !important;
+  border-bottom-color: var(--accent, #ff7f11);
+  background: rgba(255,127,17,0.07) !important;
+}
+/* Active state ΓÇö set by JS when a utility tab is the current sidebar tab */
+.utility-nav.active-utility > a.utility-link {
+  color: var(--accent, #ff7f11) !important;
+  border-bottom: 2px solid var(--accent, #ff7f11) !important;
+  background: rgba(255,127,17,0.10) !important;
+}
+.utility-nav > a.utility-link .fa,
+.utility-nav > a.utility-link .fas,
+.utility-nav > a.utility-link .far,
+.utility-nav > a.utility-theme-link .fa,
+.utility-nav > a.utility-theme-link .fas,
+.utility-nav > a.utility-theme-link .far {
+  font-size: 13px;
+}
+
+/* Split-contrast utility header themes (utility side can be opposite of main content). */
+body.utility-header-theme-light .skin-black .main-header .navbar {
+  background-color: #f4f6fb !important;
+  border-bottom: 1px solid #d8dce7 !important;
+}
+body.utility-header-theme-light .skin-black .main-header .navbar .nav > li > a,
+body.utility-header-theme-light .utility-nav > a.utility-link,
+body.utility-header-theme-light .utility-nav > a.utility-theme-link {
+  color: #1f2433 !important;
+}
+body.utility-header-theme-light .utility-nav.active-utility > a.utility-link {
+  background: rgba(30, 64, 175, 0.10) !important;
+  border-bottom-color: #1e40af !important;
+  color: #1e40af !important;
+}
+
+body.utility-header-theme-dark .skin-black .main-header .navbar {
+  background-color: #121320 !important;
+  border-bottom: 1px solid #25283a !important;
+}
+body.utility-header-theme-dark .skin-black .main-header .navbar .nav > li > a,
+body.utility-header-theme-dark .utility-nav > a.utility-link,
+body.utility-header-theme-dark .utility-nav > a.utility-theme-link {
+  color: #b8b9cc !important;
+}
+
+/* ΓöÇΓöÇ Utility bar label (label above the group, hidden on narrow screens) ΓöÇΓöÇ */
+.utility-nav-label {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  line-height: 1;
+  padding: 14px 6px 0 12px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+@media (max-width: 900px) { .utility-nav-label { display: none; } }
+
+/* Sidebar "DESIGN FLOW" section header label */
+.sidebar-menu .header {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: var(--accent, #ff7f11) !important;
+  padding: 12px 15px 4px 15px !important;
+}
+
+/* ΓöÇΓöÇ Reporting / Download cards ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+.report-stage-card {
+  background: var(--s-raised, #2a2a2a);
+  border: 1px solid var(--bdr-norm, #444);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.report-stage-card .stage-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tx-hi, #eee);
+  min-width: 160px;
+}
+.report-stage-card .stage-status {
+  font-size: 11px;
+  color: var(--tx-low, #888);
+  flex: 1;
+}
+.download-option-box {
+  border: 1px solid var(--bdr-norm, #444);
+  border-radius: 8px;
+  padding: 18px;
+  text-align: center;
+  background: var(--s-raised, #2a2a2a);
+  transition: border-color 0.2s;
+}
+.download-option-box:hover { border-color: var(--accent, #ff7f11); }
+.download-option-box .download-icon { font-size: 32px; color: var(--accent, #ff7f11); margin-bottom: 8px; }
+.download-option-box h5 { color: var(--tx-hi, #eee); margin: 6px 0 4px 0; font-size: 13px; }
+.download-option-box p  { color: var(--tx-low, #888); font-size: 11px; margin: 0; }
+
+/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  UTILITY DRAWER ΓÇö right-side sliding panel
+  ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */
+
+/* Drawer container ΓÇö slides in from the right edge, 75 % of viewport width.
+   This keeps ~25 % of the main canvas visible for spatial context while
+   working with Smith Chart / LP Viewer / Knowledge Base. */
+#utility-drawer {
+  position: fixed;
+  top: 50px;                              /* flush under the header bar      */
+  right: calc(-75vw - 10px);             /* hidden off-screen by default     */
+  width: 75vw;                           /* 75 % of viewport width           */
+  min-width: 480px;                      /* never narrower than 480 px       */
+  max-width: calc(100vw - 240px);        /* never overruns the left sidebar  */
+  height: calc(100vh - 50px);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  background: #1b1b2b;
+  border-left: 2px solid var(--accent, #ff7f11);
+  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.55);
+  transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  --drawer-alpha: 0.50;
+}
+#utility-drawer.open        { right: 0; }
+
+/* Expansion state modes (cycling via expand button) */
+#utility-drawer.drawer-expand-50 {
+  width: 50vw;                           /* 50% expansion */
+  max-width: calc(100vw - 240px);
+}
+#utility-drawer.drawer-expand-75 {
+  width: 75vw;                           /* default 75% expansion (default state) */
+  max-width: calc(100vw - 240px);
+}
+#utility-drawer.drawer-expand-95 {
+  width: 95vw;                           /* 95% expansion (almost full-width) */
+  max-width: none;
+}
+/* Legacy drawer-full class for backward compatibility */
+#utility-drawer.drawer-full {
+  width: calc(100vw - 230px);            /* edge-to-edge from left sidebar */
+  max-width: none;
+}
+/* Transition also applies to width changes */
+#utility-drawer { transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                               width 0.22s ease; }
+
+/* Drawer title bar */
+#utility-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 0 10px;
+  height: 42px;
+  background: #13131f;
+  border-bottom: 1px solid rgba(255, 127, 17, 0.35);
+}
+
+/* Left section: icon + title + pin */
+#drawer-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 1 auto;
+  min-width: 0;  /* Allow flex shrinking */
+}
+
+/* Right section: action buttons */
+#drawer-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+#utility-drawer-title {
+  flex: 0 1 auto;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent, #ff7f11);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#utility-drawer-header .drawer-icon {
+  font-size: 14px;
+  color: var(--accent, #ff7f11);
+  flex-shrink: 0;
+}
+
+/* Pin button on left side (icon only) */
+.drawer-hdr-pin-left {
+  padding: 4px 6px;
+  font-size: 10px;
+}
+
+/* Drawer action buttons (row in header) */
+.drawer-hdr-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #aaa;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 1.4;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.drawer-hdr-btn:hover {
+  border-color: var(--accent, #ff7f11);
+  color: var(--accent, #ff7f11);
+  background: rgba(255, 127, 17, 0.08);
+}
+.drawer-hdr-btn.active {
+  border-color: var(--accent, #ff7f11);
+  color: var(--accent, #ff7f11);
+  background: rgba(255, 127, 17, 0.14);
+}
+#drawer-pin-btn.active {
+  border-color: #00a86b;
+  color: #00a86b;
+  background: rgba(0, 168, 107, 0.14);
+}
+.drawer-hdr-btn.disabled,
+.drawer-hdr-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.drawer-hdr-select {
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ddd;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  height: 28px;
+  min-width: 70px;
+}
+.drawer-hdr-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.drawer-hdr-btn.btn-close-drawer {
+  border-color: rgba(255,255,255,0.22);
+}
+.drawer-hdr-btn.btn-close-drawer:hover {
+  border-color: #e55;
+  color: #e55;
+  background: rgba(220, 50, 50, 0.08);
+}
+
+/* Scrollable body area */
+#utility-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 14px 20px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent, #ff7f11) #1b1b2b;
+}
+
+/* ================================================================
+   LP Viewer ΓÇö collapsible sidebar toggle
+   ================================================================ */
+.lp-sidebar-toggle-btn {
+  background:    transparent;
+  border:        1px solid rgba(255,255,255,0.15);
+  color:         #888;
+  padding:       2px 7px;
+  border-radius: 3px;
+  cursor:        pointer;
+  font-size:     11px;
+  line-height:   1.5;
+  transition:    color 0.15s, border-color 0.15s;
+}
+.lp-sidebar-toggle-btn:hover {
+  color:         #ddd;
+  border-color:  rgba(255,255,255,0.35);
+  background:    rgba(255,255,255,0.06);
+}
+/* Flip the chevron when the row is in collapsed state */
+.lp-sidebar-hidden .lp-sidebar-toggle-btn i {
+  display:   inline-block;
+  transform: scaleX(-1);
+}
+/* When .lp-sidebar-hidden is on the Bootstrap .row: hide col-sm-3 + expand col-sm-9 */
+.lp-sidebar-hidden > .col-sm-3:first-child {
+  display: none !important;
+}
+.lp-sidebar-hidden > .col-sm-9 {
+  width:     100% !important;
+  max-width: 100% !important;
+}
+#utility-drawer-body::-webkit-scrollbar { width: 5px; }
+#utility-drawer-body::-webkit-scrollbar-track  { background: #1b1b2b; }
+#utility-drawer-body::-webkit-scrollbar-thumb  { background: var(--accent, #ff7f11); border-radius: 3px; }
+
+/* Transparent overlay mode to read underlying canvas without minimizing drawer. */
+#utility-drawer.drawer-transparent {
+  background: rgba(27, 27, 43, var(--drawer-alpha));
+}
+#utility-drawer.drawer-transparent #utility-drawer-header {
+  background: rgba(19, 19, 31, calc(var(--drawer-alpha) + 0.10));
+}
+#utility-drawer.drawer-transparent #utility-drawer-body {
+  background: rgba(10, 10, 20, calc(var(--drawer-alpha) * 0.55));
+}
+
+/* Utility drawer light theme for opposite-mode context. */
+#utility-drawer.drawer-theme-light {
+  background: #f4f6fb;
+  border-left-color: #1e40af;
+  box-shadow: -6px 0 24px rgba(17, 24, 39, 0.20);
+}
+#utility-drawer.drawer-theme-light #utility-drawer-header {
+  background: #ffffff;
+  border-bottom: 1px solid #d8dce7;
+}
+#utility-drawer.drawer-theme-light #utility-drawer-title,
+#utility-drawer.drawer-theme-light #utility-drawer-header .drawer-icon {
+  color: #1e40af;
+}
+#utility-drawer.drawer-theme-light #utility-drawer-body {
+  color: #1f2433;
+}
+#utility-drawer.drawer-theme-light .drawer-hdr-btn {
+  border-color: #c5cada;
+  color: #1f2433;
+  background: rgba(255, 255, 255, 0.75);
+}
+#utility-drawer.drawer-theme-light .drawer-hdr-btn:hover,
+#utility-drawer.drawer-theme-light .drawer-hdr-btn.active {
+  border-color: #1e40af;
+  color: #1e40af;
+  background: rgba(30, 64, 175, 0.10);
+}
+
+/* Improve visible transparency by softening common drawer card surfaces. */
+#utility-drawer.drawer-transparent #utility-drawer-body .well,
+#utility-drawer.drawer-transparent #utility-drawer-body .box,
+#utility-drawer.drawer-transparent #utility-drawer-body .drawer-converter-card,
+#utility-drawer.drawer-transparent #utility-drawer-body .nav-tabs-custom > .tab-content {
+  background-color: rgba(22, 22, 34, calc(var(--drawer-alpha) * 0.70)) !important;
+}
+#utility-drawer.drawer-transparent #utility-drawer-body .form-control,
+#utility-drawer.drawer-transparent #utility-drawer-body .selectize-input {
+  background-color: rgba(17, 17, 27, calc(var(--drawer-alpha) * 0.82)) !important;
+}
+
+/* Make table/canvas/plot surfaces transparent enough to reveal main screen context. */
+#utility-drawer.drawer-transparent #utility-drawer-body table,
+#utility-drawer.drawer-transparent #utility-drawer-body .dataTables_wrapper,
+#utility-drawer.drawer-transparent #utility-drawer-body .table,
+#utility-drawer.drawer-transparent #utility-drawer-body .tab-content,
+#utility-drawer.drawer-transparent #utility-drawer-body .tab-pane,
+#utility-drawer.drawer-transparent #utility-drawer-body canvas {
+  background-color: rgba(15, 15, 25, calc(var(--drawer-alpha) * 0.62)) !important;
+}
+#utility-drawer.drawer-transparent #utility-drawer-body table.dataTable tbody tr,
+#utility-drawer.drawer-transparent #utility-drawer-body table.dataTable tbody tr:nth-child(even),
+#utility-drawer.drawer-transparent #utility-drawer-body table.dataTable thead th,
+#utility-drawer.drawer-transparent #utility-drawer-body table.dataTable thead td {
+  background-color: rgba(15, 15, 28, calc(var(--drawer-alpha) * 0.66)) !important;
+}
+
+/* Plotly background layers */
+#utility-drawer.drawer-transparent #utility-drawer-body .js-plotly-plot,
+#utility-drawer.drawer-transparent #utility-drawer-body .plot-container,
+#utility-drawer.drawer-transparent #utility-drawer-body .svg-container,
+#utility-drawer.drawer-transparent #utility-drawer-body .main-svg {
+  background: transparent !important;
+}
+#utility-drawer.drawer-transparent #utility-drawer-body .js-plotly-plot .plotly .bg,
+#utility-drawer.drawer-transparent #utility-drawer-body .js-plotly-plot .plotly .bglayer rect,
+#utility-drawer.drawer-transparent #utility-drawer-body .js-plotly-plot .plotly .cartesianlayer .subplot .bg {
+  fill: rgba(15, 15, 25, calc(var(--drawer-alpha) * 0.62)) !important;
+}
+
+/* Portal mode: keep header controllable, pass cursor interactions to main screen behind drawer body. */
+#utility-drawer.drawer-transparent.drawer-portal-main #utility-drawer-body {
+  pointer-events: none;
+}
+
+/* ================================================================
+   STANDALONE DRAWER MODE (draweronly=1 query param)
+   Shows utility drawer in a new window without the main app UI
+   ================================================================ */
+body.drawer-standalone-mode {
+  background: #1b1b2b;
+  overflow: hidden;
+}
+body.drawer-standalone-mode #utility-drawer {
+  position: fixed;
+  top: 0 !important;
+  right: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  border-left: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+body.drawer-standalone-mode #utility-drawer.open {
+  right: 0 !important;
+}
+
+/* Content inside the drawer */
+.drawer-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+  margin: 14px 0 6px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.drawer-section-label:first-child { margin-top: 0; }
+
+.drawer-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: var(--tx-med, #bbb);
+  font-size: 12px;
+}
+.drawer-link-row:last-child { border-bottom: none; }
+.drawer-link-row .drawer-link-icon {
+  width: 18px;
+  text-align: center;
+  color: var(--accent, #ff7f11);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Full-view nav arrow inside drawer */
+.drawer-fullview-link {
+  display: block;
+  margin-top: 16px;
+  padding: 9px 14px;
+  background: rgba(255, 127, 17, 0.10);
+  border: 1px solid rgba(255, 127, 17, 0.30);
+  border-radius: 5px;
+  color: var(--accent, #ff7f11) !important;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.drawer-fullview-link:hover {
+  background: rgba(255, 127, 17, 0.20);
+  text-decoration: none;
+}
+
+/* Quick converter cards inside the RF Tools drawer */
+.drawer-converter-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 10px 12px 8px 12px;
+  margin-bottom: 10px;
+}
+.drawer-converter-card label {
+  font-size: 11px;
+  color: var(--tx-low, #888);
+  margin-bottom: 3px;
+  display: block;
+}
+.drawer-converter-card .form-control {
+  background: #13131f !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  color: var(--tx-hi, #eee) !important;
+  font-size: 12px;
+  height: 28px;
+  padding: 2px 8px;
+}
+.drawer-result-badge {
+  display: inline-block;
+  background: rgba(255, 127, 17, 0.15);
+  border: 1px solid rgba(255, 127, 17, 0.3);
+  color: var(--accent, #ff7f11);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+/* Drawer is a pure floating overlay ΓÇö content-wrapper is never pushed */
+
+/* ΓöÇΓöÇ Knowledge Base ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+.kb-detail-section {
+  border-left: 2px solid rgba(255,127,17,0.25);
+  padding: 6px 12px;
+  margin: 6px 0;
+  background: rgba(0,0,0,0.15);
+  border-radius: 0 4px 4px 0;
+}
+.kb-detail-section b {
+  color: #ccc;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dataTable th, .dataTable td {
+  font-size: 12px !important;
+}
+
+/* ΓöÇΓöÇ Prevent long filenames from overflowing sidebar input controls ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* selectInput: constrain the selectize rendered input box */
+.shiny-input-container .selectize-input,
+.shiny-input-container select {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+/* The selectize single-value text blob */
+.shiny-input-container .selectize-input .item,
+.shiny-input-container .selectize-input input {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+}
+/* checkboxGroupInput / radioButtons ΓÇô label text beside each checkbox */
+.shiny-input-container .checkbox label,
+.shiny-input-container .radio label {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+/* Sidebar well columns: hard clip so nothing bleeds into plot area */
+.col-sm-3 .well,
+.col-md-3 .well,
+[class*="col-"][class*="-3"] .well {
+  overflow: hidden !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+/* Also clip shiny-input-container itself */
+.col-sm-3 .shiny-input-container,
+.col-md-3 .shiny-input-container {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* ================================================================
+   Sidebar toggle pin buttons
+   ================================================================ */
+.canvas-pin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 9px;
+  background-color: rgba(255, 127, 17, 0.85);
+  border: 1px solid #ff7f11;
+  border-radius: 3px;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s, transform 0.1s;
+  z-index: 1001;
+}
+.canvas-pin-btn:hover {
+  background-color: rgba(255, 127, 17, 1);
+  color: #fff;
+  text-decoration: none;
+}
+.canvas-pin-btn:active {
+  transform: scale(0.95);
+}
+.canvas-pin-btn-top {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.canvas-pin-btn-right {
+  margin-bottom: 6px;
+  display: block;
+}

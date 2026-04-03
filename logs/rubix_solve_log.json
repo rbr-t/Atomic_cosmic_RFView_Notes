@@ -1,0 +1,12 @@
+[
+  {
+    "date": "2026-04-02",
+    "cube_size": "3x3",
+    "problem_tag": "lineup-bo2-ssot",
+    "path_chosen": "M1",
+    "total_moves": 6,
+    "outcome": "SOLVED",
+    "reuse_pattern": "Repair blocking UI syntax first, then mirror fast-path JS derivation into the R authority path and sync visible inputs.",
+    "improvement": "Extract shared BO profile derivation so JS and R consume one helper instead of maintaining parallel logic."
+  }
+]

@@ -34,6 +34,10 @@ ui <- dashboardPage(
     tags$li(class = "dropdown utility-nav",
       tags$a(href = "javascript:void(0);", class = "utility-link", `data-panel` = "settings",
         icon("cog"), " Settings")
+    ),
+    tags$li(class = "dropdown utility-nav utility-theme-shortcut",
+      tags$a(href = "javascript:void(0);", class = "utility-theme-link", id = "utility-theme-toggle-main",
+        icon("adjust"), " Dark/Light")
     )
   ),
   
@@ -192,24 +196,56 @@ $(document).ready(function() {
     # Slides in from the right when a utility-bar icon is clicked.
     # Main content remains interactive underneath.
     tags$div(id = "utility-drawer",
-      # Header bar
+      # Header bar with LEFT section (title+pin) and RIGHT section (buttons)
       tags$div(id = "utility-drawer-header",
-        tags$span(id = "utility-drawer-icon",  class = "drawer-icon"),
-        tags$span(id = "utility-drawer-title", "Utility Panel"),
-        # "Expand to full width (100 % − sidebar)" toggle button
-        tags$button(class = "drawer-hdr-btn", id = "drawer-full-btn",
-          title = "Toggle full-width mode (edge to sidebar)",
-          tags$i(class = "fa fa-arrows-alt-h"), " Expand"
+        # LEFT SECTION: icon + title + pin button
+        tags$div(id = "drawer-header-left",
+          tags$span(id = "utility-drawer-icon",  class = "drawer-icon"),
+          tags$span(id = "utility-drawer-title", "Utility Panel"),
+          tags$button(type = "button", class = "drawer-hdr-btn drawer-hdr-pin-left", id = "drawer-pin-btn",
+            title = "Pin utility drawer (disable auto-minimize)",
+            tags$i(class = "fa fa-thumb-tack")
+          )
         ),
-        # "Open in new tab" button
-        tags$button(class = "drawer-hdr-btn", id = "drawer-popout-btn",
-          title = "Open in new browser tab",
-          tags$i(class = "fa fa-external-link-alt"), " New Tab"
-        ),
-        # Close button
-        tags$button(class = "drawer-hdr-btn btn-close-drawer", id = "drawer-close-btn",
-          title = "Close panel",
-          tags$i(class = "fa fa-times")
+        # RIGHT SECTION: action buttons
+        tags$div(id = "drawer-header-right",
+          # Cycle expansion: 50% → 75% → 95%
+          tags$button(type = "button", class = "drawer-hdr-btn", id = "drawer-full-btn",
+            title = "Cycle expansion: 50%% → 75%% → 95%%",
+            `data-expand-state` = "75",
+            tags$i(class = "fa fa-arrows-alt-h"), " 75%%"
+          ),
+          tags$button(type = "button", class = "drawer-hdr-btn", id = "drawer-transparency-btn",
+            title = "Toggle transparent view",
+            tags$i(class = "fa fa-adjust"), " Transparent"
+          ),
+          tags$select(
+            id = "drawer-transparency-level", class = "drawer-hdr-select",
+            title = "Transparency level",
+            tags$option(value = "0.35", "35%"),
+            tags$option(value = "0.50", selected = NA, "50%"),
+            tags$option(value = "0.65", "65%"),
+            tags$option(value = "0.80", "80%"),
+            tags$option(value = "0.95", "95%")
+          ),
+          tags$button(type = "button", class = "drawer-hdr-btn", id = "drawer-portal-btn",
+            title = "Portal mode: switch cursor control between utility drawer and main screen",
+            tags$i(class = "fa fa-mouse-pointer"), " Portal: Utility"
+          ),
+          tags$button(type = "button", class = "drawer-hdr-btn", id = "drawer-theme-toggle-btn",
+            title = "Toggle dark or light theme",
+            tags$i(class = "fa fa-moon"), " Light"
+          ),
+          # "Open in new window" button (opens standalone utility drawer only)
+          tags$button(type = "button", class = "drawer-hdr-btn", id = "drawer-popout-btn",
+            title = "Open utility drawer in new browser window",
+            tags$i(class = "fa fa-external-link-alt"), " New Tab"
+          ),
+          # Close button
+          tags$button(type = "button", class = "drawer-hdr-btn btn-close-drawer", id = "drawer-close-btn",
+            title = "Close panel",
+            tags$i(class = "fa fa-times")
+          )
         )
       ),
       # Scrollable body — content rendered by server
@@ -959,6 +995,13 @@ $(document).ready(function() {
                           icon("chevron-down"),
                           " Templates & Devices"
                         ),
+                        # Pin button — collapse/expand top sidebar
+                        tags$button(
+                          class = "canvas-pin-btn canvas-pin-btn-top",
+                          onclick = "toggleCanvasTopSidebar()",
+                          title = "Hide/show top panel",
+                          icon("thumbtack")
+                        ),
                         
                         # Top sidebar content
                         div(
@@ -1049,6 +1092,13 @@ $(document).ready(function() {
                           onclick = "toggleCanvasSidebar()",
                           icon("chevron-left"),
                           title = "Canvas Actions"
+                        ),
+                        # Pin button — collapse/expand right sidebar
+                        tags$button(
+                          class = "canvas-pin-btn canvas-pin-btn-right",
+                          onclick = "toggleCanvasSidebar()",
+                          title = "Hide/show right panel",
+                          icon("thumbtack")
                         ),
                         
                         # Sidebar content
@@ -1229,6 +1279,16 @@ $(document).ready(function() {
                           icon("bolt"),
                           " Power Display"
                         ),
+
+                        tags$button(
+                          onclick = "if(window.paCanvas) paCanvas.toggleValueDisplayMode();",
+                          id = "value_display_mode_toggle",
+                          class = "btn btn-default btn-sm",
+                          style = "min-width: 180px;",
+                          title = "Toggle between single-point (P3dB) and dual operating-point (P3dB + Pavg) display",
+                          icon("exchange-alt"),
+                          tags$span(class = "value-mode-label", " Stage Values")
+                        ),
                         
                         tags$button(
                           onclick = "if(window.paCanvas) paCanvas.togglePowerUnit();",
@@ -1291,6 +1351,16 @@ $(document).ready(function() {
                           style = "min-width: 180px;",
                           icon("table"),
                           " Canvas Comparison"
+                        ),
+
+                        tags$button(
+                          onclick = "if(window.lineupTour) window.lineupTour.start(); else alert('Tour not loaded yet');",
+                          id = "lineup_tour_btn",
+                          class = "btn btn-default btn-sm",
+                          style = "min-width: 100px; border-color: #ff7f11; color: #ff7f11;",
+                          title = "Start guided walkthrough of the PA Lineup Calculator",
+                          icon("question-circle"),
+                          " ? Tour"
                         )
                       )
                     )
@@ -1359,6 +1429,13 @@ $(document).ready(function() {
                                 tags$strong("⚡ PAR / BO (dB)", style = "color:#ff851b;"),
                                 value = 8.0, min = 0, max = 20, step = 0.1)
                             )
+                          ),
+                          column(6,
+                            div(class = "input-highlight",
+                              numericInput("spec_par_secondary",
+                                tags$strong("BO2 / Secondary PAR (dB)", style = "color:#ffb74d;"),
+                                value = 0, min = 0, max = 30, step = 0.1)
+                            )
                           )
                         ),
                         # Derived row
@@ -1377,6 +1454,16 @@ $(document).ready(function() {
                               strong(textOutput("spec_pin_display", inline = TRUE),
                                      style = "color:#aaa; font-size:13px;"),
                               tags$span(" = P3dB − Gain", style = "font-size:10px; color:var(--tx-med);")
+                            )
+                          )
+                        ),
+                        fluidRow(
+                          column(6,
+                            div(style = "background:rgba(255,183,77,.10); border-left:3px solid #ffb74d; padding:6px 8px; border-radius:3px; margin-bottom:8px;",
+                              tags$label("← Pavg2 (dBm)", style = "font-size:10px; color:#ffb74d; display:block; margin:0;"),
+                              strong(textOutput("spec_pavg2_display", inline = TRUE),
+                                     style = "color:#ffb74d; font-size:13px;"),
+                              tags$span(" = P3dB − PAR2", style = "font-size:10px; color:var(--tx-med);")
                             )
                           )
                         ),
@@ -1532,11 +1619,11 @@ $(document).ready(function() {
                     collapsed = TRUE,
                     fluidRow(
                       column(6,
-                        numericInput("global_frequency", "Frequency (GHz)", 
+                        numericInput("global_frequency", "Frequency (GHz)",
                           value = 2.6, min = 0.1, max = 100, step = 0.1)
                       ),
                       column(6,
-                        numericInput("global_pout_p3db", tags$strong("Pout (dBm)"), 
+                        numericInput("global_pout_p3db", tags$strong("Pout (dBm)"),
                           value = 55.3, min = 0, max = 80, step = 0.1)
                       )
                     ),
@@ -1547,24 +1634,34 @@ $(document).ready(function() {
                           selected = 3, width = "100%")
                       ),
                       column(6,
-                        numericInput("global_backoff", "Back-off (dB)", 
+                        numericInput("global_backoff", "Back-off (dB)",
                           value = 6, min = 0, max = 20, step = 0.5)
                       )
                     ),
                     fluidRow(
                       column(6,
-                        numericInput("global_PAR", "PAR (dB)", 
+                        numericInput("global_PAR", "PAR (dB)",
                           value = 8, min = 0, max = 15, step = 0.5)
+                      ),
+                      column(6,
+                        numericInput("global_backoff_secondary", "Back-off 2 (dB)",
+                          value = 0, min = 0, max = 30, step = 0.5)
                       )
                     ),
                     fluidRow(
-                      column(6,
+                      column(4,
                         div(style = "margin-top: 25px;",
                           strong("Pavg (dBm):"),
                           textOutput("calculated_Pavg", inline = TRUE)
                         )
                       ),
-                      column(6,
+                      column(4,
+                        div(style = "margin-top: 25px;",
+                          strong("Pavg2 (dBm):"),
+                          textOutput("calculated_Pavg2", inline = TRUE)
+                        )
+                      ),
+                      column(4,
                         div(style = "margin-top: 25px;",
                           strong("Pin (dBm):"),
                           textOutput("calculated_Pin_global", inline = TRUE),
@@ -1582,7 +1679,7 @@ $(document).ready(function() {
                     status = "info",
                     solidHeader = TRUE,
                     collapsible = TRUE,
-                    collapsed = TRUE,
+                    collapsed = FALSE,
                     
                     p("Compare multiple architectures side-by-side:"),
                     
@@ -1636,6 +1733,9 @@ $(document).ready(function() {
                       ),
                       div(style = "flex: 0 0 180px;",
                         numericInput("backoff_db", "Backoff (dB):", value = 6, min = 0, max = 20, step = 0.5, width = "100%")
+                      ),
+                      div(style = "flex: 0 0 180px;",
+                        numericInput("backoff_db_secondary", "Backoff 2 (dB):", value = 0, min = 0, max = 30, step = 0.5, width = "100%")
                       )
                     ),
                     # Optimize button moved to Architecture tab (see ARCHITECTURE tab)
@@ -1686,19 +1786,42 @@ $(document).ready(function() {
               
               # View Tabs Below Canvas
               fluidRow(
+                # JS: when Table View tab is clicked, adjust DataTables column widths
+                # (DT initialised in a hidden tab has zero-width columns until redrawn)
+                tags$script(HTML("
+                  // Broaden selector: shinydashboard tabBox uses .nav-tabs a
+                  $(document).on('shown.bs.tab', '.nav-tabs a, a[data-toggle=\"tab\"], a[data-bs-toggle=\"tab\"]', function(e) {
+                    var tabText = $(e.target).closest('li').text().trim();
+                    if (!tabText) tabText = $(e.target).text().trim();
+                    if (tabText.indexOf('Table View') !== -1) {
+                      setTimeout(function() {
+                        var $tbl = $('#pa_lineup_table').find('table');
+                        if ($tbl.length && $.fn.DataTable.isDataTable($tbl[0])) {
+                          $tbl.DataTable().columns.adjust().draw(false);
+                        }
+                      }, 300);
+                    }
+                  });
+                  // Server triggers this after every successful Calculate
+                  Shiny.addCustomMessageHandler('adjustLineupTable', function(msg) {
+                    setTimeout(function() {
+                      var $tbl = $('#pa_lineup_table').find('table');
+                      if ($tbl.length && $.fn.DataTable.isDataTable($tbl[0])) {
+                        $tbl.DataTable().columns.adjust().draw(false);
+                      }
+                    }, 600);
+                  });
+                ")),
                 tabBox(
                   width = 12,
                   
                   # Table View
                   tabPanel(
                     title = tagList(icon("table"), "Table View"),
-                    # Single-canvas: DTOutput is always in the DOM (conditionalPanel
-                    # uses CSS show/hide, not DOM insertion) so DataTables can
-                    # initialise correctly regardless of layout switches.
-                    conditionalPanel(
-                      condition = "input.canvas_layout == null || input.canvas_layout == '1x1'",
-                      DTOutput("pa_lineup_table")
-                    ),
+                    # DTOutput lives permanently in the DOM (no conditionalPanel)
+                    # so DataTables initialises with a visible container and
+                    # columns never get stuck at zero-width.
+                    DTOutput("pa_lineup_table"),
                     # Multi-canvas: server builds one tab per canvas
                     conditionalPanel(
                       condition = "input.canvas_layout != null && input.canvas_layout != '1x1'",
@@ -2625,13 +2748,24 @@ $(document).ready(function() {
                   ),
                   fluidRow(
                     column(6, numericInput("spec_pout",     "P_out (dBm)",      value = 43,  min=0, max=70, step=0.5)),
-                    column(6, numericInput("spec_gain",     "Gain (dB)",        value = 25,  min=0, max=60, step=0.5))
+                    column(6, numericInput("dev_spec_gain", "Gain (dB)",        value = 30,  min=0, max=60, step=0.5))
                   ),
                   fluidRow(
-                    column(6, numericInput("spec_pae",      "PAE target (%)",   value = 40,  min=1, max=90, step=1)),
+                    column(6, numericInput("dev_spec_pae",  "PAE target (%)",   value = 45,  min=1, max=90, step=1)),
                     column(6, numericInput("spec_p1db",     "P1dB (dBm)",       value = 40,  min=0, max=70, step=0.5))
+                  ),
+                  hr(style = "margin:8px 0;"),
+                  div(style = "display:flex; align-items:center; gap:8px;",
+                    actionButton("sync_41_to_42",
+                      tagList(icon("arrow-right"), " Sync to 4.2 Canvas"),
+                      class = "btn-warning btn-sm",
+                      title = "Push all 4.1 spec values to the 4.2 canvas spec panel"
+                    ),
+                    span(style = "font-size:11px; color:var(--tx-muted);",
+                         "Pushes Pout, Gain, PAE, Back-off, Vdd, Freq to 4.2")
                   )
-                )
+                ),
+                uiOutput("spec_sync_warning")
               ),
               column(6,
                 wellPanel(

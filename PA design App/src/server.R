@@ -1409,6 +1409,25 @@ server <- function(input, output, session) {
     updateSelectInput(session, "accent_color", selected = input$drawer_accent_color)
   }, ignoreInit = TRUE)
 
+  # Wire quick-action buttons from the drawer to existing app areas.
+  observeEvent(input$drawer_data_import, {
+    updateTabItems(session, "sidebar_menu", "projects")
+    showNotification("Navigate to Projects to import datasets.", type = "message", duration = 3)
+  }, ignoreInit = TRUE)
+  observeEvent(input$drawer_data_export, {
+    updateTabItems(session, "sidebar_menu", "reporting")
+    showNotification("Navigate to Reporting to export session outputs.", type = "message", duration = 3)
+  }, ignoreInit = TRUE)
+  observeEvent(input$drawer_agent_send, {
+    prompt <- trimws(input$drawer_agent_prompt %||% "")
+    if (!nzchar(prompt)) {
+      showNotification("Enter a prompt before sending.", type = "warning", duration = 2)
+      return()
+    }
+    updateTabItems(session, "sidebar_menu", "dashboard")
+    showNotification("Agent prompt queued from utility drawer.", type = "message", duration = 3)
+  }, ignoreInit = TRUE)
+
   # RF converter results
   output$drawer_rf_conv_result <- renderUI({
     dbm <- input$drawer_dbm_in %||% 20
