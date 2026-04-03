@@ -1,0 +1,120 @@
+{
+  "run_context": {
+    "vendor": "ampleon",
+    "started_at_utc": "2026-04-03T06:04:10.807141+00:00",
+    "python_version": "3.14.3",
+    "python_runtime_ready": false,
+    "runtime_note": "Python 3.14+ is not yet supported by Crawl4AI dependency wheels in this workspace",
+    "crawl4ai_available": false,
+    "discovery_url": "https://www.ampleon.com/products/mobile-broadband/1.4-2.2-ghz-transistors/#/",
+    "max_products": 2,
+    "vendor_extraction_defaults": {
+      "selector_version": "pilot-v1",
+      "title_selectors": [
+        "h1",
+        "title"
+      ],
+      "datasheet_link_patterns": [
+        "/documents/data-sheet/",
+        "/documents/datasheet/"
+      ],
+      "frequency_patterns": [
+        "GHz",
+        "MHz"
+      ]
+    },
+    "policy": {
+      "respect_robots_txt": true,
+      "delay_seconds": 1.5,
+      "allowed_domains": [
+        "ampleon.com",
+        "nxp.com"
+      ]
+    }
+  },
+  "records": [
+    {
+      "device_id": "ampleon_BLF7G22LS-160P",
+      "part_number": "BLF7G22LS-160P",
+      "manufacturer": "Ampleon",
+      "family": null,
+      "series": null,
+      "technology": "LDMOS",
+      "freq_min_mhz": 1400.0,
+      "freq_max_mhz": 2200.0,
+      "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/mobile-broadband-1.4-2.2-ghz/BLF7G22LS-160P.html",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "low",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "ampleon",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet']",
+        "product_summary_selector": ".cmp-product-details, .product-details, main"
+      },
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-03T06:04:10.805599+00:00",
+        "crawl_success": false,
+        "http_status": null,
+        "source_domain": "www.ampleon.com",
+        "source_title_hint": null,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "crawl_error": "crawl4ai_not_installed",
+        "selector_version": "pilot-v1"
+      }
+    },
+    {
+      "device_id": "ampleon_BLP9G0722-20",
+      "part_number": "BLP9G0722-20",
+      "manufacturer": "Ampleon",
+      "family": null,
+      "series": null,
+      "technology": "LDMOS",
+      "freq_min_mhz": 700.0,
+      "freq_max_mhz": 2200.0,
+      "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/mobile-broadband-1.4-2.2-ghz/BLP9G0722-20.html",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "low",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "ampleon",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet']",
+        "product_summary_selector": ".cmp-product-details, .product-details, main"
+      },
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-03T06:04:10.806760+00:00",
+        "crawl_success": false,
+        "http_status": null,
+        "source_domain": "www.ampleon.com",
+        "source_title_hint": null,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "crawl_error": "crawl4ai_not_installed",
+        "selector_version": "pilot-v1"
+      }
+    }
+  ],
+  "validation": {
+    "ampleon_BLF7G22LS-160P": [
+      "low_confidence_requires_review",
+      "crawl_failed_or_unavailable"
+    ],
+    "ampleon_BLP9G0722-20": [
+      "low_confidence_requires_review",
+      "crawl_failed_or_unavailable"
+    ]
+  },
+  "blocked_for_auto_merge": true
+}

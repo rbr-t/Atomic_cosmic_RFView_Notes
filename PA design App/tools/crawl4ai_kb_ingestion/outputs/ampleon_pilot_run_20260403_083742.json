@@ -1,0 +1,119 @@
+{
+  "run_context": {
+    "vendor": "ampleon",
+    "started_at_utc": "2026-04-03T06:37:42.921637+00:00",
+    "python_version": "3.13.12",
+    "python_runtime_ready": true,
+    "runtime_note": "runtime_compatible",
+    "crawl4ai_available": true,
+    "discovery_url": "https://www.ampleon.com/products/mobile-broadband/1.4-2.2-ghz-transistors/#/",
+    "max_products": 2,
+    "vendor_extraction_defaults": {
+      "selector_version": "pilot-v1",
+      "title_selectors": [
+        "h1",
+        "title"
+      ],
+      "datasheet_link_patterns": [
+        "/documents/data-sheet/",
+        "/documents/datasheet/"
+      ],
+      "frequency_patterns": [
+        "GHz",
+        "MHz"
+      ]
+    },
+    "policy": {
+      "respect_robots_txt": true,
+      "delay_seconds": 1.5,
+      "allowed_domains": [
+        "ampleon.com",
+        "nxp.com"
+      ]
+    }
+  },
+  "records": [
+    {
+      "device_id": "ampleon_BLF7G22LS-160P",
+      "part_number": "BLF7G22LS-160P",
+      "manufacturer": "Ampleon",
+      "family": null,
+      "series": null,
+      "technology": "LDMOS",
+      "freq_min_mhz": 1400.0,
+      "freq_max_mhz": 2200.0,
+      "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/mobile-broadband-1.4-2.2-ghz/BLF7G22LS-160P.html",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "medium",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "ampleon",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet']",
+        "product_summary_selector": ".cmp-product-details, .product-details, main"
+      },
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-03T06:37:42.920917+00:00",
+        "crawl_success": true,
+        "http_status": 404,
+        "source_domain": "www.ampleon.com",
+        "source_title_hint": "This website uses cookies",
+        "content_sha256": "657ad2440e03d19095799468b9872b975006c895080e1e473a79fc0bd75c75af",
+        "crawl_error": "",
+        "selector_version": "pilot-v1"
+      }
+    },
+    {
+      "device_id": "ampleon_BLP9G0722-20",
+      "part_number": "BLP9G0722-20",
+      "manufacturer": "Ampleon",
+      "family": null,
+      "series": null,
+      "technology": "LDMOS",
+      "freq_min_mhz": 700.0,
+      "freq_max_mhz": 2200.0,
+      "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/mobile-broadband-1.4-2.2-ghz/BLP9G0722-20.html",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "high",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "ampleon",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet']",
+        "product_summary_selector": ".cmp-product-details, .product-details, main"
+      },
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-03T06:37:42.921360+00:00",
+        "crawl_success": true,
+        "http_status": 200,
+        "source_domain": "www.ampleon.com",
+        "source_title_hint": "This website uses cookies",
+        "content_sha256": "5794cd4cb5d7f67f2dbfa2628c07d9b0bfef914394a04569b513e6651cbb9add",
+        "crawl_error": "",
+        "selector_version": "pilot-v1"
+      }
+    }
+  ],
+  "validation": {
+    "ampleon_BLF7G22LS-160P": [
+      "unexpected_http_status",
+      "suspicious_page_title"
+    ],
+    "ampleon_BLP9G0722-20": [
+      "suspicious_page_title"
+    ]
+  },
+  "blocked_for_auto_merge": true
+}

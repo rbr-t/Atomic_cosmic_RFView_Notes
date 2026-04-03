@@ -341,11 +341,13 @@ Provide a compliant, auditable ingestion path to refresh vendor device libraries
 
 ### Files added
 - `PA design App/tools/crawl4ai_kb_ingestion/crawl_kb_pipeline.py`
+- `PA design App/tools/crawl4ai_kb_ingestion/validate_kb_pipeline.py`
 - `PA design App/tools/crawl4ai_kb_ingestion/configs/vendor_seed_catalog.yaml`
 - `PA design App/tools/crawl4ai_kb_ingestion/requirements.txt`
 - `PA design App/tools/crawl4ai_kb_ingestion/README.md`
 - `PA design App/docs/guides/CRAWL4AI_KB_INGESTION_GUARDRAILS.md`
 - `PA design App/THIRD_PARTY_NOTICES.md`
+- `PA design App/.github/workflows/crawl4ai-kb-guard.yml`
 - `PA design App/data/kb/nxp/devices.json`
 
 ### Safeguards implemented
@@ -356,6 +358,7 @@ Provide a compliant, auditable ingestion path to refresh vendor device libraries
 5. Minimum schema validation gate before merge
 6. Artifact-first workflow (`--apply` required for KB write)
 7. Duplicate prevention by `device_id` at merge time
+8. CI validator for allowlist, provenance fields, and latest artifact safety
 
 ### Pilot seed scope (verification)
 - Ampleon: 2 products
@@ -368,6 +371,7 @@ Provide a compliant, auditable ingestion path to refresh vendor device libraries
 - Dynamic vendor pages may return partial text without additional wait/selectors.
 - Pilot currently focuses on safe scaffolding and verification artifacts, not full datasheet table extraction.
 - Engineering review remains mandatory before production merges.
+- Real Crawl4AI runs need Python 3.12/3.13 today; Python 3.14 is still blocked by dependency build compatibility on this Windows workstation.
 
 ---
 

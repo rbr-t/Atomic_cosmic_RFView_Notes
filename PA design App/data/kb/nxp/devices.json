@@ -1,2 +1,74 @@
 [
+  {
+    "device_id": "nxp_MRF1K50H",
+    "part_number": "MRF1K50H",
+    "manufacturer": "NXP",
+    "family": null,
+    "series": null,
+    "technology": "LDMOS",
+    "freq_min_mhz": 1.8,
+    "freq_max_mhz": 500.0,
+    "datasheet_url": "https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf1k50h:MRF1K50H",
+    "knowledge_source": "datasheet",
+    "knowledge_confidence": "high",
+    "status": "active",
+    "tags": [
+      "crawl4ai-pilot",
+      "nxp",
+      "ldmos"
+    ],
+    "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+    "extraction_blueprint": {
+      "selector_version": "pilot-v1",
+      "title_selector": "h1",
+      "datasheet_link_selector": "a[href*='/docs/'], a[href*='data-sheet']",
+      "product_summary_selector": "main, .product-details, .product-page"
+    },
+    "ingestion_provenance": {
+      "crawled_at_utc": "2026-04-03T06:36:42.565887+00:00",
+      "crawl_success": true,
+      "http_status": 301,
+      "source_domain": "www.nxp.com",
+      "source_title_hint": "MRF1K50H|1500 W CW 1.8-500 MHz 50 V | NXP Semiconductors",
+      "content_sha256": "078d67aa0cd72097a1da5b7f2d0ec303ead36c1e532bedb9de83f47950b7a6d5",
+      "crawl_error": "",
+      "selector_version": "pilot-v1"
+    }
+  },
+  {
+    "device_id": "nxp_MRF6VP11KH",
+    "part_number": "MRF6VP11KH",
+    "manufacturer": "NXP",
+    "family": null,
+    "series": null,
+    "technology": "LDMOS",
+    "freq_min_mhz": 1.8,
+    "freq_max_mhz": 150.0,
+    "datasheet_url": "https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf6vp11kh:MRF6VP11KH",
+    "knowledge_source": "datasheet",
+    "knowledge_confidence": "high",
+    "status": "active",
+    "tags": [
+      "crawl4ai-pilot",
+      "nxp",
+      "ldmos"
+    ],
+    "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+    "extraction_blueprint": {
+      "selector_version": "pilot-v1",
+      "title_selector": "h1",
+      "datasheet_link_selector": "a[href*='/docs/'], a[href*='data-sheet']",
+      "product_summary_selector": "main, .product-details, .product-page"
+    },
+    "ingestion_provenance": {
+      "crawled_at_utc": "2026-04-03T06:36:42.566576+00:00",
+      "crawl_success": true,
+      "http_status": 301,
+      "source_domain": "www.nxp.com",
+      "source_title_hint": "MRF6VP11KH|1000 W Pulse 1.8-150 MHz 50 V | NXP Semiconductors",
+      "content_sha256": "22e8e9db58ff0d02b26bf97168e65a7302173844a99485ee9ca5d99414038821",
+      "crawl_error": "",
+      "selector_version": "pilot-v1"
+    }
+  }
 ]

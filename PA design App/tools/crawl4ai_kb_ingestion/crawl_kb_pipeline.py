@@ -15,6 +15,7 @@ import asyncio
 import hashlib
 import json
 import re
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,7 +32,7 @@ except Exception:
     HAS_CRAWL4AI = False
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "configs" / "vendor_seed_catalog.yaml"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "outputs"
 KB_ROOT = REPO_ROOT / "data" / "kb"
@@ -51,6 +52,7 @@ class ProductSeed:
     part_number: str
     product_url: str
     expected: dict[str, Any]
+    extraction: dict[str, Any] | None = None
 
 
 def now_iso() -> str:
@@ -89,6 +91,36 @@ def extract_title(text: str) -> str | None:
     if not line:
         return None
     return line[:140]
+
+
+def is_suspicious_title(title: str | None) -> bool:
+    if not title:
+        return True
+
+    normalized = title.strip().lower()
+    suspicious_markers = [
+        "this website uses cookies",
+        "cookie settings",
+        "accept cookies",
+        "privacy preference",
+        "enable javascript",
+        "access denied",
+        "just a moment",
+        "please wait",
+        "403 forbidden",
+        "404",
+        "not found",
+    ]
+    return any(marker in normalized for marker in suspicious_markers)
+
+
+def python_runtime_ready() -> tuple[bool, str]:
+    version = sys.version_info
+    if (version.major, version.minor) >= (3, 14):
+        return False, "Python 3.14+ is not yet supported by Crawl4AI dependency wheels in this workspace"
+    if (version.major, version.minor) < (3, 12):
+        return False, "Python 3.12+ is recommended for the Crawl4AI ingestion toolchain"
+    return True, "runtime_compatible"
 
 
 async def crawl_urls(urls: list[str], policy: CrawlPolicy) -> dict[str, dict[str, Any]]:
@@ -167,6 +199,7 @@ def build_record(vendor: str, seed: ProductSeed, crawl_result: dict[str, Any]) -
         "status": "active",
         "tags": ["crawl4ai-pilot", vendor, technology.lower()],
         "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+        "extraction_blueprint": seed.extraction or {},
         "ingestion_provenance": {
             "crawled_at_utc": now_iso(),
             "crawl_success": crawl_result.get("success"),
@@ -175,6 +208,7 @@ def build_record(vendor: str, seed: ProductSeed, crawl_result: dict[str, Any]) -
             "source_title_hint": extract_title(crawl_result.get("markdown", "") or crawl_result.get("html", "")),
             "content_sha256": content_sha256(crawl_text),
             "crawl_error": crawl_result.get("error"),
+            "selector_version": (seed.extraction or {}).get("selector_version"),
         },
     }
     return record
@@ -200,6 +234,13 @@ def validate_minimum(record: dict[str, Any]) -> list[str]:
     if not provenance.get("crawl_success"):
         errors.append("crawl_failed_or_unavailable")
 
+    http_status = provenance.get("http_status")
+    if not isinstance(http_status, int) or http_status < 200 or http_status >= 400:
+        errors.append("unexpected_http_status")
+
+    if is_suspicious_title(provenance.get("source_title_hint")):
+        errors.append("suspicious_page_title")
+
     return errors
 
 
@@ -222,6 +263,7 @@ def append_records_to_vendor_file(vendor: str, records: list[dict[str, Any]]) ->
 
 async def run(args: argparse.Namespace) -> int:
     cfg = load_catalog(Path(args.config))
+    runtime_ready, runtime_note = python_runtime_ready()
 
     policy_raw = cfg.get("crawl_policy", {})
     policy = CrawlPolicy(
@@ -242,6 +284,7 @@ async def run(args: argparse.Namespace) -> int:
             part_number=item["part_number"],
             product_url=item["product_url"],
             expected=item.get("expected", {}),
+            extraction=item.get("extraction", {}),
         )
         for item in vendor_cfg.get("products", [])
     ]
@@ -273,9 +316,13 @@ async def run(args: argparse.Namespace) -> int:
         "run_context": {
             "vendor": args.vendor,
             "started_at_utc": now_iso(),
+            "python_version": sys.version.split()[0],
+            "python_runtime_ready": runtime_ready,
+            "runtime_note": runtime_note,
             "crawl4ai_available": HAS_CRAWL4AI,
             "discovery_url": vendor_cfg.get("discovery_url"),
             "max_products": len(seeds),
+            "vendor_extraction_defaults": vendor_cfg.get("extraction_defaults", {}),
             "policy": {
                 "respect_robots_txt": policy.respect_robots_txt,
                 "delay_seconds": policy.delay_seconds,

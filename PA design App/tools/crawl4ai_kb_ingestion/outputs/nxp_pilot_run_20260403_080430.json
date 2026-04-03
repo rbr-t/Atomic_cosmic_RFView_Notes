@@ -1,0 +1,122 @@
+{
+  "run_context": {
+    "vendor": "nxp",
+    "started_at_utc": "2026-04-03T06:04:30.806146+00:00",
+    "python_version": "3.14.3",
+    "python_runtime_ready": false,
+    "runtime_note": "Python 3.14+ is not yet supported by Crawl4AI dependency wheels in this workspace",
+    "crawl4ai_available": false,
+    "discovery_url": "https://www.nxp.com/products/product-selector:PRODUCT-SELECTOR?category=c250_c65&page=1",
+    "max_products": 2,
+    "vendor_extraction_defaults": {
+      "selector_version": "pilot-v1",
+      "title_selectors": [
+        "h1",
+        "title"
+      ],
+      "datasheet_link_patterns": [
+        "/docs/",
+        "data-sheet"
+      ],
+      "frequency_patterns": [
+        "GHz",
+        "MHz"
+      ]
+    },
+    "policy": {
+      "respect_robots_txt": true,
+      "delay_seconds": 1.5,
+      "allowed_domains": [
+        "ampleon.com",
+        "nxp.com"
+      ]
+    }
+  },
+  "records": [
+    {
+      "device_id": "nxp_MRF1K50H",
+      "part_number": "MRF1K50H",
+      "manufacturer": "NXP",
+      "family": null,
+      "series": null,
+      "technology": "LDMOS",
+      "freq_min_mhz": 0.0,
+      "freq_max_mhz": 0.0,
+      "datasheet_url": "https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf1k50h:MRF1K50H",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "low",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "nxp",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='/docs/'], a[href*='data-sheet']",
+        "product_summary_selector": "main, .product-details, .product-page"
+      },
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-03T06:04:30.805875+00:00",
+        "crawl_success": false,
+        "http_status": null,
+        "source_domain": "www.nxp.com",
+        "source_title_hint": null,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "crawl_error": "crawl4ai_not_installed",
+        "selector_version": "pilot-v1"
+      }
+    },
+    {
+      "device_id": "nxp_MRF6VP11KH",
+      "part_number": "MRF6VP11KH",
+      "manufacturer": "NXP",
+      "family": null,
+      "series": null,
+      "technology": "LDMOS",
+      "freq_min_mhz": 0.0,
+      "freq_max_mhz": 0.0,
+      "datasheet_url": "https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf6vp11kh:MRF6VP11KH",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "low",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "nxp",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='/docs/'], a[href*='data-sheet']",
+        "product_summary_selector": "main, .product-details, .product-page"
+      },
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-03T06:04:30.805947+00:00",
+        "crawl_success": false,
+        "http_status": null,
+        "source_domain": "www.nxp.com",
+        "source_title_hint": null,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "crawl_error": "crawl4ai_not_installed",
+        "selector_version": "pilot-v1"
+      }
+    }
+  ],
+  "validation": {
+    "nxp_MRF1K50H": [
+      "missing_frequency_bounds",
+      "low_confidence_requires_review",
+      "crawl_failed_or_unavailable"
+    ],
+    "nxp_MRF6VP11KH": [
+      "missing_frequency_bounds",
+      "low_confidence_requires_review",
+      "crawl_failed_or_unavailable"
+    ]
+  },
+  "blocked_for_auto_merge": true
+}

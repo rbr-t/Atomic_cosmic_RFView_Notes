@@ -36,6 +36,7 @@ This guide defines integrity, legal, and operational safeguards for using Crawl4
 ## Runbook
 1. Install Python dependencies:
    - `pip install -r "PA design App/tools/crawl4ai_kb_ingestion/requirements.txt"`
+   - Use Python 3.12 or 3.13 for real Crawl4AI runs.
 2. Generate pilot verification artifact for Ampleon:
    - `python "PA design App/tools/crawl4ai_kb_ingestion/crawl_kb_pipeline.py" --vendor ampleon --max-products 2`
 3. Generate pilot verification artifact for NXP:
@@ -44,6 +45,8 @@ This guide defines integrity, legal, and operational safeguards for using Crawl4
    - `PA design App/tools/crawl4ai_kb_ingestion/outputs/`
 5. Optional controlled merge (only after review):
    - `python "PA design App/tools/crawl4ai_kb_ingestion/crawl_kb_pipeline.py" --vendor nxp --max-products 2 --apply`
+6. Run validation guard locally before commit:
+   - `python "PA design App/tools/crawl4ai_kb_ingestion/validate_kb_pipeline.py"`
 
 ## Review Criteria Before Merge
 - Required fields present: device_id, part_number, manufacturer, technology, freq_min_mhz, freq_max_mhz.
@@ -56,3 +59,4 @@ This guide defines integrity, legal, and operational safeguards for using Crawl4
 - The pilot script is conservative by design; it emits review artifacts first.
 - Parsed values from dynamic pages may be incomplete; unknown fields remain minimal until validated.
 - This workflow avoids silent contamination of `data/kb/*/devices.json`.
+- CI now validates the latest artifact per vendor plus crawler-produced KB provenance records before merge.

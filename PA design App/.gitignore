@@ -27,6 +27,8 @@ logs/agents/*.json
 # Environment
 .env
 .env.local
+.venv/
+tools/crawl4ai_kb_ingestion/.venv/
 
 # API Keys
 *api_key*
