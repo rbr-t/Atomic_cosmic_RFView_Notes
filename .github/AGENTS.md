@@ -100,6 +100,16 @@ These R6 agents run autonomously at runtime (not VS Code agents):
 
 **These files should NOT be edited by specialist sub-agents.** Changes require a dedicated security review.
 
+## Runtime Guardrails
+
+Hooks provide a deterministic guardrail layer under the agent, instruction, and skill system.
+
+- `.github/hooks/01-session-start.json` injects current repo role, branch, and clean/dirty state at session start.
+- `.github/hooks/02-pretool-git-safety.json` blocks destructive git commands and asks before higher-risk git operations.
+- `.github/hooks/03-posttool-customization-validate.json` validates changed customization files after tool use.
+
+Use hooks for enforcement and automation, not for reasoning or architectural judgement.
+
 ## Skills
 
 | Skill | Trigger |

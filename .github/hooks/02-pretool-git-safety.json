@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "python3 .github/hooks/scripts/pretool_git_safety.py",
+        "windows": "python .github/hooks/scripts/pretool_git_safety.py",
+        "timeout": 10
+      }
+    ]
+  }
+}

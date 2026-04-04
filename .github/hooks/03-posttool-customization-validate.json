@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "python3 .github/hooks/scripts/posttool_customization_validate.py",
+        "windows": "python .github/hooks/scripts/posttool_customization_validate.py",
+        "timeout": 15
+      }
+    ]
+  }
+}

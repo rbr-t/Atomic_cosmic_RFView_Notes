@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python3 .github/hooks/scripts/session_start_context.py",
+        "windows": "python .github/hooks/scripts/session_start_context.py",
+        "timeout": 10
+      }
+    ]
+  }
+}
