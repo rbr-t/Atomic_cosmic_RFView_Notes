@@ -1365,10 +1365,9 @@ server <- function(input, output, session) {
               font-size: 10px;\
               color: #9aa0aa;\
             }\
-            .kb-layout {\
+            .kb-workspace, .kb-layout {\
               display: flex;\
-              flex-wrap: nowrap;\
-              align-items: start;\
+              align-items: flex-start;\
               gap: 10px;\
               width: 100%;\
               min-width: 0;\
@@ -1408,22 +1407,41 @@ server <- function(input, output, session) {
             .kb-main-pane .well {\
               margin-bottom: 10px;\
             }\
+            .kb-devices-shell {\
+              min-width: 0;\
+            }\
             .kb-main-pane .dataTables_wrapper, .kb-main-pane .dataTables_scroll, .kb-main-pane .dataTables_scrollHead, .kb-main-pane .dataTables_scrollBody {\
               width: 100%;\
+            }\
+            .kb-main-pane .dataTables_scrollHeadInner, .kb-main-pane .dataTables_scrollHeadInner table, .kb-main-pane .dataTables_scrollBody table {\
+              width: 100% !important;\
             }\
             .kb-main-pane .dataTables_scrollBody {\
               overflow-x: auto !important;\
               overflow-y: auto !important;\
             }\
+            .kb-main-pane table.dataTable.kb-device-table tbody td.kb-wrap-col, .kb-main-pane table.dataTable.kb-device-table thead th.kb-wrap-col {\
+              white-space: normal !important;\
+              word-break: break-word;\
+              overflow-wrap: anywhere;\
+            }\
+            .kb-main-pane table.dataTable.kb-device-table tbody td, .kb-main-pane table.dataTable.kb-device-table thead th {\
+              vertical-align: top;\
+            }\
             @media (max-width: 640px) {\
-              .kb-layout {\
+              .kb-workspace, .kb-layout {\
                 display: block;\
               }\
               .kb-sidebar-rail {\
                 width: 100%;\
+                flex: none;\
+                width: 100%;\
                 max-width: none;\
                 min-width: 0;\
                 margin-bottom: 10px;\
+              }\
+              .kb-main-pane {\
+                width: 100%;\
               }\
             }\
             @media (prefers-reduced-motion: reduce) {\
@@ -1503,7 +1521,7 @@ server <- function(input, output, session) {
               }, 0);\
             })();\
           ")),
-          tags$div(class = "kb-layout",
+          tags$div(class = "kb-workspace",
             tags$div(class = "kb-sidebar-rail",
               tags$details(class = "kb-hover-panel", `data-manual-open` = "false",
                 tags$summary(class = "kb-hover-panel__summary",
