@@ -2,7 +2,7 @@
 
 > This file is read automatically at the start of every AI session.
 > It provides ground truth about what this repository is, what is built, what is pending, and how to work here.
-> Last updated: 2026-04-03 (Crawl4AI guarded KB ingestion pilot added)
+> Last updated: 2026-04-04 (local hook guardrail overlay and validator hardening synced)
 
 ---
 
@@ -28,6 +28,17 @@ A multi-component **RF Engineering platform** combining:
 
 ```
 Atomic_cosmic_RFView_Notes/
+├── .github/
+│   ├── AGENTS.md                   ← Repo-local agent architecture + runtime guardrails
+│   ├── hooks/
+│   │   ├── 01-session-start.json   ← Session context injection
+│   │   ├── 02-pretool-git-safety.json ← Destructive git guardrail
+│   │   ├── 03-posttool-customization-validate.json ← Hook/customization validator
+│   │   └── scripts/                ← Python hook implementations for local overlay
+│   ├── agents/                     ← Repo-local specialist agent definitions
+│   ├── instructions/               ← Repo guidance overlays
+│   └── skills/                     ← Repo workflow skills and assets
+│
 ├── PA design App/                  ← MAIN APP (R/Shiny, ~85% complete)
 │   ├── R/
 │   │   ├── app.R                   ← Entry point
@@ -112,6 +123,8 @@ Atomic_cosmic_RFView_Notes/
 | Architecture/Simulation/Layout/Measurement/Debug/Doc/Strategy Agents | 15% | .agent.md + .R files created; LLM bodies are stubs; not wired to server.R |
 | Device Portfolio KB | 100% | 50+ devices in Chroma vector DB |
 | Crawl4AI KB Ingestion Pipeline | 35% | Guarded pilot scaffold added (allowlist, robots, provenance, validation gate) |
+| Local Hook Guardrail Overlay | 100% | 3 hooks live: session context, git safety, customization validation |
+| Hook Validator Hardening | 100% | Naming, ordering, script existence, duplicate coverage, untracked-file detection |
 | Load-Pull + S-Param Viewers | 100% | Parsers + Smith chart |
 | RF CAD Tool | 60% | Basic layout, no advanced routing |
 | PA Reference Manual Ch.1 | 100% | Transistor fundamentals + IFX data |
@@ -271,6 +284,8 @@ Run: `docker-compose up -d` from `PA design App/`
 8. **`PA_Design_Reference_Manual/RF_Engg_books/`** — 30+ reference PDFs; cite from these when writing technical content
 9. **Crawl4AI runs must stay allowlist-only** — never crawl outside approved domains in seed catalog
 10. **KB ingestion defaults to review mode** — generate artifacts first, apply only after human sign-off
+11. **Local hooks are active under `.github/hooks/`** — use them as deterministic guardrails, not as a replacement for agent reasoning
+12. **Atomic carries a local hook overlay, not the full global hook toolchain** — validator/test innovations originate in `Global_Agentic_Operating_System` and are propagated here selectively
 
 ---
 
@@ -372,6 +387,41 @@ Provide a compliant, auditable ingestion path to refresh vendor device libraries
 - Pilot currently focuses on safe scaffolding and verification artifacts, not full datasheet table extraction.
 - Engineering review remains mandatory before production merges.
 - Real Crawl4AI runs need Python 3.12/3.13 today; Python 3.14 is still blocked by dependency build compatibility on this Windows workstation.
+
+---
+
+## 13b. Local Hook Guardrail Overlay (added 2026-04-04)
+
+### Objective
+Protect repo-local Copilot customization files and git operations in Atomic without over-importing every global-only hook utility.
+
+### Files added or updated
+- `.github/AGENTS.md`
+- `.github/hooks/README.md`
+- `.github/hooks/01-session-start.json`
+- `.github/hooks/02-pretool-git-safety.json`
+- `.github/hooks/03-posttool-customization-validate.json`
+- `.github/hooks/scripts/session_start_context.py`
+- `.github/hooks/scripts/pretool_git_safety.py`
+- `.github/hooks/scripts/posttool_customization_validate.py`
+
+### Current local hook scope
+1. Session-start repo context injection
+2. Destructive-git blocking and higher-risk git confirmation requests
+3. Post-tool customization validation for hook/config shape and wiring
+
+### Validator hardening now present locally
+1. Hook filename pattern enforcement (`NN-kebab-case.json`)
+2. Supported event validation (`SessionStart`, `PreToolUse`, `PostToolUse`)
+3. Referenced script existence checks under `.github/hooks/scripts/`
+4. Duplicate event-script coverage detection across the hook suite
+5. Unique and strictly increasing numeric hook prefix validation
+6. Correct untracked-file detection via `git status --porcelain --untracked-files=all`
+
+### Deliberate boundary
+- Atomic does **not** currently carry the global-only propagation reminder hook.
+- Atomic does **not** currently carry the global fixture runner or hook inventory helper.
+- Global hook experiments and self-tests should land first in `Global_Agentic_Operating_System`, then be back-ported here only when they are useful locally.
 
 ---
 
