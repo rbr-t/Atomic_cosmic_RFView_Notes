@@ -18,6 +18,7 @@ HOOK_EVENTS = {
 }
 
 HOOK_FILENAME_PATTERN = re.compile(r"^\d{2}-[a-z0-9-]+\.json$")
+HOOK_PREFIX_PATTERN = re.compile(r"^(\d{2})-")
 SCRIPT_PATH_PATTERN = re.compile(r"\.github/hooks/scripts/[A-Za-z0-9_.-]+\.py")
 
 
@@ -173,9 +174,31 @@ def referenced_script_paths(entry):
 def validate_hook_suite(repo_root: str):
     errors = []
     coverage = {}
-    for hook_file in hook_config_files(repo_root):
+    hook_files = hook_config_files(repo_root)
+    seen_prefixes = {}
+    previous_prefix = None
+
+    for hook_file in hook_files:
         file_errors, registrations = validate_hook_json(hook_file)
         errors.extend(file_errors)
+
+        prefix_match = HOOK_PREFIX_PATTERN.match(hook_file.name)
+        if prefix_match:
+            prefix = int(prefix_match.group(1))
+            existing = seen_prefixes.get(prefix)
+            if existing is not None:
+                errors.append(
+                    "duplicate hook prefix "
+                    f"{prefix_match.group(1)}: {existing.as_posix()}, {hook_file.as_posix()}"
+                )
+            elif previous_prefix is not None and prefix <= previous_prefix:
+                errors.append(
+                    "hook prefixes must be strictly increasing: "
+                    f"{hook_file.as_posix()} follows prefix {previous_prefix:02d}"
+                )
+            seen_prefixes[prefix] = hook_file
+            previous_prefix = prefix
+
         for event_name, script_path, source_file in registrations:
             key = (event_name, script_path)
             coverage.setdefault(key, []).append(source_file)
