@@ -20,6 +20,3 @@ renv/
 
 # Allow the rendered HTML output
 !Atomic_Cosmic_RFView.html
-
-# Nested standalone repositories
-Global_Agentic_Operating_System/
