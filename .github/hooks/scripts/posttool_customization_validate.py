@@ -64,7 +64,7 @@ def git(args, cwd):
 
 
 def changed_files(repo_root: str):
-    output = git(["status", "--porcelain"], repo_root)
+    output = git(["status", "--porcelain", "--untracked-files=all"], repo_root)
     files = []
     for line in output.splitlines():
         if len(line) < 4:
