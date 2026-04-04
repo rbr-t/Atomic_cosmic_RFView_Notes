@@ -1,953 +1,1373 @@
 [
   {
     "_comment": "=== Broadband / Avionics / ISM / Industrial ===",
-    "device_id":   "ampleon_BLF188XR",
+    "device_id": "ampleon_BLF188XR",
     "part_number": "BLF188XR",
     "manufacturer": "Ampleon",
-    "family":      "BLF-broadband",
-    "series":      "BLF188",
-    "technology":  "LDMOS",
-    "generation":  "Gen8",
-    "package":     "MOS-10",
-    "package_note":"SOT1227A — 10-lead plastic overmoulded, push-pull internal configuration",
-    "vdd_v":       50,
-    "vdd_range_v": [40, 65],
-    "idd_q_ma":    600,
+    "family": "BLF-broadband",
+    "series": "BLF188",
+    "technology": "LDMOS",
+    "generation": "Gen8",
+    "package": "MOS-10",
+    "package_note": "SOT1227A \u2014 10-lead plastic overmoulded, push-pull internal configuration",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      40,
+      65
+    ],
+    "idd_q_ma": 600,
     "freq_min_mhz": 0.01,
     "freq_max_mhz": 500,
     "freq_test_mhz": 230,
-    "pout_w_cw":   null,
+    "pout_w_cw": null,
     "pout_w_pulse": 1800,
-    "pout_dbm":    62.6,
-    "gain_db":     23.5,
+    "pout_dbm": 62.6,
+    "gain_db": 23.5,
     "drain_eff_pct": 72,
-    "pae_pct":     null,
-    "p1db_w":      null,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
-    "impedance_ref_plane": "n/a — internally matched at 50Ω",
-    "s_params_available":  false,
+    "pae_pct": null,
+    "p1db_w": null,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
+    "impedance_ref_plane": "n/a \u2014 internally matched at 50\u03a9",
+    "s_params_available": false,
     "spice_model_available": false,
     "ads_model_available": true,
-    "application": ["avionics", "ism", "industrial", "medical"],
-    "use_case":    ["SSR", "IFF", "TACAN", "DME", "ATC", "plasma", "heating"],
-    "role":        ["main"],
-    "topology":    ["push-pull", "single-ended"],
-    "status":      "active",
+    "application": [
+      "avionics",
+      "ism",
+      "industrial",
+      "medical"
+    ],
+    "use_case": [
+      "SSR",
+      "IFF",
+      "TACAN",
+      "DME",
+      "ATC",
+      "plasma",
+      "heating"
+    ],
+    "role": [
+      "main"
+    ],
+    "topology": [
+      "push-pull",
+      "single-ended"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/broadband-50v-ldmos-transistors/BLF188XR.html",
     "app_notes": [
-      {"title": "AN11072 — BLF188XR demo board description", "url": "https://www.ampleon.com/documents/application-note/AN11072.pdf"},
-      {"title": "AN11143 — 1–500 MHz 1800 W pulsed amplifier", "url": "https://www.ampleon.com/documents/application-note/AN11143.pdf"}
+      {
+        "title": "AN11072 \u2014 BLF188XR demo board description",
+        "url": "https://www.ampleon.com/documents/application-note/AN11072.pdf"
+      },
+      {
+        "title": "AN11143 \u2014 1\u2013500 MHz 1800 W pulsed amplifier",
+        "url": "https://www.ampleon.com/documents/application-note/AN11143.pdf"
+      }
     ],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "high",
-    "tags": ["broadband", "kW-class", "LDMOS", "LDMOS-Gen8", "avionics", "ISM", "pulse", "50V", "push-pull", "internally-matched", "MOS-10"],
-    "notes": "Industry workhorse for SSR / IFF / TACAN / DME avionics pulse transmitters. Push-pull pair of identical LDMOS dice inside MOS-10 package with internal input matching to 50Ω. Excellent gain flatness 1 kHz–500 MHz. Peak pulsed output 1800 W at 230 MHz, duty cycle typically ≤20 %. Verify exact Pout / gain / DE figures against current datasheet."
+    "tags": [
+      "broadband",
+      "kW-class",
+      "LDMOS",
+      "LDMOS-Gen8",
+      "avionics",
+      "ISM",
+      "pulse",
+      "50V",
+      "push-pull",
+      "internally-matched",
+      "MOS-10"
+    ],
+    "notes": "Industry workhorse for SSR / IFF / TACAN / DME avionics pulse transmitters. Push-pull pair of identical LDMOS dice inside MOS-10 package with internal input matching to 50\u03a9. Excellent gain flatness 1 kHz\u2013500 MHz. Peak pulsed output 1800 W at 230 MHz, duty cycle typically \u226420 %. Verify exact Pout / gain / DE figures against current datasheet."
   },
-
   {
-    "device_id":   "ampleon_BLF188XRS",
+    "device_id": "ampleon_BLF188XRS",
     "part_number": "BLF188XRS",
     "manufacturer": "Ampleon",
-    "family":      "BLF-broadband",
-    "series":      "BLF188",
-    "technology":  "LDMOS",
-    "generation":  "Gen8",
-    "package":     "MOS-10S",
-    "package_note":"Split / single-ended variant of MOS-10 — each half separately accessible",
-    "vdd_v":       50,
-    "vdd_range_v": [40, 65],
-    "idd_q_ma":    300,
+    "family": "BLF-broadband",
+    "series": "BLF188",
+    "technology": "LDMOS",
+    "generation": "Gen8",
+    "package": "MOS-10S",
+    "package_note": "Split / single-ended variant of MOS-10 \u2014 each half separately accessible",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      40,
+      65
+    ],
+    "idd_q_ma": 300,
     "freq_min_mhz": 0.01,
     "freq_max_mhz": 500,
     "freq_test_mhz": 230,
-    "pout_w_cw":   null,
+    "pout_w_cw": null,
     "pout_w_pulse": 900,
-    "pout_dbm":    59.5,
-    "gain_db":     23,
+    "pout_dbm": 59.5,
+    "gain_db": 23,
     "drain_eff_pct": 72,
-    "pae_pct":     null,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
-    "impedance_ref_plane": "n/a — internally matched at 50Ω",
-    "s_params_available":  false,
+    "pae_pct": null,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
+    "impedance_ref_plane": "n/a \u2014 internally matched at 50\u03a9",
+    "s_params_available": false,
     "spice_model_available": false,
     "ads_model_available": true,
-    "application": ["avionics", "ism", "industrial", "medical"],
-    "use_case":    ["SSR", "IFF", "TACAN", "DME", "heating"],
-    "role":        ["main"],
-    "topology":    ["single-ended"],
-    "status":      "active",
+    "application": [
+      "avionics",
+      "ism",
+      "industrial",
+      "medical"
+    ],
+    "use_case": [
+      "SSR",
+      "IFF",
+      "TACAN",
+      "DME",
+      "heating"
+    ],
+    "role": [
+      "main"
+    ],
+    "topology": [
+      "single-ended"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/broadband-50v-ldmos-transistors/BLF188XRS.html",
     "app_notes": [],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "medium",
-    "tags": ["broadband", "kW-class", "LDMOS", "LDMOS-Gen8", "avionics", "ISM", "pulse", "50V", "single-ended", "internally-matched"],
+    "tags": [
+      "broadband",
+      "kW-class",
+      "LDMOS",
+      "LDMOS-Gen8",
+      "avionics",
+      "ISM",
+      "pulse",
+      "50V",
+      "single-ended",
+      "internally-matched"
+    ],
     "notes": "Single-ended (split) variant of BLF188XR. Two transistors independently accessible, allowing use as balanced pair or as independent high-power single transistors. ~900 W per half. Confirm exact part number and specifications with current Ampleon datasheet."
   },
-
   {
-    "device_id":   "ampleon_BLF578",
+    "device_id": "ampleon_BLF578",
     "part_number": "BLF578",
     "manufacturer": "Ampleon",
-    "family":      "BLF-broadband",
-    "series":      "BLF578",
-    "technology":  "LDMOS",
-    "generation":  "Gen8",
-    "package":     "SOT1209",
-    "package_note":"Air-cavity ceramic package for CW applications",
-    "vdd_v":       50,
-    "vdd_range_v": [40, 65],
-    "idd_q_ma":    null,
+    "family": "BLF-broadband",
+    "series": "BLF578",
+    "technology": "LDMOS",
+    "generation": "Gen8",
+    "package": "SOT1209",
+    "package_note": "Air-cavity ceramic package for CW applications",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      40,
+      65
+    ],
+    "idd_q_ma": null,
     "freq_min_mhz": 1.8,
     "freq_max_mhz": 500,
     "freq_test_mhz": 230,
-    "pout_w_cw":   600,
+    "pout_w_cw": 600,
     "pout_w_pulse": null,
-    "pout_dbm":    57.8,
-    "gain_db":     20,
+    "pout_dbm": 57.8,
+    "gain_db": 20,
     "drain_eff_pct": 68,
-    "pae_pct":     null,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
-    "impedance_ref_plane": "n/a — internally matched",
-    "s_params_available":  false,
+    "pae_pct": null,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
+    "impedance_ref_plane": "n/a \u2014 internally matched",
+    "s_params_available": false,
     "spice_model_available": false,
     "ads_model_available": false,
-    "application": ["ism", "industrial", "broadcast", "medical"],
-    "use_case":    ["heating", "plasma", "FM-tx"],
-    "role":        ["main"],
-    "topology":    ["push-pull"],
-    "status":      "active",
+    "application": [
+      "ism",
+      "industrial",
+      "broadcast",
+      "medical"
+    ],
+    "use_case": [
+      "heating",
+      "plasma",
+      "FM-tx"
+    ],
+    "role": [
+      "main"
+    ],
+    "topology": [
+      "push-pull"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/broadband-50v-ldmos-transistors/BLF578.html",
     "app_notes": [],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "medium",
-    "tags": ["broadband", "LDMOS", "LDMOS-Gen8", "ISM", "CW", "50V", "push-pull", "internally-matched", "600W"],
-    "notes": "CW-rated broadband LDMOS for industrial and broadcast CW applications. Lower pulsed handling than BLF188XR — rated for continuous operation. Verify exact performance specifications with current Ampleon datasheet."
+    "tags": [
+      "broadband",
+      "LDMOS",
+      "LDMOS-Gen8",
+      "ISM",
+      "CW",
+      "50V",
+      "push-pull",
+      "internally-matched",
+      "600W"
+    ],
+    "notes": "CW-rated broadband LDMOS for industrial and broadcast CW applications. Lower pulsed handling than BLF188XR \u2014 rated for continuous operation. Verify exact performance specifications with current Ampleon datasheet."
   },
-
   {
     "_comment": "=== Cellular 700-1000 MHz ===",
-    "device_id":   "ampleon_BLF8G10-80",
+    "device_id": "ampleon_BLF8G10-80",
     "part_number": "BLF8G10-80",
     "manufacturer": "Ampleon",
-    "family":      "BLF-cellular-L-band",
-    "series":      "BLF8G10",
-    "technology":  "LDMOS",
-    "generation":  "Gen9",
-    "package":     "LFPAK56",
-    "package_note":"Plastic SMD package, compatible with automated board assembly",
-    "vdd_v":       28,
-    "vdd_range_v": [26, 32],
-    "idd_q_ma":    250,
+    "family": "BLF-cellular-L-band",
+    "series": "BLF8G10",
+    "technology": "LDMOS",
+    "generation": "Gen9",
+    "package": "LFPAK56",
+    "package_note": "Plastic SMD package, compatible with automated board assembly",
+    "vdd_v": 28,
+    "vdd_range_v": [
+      26,
+      32
+    ],
+    "idd_q_ma": 250,
     "freq_min_mhz": 700,
     "freq_max_mhz": 1000,
     "freq_test_mhz": 869,
-    "pout_w_cw":   80,
+    "pout_w_cw": 80,
     "pout_w_pulse": null,
-    "pout_dbm":    49.0,
-    "gain_db":     16,
+    "pout_dbm": 49.0,
+    "gain_db": 16,
     "drain_eff_pct": 45,
-    "pae_pct":     40,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
+    "pae_pct": 40,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
     "impedance_ref_plane": "package_lead",
-    "s_params_available":  true,
+    "s_params_available": true,
     "spice_model_available": false,
     "ads_model_available": true,
-    "application": ["cellular", "4G", "3G"],
-    "use_case":    ["macrocell", "microcell"],
-    "role":        ["main", "peak"],
-    "topology":    ["single-ended", "Doherty"],
-    "status":      "active",
+    "application": [
+      "cellular",
+      "4G",
+      "3G"
+    ],
+    "use_case": [
+      "macrocell",
+      "microcell"
+    ],
+    "role": [
+      "main",
+      "peak"
+    ],
+    "topology": [
+      "single-ended",
+      "Doherty"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/cellular-ldmos-transistors/BLF8G10-80.html",
     "app_notes": [],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "medium",
-    "tags": ["LDMOS", "LDMOS-Gen9", "cellular", "700MHz", "900MHz", "B8", "B20", "B28", "28V", "80W", "Doherty", "4G", "LTE"],
-    "notes": "Gen9 LDMOS for 700–1000 MHz cellular bands (LTE B8/B20/B28 downlink). 28 V supply, 80 W CW. Suitable as main or peak device in Doherty PA for small/micro cell applications. Confirm exact impedance and efficiency with datasheet."
+    "tags": [
+      "LDMOS",
+      "LDMOS-Gen9",
+      "cellular",
+      "700MHz",
+      "900MHz",
+      "B8",
+      "B20",
+      "B28",
+      "28V",
+      "80W",
+      "Doherty",
+      "4G",
+      "LTE"
+    ],
+    "notes": "Gen9 LDMOS for 700\u20131000 MHz cellular bands (LTE B8/B20/B28 downlink). 28 V supply, 80 W CW. Suitable as main or peak device in Doherty PA for small/micro cell applications. Confirm exact impedance and efficiency with datasheet."
   },
-
   {
-    "_comment": "=== Cellular 1.8–2.1 GHz (2 GHz macro, LTE Band 1/3/4) ===",
-    "device_id":   "ampleon_BLF7G20LS-130P",
+    "_comment": "=== Cellular 1.8\u20132.1 GHz (2 GHz macro, LTE Band 1/3/4) ===",
+    "device_id": "ampleon_BLF7G20LS-130P",
     "part_number": "BLF7G20LS-130P",
     "manufacturer": "Ampleon",
-    "family":      "BLF-cellular-L-band",
-    "series":      "BLF7G20",
-    "technology":  "LDMOS",
-    "generation":  "Gen9",
-    "package":     "LFPAK56",
-    "package_note":"Plastic SMD LFPAK56 package",
-    "vdd_v":       50,
-    "vdd_range_v": [45, 55],
-    "idd_q_ma":    300,
+    "family": "BLF-cellular-L-band",
+    "series": "BLF7G20",
+    "technology": "LDMOS",
+    "generation": "Gen9",
+    "package": "LFPAK56",
+    "package_note": "Plastic SMD LFPAK56 package",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      45,
+      55
+    ],
+    "idd_q_ma": 300,
     "freq_min_mhz": 1800,
     "freq_max_mhz": 2200,
     "freq_test_mhz": 2140,
-    "pout_w_cw":   130,
+    "pout_w_cw": 130,
     "pout_w_pulse": null,
-    "pout_dbm":    51.1,
-    "gain_db":     17,
+    "pout_dbm": 51.1,
+    "gain_db": 17,
     "drain_eff_pct": 50,
-    "pae_pct":     45,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
+    "pae_pct": 45,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
     "impedance_ref_plane": "package_lead",
-    "s_params_available":  true,
+    "s_params_available": true,
     "spice_model_available": false,
     "ads_model_available": true,
-    "application": ["cellular", "4G", "3G"],
-    "use_case":    ["macrocell"],
-    "role":        ["main", "peak"],
-    "topology":    ["single-ended", "Doherty"],
-    "status":      "active",
+    "application": [
+      "cellular",
+      "4G",
+      "3G"
+    ],
+    "use_case": [
+      "macrocell"
+    ],
+    "role": [
+      "main",
+      "peak"
+    ],
+    "topology": [
+      "single-ended",
+      "Doherty"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/cellular-ldmos-transistors/BLF7G20LS-130P.html",
     "app_notes": [],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "medium",
-    "tags": ["LDMOS", "LDMOS-Gen9", "cellular", "2GHz", "1800MHz", "B1", "B3", "50V", "130W", "Doherty", "4G", "LTE", "L-band"],
-    "notes": "Gen9 50V LDMOS for 1.8–2.2 GHz cellular macro infrastructure. Covers LTE Band 1 (2.1 GHz) and Band 3 (1800 MHz). Main or peak stage in 130 W Doherty PAs. Verify exact part suffix (e.g. PBG, etc.) with Ampleon current portfolio."
+    "tags": [
+      "LDMOS",
+      "LDMOS-Gen9",
+      "cellular",
+      "2GHz",
+      "1800MHz",
+      "B1",
+      "B3",
+      "50V",
+      "130W",
+      "Doherty",
+      "4G",
+      "LTE",
+      "L-band"
+    ],
+    "notes": "Gen9 50V LDMOS for 1.8\u20132.2 GHz cellular macro infrastructure. Covers LTE Band 1 (2.1 GHz) and Band 3 (1800 MHz). Main or peak stage in 130 W Doherty PAs. Verify exact part suffix (e.g. PBG, etc.) with Ampleon current portfolio."
   },
-
   {
-    "_comment": "=== Cellular 2.1 GHz (LTE Band 1 — most dominant macro cell band globally) ===",
-    "device_id":   "ampleon_BLF7G22LS-160P",
+    "_comment": "=== Cellular 2.1 GHz (LTE Band 1 \u2014 most dominant macro cell band globally) ===",
+    "device_id": "ampleon_BLF7G22LS-160P",
     "part_number": "BLF7G22LS-160P",
     "manufacturer": "Ampleon",
-    "family":      "BLF-cellular-L-band",
-    "series":      "BLF7G22",
-    "technology":  "LDMOS",
-    "generation":  "Gen9",
-    "package":     "LFPAK56",
-    "package_note":"Plastic SMD LFPAK56 package — single-device",
-    "vdd_v":       50,
-    "vdd_range_v": [45, 55],
-    "idd_q_ma":    350,
+    "family": "BLF-cellular-L-band",
+    "series": "BLF7G22",
+    "technology": "LDMOS",
+    "generation": "Gen9",
+    "package": "LFPAK56",
+    "package_note": "Plastic SMD LFPAK56 package \u2014 single-device",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      45,
+      55
+    ],
+    "idd_q_ma": 350,
     "freq_min_mhz": 2110,
     "freq_max_mhz": 2170,
     "freq_test_mhz": 2140,
-    "pout_w_cw":   160,
+    "pout_w_cw": 160,
     "pout_w_pulse": null,
-    "pout_dbm":    52.0,
-    "gain_db":     17.5,
+    "pout_dbm": 52.0,
+    "gain_db": 17.5,
     "drain_eff_pct": 55,
-    "pae_pct":     48,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
+    "pae_pct": 48,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
     "impedance_ref_plane": "package_lead",
-    "s_params_available":  true,
+    "s_params_available": true,
     "spice_model_available": false,
     "ads_model_available": true,
-    "application": ["cellular", "4G", "3G"],
-    "use_case":    ["macrocell"],
-    "role":        ["main", "peak"],
-    "topology":    ["single-ended", "Doherty", "balanced"],
-    "status":      "active",
+    "application": [
+      "cellular",
+      "4G",
+      "3G"
+    ],
+    "use_case": [
+      "macrocell"
+    ],
+    "role": [
+      "main",
+      "peak"
+    ],
+    "topology": [
+      "single-ended",
+      "Doherty",
+      "balanced"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/cellular-ldmos-transistors/BLF7G22LS-160P.html",
     "app_notes": [
-      {"title": "AN11303 — Doherty PA using BLF7G22LS-160P (2.14 GHz, 160 W avg)", "url": "https://www.ampleon.com/documents/application-note/AN11303.pdf"}
+      {
+        "title": "AN11303 \u2014 Doherty PA using BLF7G22LS-160P (2.14 GHz, 160 W avg)",
+        "url": "https://www.ampleon.com/documents/application-note/AN11303.pdf"
+      }
     ],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "high",
-    "tags": ["LDMOS", "LDMOS-Gen9", "cellular", "2100MHz", "B1", "50V", "160W", "Doherty", "4G", "LTE", "3G", "WCDMA", "S-band", "macrocell"],
+    "tags": [
+      "LDMOS",
+      "LDMOS-Gen9",
+      "cellular",
+      "2100MHz",
+      "B1",
+      "50V",
+      "160W",
+      "Doherty",
+      "4G",
+      "LTE",
+      "3G",
+      "WCDMA",
+      "S-band",
+      "macrocell"
+    ],
     "notes": "Most referenced Gen9 LDMOS for 2.1 GHz macro cell Doherty PA designs. 50 V, 160 W CW rated. Widely cited in academic PA literature and Ampleon app notes (e.g. AN11303 covers a 160 W average Doherty at 2.14 GHz). Key device for main or peak stage. Download datasheet and AN11303 for precise Ropt, Xopt and matching network topology."
   },
-
   {
-    "device_id":   "ampleon_BLF7G22LS-80P",
+    "device_id": "ampleon_BLF7G22LS-80P",
     "part_number": "BLF7G22LS-80P",
     "manufacturer": "Ampleon",
-    "family":      "BLF-cellular-L-band",
-    "series":      "BLF7G22",
-    "technology":  "LDMOS",
-    "generation":  "Gen9",
-    "package":     "LFPAK56",
-    "vdd_v":       50,
-    "vdd_range_v": [45, 55],
-    "idd_q_ma":    200,
+    "family": "BLF-cellular-L-band",
+    "series": "BLF7G22",
+    "technology": "LDMOS",
+    "generation": "Gen9",
+    "package": "LFPAK56",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      45,
+      55
+    ],
+    "idd_q_ma": 200,
     "freq_min_mhz": 2110,
     "freq_max_mhz": 2170,
     "freq_test_mhz": 2140,
-    "pout_w_cw":   80,
+    "pout_w_cw": 80,
     "pout_w_pulse": null,
-    "pout_dbm":    49.0,
-    "gain_db":     17,
+    "pout_dbm": 49.0,
+    "gain_db": 17,
     "drain_eff_pct": 55,
-    "pae_pct":     47,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
+    "pae_pct": 47,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
     "impedance_ref_plane": "package_lead",
-    "s_params_available":  true,
+    "s_params_available": true,
     "spice_model_available": false,
     "ads_model_available": true,
-    "application": ["cellular", "4G", "3G"],
-    "use_case":    ["macrocell", "microcell"],
-    "role":        ["main", "peak", "driver"],
-    "topology":    ["single-ended", "Doherty"],
-    "status":      "active",
+    "application": [
+      "cellular",
+      "4G",
+      "3G"
+    ],
+    "use_case": [
+      "macrocell",
+      "microcell"
+    ],
+    "role": [
+      "main",
+      "peak",
+      "driver"
+    ],
+    "topology": [
+      "single-ended",
+      "Doherty"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/cellular-ldmos-transistors/BLF7G22LS-80P.html",
     "app_notes": [],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "medium",
-    "tags": ["LDMOS", "LDMOS-Gen9", "cellular", "2100MHz", "B1", "50V", "80W", "Doherty", "4G", "LTE", "S-band"],
-    "notes": "80 W variant of the BLF7G22 Gen9 family. Can serve as main stage in medium-power Doherty, peak stage in 40+80 W asymmetric Doherty, or driver stage in higher-power chains. Same package as BLF7G22LS-160P — useful for matched-pair Doherty designs."
+    "tags": [
+      "LDMOS",
+      "LDMOS-Gen9",
+      "cellular",
+      "2100MHz",
+      "B1",
+      "50V",
+      "80W",
+      "Doherty",
+      "4G",
+      "LTE",
+      "S-band"
+    ],
+    "notes": "80 W variant of the BLF7G22 Gen9 family. Can serve as main stage in medium-power Doherty, peak stage in 40+80 W asymmetric Doherty, or driver stage in higher-power chains. Same package as BLF7G22LS-160P \u2014 useful for matched-pair Doherty designs."
   },
-
   {
-    "device_id":   "ampleon_BLF7G22LS-40P",
+    "device_id": "ampleon_BLF7G22LS-40P",
     "part_number": "BLF7G22LS-40P",
     "manufacturer": "Ampleon",
-    "family":      "BLF-cellular-L-band",
-    "series":      "BLF7G22",
-    "technology":  "LDMOS",
-    "generation":  "Gen9",
-    "package":     "LFPAK56",
-    "vdd_v":       50,
-    "vdd_range_v": [45, 55],
-    "idd_q_ma":    100,
+    "family": "BLF-cellular-L-band",
+    "series": "BLF7G22",
+    "technology": "LDMOS",
+    "generation": "Gen9",
+    "package": "LFPAK56",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      45,
+      55
+    ],
+    "idd_q_ma": 100,
     "freq_min_mhz": 2110,
     "freq_max_mhz": 2170,
     "freq_test_mhz": 2140,
-    "pout_w_cw":   40,
+    "pout_w_cw": 40,
     "pout_w_pulse": null,
-    "pout_dbm":    46.0,
-    "gain_db":     17,
+    "pout_dbm": 46.0,
+    "gain_db": 17,
     "drain_eff_pct": 53,
-    "pae_pct":     46,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
+    "pae_pct": 46,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
     "impedance_ref_plane": "package_lead",
-    "s_params_available":  true,
+    "s_params_available": true,
     "spice_model_available": false,
     "ads_model_available": true,
-    "application": ["cellular", "4G", "3G"],
-    "use_case":    ["macrocell", "microcell"],
-    "role":        ["driver", "main", "peak"],
-    "topology":    ["single-ended", "Doherty"],
-    "status":      "active",
+    "application": [
+      "cellular",
+      "4G",
+      "3G"
+    ],
+    "use_case": [
+      "macrocell",
+      "microcell"
+    ],
+    "role": [
+      "driver",
+      "main",
+      "peak"
+    ],
+    "topology": [
+      "single-ended",
+      "Doherty"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/cellular-ldmos-transistors/BLF7G22LS-40P.html",
     "app_notes": [],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "medium",
-    "tags": ["LDMOS", "LDMOS-Gen9", "cellular", "2100MHz", "B1", "50V", "40W", "driver", "4G", "LTE", "S-band"],
-    "notes": "40 W variant — typically used as driver stage in 160 W Doherty chains, or main device in small-cell single-ended PAs. Part of BLF7G22 family giving a complete driver-to-main staged set."
+    "tags": [
+      "LDMOS",
+      "LDMOS-Gen9",
+      "cellular",
+      "2100MHz",
+      "B1",
+      "50V",
+      "40W",
+      "driver",
+      "4G",
+      "LTE",
+      "S-band"
+    ],
+    "notes": "40 W variant \u2014 typically used as driver stage in 160 W Doherty chains, or main device in small-cell single-ended PAs. Part of BLF7G22 family giving a complete driver-to-main staged set."
   },
-
   {
-    "_comment": "=== Cellular 2.5–2.7 GHz (LTE Band 7 / TD-LTE) ===",
-    "device_id":   "ampleon_BLF7G27-70",
+    "_comment": "=== Cellular 2.5\u20132.7 GHz (LTE Band 7 / TD-LTE) ===",
+    "device_id": "ampleon_BLF7G27-70",
     "part_number": "BLF7G27-70",
     "manufacturer": "Ampleon",
-    "family":      "BLF-cellular-L-band",
-    "series":      "BLF7G27",
-    "technology":  "LDMOS",
-    "generation":  "Gen9",
-    "package":     "LFPAK56",
-    "vdd_v":       50,
-    "vdd_range_v": [45, 55],
-    "idd_q_ma":    200,
+    "family": "BLF-cellular-L-band",
+    "series": "BLF7G27",
+    "technology": "LDMOS",
+    "generation": "Gen9",
+    "package": "LFPAK56",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      45,
+      55
+    ],
+    "idd_q_ma": 200,
     "freq_min_mhz": 2500,
     "freq_max_mhz": 2700,
     "freq_test_mhz": 2620,
-    "pout_w_cw":   70,
+    "pout_w_cw": 70,
     "pout_w_pulse": null,
-    "pout_dbm":    48.5,
-    "gain_db":     16.5,
+    "pout_dbm": 48.5,
+    "gain_db": 16.5,
     "drain_eff_pct": 50,
-    "pae_pct":     44,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
+    "pae_pct": 44,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
     "impedance_ref_plane": "package_lead",
-    "s_params_available":  true,
+    "s_params_available": true,
     "spice_model_available": false,
     "ads_model_available": true,
-    "application": ["cellular", "4G"],
-    "use_case":    ["macrocell"],
-    "role":        ["main", "peak"],
-    "topology":    ["single-ended", "Doherty"],
-    "status":      "active",
+    "application": [
+      "cellular",
+      "4G"
+    ],
+    "use_case": [
+      "macrocell"
+    ],
+    "role": [
+      "main",
+      "peak"
+    ],
+    "topology": [
+      "single-ended",
+      "Doherty"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/cellular-ldmos-transistors/BLF7G27-70.html",
     "app_notes": [],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "medium",
-    "tags": ["LDMOS", "LDMOS-Gen9", "cellular", "2600MHz", "B7", "50V", "70W", "TD-LTE", "4G", "S-band", "Doherty"],
-    "notes": "Gen9 LDMOS for LTE Band 7 (2500–2690 MHz) and TD-LTE at 2.6 GHz. 50 V, 70 W CW. Main or peak stage in 2.6 GHz Doherty PAs for macrocell base stations. Gain slightly lower at this frequency vs 2.1 GHz family — budgets should be planned accordingly."
+    "tags": [
+      "LDMOS",
+      "LDMOS-Gen9",
+      "cellular",
+      "2600MHz",
+      "B7",
+      "50V",
+      "70W",
+      "TD-LTE",
+      "4G",
+      "S-band",
+      "Doherty"
+    ],
+    "notes": "Gen9 LDMOS for LTE Band 7 (2500\u20132690 MHz) and TD-LTE at 2.6 GHz. 50 V, 70 W CW. Main or peak stage in 2.6 GHz Doherty PAs for macrocell base stations. Gain slightly lower at this frequency vs 2.1 GHz family \u2014 budgets should be planned accordingly."
   },
-
   {
-    "device_id":   "ampleon_BLF7G27-100",
+    "device_id": "ampleon_BLF7G27-100",
     "part_number": "BLF7G27-100",
     "manufacturer": "Ampleon",
-    "family":      "BLF-cellular-L-band",
-    "series":      "BLF7G27",
-    "technology":  "LDMOS",
-    "generation":  "Gen9",
-    "package":     "LFPAK56",
-    "vdd_v":       50,
-    "vdd_range_v": [45, 55],
-    "idd_q_ma":    260,
+    "family": "BLF-cellular-L-band",
+    "series": "BLF7G27",
+    "technology": "LDMOS",
+    "generation": "Gen9",
+    "package": "LFPAK56",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      45,
+      55
+    ],
+    "idd_q_ma": 260,
     "freq_min_mhz": 2500,
     "freq_max_mhz": 2700,
     "freq_test_mhz": 2620,
-    "pout_w_cw":   100,
+    "pout_w_cw": 100,
     "pout_w_pulse": null,
-    "pout_dbm":    50.0,
-    "gain_db":     16,
+    "pout_dbm": 50.0,
+    "gain_db": 16,
     "drain_eff_pct": 50,
-    "pae_pct":     43,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
+    "pae_pct": 43,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
     "impedance_ref_plane": "package_lead",
-    "s_params_available":  true,
+    "s_params_available": true,
     "spice_model_available": false,
     "ads_model_available": false,
-    "application": ["cellular", "4G"],
-    "use_case":    ["macrocell"],
-    "role":        ["main", "peak"],
-    "topology":    ["single-ended", "Doherty"],
-    "status":      "active",
+    "application": [
+      "cellular",
+      "4G"
+    ],
+    "use_case": [
+      "macrocell"
+    ],
+    "role": [
+      "main",
+      "peak"
+    ],
+    "topology": [
+      "single-ended",
+      "Doherty"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/cellular-ldmos-transistors/",
     "app_notes": [],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "low",
-    "tags": ["LDMOS", "LDMOS-Gen9", "cellular", "2600MHz", "B7", "50V", "100W", "4G", "S-band", "Doherty"],
-    "notes": "100 W variant in BLF7G27 family (2.6 GHz). Low confidence — verify exact part number, packaging suffix and specifications with current Ampleon product catalogue."
+    "tags": [
+      "LDMOS",
+      "LDMOS-Gen9",
+      "cellular",
+      "2600MHz",
+      "B7",
+      "50V",
+      "100W",
+      "4G",
+      "S-band",
+      "Doherty"
+    ],
+    "notes": "100 W variant in BLF7G27 family (2.6 GHz). Low confidence \u2014 verify exact part number, packaging suffix and specifications with current Ampleon product catalogue."
   },
-
   {
-    "_comment": "=== 5G NR sub-6 GHz — LDMOS Gen9 (CLF family placeholder) ===",
-    "device_id":   "ampleon_CLF1G7060S",
+    "_comment": "=== 5G NR sub-6 GHz \u2014 LDMOS Gen9 (CLF family placeholder) ===",
+    "device_id": "ampleon_CLF1G7060S",
     "part_number": "CLF1G7060S",
     "manufacturer": "Ampleon",
-    "family":      "CLF-5G",
-    "series":      "CLF1G70",
-    "technology":  "LDMOS",
-    "generation":  "Gen9",
-    "package":     "LFPAK56",
-    "vdd_v":       50,
-    "vdd_range_v": [45, 55],
-    "idd_q_ma":    null,
+    "family": "CLF-5G",
+    "series": "CLF1G70",
+    "technology": "LDMOS",
+    "generation": "Gen9",
+    "package": "LFPAK56",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      45,
+      55
+    ],
+    "idd_q_ma": null,
     "freq_min_mhz": 1700,
     "freq_max_mhz": 1900,
     "freq_test_mhz": 1800,
-    "pout_w_cw":   60,
+    "pout_w_cw": 60,
     "pout_w_pulse": null,
-    "pout_dbm":    47.8,
-    "gain_db":     17,
+    "pout_dbm": 47.8,
+    "gain_db": 17,
     "drain_eff_pct": 52,
-    "pae_pct":     46,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
+    "pae_pct": 46,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
     "impedance_ref_plane": "package_lead",
-    "s_params_available":  false,
+    "s_params_available": false,
     "spice_model_available": false,
     "ads_model_available": false,
-    "application": ["cellular", "4G", "5G"],
-    "use_case":    ["macrocell", "massive-MIMO"],
-    "role":        ["main"],
-    "topology":    ["single-ended", "Doherty"],
-    "status":      "active",
+    "application": [
+      "cellular",
+      "4G",
+      "5G"
+    ],
+    "use_case": [
+      "macrocell",
+      "massive-MIMO"
+    ],
+    "role": [
+      "main"
+    ],
+    "topology": [
+      "single-ended",
+      "Doherty"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/",
     "app_notes": [],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "low",
-    "tags": ["LDMOS", "LDMOS-Gen9", "cellular", "1800MHz", "B3", "50V", "60W", "5G", "4G", "LTE", "CLF", "L-band"],
-    "notes": "PLACEHOLDER — CLF (Compact LDMOS Family) Gen9 device for 1.7–1.9 GHz. Ampleon's CLF series targets 5G Massive MIMO and broadband multi-band base stations. Exact model number CLF1G7060S requires verification. Download current Ampleon CLF portfolio sheet for confirmed part numbers and specifications."
+    "tags": [
+      "LDMOS",
+      "LDMOS-Gen9",
+      "cellular",
+      "1800MHz",
+      "B3",
+      "50V",
+      "60W",
+      "5G",
+      "4G",
+      "LTE",
+      "CLF",
+      "L-band"
+    ],
+    "notes": "PLACEHOLDER \u2014 CLF (Compact LDMOS Family) Gen9 device for 1.7\u20131.9 GHz. Ampleon's CLF series targets 5G Massive MIMO and broadband multi-band base stations. Exact model number CLF1G7060S requires verification. Download current Ampleon CLF portfolio sheet for confirmed part numbers and specifications."
   },
-
   {
-    "_comment": "=== GaN on SiC — C/S-band placeholder (Ampleon GaN portfolio) ===",
-    "device_id":   "ampleon_A2G09D160W",
+    "_comment": "=== GaN on SiC \u2014 C/S-band placeholder (Ampleon GaN portfolio) ===",
+    "device_id": "ampleon_A2G09D160W",
     "part_number": "A2G09D160W",
     "manufacturer": "Ampleon",
-    "family":      "GaN",
-    "series":      "A2G09",
-    "technology":  "GaN-SiC",
-    "generation":  "GaN-1",
-    "package":     "air-cavity",
-    "package_note":"Hermetic air-cavity or flange-mount package",
-    "vdd_v":       50,
-    "vdd_range_v": [45, 60],
-    "idd_q_ma":    null,
+    "family": "GaN",
+    "series": "A2G09",
+    "technology": "GaN-SiC",
+    "generation": "GaN-1",
+    "package": "air-cavity",
+    "package_note": "Hermetic air-cavity or flange-mount package",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      45,
+      60
+    ],
+    "idd_q_ma": null,
     "freq_min_mhz": 100,
-    "freq_max_mhz":	18000,
+    "freq_max_mhz": 18000,
     "freq_test_mhz": 9000,
-    "pout_w_cw":   160,
+    "pout_w_cw": 160,
     "pout_w_pulse": null,
-    "pout_dbm":    52.0,
-    "gain_db":     14,
+    "pout_dbm": 52.0,
+    "gain_db": 14,
     "drain_eff_pct": 55,
-    "pae_pct":     null,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
+    "pae_pct": null,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
     "impedance_ref_plane": "package_flange",
-    "s_params_available":  false,
+    "s_params_available": false,
     "spice_model_available": false,
     "ads_model_available": false,
-    "application": ["defense", "radar", "avionics", "ism"],
-    "use_case":    ["radar", "EW"],
-    "role":        ["main"],
-    "topology":    ["single-ended"],
-    "status":      "active",
+    "application": [
+      "defense",
+      "radar",
+      "avionics",
+      "ism"
+    ],
+    "use_case": [
+      "radar",
+      "EW"
+    ],
+    "role": [
+      "main"
+    ],
+    "topology": [
+      "single-ended"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/gan-transistors/",
     "app_notes": [],
-    "knowledge_source":     "from_training",
+    "knowledge_source": "from_training",
     "knowledge_confidence": "low",
-    "tags": ["GaN-SiC", "GaN", "X-band", "defense", "radar", "50V", "160W", "wideband"],
-    "notes": "PLACEHOLDER — Ampleon GaN on SiC product for X-band / defense / radar applications. Exact model number requires verification with current Ampleon GaN portfolio. Ampleon has been developing GaN products for defense, radar and wideband applications alongside their cellular LDMOS range. Download current GaN product brief from Ampleon."
+    "tags": [
+      "GaN-SiC",
+      "GaN",
+      "X-band",
+      "defense",
+      "radar",
+      "50V",
+      "160W",
+      "wideband"
+    ],
+    "notes": "PLACEHOLDER \u2014 Ampleon GaN on SiC product for X-band / defense / radar applications. Exact model number requires verification with current Ampleon GaN portfolio. Ampleon has been developing GaN products for defense, radar and wideband applications alongside their cellular LDMOS range. Download current GaN product brief from Ampleon."
   },
-
   {
-    "_comment": "=== 5G NR n77/n78 sub-6 GHz GaN placeholder ===",
-    "device_id":   "ampleon_GaN_3500MHz_placeholder",
-    "part_number": "PLACEHOLDER-GaN-3.5GHz",
-    "manufacturer": "Ampleon",
-    "family":      "GaN",
-    "series":      "GaN-5G",
-    "technology":  "GaN-SiC",
-    "generation":  "GaN-1",
-    "package":     "LFPAK56",
-    "vdd_v":       50,
-    "vdd_range_v": [45, 55],
-    "idd_q_ma":    null,
-    "freq_min_mhz": 3300,
-    "freq_max_mhz": 4200,
-    "freq_test_mhz": 3600,
-    "pout_w_cw":   null,
-    "pout_w_pulse": null,
-    "pout_dbm":    null,
-    "gain_db":     null,
-    "drain_eff_pct": null,
-    "pae_pct":     null,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
-    "impedance_ref_plane": "package_lead",
-    "s_params_available":  false,
-    "spice_model_available": false,
-    "ads_model_available": false,
-    "application": ["cellular", "5G"],
-    "use_case":    ["macrocell", "massive-MIMO"],
-    "role":        ["main", "peak"],
-    "topology":    ["Doherty", "single-ended"],
-    "status":      "active",
-    "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/gan-transistors/",
-    "app_notes": [],
-    "knowledge_source":     "from_training",
-    "knowledge_confidence": "low",
-    "tags": ["GaN-SiC", "GaN", "5G", "n77", "n78", "3500MHz", "S-band", "cellular", "Doherty"],
-    "notes": "PLACEHOLDER — Represents Ampleon's 5G NR sub-6 GHz GaN product line (n77/n78, 3.3–4.2 GHz). Ampleon has GaN products for this band but exact model numbers require verification. Visit https://www.ampleon.com/products.html → GaN transistors for the confirmed current portfolio. Replace this record with real device data after downloading the datasheet."
-  },
-
-  {
-    "_comment": "=== FULLY EXTRACTED from BLP9G0722-20_9G0722-20G_datasheet.pdf Rev.3 Feb 2018 (20pp). DC specs (Table 6), RF test specs (Table 7), 6-band W-CDMA app performance (Table 1), load-pull for BLP9G0722-20 flat-lead (Table 9) and BLP9G0722-20G gull-wing (Table 8), 3 PCB BOM (740/1800/2100 MHz, Rogers RO4350B), package dims SOT1482-1 and SOT1483-1, ESD CDM/HBM classification, ruggedness, pinning. ===",
-    "device_id":   "ampleon_BLP9G0722-20",
+    "device_id": "ampleon_BLP9G0722-20",
     "part_number": "BLP9G0722-20",
     "manufacturer": "Ampleon",
-    "family":      "BLP-broadband-drivers",
-    "series":      "BLP9G07",
-    "technology":  "LDMOS",
-    "generation":  "Gen9",
-    "package":     "SOT1482-1",
-    "package_note":"TO-270-2 — plastic overmolded, heatsink SMO package, 2-lead flat leads (SOT1483-1 = gullwing variant). Test characterised in class-AB demo board, gull-wing lead device (BLP9G0722-20G).",
-    "vdd_v":       28,
-    "vdd_range_v": [24, 32],
-    "idd_q_ma":    180,
-    "freq_min_mhz": 100,
-    "freq_max_mhz": 2700,
-    "freq_test_mhz": 1842.5,
-    "pout_w_cw":   22,
-    "pout_w_pulse": null,
-    "pout_dbm":    43.5,
-    "gain_db":     19,
-    "gain_db_min": 17,
-    "drain_eff_pct": 22,
-    "drain_eff_pct_min": 18,
-    "pae_pct":     null,
-    "p1db_dbm":    43.2,
-    "p3db_dbm":    43.65,
-    "p1db_w":      20.9,
-    "input_rl_db": 10,
-    "ropt_ohm":    3.0,
-    "xopt_ohm":    -1.2,
-    "rin_ohm":     1.6,
-    "xin_ohm":     -5.8,
-    "impedance_ref_plane": "package lead tips. Table 9 in DS Rev 3. VDS=28V, IDq=180mA, P3dB, f=1840MHz max-power load.",
-    "load_pull_table": [
-      {"freq_mhz":  740, "condition":"max_power",       "zs_r":  0.6, "zs_x": 0.6, "zl_r": 10.6, "zl_x": -1.0, "pout_w": 39, "drain_eff_pct": 56.8, "gain_db": 22.7},
-      {"freq_mhz":  880, "condition":"max_power",       "zs_r":  0.6, "zs_x": -0.7, "zl_r":  4.0, "zl_x": 1.6, "pout_w": 51, "drain_eff_pct": 70.9, "gain_db": 22.1},
-      {"freq_mhz": 1810, "condition":"max_power",       "zs_r":  1.8, "zs_x": -5.4, "zl_r":  3.0, "zl_x": -1.2, "pout_w": 44, "drain_eff_pct": 60.9, "gain_db": 19.1},
-      {"freq_mhz": 1840, "condition":"max_power",       "zs_r":  1.6, "zs_x": -5.8, "zl_r":  3.0, "zl_x": -1.2, "pout_w": 44, "drain_eff_pct": 62.6, "gain_db": 19.6},
-      {"freq_mhz": 1880, "condition":"max_power",       "zs_r":  1.8, "zs_x": -6.1, "zl_r":  2.9, "zl_x": -1.6, "pout_w": 44, "drain_eff_pct": 60.9, "gain_db": 19.1},
-      {"freq_mhz": 2110, "condition":"max_power",       "zs_r":  7.3, "zs_x": -8.2, "zl_r":  2.6, "zl_x": -2.5, "pout_w": 41, "drain_eff_pct": 57.7, "gain_db": 17.8},
-      {"freq_mhz": 2170, "condition":"max_power",       "zs_r":  8.7, "zs_x": -6.8, "zl_r":  2.6, "zl_x": -2.5, "pout_w": 43, "drain_eff_pct": 62.1, "gain_db": 18.7},
-      {"freq_mhz":  740, "condition":"max_efficiency",  "zs_r":  0.6, "zs_x": 0.6, "zl_r":  6.0, "zl_x":10.0, "pout_w": 22, "drain_eff_pct": 77.0, "gain_db": 24.6},
-      {"freq_mhz":  880, "condition":"max_efficiency",  "zs_r":  0.6, "zs_x": -0.7, "zl_r":  3.7, "zl_x": 5.9, "pout_w": 26, "drain_eff_pct": 85.3, "gain_db": 24.4},
-      {"freq_mhz": 1810, "condition":"max_efficiency",  "zs_r":  1.8, "zs_x": -5.4, "zl_r":  1.9, "zl_x":  0.0, "pout_w": 33, "drain_eff_pct": 69.4, "gain_db": 20.9},
-      {"freq_mhz": 1840, "condition":"max_efficiency",  "zs_r":  1.6, "zs_x": -5.8, "zl_r":  1.9, "zl_x":  0.0, "pout_w": 31, "drain_eff_pct": 69.4, "gain_db": 21.7},
-      {"freq_mhz": 1880, "condition":"max_efficiency",  "zs_r":  1.8, "zs_x": -6.1, "zl_r":  1.8, "zl_x": -0.2, "pout_w": 32, "drain_eff_pct": 70.7, "gain_db": 21.6},
-      {"freq_mhz": 2110, "condition":"max_efficiency",  "zs_r":  7.3, "zs_x": -8.2, "zl_r":  1.5, "zl_x": -1.4, "pout_w": 30, "drain_eff_pct": 65.3, "gain_db": 19.9},
-      {"freq_mhz": 2170, "condition":"max_efficiency",  "zs_r":  8.7, "zs_x": -6.8, "zl_r":  1.4, "zl_x": -1.6, "pout_w": 29, "drain_eff_pct": 69.3, "gain_db": 21.3}
-    ],
-
-    "load_pull_table_20G": [
-      {"_note":"BLP9G0722-20G gull-wing variant — Table 8 in DS Rev.3. Ref plane: package lead tips, VDS=28V, IDq=180mA, at 3dB gain compression."},
-      {"freq_mhz":  740, "condition":"max_power",      "zs_r": 0.5, "zs_x":  0.1, "zl_r":10.6, "zl_x": -1.0, "pout_w":37, "drain_eff_pct":55.1, "gain_db":22.8},
-      {"freq_mhz":  880, "condition":"max_power",      "zs_r": 0.6, "zs_x": -1.4, "zl_r": 3.8, "zl_x":  2.0, "pout_w":49, "drain_eff_pct":70.9, "gain_db":22.8},
-      {"freq_mhz": 1810, "condition":"max_power",      "zs_r": 1.6, "zs_x": -5.5, "zl_r": 3.4, "zl_x": -1.0, "pout_w":43, "drain_eff_pct":62.2, "gain_db":19.0},
-      {"freq_mhz": 1840, "condition":"max_power",      "zs_r": 1.3, "zs_x": -5.8, "zl_r": 3.0, "zl_x": -1.2, "pout_w":43, "drain_eff_pct":62.7, "gain_db":19.1},
-      {"freq_mhz": 1880, "condition":"max_power",      "zs_r": 1.3, "zs_x": -6.2, "zl_r": 2.6, "zl_x": -1.5, "pout_w":42, "drain_eff_pct":61.2, "gain_db":18.7},
-      {"freq_mhz": 2110, "condition":"max_power",      "zs_r": 5.3, "zs_x": -9.6, "zl_r": 2.6, "zl_x": -2.5, "pout_w":41, "drain_eff_pct":58.2, "gain_db":17.7},
-      {"freq_mhz": 2170, "condition":"max_power",      "zs_r": 6.2, "zs_x": -8.1, "zl_r": 2.6, "zl_x": -2.5, "pout_w":41, "drain_eff_pct":60.4, "gain_db":18.2},
-      {"freq_mhz":  740, "condition":"max_efficiency", "zs_r": 0.5, "zs_x":  0.1, "zl_r": 6.0, "zl_x": 10.0, "pout_w":20, "drain_eff_pct":74.1, "gain_db":24.8},
-      {"freq_mhz":  880, "condition":"max_efficiency", "zs_r": 0.6, "zs_x": -1.4, "zl_r": 3.7, "zl_x":  5.9, "pout_w":26, "drain_eff_pct":82.7, "gain_db":24.7},
-      {"freq_mhz": 1810, "condition":"max_efficiency", "zs_r": 1.6, "zs_x": -5.5, "zl_r": 1.9, "zl_x":  0.2, "pout_w":31, "drain_eff_pct":70.9, "gain_db":20.9},
-      {"freq_mhz": 1840, "condition":"max_efficiency", "zs_r": 1.3, "zs_x": -5.8, "zl_r": 1.7, "zl_x":  0.0, "pout_w":29, "drain_eff_pct":69.8, "gain_db":21.3},
-      {"freq_mhz": 1880, "condition":"max_efficiency", "zs_r": 1.3, "zs_x": -6.2, "zl_r": 1.6, "zl_x": -0.2, "pout_w":28, "drain_eff_pct":69.8, "gain_db":21.3},
-      {"freq_mhz": 2110, "condition":"max_efficiency", "zs_r": 5.3, "zs_x": -9.6, "zl_r": 1.7, "zl_x": -1.5, "pout_w":32, "drain_eff_pct":65.6, "gain_db":19.5},
-      {"freq_mhz": 2170, "condition":"max_efficiency", "zs_r": 6.2, "zs_x": -8.1, "zl_r": 1.6, "zl_x": -1.7, "pout_w":30, "drain_eff_pct":65.9, "gain_db":20.2}
-    ],
-
-    "limiting_values": {
-      "vds_max_v":  65,
-      "vgs_min_v":  -5,
-      "vgs_max_v":  13,
-      "tstg_min_c": -65,
-      "tstg_max_c": 150,
-      "tj_max_c":   225,
-      "standard":   "IEC 60134 Absolute Maximum Rating System"
-    },
-
-    "thermal": {
-      "rth_jc_k_per_w": 1.1,
-      "conditions":     "Tcase=80\u00b0C, PL=3W"
-    },
-
-    "dc_characteristics": {
-      "test_conditions": "Tj=25\u00b0C unless otherwise specified",
-      "params": [
-        {"symbol":"V(BR)DSS", "parameter":"drain-source breakdown voltage",  "conditions":"VGS=0V; ID=0.3mA",                   "min":65,   "typ":null, "max":null,  "unit":"V"},
-        {"symbol":"VGS(th)",  "parameter":"gate-source threshold voltage",    "conditions":"VDS=10V; ID=30mA",                   "min":1.5,  "typ":2.0,  "max":null,  "unit":"V"},
-        {"symbol":"VGSq",     "parameter":"gate-source quiescent voltage",    "conditions":"VDS=28V; ID=180mA",                  "min":1.6,  "typ":2.1,  "max":2.6,   "unit":"V"},
-        {"symbol":"IDSS",     "parameter":"drain leakage current",            "conditions":"VGS=0V; VDS=28V",                    "min":null, "typ":null, "max":1.4,   "unit":"A"},
-        {"symbol":"IDSX",     "parameter":"drain cut-off current",            "conditions":"VGS=VGS(th)+3.75V",                  "min":null, "typ":6,    "max":null,  "unit":"A"},
-        {"symbol":"IGSS",     "parameter":"gate leakage current",             "conditions":"VGS=11V; VDS=0V",                    "min":null, "typ":null, "max":140,   "unit":"nA"},
-        {"symbol":"gfs",      "parameter":"forward transconductance",         "conditions":"VDS=10V; ID=30mA",                   "min":null, "typ":300,  "max":null,  "unit":"mS"},
-        {"symbol":"RDS(on)",  "parameter":"drain-source on-state resistance", "conditions":"VGS=VGS(th)+3.75V; ID=1.05A",       "min":null, "typ":500,  "max":null,  "unit":"m\u03a9"}
-      ]
-    },
-
-    "rf_characteristics": {
-      "test_conditions": "Pulsed CW; \u03b4=10%; tp=100\u03bcs; VDS=28V; IDq=180mA; Tcase=25\u00b0C; f=1842.5MHz",
-      "test_note": "Derivative functional RF test performed in production. Performance verified by design and characterisation in class-AB production board.",
-      "params": [
-        {"symbol":"Gp",      "parameter":"power gain",                     "conditions":"PL(AV)=35dBm", "min":17,   "typ":19,   "max":null, "unit":"dB"},
-        {"symbol":"\u03b7D",  "parameter":"drain efficiency",               "conditions":"PL(AV)=35dBm", "min":18,   "typ":22,   "max":null, "unit":"%"},
-        {"symbol":"RLin",    "parameter":"input return loss",              "conditions":"PL(AV)=35dBm", "min":null, "typ":10,   "max":-6,   "unit":"dB"},
-        {"symbol":"PL(1dB)", "parameter":"output power at 1dB compression","conditions":"",             "min":42.5, "typ":43.9, "max":null, "unit":"dBm"},
-        {"symbol":"PL(3dB)", "parameter":"output power at 3dB compression","conditions":"",             "min":43.0, "typ":44.3, "max":null, "unit":"dBm"}
-      ]
-    },
-
-    "application_performance": {
-      "test_conditions": "Tcase=25\u00b0C; IDq=180mA; class-AB demo board; gull-wing (BLP9G0722-20G). Test signal: 3GPP TM1; 64 DCHP; PAR=7.2dB at 0.01% CCDF.",
-      "signal": "1-carrier W-CDMA",
-      "rows": [
-        {"freq_min_mhz": 400,  "freq_max_mhz": 430,  "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":25.5, "de_pct":24, "acpr5m_dbc":-45},
-        {"freq_min_mhz": 728,  "freq_max_mhz": 768,  "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":23.0, "de_pct":22, "acpr5m_dbc":-45},
-        {"freq_min_mhz": 1805, "freq_max_mhz": 1880, "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":19.0, "de_pct":21, "acpr5m_dbc":-45},
-        {"freq_min_mhz": 2110, "freq_max_mhz": 2170, "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":18.0, "de_pct":21, "acpr5m_dbc":-45},
-        {"freq_min_mhz": 2300, "freq_max_mhz": 2400, "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":17.3, "de_pct":21, "acpr5m_dbc":-45},
-        {"freq_min_mhz": 2570, "freq_max_mhz": 2620, "vds_v":28, "idq_ma":180, "pl_av_dbm":35, "gp_db":16.0, "de_pct":20, "acpr5m_dbc":-45}
-      ]
-    },
-
-    "ruggedness": {
-      "vswr": 10,
-      "pout_cw_w": 20,
-      "test_freq_mhz": [728, 1805],
-      "vds_v": 28,
-      "board": "development board",
-      "note": "Capable of withstanding load mismatch corresponding to VSWR=10:1 through all phases"
-    },
-
-    "esd": {
-      "cdm_class":    "C2A",
-      "cdm_standard": "ANSI/ESDA/JEDEC JS-002",
-      "cdm_note":     "Passes 500V ESD pulse; fails after 750V",
-      "hbm_class":    "2",
-      "hbm_standard": "ANSI/ESDA/JEDEC JS-001",
-      "hbm_note":     "Passes 2000V ESD pulse; fails after 4000V"
-    },
-
-    "pinning": {
-      "pin1": "drain",
-      "pin2": "gate",
-      "pin3": "source (connected to exposed heatsink flange)"
-    },
-
-    "variants": [
-      {"type_number":"BLP9G0722-20",  "package":"SOT1482-1", "description":"plastic; heatsink small outline; 2 leads (flat gull-wing)"},
-      {"type_number":"BLP9G0722-20G", "package":"SOT1483-1", "description":"plastic; heatsink small outline; 2 leads (tall gull-wing)"}
-    ],
-
-    "package_dimensions": {
-      "SOT1482-1": {
-        "body_length_mm":          11.16,
-        "overall_width_mm":        10.67,
-        "body_height_mm":           1.57,
-        "lead_span_mm":             6.10,
-        "lead_width_mm":            4.95,
-        "exposed_heatsink_mm":   "9.65 x 10.67",
-        "compound_depth_mm_min":    3.8,
-        "compound_depth_mm_max":    4.5,
-        "flash_width_mm_min":       7.4,
-        "flash_width_mm_max":       8.7,
-        "coplanarity_leads_mm":     0.1,
-        "mold_protrusion_max_mm":   0.15,
-        "lead_plating":          "matte Tin (Sn)"
-      },
-      "SOT1483-1": {
-        "body_length_mm":          8.13,
-        "overall_width_mm":        10.67,
-        "body_height_mm":           1.57,
-        "standoff_min_mm":          0.43,
-        "standoff_max_mm":          0.63,
-        "lead_span_mm":             6.10,
-        "lead_width_mm":            4.95,
-        "exposed_heatsink_mm":   "9.65 x 10.67",
-        "compound_depth_mm_min":    3.8,
-        "compound_depth_mm_max":    4.5,
-        "flash_width_mm_min":       7.4,
-        "flash_width_mm_max":       8.7,
-        "mold_protrusion_max_mm":   0.15,
-        "lead_plating":          "matte Tin (Sn)"
-      }
-    },
-
-    "test_circuits": [
-      {
-        "freq_mhz":  740,
-        "pcb_substrate":      "Rogers RO4350B",
-        "pcb_thickness_mm":   0.508,
-        "pcb_size_mm":        "76.2 x 40",
-        "figure":             "Fig 2 in datasheet",
-        "bom": [
-          {"ref":"C1,C7,C8,C9",      "type":"MLCC",        "value":"10\u00b5F, 50V",  "vendor":"Murata"},
-          {"ref":"C2,C3,C10,C11",    "type":"MLCC",        "value":"36pF",         "vendor":"ATC 600F"},
-          {"ref":"C4,C5",            "type":"MLCC",        "value":"15pF",         "vendor":"ATC 600F"},
-          {"ref":"C6",               "type":"Electrolytic","value":"2200\u00b5F, 50V","vendor":""},
-          {"ref":"C12",              "type":"MLCC",        "value":"5.6pF",        "vendor":"ATC 600F"},
-          {"ref":"C13",              "type":"MLCC",        "value":"0.2pF",        "vendor":"ATC 600F"},
-          {"ref":"R1",               "type":"Resistor",    "value":"5.1\u03a9",       "vendor":"SMD 0805"}
-        ]
-      },
-      {
-        "freq_mhz":  1800,
-        "pcb_substrate":      "Rogers RO4350B",
-        "pcb_thickness_mm":   0.508,
-        "pcb_size_mm":        "76.2 x 40",
-        "figure":             "Fig 3 in datasheet",
-        "bom": [
-          {"ref":"C1,C9,C10",        "type":"MLCC",        "value":"10\u00b5F, 50V",  "vendor":"Murata"},
-          {"ref":"C2,C3,C11,C13",    "type":"MLCC",        "value":"12pF",         "vendor":"ATC 600F"},
-          {"ref":"C4,C5",            "type":"MLCC",        "value":"0.8pF",        "vendor":"ATC 600F"},
-          {"ref":"C6",               "type":"MLCC",        "value":"6.2pF",        "vendor":"ATC 600F"},
-          {"ref":"C7",               "type":"MLCC",        "value":"2pF",          "vendor":"ATC 600F"},
-          {"ref":"C8",               "type":"Electrolytic","value":"2200\u00b5F, 50V","vendor":""},
-          {"ref":"C12,C15",          "type":"MLCC",        "value":"0.3pF",        "vendor":"ATC 600F"},
-          {"ref":"C14",              "type":"MLCC",        "value":"2.2pF",        "vendor":"ATC 600F"},
-          {"ref":"C16",              "type":"MLCC",        "value":"0.3pF",        "vendor":"ATC 600F"},
-          {"ref":"R1",               "type":"Resistor",    "value":"5.1\u03a9",       "vendor":"SMD 0805"}
-        ]
-      },
-      {
-        "freq_mhz":  2100,
-        "pcb_substrate":      "Rogers RO4350B",
-        "pcb_thickness_mm":   0.508,
-        "pcb_size_mm":        "76.2 x 40",
-        "figure":             "Fig 4 in datasheet",
-        "bom": [
-          {"ref":"C1,C8",            "type":"MLCC",        "value":"10\u00b5F, 50V",  "vendor":"Murata"},
-          {"ref":"C2,C7,C10",        "type":"MLCC",        "value":"12pF",         "vendor":"ATC 600F"},
-          {"ref":"C3",               "type":"MLCC",        "value":"62pF",         "vendor":"ATC 600F"},
-          {"ref":"C4",               "type":"MLCC",        "value":"5.6pF",        "vendor":"ATC 600F"},
-          {"ref":"C5",               "type":"MLCC",        "value":"0.5pF",        "vendor":"ATC 600F"},
-          {"ref":"C6",               "type":"Electrolytic","value":"2200\u00b5F, 50V","vendor":""},
-          {"ref":"C9",               "type":"MLCC",        "value":"2.2pF",        "vendor":"ATC 600F"},
-          {"ref":"C11",              "type":"MLCC",        "value":"1.2pF",        "vendor":"ATC 600F"},
-          {"ref":"C12",              "type":"MLCC",        "value":"1.8pF",        "vendor":"ATC 600F"},
-          {"ref":"R1",               "type":"Resistor",    "value":"5.1\u03a9",       "vendor":"SMD 0805"}
-        ]
-      }
-    ],
-
-    "graphical_data": {
-      "note": "Digitized curve data not available — refer to figures in datasheet Rev.3. CW \u03b7D and Gp vs PL curves: Fig 5 (700MHz band), Fig 6 (1800MHz band), Fig 7 (2100MHz band). Pulsed-CW curves: Fig 8-10 (same bands). W-CDMA \u03b7D/Gp: Fig 11-13. ACPR5M vs PL: Fig 14 (700MHz), Fig 15 (1800MHz), Fig 16 (2100MHz). VDS=28V, IDq=180mA for all curves.",
-      "cw_curves": [
-        {"fig":"Fig 5",  "signal":"CW",         "freqs_mhz":[728,768],    "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
-        {"fig":"Fig 6",  "signal":"CW",         "freqs_mhz":[1805,1880],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
-        {"fig":"Fig 7",  "signal":"CW",         "freqs_mhz":[2110,2170],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"}
-      ],
-      "pulsed_cw_curves": [
-        {"fig":"Fig 8",  "signal":"Pulsed CW",  "freqs_mhz":[728,768],    "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
-        {"fig":"Fig 9",  "signal":"Pulsed CW",  "freqs_mhz":[1805,1880],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
-        {"fig":"Fig 10", "signal":"Pulsed CW",  "freqs_mhz":[2110,2170],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"}
-      ],
-      "wcdma_curves": [
-        {"fig":"Fig 11", "signal":"W-CDMA",     "freqs_mhz":[728,768],    "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
-        {"fig":"Fig 12", "signal":"W-CDMA",     "freqs_mhz":[1805,1880],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
-        {"fig":"Fig 13", "signal":"W-CDMA",     "freqs_mhz":[2110,2170],  "axes":"\u03b7D(%) and Gp(dB) vs PL(W)"},
-        {"fig":"Fig 14", "signal":"W-CDMA ACPR","freqs_mhz":[728,768],    "axes":"ACPR5M(dBc) vs PL(W)"},
-        {"fig":"Fig 15", "signal":"W-CDMA ACPR","freqs_mhz":[1805,1880],  "axes":"ACPR5M(dBc) vs PL(W)"},
-        {"fig":"Fig 16", "signal":"W-CDMA ACPR","freqs_mhz":[2110,2170],  "axes":"ACPR5M(dBc) vs PL(W)"}
-      ]
-    },
-
-    "s_params_available":  false,
-    "spice_model_available": false,
-    "ads_model_available": false,
-    "application": ["cellular", "broadcast", "ism", "wideband"],
-    "use_case":    ["macrocell", "RRH", "driver-stage", "DAS"],
-    "role":        ["driver", "main"],
-    "topology":    ["single-ended", "class-AB", "Doherty"],
-    "status":      "active",
-    "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/broadband-28v-ldmos-transistors/BLP9G0722-20.html",
-    "app_notes": [
-      {"title": "AN11183 — Mounting and soldering of overmolded plastic packages", "url": "https://www.ampleon.com/documents/application-note/AN11183.pdf"}
-    ],
-    "knowledge_source":     "from_datasheet",
+    "family": null,
+    "series": "BLP9G0722",
+    "technology": "LDMOS",
+    "freq_min_mhz": 700.0,
+    "freq_max_mhz": 2200.0,
+    "datasheet_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+    "knowledge_source": "datasheet",
     "knowledge_confidence": "high",
-    "datasheet_file":       "Ampleon_portfolio/BLP9G0722-20/BLP9G0722-20_9G0722-20G_datasheet.pdf",
-    "tags": ["broadband", "LDMOS", "LDMOS-Gen9", "28V", "20W", "100-2700MHz", "driver", "class-AB", "SOT1482", "cellular", "LTE", "W-CDMA", "GSM"],
-    "notes": "20 W broadband LDMOS driver for 100–2700 MHz PA line-ups. FULLY EXTRACTED from DS Rev.3 Feb 2018 (20pp): (1) DC characteristics — V(BR)DSS=65V min, VGS(th)=2V typ, RDS(on)=500m\u03a9 typ, gfs=300mS typ; (2) RF specs at 1842.5MHz — Gp=19dB typ (17dB min), \u03b7D=22% typ (18% min), P1dB=43.9dBm typ; (3) 6-band W-CDMA application performance 400MHz–2620MHz (Table 1); (4) Load-pull for flat-lead BLP9G0722-20 (Table 9) and gull-wing BLP9G0722-20G (Table 8), 7 frequencies, 2 conditions each; (5) 3 PCB reference BOM (740/1800/2100 MHz on Rogers RO4350B 0.508mm); (6) Package dims SOT1482-1 and SOT1483-1; (7) ESD: CDM C2A (500V) / HBM Class 2 (2000V); (8) Ruggedness: VSWR 10:1 CW at 28V 20W; (9) Figures: 6 CW+pulsed-CW \u03b7D/Gp curves, 3 W-CDMA \u03b7D/Gp curves, 3 ACPR5M curves."
+    "status": "active",
+    "tags": [
+      "crawl4ai-pilot",
+      "ampleon",
+      "ldmos"
+    ],
+    "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+    "extraction_blueprint": {
+      "selector_version": "pilot-v1",
+      "title_selector": "h1",
+      "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet']",
+      "product_summary_selector": ".cmp-product-details, .product-details, main"
+    },
+    "vendor_profile": {
+      "key": "ampleon",
+      "display_name": "Ampleon",
+      "strategy": "build_ampleon_structured_sections_from_blocks",
+      "notes": [
+        "Ampleon currently uses generic structured extraction with vendor-specific selectors from the seed catalog."
+      ]
+    },
+    "document_metadata": {
+      "document_number": null,
+      "revision": "3",
+      "page_count": 20,
+      "pdf_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+      "title": "BLP9G0722-20; | BLP9G0722-20G | Power LDMOS transistor | Rev. 3 \u2014 26 February 2018 Product data sheet",
+      "part_number_detected": "BLP9G0722-20"
+    },
+    "app_notes": [
+      {
+        "title": "application-notes",
+        "url": "https://www.ampleon.com/zip/products/BLP9G0722-20/application-notes"
+      },
+      {
+        "title": "AN11183",
+        "url": "https://www.ampleon.com/documents/application-note/AN11183.pdf"
+      }
+    ],
+    "typical_applications": [],
+    "extracted_table_blocks": [
+      {
+        "title": "Table 1. Application performance (multiple frequencies)",
+        "content": "Table 1. Application performance (multiple frequencies) Typical RF performance at T =25\uf0b0C; I =180mA; in a class-AB demo board, tested on case Dq gullwing lead device. Test signal f I V P G \uf068 ACPR Dq DS L(AV) p D 5M (MHz) (mA) (V) (dBm) (dB) (%) (dBc) 1-carrier W-CDMA 400 to 430 180 28 35 25.5 24 \uf02d45 [1] 728 to 768 180 28 35 23 22 \uf02d45 [1] 1805 to 1880 180 28 35 19 21 \uf02d45 [1] 2110 to 2170 180 28 35 18 21 \uf02d45 [1] 2300 to 2400 180 28 35 17.3 21 \uf02d45 [1] 2570 to 2620 180 28 35 16 20 \uf02d45 [1] [1] Test signal: 3GPP test model 1; 64 DCHP; PAR=7.2dB at 0.01% probability on CCDF. 1.2 Features and benefits \uf06e High efficiency \uf06e Excellent ruggedness \uf06e Designed for broadband operation \uf06e Excellent thermal stability \uf06e High power gain \uf06e Integrated ESD protection \uf06e Compliant to Directive 2002/95/EC, regarding Restriction of Hazardous Substances (RoHS) 1.3 Applications \uf06e FDD/TDD LTE \uf06e W-CDMA \uf06e GSM EDGE \uf06e MC-GSM \uf06e CDMA \uf06e WiMAX BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 2. Pinning information"
+      },
+      {
+        "title": "Table 2. Pinning",
+        "content": "Table 2. Pinning Pin Description Simplified outline Graphic symbol BLP9G0722-20 (SOT1482-1) 1 drain 2 1 2 gate 3 3 source [1] 2 1 3 sym112 BLP9G0722-20G (SOT1483-1) 1 drain 2 1 2 gate 3 3 source [1] 2 1 3 sym112 [1] Connected to flange. 3. Ordering information"
+      },
+      {
+        "title": "Table 3. Ordering information",
+        "content": "Table 3. Ordering information Type number Package Name Description Version BLP9G0722-20 - plastic; heatsink small outline package; 2 leads (flat) SOT1482-1 BLP9G0722-20G - plastic; heatsink small outline package; 2 leads SOT1483-1 4. Limiting values"
+      },
+      {
+        "title": "Table 4. Limiting values",
+        "content": "Table 4. Limiting values In accordance with the Absolute Maximum Rating System (IEC 60134). Symbol Parameter Conditions Min Max Unit V drain-source voltage - 65 V DS V gate-source voltage \uf02d5 +13 V GS T storage temperature \uf02d65 +150 \uf0b0C stg T junction temperature - 225 \uf0b0C j 5. Thermal characteristics"
+      },
+      {
+        "title": "Table 5. Thermal characteristics",
+        "content": "Table 5. Thermal characteristics Symbol Parameter Conditions Typ Unit R thermal resistance from junction to case T =80\uf0b0C; P =3W 1.1 K/W th(j-c) case L BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 2 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 6. Characteristics"
+      },
+      {
+        "title": "Table 6. DC characteristics",
+        "content": "Table 6. DC characteristics T = 25 \uf0b0C; unless otherwise specified. j Symbol Parameter Conditions Min Typ Max Unit V drain-source breakdown V =0V; I =0.3mA 65 - - V (BR)DSS GS D voltage V gate-source threshold voltage V =10 V; I =30mA 1.5 2.0 - V GS(th) DS D V gate-source quiescent voltage V =28 V; I =180mA 1.6 2.1 2.6 V GSq DS D I drain leakage current V =0V; V =28V - - 1.4 \uf06dA DSS GS DS I drain cut-off current V =V +3.75V - 6 - A DSX GS GS(th) I gate leakage current V =11V; V =0V - - 140 nA GSS GS DS g forward transconductance V =10V; I =30mA - 300 - mS fs DS D R drain-source on-state V =V +3.75V; - 500 - m\uf057 DS(on) GS GS(th) resistance I =1.05A D"
+      },
+      {
+        "title": "Table 7. RF characteristics",
+        "content": "Table 7. RF characteristics A derivative functional RF test is performed in production. The performance as mentioned below is verified by design and characterization in a class AB production board. Test signal: pulsed CW; \uf064 = 10%; t = 100 \uf06ds; V = 28 V; I = 180mA; T = 25 \uf0b0C; p DS Dq case f=1842.5MHz. Symbol Parameter Conditions Min Typ Max Unit G power gain P =35dBm 17 19 - dB p L(AV) \uf068 drain efficiency P =35dBm 18 22 - % D L(AV) RL input return loss P =35dBm - \uf02d10 \uf02d6 dB in L(AV) P output power at 1 dB gaincompression 42.5 43.9 - dBm L(1dB) P output power at 3 dB gaincompression 43 44.3 - dBm L(3dB) 7. Test information 7.1 Ruggedness in Doherty operation The BLP9G0722-20 and BLP9G0722-20G are capable of withstanding a load mismatch corresponding to a VSWR=10: 1 through all phases under the following conditions: V =28V; P =20 W(CW); f=728MHz and 1805MHz on development board. DS L 7.2 Impedance information"
+      },
+      {
+        "title": "Table 8. Typical impedance of BLP9G0722-20G",
+        "content": "Table 8. Typical impedance of BLP9G0722-20G Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) Maximum power load 740 0.5 +j0.1 10.6 \uf02d j1.0 37 55.1 22.8 880 0.6\uf02d j1.4 3.8 +j2.0 49 70.9 22.8 1810 1.6 \uf02d j5.5 3.4 \uf02d j1.0 43 62.2 19.0 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 3 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor"
+      },
+      {
+        "title": "Table 8. Typical impedance of BLP9G0722-20G \u2026continued",
+        "content": "Table 8. Typical impedance of BLP9G0722-20G \u2026continued Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) 1840 1.3 \uf02d j5.8 3.0 \uf02d j1.2 43 62.7 19.1 1880 1.3\uf02d j6.2 2.6 \uf02d j1.5 42 61.2 18.7 2110 5.3 \uf02d j9.6 2.6 \uf02d j2.5 41 58.2 17.7 2170 6.2 \uf02d j8.1 2.6 \uf02d j2.5 41 60.4 18.2 Maximum drain efficiency load 740 0.5 +j0.1 6.0 +j10.0 20 74.1 24.8 880 0.6\uf02d j1.4 3.7 +j5.9 26 82.7 24.7 1810 1.6 \uf02d j5.5 1.9 +j0.2 31 70.9 20.9 1840 1.3 \uf02d j5.8 1.7 +j0.0 29 69.8 21.3 1880 1.3\uf02d j6.2 1.6 \uf02d j0.2 28 69.8 21.3 2110 5.3 \uf02d j9.6 1.7 \uf02d j1.5 32 65.6 19.5 2170 6.2 \uf02d j8.1 1.6 \uf02d j1.7 30 65.9 20.2 [1] Z and Z defined in Figure1. S L [2] at 3 dB gain compression."
+      },
+      {
+        "title": "Table 9. Typical impedance of BLP9G0722-20",
+        "content": "Table 9. Typical impedance of BLP9G0722-20 Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) Maximum power load 740 0.6 +j0.6 10.6 \uf02d j1.0 39 56.8 22.7 880 0.6\uf02d j0.7 4.0 +j1.6 51 70.9 22.1 1810 1.8 \uf02d j5.4 3.0 \uf02d j1.2 44 60.9 19.1 1840 1.6 \uf02d j5.8 3.0 \uf02d j1.2 44 62.6 19.6 1880 1.8\uf02d j6.1 2.9 \uf02d j1.6 44 60.9 19.1 2110 7.3 \uf02d j8.2 2.6 \uf02d j2.5 41 57.7 17.8 2170 8.7 \uf02d j6.8 2.6 \uf02d j2.5 43 62.1 18.7 Maximum drain efficiency load 740 0.6 +j0.6 6.0 +j10.0 22 77.0 24.6 880 0.6\uf02d j0.7 3.7 +j5.9 26 85.3 24.4 1810 1.8 \uf02d j5.4 1.9 +j0.0 33 69.4 20.9 1840 1.6 \uf02d j5.8 1.9 +j0.0 31 69.4 21.7 1880 1.8\uf02d j6.1 1.8 \uf02d j0.2 32 70.7 21.6 2110 7.3 \uf02d j8.2 1.5 \uf02d j1.4 30 65.3 19.9 2170 8.7 \uf02d j6.8 1.4 \uf02d j1.6 29 69.3 21.3 [1] Z and Z defined in Figure1. S L [2] at 3 dB gain compression. BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 4 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor drain ZL gate ZS 001aaf059 Fig 1. Definition of transistor impedance 7.3 Test circuit 76.2 mm C6 C1 C7 C8 C2 C9 C10 40 mm R1 C11 C12 C13 C4 C5 C3 BLP9G0722-20G 700MHz Rogers 4350 20mil amp00286 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table10 for a list of components. Fig 2. Component layout for test circuit at 740MHz T able 10. List of components See Figure2 for component layout. Component Description Value Remarks C1, C7, C8, C9 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C3, C10, C11 multilayer ceramic chip capacitor 36pF ATC 600F C4, C5 multilayer ceramic chip capacitor 15pF ATC 600F C6 electrolytic capacitor 2200 \uf06dF, 50V C12 multilayer ceramic chip capacitor 5.6pF ATC 600F C13 multilayer ceramic chip capacitor 0.2pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 5 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 76.2 mm C8 C1C2 C3 C9 C10 C11 C4 C5R1 C12 C6 C13 40 mm C16 C14 C15 BLP9G0722-20G 1800MHz Rogers 4350 20mil C7 amp00287 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table11 for a list of components. Fig 3. Component layout for test circuit at 1800MHz T able 11. List of components See Figure3 for component layout. Component Description Value Remarks C1, C9, C10 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C3, C11, C13 multilayer ceramic chip capacitor 12pF ATC 600F C4, C5 multilayer ceramic chip capacitor 0.8pF ATC 600F C6 multilayer ceramic chip capacitor 6.2pF ATC 600F C7 multilayer ceramic chip capacitor 2pF ATC 600F C8 electrolytic capacitor 2200 \uf06dF, 50V C12, C15 multilayer ceramic chip capacitor 0.3pF ATC 600F C14 multilayer ceramic chip capacitor 2.2pF ATC 600F C16 multilayer ceramic chip capacitor 0.3pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 6 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 76.2 mm C6 C1C2 C3 C7C8 R1 C9 C4 C10 40 mm C5 C11 C12 BLP9G0722-20G 2100MHz Rogers 4350 20mil amp00288 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table12 for a list of components. Fig 4. Component layout for test circuit at 2100MHz T able 12. List of components See Figure4 for component layout. Component Description Value Remarks C1, C8 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C7, C10 multilayer ceramic chip capacitor 12pF ATC 600F C3 multilayer ceramic chip capacitor 62pF ATC 600F C4 multilayer ceramic chip capacitor 5.6pF ATC 600F C5 multilayer ceramic chip capacitor 0.5pF ATC 600F C6 electrolytic capacitor 2200 \uf06dF, 50V C9 multilayer ceramic chip capacitor 2.2pF ATC 600F C11 multilayer ceramic chip capacitor 1.2pF ATC 600F C12 multilayer ceramic chip capacitor 1.8pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 7 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 7.4 Graphical data 7.4.1 CW amp00289 amp00290 27 80 23 80 GGpp \u03b7\u03b7DD GGpp \u03b7\u03b7DD (((dddBBB))) (((%%%))) (((dddBBB))) (((%%%))) 25 (((111))) 60 21 60 (((222))) (((111))) GGpp (((222))) (((111))) GGpp 23 (((222))) 40 19 40 (((111))) (((222))) 21 20 17 20 \u03b7\u03b7DD \u03b7\u03b7DD 19 0 15 0 0 5 10 15 20 25 30 35 40 0 5 10 15 20 25 30 35 40 PL (W) PL (W) V =28V; I =180mA. V =28V; I =180mA. DS Dq DS Dq (1) f = 728 MHz (1) f = 1805 MHz (2) f = 768 MHz (2) f = 1880 MHz Fig 5. Power gain and drain efficiency as function of Fig 6. Power gain and drain efficiency as function of output power; typical values output power; typical values amp00291 22 80 GGpp \u03b7\u03b7DD (((dddBBB))) (((%%%))) 20 60 (((111))) (((222))) GGpp 18 40 (((111))) (((222))) 16 20 \u03b7\u03b7DD 14 0 0 5 10 15 20 25 30 35 40 PL (W) V =28V; I =180mA. DS Dq (1) f = 2110 MHz (2) f = 2170 MHz Fig 7. Power gain and drain efficiency as function of output power; typical values BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 8 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 7.4.2 Pulsed CW amp00292 amp00293 27 80 23 80 GGpp \u03b7\u03b7DD GGpp \u03b7\u03b7DD (((dddBBB))) (((111))) (((%%%))) (((dddBBB))) (((%%%))) (((222))) 25 60 21 (((111))) 60 (((222))) GGpp GGpp 23 40 19 40 (((111))) (((222))) (((111))) (((222))) 21 20 17 20 \u03b7\u03b7DD \u03b7\u03b7DD 19 0 15 0 0 5 10 15 20 25 30 35 40 0 5 10 15 20 25 30 35 40 PL (W) PL (W) V =28V; I =180mA. V =28V; I =180mA. DS Dq DS Dq (1) f = 728 MHz (1) f = 1805 MHz (2) f = 768 MHz (2) "
+      },
+      {
+        "title": "Table 13. ESD sensitivity",
+        "content": "Table 13. ESD sensitivity ESD model Class Charged Device Model (CDM); According to ANSI/ESDA/JEDEC standard JS-002 C2A [1] Human Body Model (HBM); According to ANSI/ESDA/JEDEC standard JS-001 2 [2] [1] CDM classification C2A is granted to any part that passes after exposure to an ESD pulse of 500V, but fails after exposure to an ESD pulse of 750V. [2] HBM classification 2 is granted to any part that passes after exposure to an ESD pulse of 2000V, but fails after exposure to an ESD pulse of 4000V. 10. Abbreviations"
+      },
+      {
+        "title": "Table 14. Abbreviations",
+        "content": "Table 14. Abbreviations Acronym Description 3GPP 3rd Generation Partnership Project CCDF Complementary Cumulative Distribution Function CDMA Code Division Multiple Access CW Continuous Wave DCPH Dedicated Physical CHannel EDGE Enhanced Data rates for GSM Evolution ESD ElectroStatic Discharge FDD Frequency Division Duplex GSM Global System for Mobile Communication LDMOS Laterally Diffused Metal-Oxide Semiconductor LTE Long Term Evolution MC-GSM Multi Carrier GSM MTF Median Time to Failure PAR Peak-to-Average Ratio SMD Surface Mounted Device TDD Time Division Duplex W-CDMA Wideband Code Division Multiple Access WiMAX Worldwide Interoperability for Microwave Access BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 16 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 11. Revision history"
+      },
+      {
+        "title": "Table 15. Revision history",
+        "content": "Table 15. Revision history Document ID Release date Data sheet status Change notice Supersedes BLP9G0722-20_9G0722-20G v.3 20180226 Product data sheet - BLP9G0722-20_9G0722-20G v.2 Modifications: \u2022 Section1.1 on page1: changed \u201c400 MHz\u201d to \u201c100MHz\u201d BLP9G0722-20_9G0722-20G v.2 20170801 Product data sheet - BLP9G0722-20_9G0722-20G v.1 BLP9G0722-20_9G0722-20G v.1 20170606 Product data sheet - - BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 17 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 12. Legal information 12.1 Data sheet status Document status[1][2] Product status[3] Definition Objective [short] data sheet Development This document contains data from the objective specification for product development. Preliminary [short] data sheet Qualification This document contains data from the preliminary specification. Product [short] data sheet Production This document contains the product specification. [1] Please consult the most recently issued document before initiating or completing a design. [2] The term \u2018short data sheet\u2019 is explained in section \u201cDefinitions\u201d. [3] The product status of device(s) described in this document may have changed since this document was published and may differ in case of multiple devices. The latest product status information is available on the Internet at URLhttp://www.ampleon.com. 12.2 Definitions Ampleon product can reasonably be expected to result in personal injury, death or severe property or environmental damage. Ampleon and its suppliers accept no liability for inclusion and/or use of Ampleon products in Draft \u2014 The document is a draft version only. The content is still under such equipment or applications and therefore such inclusion and/or use is at internal review and subject to formal approval, which may result in the customer\u2019s own risk. modifications or additions. Ampleon does not give any representations or warranties as to the accuracy or completeness of information included herein Applications \u2014 Applications that are described herein for any of these and shall have no liability for the consequences of use of such information. products are for illustrative purposes only. Ampleon makes no representation or warranty that such applications will be suitable for the specified use without Short data sheet \u2014 A short data sheet is an extract from a full data sheet further testing or modification. with the same product type number(s) and title. A short data sheet is intended for quick reference only and should not be relied upon to contain detailed and Customers are responsible for the design and operation of their applications full information. For detailed and full information see the relevant full data and products using Ampleon products, and Ampleon accepts no liability for sheet, which is available on request via the local Ampleon sales office. In any assistance with applications or customer product design. It is customer\u2019s case of any inconsistency or conflict with the short data sheet, the full data sole responsibility to determine whether the Ampleon product is suitable and sheet shall prevail. fit for the customer\u2019s applications and products planned, as well as for the planned application and use of customer\u2019s third party customer(s). Customers Product specification \u2014 The information and data provided in a Product should provide appropriate design and operating safeguards to minimize the data sheet shall define the specification of the product as agreed between risks associated with their applications and products. Ampleon and its customer, unless Ampleon and customer have explicitly Ampleon does not accept any liability related to any default, damage, costs or agreed otherwise in writing. In no event however, shall an agreement be valid problem which is based on any weakness or default in the customer\u2019s in which the Ampleon product is deemed to offer functions and qualities applications or products, or the application or use by customer\u2019s third party beyond those described in the Product data sheet. customer(s). Customer is responsible for doing all necessary testing for the customer\u2019s applications and products using Ampleon products in order to 12.3 Disclaimers avoid a default of the applications and the products or of the application or use by customer\u2019s third party customer(s). Ampleon does not accept any liability in this respect. Limited warranty and liability \u2014 Information in this document is believed to be accurate and reliable. However, Ampleon does not give any Limiting values \u2014 Stress above one or more limiting values (as defined in representations or warranties, expressed or implied, as to the accuracy or the Absolute Maximum Ratings System of IEC60134) will cause permanent completeness of such information and shall have no liability for the damage to the device. Limiting values are stress rat"
+      }
+    ],
+    "ingestion_provenance": {
+      "crawled_at_utc": "2026-04-04T10:57:50.835227+00:00",
+      "crawl_success": true,
+      "http_status": 200,
+      "source_domain": "www.ampleon.com",
+      "source_title_hint": "This website uses cookies",
+      "content_sha256": "5794cd4cb5d7f67f2dbfa2628c07d9b0bfef914394a04569b513e6651cbb9add",
+      "crawl_error": "",
+      "selector_version": "pilot-v1",
+      "pdf_datasheet_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+      "pdf_params_extracted": [
+        "gain_db"
+      ],
+      "pdf_parse_status": "params_extracted"
+    },
+    "datasheet_file": "data/kb/ampleon/_extracted/BLP9G0722-20/BLP9G0722-20_datasheet.pdf",
+    "datasheet_text_file": "data/kb/ampleon/_extracted/BLP9G0722-20/BLP9G0722-20_datasheet_text.txt",
+    "datasheet_tables_file": "data/kb/ampleon/_extracted/BLP9G0722-20/BLP9G0722-20_table_blocks.json",
+    "gain_db": 35.0,
+    "application": [
+      "FDD/TDD LTE",
+      "W-CDMA",
+      "GSM EDGE",
+      "MC-GSM",
+      "CDMA"
+    ],
+    "variants": [
+      {
+        "type_number": "BLP9G0722-20",
+        "package": "SOT1482-1",
+        "description": "plastic; heatsink small outline package; 2 leads (flat)"
+      },
+      {
+        "type_number": "BLP9G0722-20G",
+        "package": "SOT1483-1",
+        "description": "plastic; heatsink small outline package; 2 leads"
+      }
+    ],
+    "package": "Ordering",
+    "drain_eff_pct": 22.0,
+    "vdd_v": 28.0,
+    "graphical_data": {
+      "note": "Hover thumbnails open extracted datasheet figure pages for closer inspection.",
+      "assets": [
+        {
+          "fig": "Figure 1",
+          "caption": "S L",
+          "page": 4,
+          "category": "plot",
+          "image_path": "data/kb/ampleon/_extracted/BLP9G0722-20/BLP9G0722-20_page_4.png"
+        }
+      ],
+      "cw_curves": [
+        {
+          "fig": "Figure 1",
+          "caption": "S L",
+          "page": 4,
+          "category": "plot",
+          "image_path": "data/kb/ampleon/_extracted/BLP9G0722-20/BLP9G0722-20_page_4.png"
+        }
+      ],
+      "layout_figures": [],
+      "package_figures": []
+    }
   },
-
   {
     "_comment": "=== Confirmed from naming convention + catalog (C4H27W400AV Jan 2022). AN10896 (air cavity pkg guide) in workspace. ===",
-    "device_id":   "ampleon_C4H27F700AV",
+    "device_id": "ampleon_C4H27F700AV",
     "part_number": "C4H27F700AV",
     "manufacturer": "Ampleon",
-    "family":      "CLF-macro-GaN",
-    "series":      "C4H27",
-    "technology":  "GaN-SiC",
-    "generation":  "Gen4",
-    "package":     "ACP3-F",
-    "package_note":"Air Cavity Plastic straight lead, 6-lead large flange (SOT1275 family). Bolt-down or earless flange. See AN10896 for mounting guidelines.",
-    "vdd_v":       50,
-    "vdd_range_v": [44, 56],
-    "idd_q_ma":    null,
+    "family": "CLF-macro-GaN",
+    "series": "C4H27",
+    "technology": "GaN-SiC",
+    "generation": "Gen4",
+    "package": "ACP3-F",
+    "package_note": "Air Cavity Plastic straight lead, 6-lead large flange (SOT1275 family). Bolt-down or earless flange. See AN10896 for mounting guidelines.",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      44,
+      56
+    ],
+    "idd_q_ma": null,
     "freq_min_mhz": 2300,
     "freq_max_mhz": 2700,
     "freq_test_mhz": 2500,
-    "pout_w_cw":   null,
+    "pout_w_cw": null,
     "pout_w_pulse": null,
-    "pout_dbm":    58.5,
-    "gain_db":     15.4,
+    "pout_dbm": 58.5,
+    "gain_db": 15.4,
     "drain_eff_pct": 53.7,
-    "pae_pct":     null,
-    "p3db_w":      700,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
-    "impedance_ref_plane": "not available — datasheet not provided",
+    "pae_pct": null,
+    "p3db_w": 700,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
+    "impedance_ref_plane": "not available \u2014 datasheet not provided",
     "load_pull_table": [],
-    "s_params_available":  false,
+    "s_params_available": false,
     "spice_model_available": false,
     "ads_model_available": false,
-    "application": ["cellular", "5G"],
-    "use_case":    ["macrocell"],
-    "role":        ["main"],
-    "topology":    ["Doherty", "asymmetric-Doherty"],
-    "status":      "active",
+    "application": [
+      "cellular",
+      "5G"
+    ],
+    "use_case": [
+      "macrocell"
+    ],
+    "role": [
+      "main"
+    ],
+    "topology": [
+      "Doherty",
+      "asymmetric-Doherty"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/gan-transistors/C4H27F700AV.html",
     "app_notes": [
-      {"title": "AN10896 — Mounting and soldering of RF transistors in air cavity packages", "url": "https://www.ampleon.com/documents/application-note/AN10896.pdf"}
+      {
+        "title": "AN10896 \u2014 Mounting and soldering of RF transistors in air cavity packages",
+        "url": "https://www.ampleon.com/documents/application-note/AN10896.pdf"
+      }
     ],
-    "knowledge_source":     "from_naming_convention_and_catalog",
+    "knowledge_source": "from_naming_convention_and_catalog",
     "knowledge_confidence": "medium",
-    "datasheet_file":       "not_provided",
-    "catalog_reference":    "Ampleon Mobile Broadband Product Catalog Jan 2022 — C4H27W400AV (400W sibling, SOT1275-1): 2300-2690 MHz, 50V, 53.7% DE, 15.4 dB Gp. C4H27F700AV naming decodes as: C=GaN die, 4=Gen4, H=50V, 27=2700MHz, F=Straight lead, 700=700W P3dB, A=Asymmetric Doherty, V=variant.",
-    "tags": ["GaN-SiC", "GaN", "50V", "700W", "2300-2700MHz", "macro", "Doherty", "asymmetric-Doherty", "air-cavity", "cellular", "LTE", "B7", "B41"],
-    "notes": "700 W GaN Asymmetric Doherty integrated final transistor for 2300-2700 MHz macro cell base stations. Gain/efficiency inferred from catalog sibling C4H27W400AV (400W, same band/technology). Load Ropt/Xopt NOT available — datasheet PDF was not provided in workspace; only AN10896 (air cavity mounting guide) is present. To upgrade to HIGH confidence: download C4H27F700AV.pdf from ampleon.com and re-run Phase 2 extraction."
+    "datasheet_file": "not_provided",
+    "catalog_reference": "Ampleon Mobile Broadband Product Catalog Jan 2022 \u2014 C4H27W400AV (400W sibling, SOT1275-1): 2300-2690 MHz, 50V, 53.7% DE, 15.4 dB Gp. C4H27F700AV naming decodes as: C=GaN die, 4=Gen4, H=50V, 27=2700MHz, F=Straight lead, 700=700W P3dB, A=Asymmetric Doherty, V=variant.",
+    "tags": [
+      "GaN-SiC",
+      "GaN",
+      "50V",
+      "700W",
+      "2300-2700MHz",
+      "macro",
+      "Doherty",
+      "asymmetric-Doherty",
+      "air-cavity",
+      "cellular",
+      "LTE",
+      "B7",
+      "B41"
+    ],
+    "notes": "700 W GaN Asymmetric Doherty integrated final transistor for 2300-2700 MHz macro cell base stations. Gain/efficiency inferred from catalog sibling C4H27W400AV (400W, same band/technology). Load Ropt/Xopt NOT available \u2014 datasheet PDF was not provided in workspace; only AN10896 (air cavity mounting guide) is present. To upgrade to HIGH confidence: download C4H27F700AV.pdf from ampleon.com and re-run Phase 2 extraction."
   },
-
   {
-    "_comment": "=== Confirmed from catalog (C4H2350N10 Jan 2022) — folder C5H2350N10 in workspace. AN221012 (thermal), AN11183 (plastic pkg) provided. ===",
-    "device_id":   "ampleon_C5H2350N10",
+    "_comment": "=== Confirmed from catalog (C4H2350N10 Jan 2022) \u2014 folder C5H2350N10 in workspace. AN221012 (thermal), AN11183 (plastic pkg) provided. ===",
+    "device_id": "ampleon_C5H2350N10",
     "part_number": "C5H2350N10",
     "manufacturer": "Ampleon",
-    "family":      "CLF-small-cell-GaN",
-    "series":      "C5H23",
-    "technology":  "GaN-SiC",
-    "generation":  "Gen5",
-    "package":     "DFN-4.5x4-6-1",
-    "package_note":"Overmolded plastic DFN, 4.5×4 mm, 6-lead (no exposed leads — land grid style). Very compact thermal footprint. See AN221012 for GaN thermal management; AN11183 for soldering guidelines.",
-    "vdd_v":       50,
-    "vdd_range_v": [44, 56],
-    "idd_q_ma":    null,
+    "family": "CLF-small-cell-GaN",
+    "series": "C5H23",
+    "technology": "GaN-SiC",
+    "generation": "Gen5",
+    "package": "DFN-4.5x4-6-1",
+    "package_note": "Overmolded plastic DFN, 4.5\u00d74 mm, 6-lead (no exposed leads \u2014 land grid style). Very compact thermal footprint. See AN221012 for GaN thermal management; AN11183 for soldering guidelines.",
+    "vdd_v": 50,
+    "vdd_range_v": [
+      44,
+      56
+    ],
+    "idd_q_ma": null,
     "freq_min_mhz": 2300,
     "freq_max_mhz": 5000,
     "freq_test_mhz": 2500,
-    "pout_w_cw":   null,
+    "pout_w_cw": null,
     "pout_w_pulse": null,
-    "pout_dbm":    40,
-    "gain_db":     15.5,
+    "pout_dbm": 40,
+    "gain_db": 15.5,
     "drain_eff_pct": 19,
-    "pae_pct":     null,
-    "p3db_w":      10,
-    "ropt_ohm":    null,
-    "xopt_ohm":    null,
-    "rin_ohm":     null,
-    "xin_ohm":     null,
-    "impedance_ref_plane": "not available — datasheet not provided",
+    "pae_pct": null,
+    "p3db_w": 10,
+    "ropt_ohm": null,
+    "xopt_ohm": null,
+    "rin_ohm": null,
+    "xin_ohm": null,
+    "impedance_ref_plane": "not available \u2014 datasheet not provided",
     "load_pull_table": [],
-    "s_params_available":  false,
+    "s_params_available": false,
     "spice_model_available": false,
     "ads_model_available": false,
-    "application": ["cellular", "5G", "small-cell"],
-    "use_case":    ["small-cell", "massive-MIMO", "mMIMO", "DAS"],
-    "role":        ["driver", "main"],
-    "topology":    ["single-ended", "Doherty"],
-    "status":      "active",
+    "application": [
+      "cellular",
+      "5G",
+      "small-cell"
+    ],
+    "use_case": [
+      "small-cell",
+      "massive-MIMO",
+      "mMIMO",
+      "DAS"
+    ],
+    "role": [
+      "driver",
+      "main"
+    ],
+    "topology": [
+      "single-ended",
+      "Doherty"
+    ],
+    "status": "active",
     "datasheet_url": "https://www.ampleon.com/products/rf-power-transistors/gan-transistors/C5H2350N10.html",
     "app_notes": [
-      {"title": "AN221012 — Thermal characteristics of GaN power transistors", "url": "https://www.ampleon.com/documents/application-note/AN221012.pdf"},
-      {"title": "AN11183 — Mounting and soldering of RF transistors in overmolded plastic packages", "url": "https://www.ampleon.com/documents/application-note/AN11183.pdf"}
+      {
+        "title": "AN221012 \u2014 Thermal characteristics of GaN power transistors",
+        "url": "https://www.ampleon.com/documents/application-note/AN221012.pdf"
+      },
+      {
+        "title": "AN11183 \u2014 Mounting and soldering of RF transistors in overmolded plastic packages",
+        "url": "https://www.ampleon.com/documents/application-note/AN11183.pdf"
+      }
     ],
-    "knowledge_source":     "from_catalog",
+    "knowledge_source": "from_catalog",
     "knowledge_confidence": "medium",
-    "datasheet_file":       "not_provided",
-    "catalog_reference":    "Ampleon Mobile Broadband Product Catalog Jan 2022 — C4H2350N10 (Gen4 predecessor): 2300-5000 MHz, 50V, 10W P3dB, 15.5 dB gain, 19% DE, DFN-4.5x4-6-1, GaN. Used as mMIMO driver and Small Cell driver/final. C5H naming indicates Gen5 successor with same form factor.",
-    "tags": ["GaN-SiC", "GaN", "50V", "10W", "2300-5000MHz", "broadband", "DFN", "small-cell", "mMIMO", "driver", "cellular", "5G", "n77", "n78", "n41"],
-    "notes": "10 W broadband GaN driver for 2300–5000 MHz covering multiple 5G/LTE bands (B7/B41/n41/n77/n78). Gen5 GaN on SiC in compact DFN package — suited for mMIMO and small cell line-ups. Catalog predecessor C4H2350N10 (Gen4) shows same specs; Gen5 likely improves on thermal performance (see AN221012). Drain efficiency (19%) is lower than final-stage GaN due to broadband driver bias operating point. Ropt/Xopt NOT available — datasheet was not provided; only application notes (AN221012, AN11183) are in workspace. To upgrade to HIGH confidence: download C5H2350N10.pdf from ampleon.com."
+    "datasheet_file": "not_provided",
+    "catalog_reference": "Ampleon Mobile Broadband Product Catalog Jan 2022 \u2014 C4H2350N10 (Gen4 predecessor): 2300-5000 MHz, 50V, 10W P3dB, 15.5 dB gain, 19% DE, DFN-4.5x4-6-1, GaN. Used as mMIMO driver and Small Cell driver/final. C5H naming indicates Gen5 successor with same form factor.",
+    "tags": [
+      "GaN-SiC",
+      "GaN",
+      "50V",
+      "10W",
+      "2300-5000MHz",
+      "broadband",
+      "DFN",
+      "small-cell",
+      "mMIMO",
+      "driver",
+      "cellular",
+      "5G",
+      "n77",
+      "n78",
+      "n41"
+    ],
+    "notes": "10 W broadband GaN driver for 2300\u20135000 MHz covering multiple 5G/LTE bands (B7/B41/n41/n77/n78). Gen5 GaN on SiC in compact DFN package \u2014 suited for mMIMO and small cell line-ups. Catalog predecessor C4H2350N10 (Gen4) shows same specs; Gen5 likely improves on thermal performance (see AN221012). Drain efficiency (19%) is lower than final-stage GaN due to broadband driver bias operating point. Ropt/Xopt NOT available \u2014 datasheet was not provided; only application notes (AN221012, AN11183) are in workspace. To upgrade to HIGH confidence: download C5H2350N10.pdf from ampleon.com."
+  },
+  {
+    "device_id": "ampleon_BLP9G0722-20G",
+    "part_number": "BLP9G0722-20G",
+    "manufacturer": "Ampleon",
+    "family": null,
+    "series": "BLP9G0722",
+    "technology": "LDMOS",
+    "freq_min_mhz": 100.0,
+    "freq_max_mhz": 2700.0,
+    "datasheet_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+    "knowledge_source": "datasheet",
+    "knowledge_confidence": "high",
+    "status": "active",
+    "tags": [
+      "crawl4ai-pilot",
+      "ampleon",
+      "ldmos"
+    ],
+    "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+    "extraction_blueprint": {
+      "selector_version": "pilot-v1",
+      "title_selector": "h1",
+      "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet'], a[href*='/docs/']",
+      "product_summary_selector": "main, .product-details, .product-page"
+    },
+    "vendor_profile": {
+      "key": "ampleon",
+      "display_name": "Ampleon",
+      "strategy": "build_ampleon_structured_sections_from_blocks",
+      "notes": [
+        "Ampleon currently uses generic structured extraction with vendor-specific selectors from the seed catalog."
+      ]
+    },
+    "document_metadata": {
+      "document_number": null,
+      "revision": "3",
+      "page_count": 20,
+      "pdf_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+      "title": "BLP9G0722-20; | BLP9G0722-20G | Power LDMOS transistor | Rev. 3 \u2014 26 February 2018 Product data sheet",
+      "part_number_detected": "BLP9G0722-20G"
+    },
+    "app_notes": [
+      {
+        "title": "application-notes",
+        "url": "https://www.ampleon.com/zip/products/BLP9G0722-20G/application-notes"
+      },
+      {
+        "title": "AN11183",
+        "url": "https://www.ampleon.com/documents/application-note/AN11183.pdf"
+      }
+    ],
+    "typical_applications": [],
+    "extracted_table_blocks": [
+      {
+        "title": "Table 1. Application performance (multiple frequencies)",
+        "content": "Table 1. Application performance (multiple frequencies) Typical RF performance at T =25\uf0b0C; I =180mA; in a class-AB demo board, tested on case Dq gullwing lead device. Test signal f I V P G \uf068 ACPR Dq DS L(AV) p D 5M (MHz) (mA) (V) (dBm) (dB) (%) (dBc) 1-carrier W-CDMA 400 to 430 180 28 35 25.5 24 \uf02d45 [1] 728 to 768 180 28 35 23 22 \uf02d45 [1] 1805 to 1880 180 28 35 19 21 \uf02d45 [1] 2110 to 2170 180 28 35 18 21 \uf02d45 [1] 2300 to 2400 180 28 35 17.3 21 \uf02d45 [1] 2570 to 2620 180 28 35 16 20 \uf02d45 [1] [1] Test signal: 3GPP test model 1; 64 DCHP; PAR=7.2dB at 0.01% probability on CCDF. 1.2 Features and benefits \uf06e High efficiency \uf06e Excellent ruggedness \uf06e Designed for broadband operation \uf06e Excellent thermal stability \uf06e High power gain \uf06e Integrated ESD protection \uf06e Compliant to Directive 2002/95/EC, regarding Restriction of Hazardous Substances (RoHS) 1.3 Applications \uf06e FDD/TDD LTE \uf06e W-CDMA \uf06e GSM EDGE \uf06e MC-GSM \uf06e CDMA \uf06e WiMAX BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 2. Pinning information"
+      },
+      {
+        "title": "Table 2. Pinning",
+        "content": "Table 2. Pinning Pin Description Simplified outline Graphic symbol BLP9G0722-20 (SOT1482-1) 1 drain 2 1 2 gate 3 3 source [1] 2 1 3 sym112 BLP9G0722-20G (SOT1483-1) 1 drain 2 1 2 gate 3 3 source [1] 2 1 3 sym112 [1] Connected to flange. 3. Ordering information"
+      },
+      {
+        "title": "Table 3. Ordering information",
+        "content": "Table 3. Ordering information Type number Package Name Description Version BLP9G0722-20 - plastic; heatsink small outline package; 2 leads (flat) SOT1482-1 BLP9G0722-20G - plastic; heatsink small outline package; 2 leads SOT1483-1 4. Limiting values"
+      },
+      {
+        "title": "Table 4. Limiting values",
+        "content": "Table 4. Limiting values In accordance with the Absolute Maximum Rating System (IEC 60134). Symbol Parameter Conditions Min Max Unit V drain-source voltage - 65 V DS V gate-source voltage \uf02d5 +13 V GS T storage temperature \uf02d65 +150 \uf0b0C stg T junction temperature - 225 \uf0b0C j 5. Thermal characteristics"
+      },
+      {
+        "title": "Table 5. Thermal characteristics",
+        "content": "Table 5. Thermal characteristics Symbol Parameter Conditions Typ Unit R thermal resistance from junction to case T =80\uf0b0C; P =3W 1.1 K/W th(j-c) case L BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 2 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 6. Characteristics"
+      },
+      {
+        "title": "Table 6. DC characteristics",
+        "content": "Table 6. DC characteristics T = 25 \uf0b0C; unless otherwise specified. j Symbol Parameter Conditions Min Typ Max Unit V drain-source breakdown V =0V; I =0.3mA 65 - - V (BR)DSS GS D voltage V gate-source threshold voltage V =10 V; I =30mA 1.5 2.0 - V GS(th) DS D V gate-source quiescent voltage V =28 V; I =180mA 1.6 2.1 2.6 V GSq DS D I drain leakage current V =0V; V =28V - - 1.4 \uf06dA DSS GS DS I drain cut-off current V =V +3.75V - 6 - A DSX GS GS(th) I gate leakage current V =11V; V =0V - - 140 nA GSS GS DS g forward transconductance V =10V; I =30mA - 300 - mS fs DS D R drain-source on-state V =V +3.75V; - 500 - m\uf057 DS(on) GS GS(th) resistance I =1.05A D"
+      },
+      {
+        "title": "Table 7. RF characteristics",
+        "content": "Table 7. RF characteristics A derivative functional RF test is performed in production. The performance as mentioned below is verified by design and characterization in a class AB production board. Test signal: pulsed CW; \uf064 = 10%; t = 100 \uf06ds; V = 28 V; I = 180mA; T = 25 \uf0b0C; p DS Dq case f=1842.5MHz. Symbol Parameter Conditions Min Typ Max Unit G power gain P =35dBm 17 19 - dB p L(AV) \uf068 drain efficiency P =35dBm 18 22 - % D L(AV) RL input return loss P =35dBm - \uf02d10 \uf02d6 dB in L(AV) P output power at 1 dB gaincompression 42.5 43.9 - dBm L(1dB) P output power at 3 dB gaincompression 43 44.3 - dBm L(3dB) 7. Test information 7.1 Ruggedness in Doherty operation The BLP9G0722-20 and BLP9G0722-20G are capable of withstanding a load mismatch corresponding to a VSWR=10: 1 through all phases under the following conditions: V =28V; P =20 W(CW); f=728MHz and 1805MHz on development board. DS L 7.2 Impedance information"
+      },
+      {
+        "title": "Table 8. Typical impedance of BLP9G0722-20G",
+        "content": "Table 8. Typical impedance of BLP9G0722-20G Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) Maximum power load 740 0.5 +j0.1 10.6 \uf02d j1.0 37 55.1 22.8 880 0.6\uf02d j1.4 3.8 +j2.0 49 70.9 22.8 1810 1.6 \uf02d j5.5 3.4 \uf02d j1.0 43 62.2 19.0 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 3 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor"
+      },
+      {
+        "title": "Table 8. Typical impedance of BLP9G0722-20G \u2026continued",
+        "content": "Table 8. Typical impedance of BLP9G0722-20G \u2026continued Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) 1840 1.3 \uf02d j5.8 3.0 \uf02d j1.2 43 62.7 19.1 1880 1.3\uf02d j6.2 2.6 \uf02d j1.5 42 61.2 18.7 2110 5.3 \uf02d j9.6 2.6 \uf02d j2.5 41 58.2 17.7 2170 6.2 \uf02d j8.1 2.6 \uf02d j2.5 41 60.4 18.2 Maximum drain efficiency load 740 0.5 +j0.1 6.0 +j10.0 20 74.1 24.8 880 0.6\uf02d j1.4 3.7 +j5.9 26 82.7 24.7 1810 1.6 \uf02d j5.5 1.9 +j0.2 31 70.9 20.9 1840 1.3 \uf02d j5.8 1.7 +j0.0 29 69.8 21.3 1880 1.3\uf02d j6.2 1.6 \uf02d j0.2 28 69.8 21.3 2110 5.3 \uf02d j9.6 1.7 \uf02d j1.5 32 65.6 19.5 2170 6.2 \uf02d j8.1 1.6 \uf02d j1.7 30 65.9 20.2 [1] Z and Z defined in Figure1. S L [2] at 3 dB gain compression."
+      },
+      {
+        "title": "Table 9. Typical impedance of BLP9G0722-20",
+        "content": "Table 9. Typical impedance of BLP9G0722-20 Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) Maximum power load 740 0.6 +j0.6 10.6 \uf02d j1.0 39 56.8 22.7 880 0.6\uf02d j0.7 4.0 +j1.6 51 70.9 22.1 1810 1.8 \uf02d j5.4 3.0 \uf02d j1.2 44 60.9 19.1 1840 1.6 \uf02d j5.8 3.0 \uf02d j1.2 44 62.6 19.6 1880 1.8\uf02d j6.1 2.9 \uf02d j1.6 44 60.9 19.1 2110 7.3 \uf02d j8.2 2.6 \uf02d j2.5 41 57.7 17.8 2170 8.7 \uf02d j6.8 2.6 \uf02d j2.5 43 62.1 18.7 Maximum drain efficiency load 740 0.6 +j0.6 6.0 +j10.0 22 77.0 24.6 880 0.6\uf02d j0.7 3.7 +j5.9 26 85.3 24.4 1810 1.8 \uf02d j5.4 1.9 +j0.0 33 69.4 20.9 1840 1.6 \uf02d j5.8 1.9 +j0.0 31 69.4 21.7 1880 1.8\uf02d j6.1 1.8 \uf02d j0.2 32 70.7 21.6 2110 7.3 \uf02d j8.2 1.5 \uf02d j1.4 30 65.3 19.9 2170 8.7 \uf02d j6.8 1.4 \uf02d j1.6 29 69.3 21.3 [1] Z and Z defined in Figure1. S L [2] at 3 dB gain compression. BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 4 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor drain ZL gate ZS 001aaf059 Fig 1. Definition of transistor impedance 7.3 Test circuit 76.2 mm C6 C1 C7 C8 C2 C9 C10 40 mm R1 C11 C12 C13 C4 C5 C3 BLP9G0722-20G 700MHz Rogers 4350 20mil amp00286 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table10 for a list of components. Fig 2. Component layout for test circuit at 740MHz T able 10. List of components See Figure2 for component layout. Component Description Value Remarks C1, C7, C8, C9 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C3, C10, C11 multilayer ceramic chip capacitor 36pF ATC 600F C4, C5 multilayer ceramic chip capacitor 15pF ATC 600F C6 electrolytic capacitor 2200 \uf06dF, 50V C12 multilayer ceramic chip capacitor 5.6pF ATC 600F C13 multilayer ceramic chip capacitor 0.2pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 5 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 76.2 mm C8 C1C2 C3 C9 C10 C11 C4 C5R1 C12 C6 C13 40 mm C16 C14 C15 BLP9G0722-20G 1800MHz Rogers 4350 20mil C7 amp00287 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table11 for a list of components. Fig 3. Component layout for test circuit at 1800MHz T able 11. List of components See Figure3 for component layout. Component Description Value Remarks C1, C9, C10 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C3, C11, C13 multilayer ceramic chip capacitor 12pF ATC 600F C4, C5 multilayer ceramic chip capacitor 0.8pF ATC 600F C6 multilayer ceramic chip capacitor 6.2pF ATC 600F C7 multilayer ceramic chip capacitor 2pF ATC 600F C8 electrolytic capacitor 2200 \uf06dF, 50V C12, C15 multilayer ceramic chip capacitor 0.3pF ATC 600F C14 multilayer ceramic chip capacitor 2.2pF ATC 600F C16 multilayer ceramic chip capacitor 0.3pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 6 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 76.2 mm C6 C1C2 C3 C7C8 R1 C9 C4 C10 40 mm C5 C11 C12 BLP9G0722-20G 2100MHz Rogers 4350 20mil amp00288 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table12 for a list of components. Fig 4. Component layout for test circuit at 2100MHz T able 12. List of components See Figure4 for component layout. Component Description Value Remarks C1, C8 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C7, C10 multilayer ceramic chip capacitor 12pF ATC 600F C3 multilayer ceramic chip capacitor 62pF ATC 600F C4 multilayer ceramic chip capacitor 5.6pF ATC 600F C5 multilayer ceramic chip capacitor 0.5pF ATC 600F C6 electrolytic capacitor 2200 \uf06dF, 50V C9 multilayer ceramic chip capacitor 2.2pF ATC 600F C11 multilayer ceramic chip capacitor 1.2pF ATC 600F C12 multilayer ceramic chip capacitor 1.8pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 7 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 7.4 Graphical data 7.4.1 CW amp00289 amp00290 27 80 23 80 GGpp \u03b7\u03b7DD GGpp \u03b7\u03b7DD (((dddBBB))) (((%%%))) (((dddBBB))) (((%%%))) 25 (((111))) 60 21 60 (((222))) (((111))) GGpp (((222))) (((111))) GGpp 23 (((222))) 40 19 40 (((111))) (((222))) 21 20 17 20 \u03b7\u03b7DD \u03b7\u03b7DD 19 0 15 0 0 5 10 15 20 25 30 35 40 0 5 10 15 20 25 30 35 40 PL (W) PL (W) V =28V; I =180mA. V =28V; I =180mA. DS Dq DS Dq (1) f = 728 MHz (1) f = 1805 MHz (2) f = 768 MHz (2) f = 1880 MHz Fig 5. Power gain and drain efficiency as function of Fig 6. Power gain and drain efficiency as function of output power; typical values output power; typical values amp00291 22 80 GGpp \u03b7\u03b7DD (((dddBBB))) (((%%%))) 20 60 (((111))) (((222))) GGpp 18 40 (((111))) (((222))) 16 20 \u03b7\u03b7DD 14 0 0 5 10 15 20 25 30 35 40 PL (W) V =28V; I =180mA. DS Dq (1) f = 2110 MHz (2) f = 2170 MHz Fig 7. Power gain and drain efficiency as function of output power; typical values BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 8 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 7.4.2 Pulsed CW amp00292 amp00293 27 80 23 80 GGpp \u03b7\u03b7DD GGpp \u03b7\u03b7DD (((dddBBB))) (((111))) (((%%%))) (((dddBBB))) (((%%%))) (((222))) 25 60 21 (((111))) 60 (((222))) GGpp GGpp 23 40 19 40 (((111))) (((222))) (((111))) (((222))) 21 20 17 20 \u03b7\u03b7DD \u03b7\u03b7DD 19 0 15 0 0 5 10 15 20 25 30 35 40 0 5 10 15 20 25 30 35 40 PL (W) PL (W) V =28V; I =180mA. V =28V; I =180mA. DS Dq DS Dq (1) f = 728 MHz (1) f = 1805 MHz (2) f = 768 MHz (2) "
+      },
+      {
+        "title": "Table 13. ESD sensitivity",
+        "content": "Table 13. ESD sensitivity ESD model Class Charged Device Model (CDM); According to ANSI/ESDA/JEDEC standard JS-002 C2A [1] Human Body Model (HBM); According to ANSI/ESDA/JEDEC standard JS-001 2 [2] [1] CDM classification C2A is granted to any part that passes after exposure to an ESD pulse of 500V, but fails after exposure to an ESD pulse of 750V. [2] HBM classification 2 is granted to any part that passes after exposure to an ESD pulse of 2000V, but fails after exposure to an ESD pulse of 4000V. 10. Abbreviations"
+      },
+      {
+        "title": "Table 14. Abbreviations",
+        "content": "Table 14. Abbreviations Acronym Description 3GPP 3rd Generation Partnership Project CCDF Complementary Cumulative Distribution Function CDMA Code Division Multiple Access CW Continuous Wave DCPH Dedicated Physical CHannel EDGE Enhanced Data rates for GSM Evolution ESD ElectroStatic Discharge FDD Frequency Division Duplex GSM Global System for Mobile Communication LDMOS Laterally Diffused Metal-Oxide Semiconductor LTE Long Term Evolution MC-GSM Multi Carrier GSM MTF Median Time to Failure PAR Peak-to-Average Ratio SMD Surface Mounted Device TDD Time Division Duplex W-CDMA Wideband Code Division Multiple Access WiMAX Worldwide Interoperability for Microwave Access BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 16 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 11. Revision history"
+      },
+      {
+        "title": "Table 15. Revision history",
+        "content": "Table 15. Revision history Document ID Release date Data sheet status Change notice Supersedes BLP9G0722-20_9G0722-20G v.3 20180226 Product data sheet - BLP9G0722-20_9G0722-20G v.2 Modifications: \u2022 Section1.1 on page1: changed \u201c400 MHz\u201d to \u201c100MHz\u201d BLP9G0722-20_9G0722-20G v.2 20170801 Product data sheet - BLP9G0722-20_9G0722-20G v.1 BLP9G0722-20_9G0722-20G v.1 20170606 Product data sheet - - BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 17 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 12. Legal information 12.1 Data sheet status Document status[1][2] Product status[3] Definition Objective [short] data sheet Development This document contains data from the objective specification for product development. Preliminary [short] data sheet Qualification This document contains data from the preliminary specification. Product [short] data sheet Production This document contains the product specification. [1] Please consult the most recently issued document before initiating or completing a design. [2] The term \u2018short data sheet\u2019 is explained in section \u201cDefinitions\u201d. [3] The product status of device(s) described in this document may have changed since this document was published and may differ in case of multiple devices. The latest product status information is available on the Internet at URLhttp://www.ampleon.com. 12.2 Definitions Ampleon product can reasonably be expected to result in personal injury, death or severe property or environmental damage. Ampleon and its suppliers accept no liability for inclusion and/or use of Ampleon products in Draft \u2014 The document is a draft version only. The content is still under such equipment or applications and therefore such inclusion and/or use is at internal review and subject to formal approval, which may result in the customer\u2019s own risk. modifications or additions. Ampleon does not give any representations or warranties as to the accuracy or completeness of information included herein Applications \u2014 Applications that are described herein for any of these and shall have no liability for the consequences of use of such information. products are for illustrative purposes only. Ampleon makes no representation or warranty that such applications will be suitable for the specified use without Short data sheet \u2014 A short data sheet is an extract from a full data sheet further testing or modification. with the same product type number(s) and title. A short data sheet is intended for quick reference only and should not be relied upon to contain detailed and Customers are responsible for the design and operation of their applications full information. For detailed and full information see the relevant full data and products using Ampleon products, and Ampleon accepts no liability for sheet, which is available on request via the local Ampleon sales office. In any assistance with applications or customer product design. It is customer\u2019s case of any inconsistency or conflict with the short data sheet, the full data sole responsibility to determine whether the Ampleon product is suitable and sheet shall prevail. fit for the customer\u2019s applications and products planned, as well as for the planned application and use of customer\u2019s third party customer(s). Customers Product specification \u2014 The information and data provided in a Product should provide appropriate design and operating safeguards to minimize the data sheet shall define the specification of the product as agreed between risks associated with their applications and products. Ampleon and its customer, unless Ampleon and customer have explicitly Ampleon does not accept any liability related to any default, damage, costs or agreed otherwise in writing. In no event however, shall an agreement be valid problem which is based on any weakness or default in the customer\u2019s in which the Ampleon product is deemed to offer functions and qualities applications or products, or the application or use by customer\u2019s third party beyond those described in the Product data sheet. customer(s). Customer is responsible for doing all necessary testing for the customer\u2019s applications and products using Ampleon products in order to 12.3 Disclaimers avoid a default of the applications and the products or of the application or use by customer\u2019s third party customer(s). Ampleon does not accept any liability in this respect. Limited warranty and liability \u2014 Information in this document is believed to be accurate and reliable. However, Ampleon does not give any Limiting values \u2014 Stress above one or more limiting values (as defined in representations or warranties, expressed or implied, as to the accuracy or the Absolute Maximum Ratings System of IEC60134) will cause permanent completeness of such information and shall have no liability for the damage to the device. Limiting values are stress rat"
+      }
+    ],
+    "ingestion_provenance": {
+      "crawled_at_utc": "2026-04-04T10:57:38.113830+00:00",
+      "crawl_success": true,
+      "http_status": 200,
+      "source_domain": "www.ampleon.com",
+      "source_title_hint": "This website uses cookies",
+      "content_sha256": "a35befdededb845fcc089d04b48bc9c28c6a67e84d3bd595170a6d951754057b",
+      "crawl_error": "",
+      "selector_version": "pilot-v1",
+      "pdf_datasheet_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+      "pdf_params_extracted": [
+        "gain_db"
+      ],
+      "pdf_parse_status": "params_extracted"
+    },
+    "datasheet_file": "data/kb/ampleon/_extracted/BLP9G0722-20G/BLP9G0722-20G_datasheet.pdf",
+    "datasheet_text_file": "data/kb/ampleon/_extracted/BLP9G0722-20G/BLP9G0722-20G_datasheet_text.txt",
+    "datasheet_tables_file": "data/kb/ampleon/_extracted/BLP9G0722-20G/BLP9G0722-20G_table_blocks.json",
+    "gain_db": 35.0,
+    "application": [
+      "FDD/TDD LTE",
+      "W-CDMA",
+      "GSM EDGE",
+      "MC-GSM",
+      "CDMA"
+    ],
+    "variants": [
+      {
+        "type_number": "BLP9G0722-20",
+        "package": "SOT1482-1",
+        "description": "plastic; heatsink small outline package; 2 leads (flat)"
+      },
+      {
+        "type_number": "BLP9G0722-20G",
+        "package": "SOT1483-1",
+        "description": "plastic; heatsink small outline package; 2 leads"
+      }
+    ],
+    "package": "Ordering",
+    "drain_eff_pct": 22.0,
+    "vdd_v": 28.0,
+    "graphical_data": {
+      "note": "Hover thumbnails open extracted datasheet figure pages for closer inspection.",
+      "assets": [
+        {
+          "fig": "Figure 1",
+          "caption": "S L",
+          "page": 4,
+          "category": "plot",
+          "image_path": "data/kb/ampleon/_extracted/BLP9G0722-20G/BLP9G0722-20G_page_4.png"
+        }
+      ],
+      "cw_curves": [
+        {
+          "fig": "Figure 1",
+          "caption": "S L",
+          "page": 4,
+          "category": "plot",
+          "image_path": "data/kb/ampleon/_extracted/BLP9G0722-20G/BLP9G0722-20G_page_4.png"
+        }
+      ],
+      "layout_figures": [],
+      "package_figures": []
+    }
   }
 ]

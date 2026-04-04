@@ -1,0 +1,13 @@
+{
+  "manufacturer": "Qorvo",
+  "manufacturer_id": "qorvo",
+  "full_name": "Qorvo, Inc.",
+  "website": "https://www.qorvo.com",
+  "products_url": "https://www.qorvo.com/products/amplifiers/power-amplifiers",
+  "catalog_url": "https://www.qorvo.com/products/amplifiers/power-amplifiers",
+  "catalog_url_pattern": "/products/p/",
+  "catalog_priority": 75,
+  "focus_areas": ["power amplifiers", "front-end modules", "wireless infrastructure"],
+  "key_markets": ["cellular infrastructure", "Wi-Fi", "defense", "satcom", "radar"],
+  "notes": "Catalog metadata used by KB Agent for workspace-driven refresh planning."
+}

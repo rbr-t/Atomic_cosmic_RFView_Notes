@@ -1,0 +1,490 @@
+Freescale Semiconductor DocumentNumber:MRF6VP11KH
+Technical Data Rev.8,9/2012
+RF Power Field Effect Transistors
+N--Channel Enhancement--Mode Lateral MOSFETs MRF6VP11KHR6
+Designedprimarilyforpulsewidebandapplicationswithfrequenciesupto MRF6VP11KGSR5
+150MHz.Devicesareunmatchedandaresuitableforuseinindustrial,
+medicalandscientificapplications.
+• TypicalPulsePerformanceat130MHz:V DD =50Volts,I DQ =150mA,
+P
+out
+=1000WattsPeak(200WAvg.),PulseWidth=100μsec,
+1.8--150MHz,1000W,50V
+DutyCycle=20%
+LATERALN--CHANNEL
+PowerGain—26dB
+BROADBAND
+DrainEfficiency—71%
+RFPOWERMOSFETs
+• CapableofHandling10:1VSWR,@50Vdc,130MHz,1000WattsPeak
+Power
+Features
+• CharacterizedwithSeriesEquivalentLarge--SignalImpedanceParameters
+• CWOperationCapabilitywithAdequateCooling
+• QualifiedUptoaMaximumof50V DD Operation
+CASE375D--05
+• IntegratedESDProtection
+STYLE1
+• DesignedforPush--PullOperation NI--1230--4
+• GreaterNegativeGate--SourceVoltageRangeforImprovedClassC MRF6VP11KHR6
+Operation
+• InTapeandReel.R6Suffix=150Units,56mmTapeWidth,13inchReel.
+R5Suffix=50Units,56mmTapeWidth,13InchReel.
+CASE2282--02
+NI--1230S--4GULL
+MRF6VP11KGSR5
+PARTSAREPUSH--PULL
+RFinA/VGSA 3 1 RFoutA/VDSA
+Table1.MaximumRatings
+Rating Symbol Value Unit
+Drain--SourceVoltage VDSS --0.5,+110 Vdc
+RFinB/VGSB 4 2 RFoutB/VDSB
+Gate--SourceVoltage VGS --6.0,+10 Vdc
+StorageTemperatureRange Tstg --65to+150 °C
+(TopView)
+CaseOperatingTemperature TC 150 °C
+Figure1.PinConnections
+OperatingJunctionTemperature(1,2) TJ 225 °C
+Table2.ThermalCharacteristics
+Characteristic Symbol Value(2,3) Unit
+ThermalResistance,JunctiontoCase RθJC 0.13 °C/W
+CW:CaseTemperature67°C,1000WCW,100MHz
+ThermalImpedance,JunctiontoCase ZθJC 0.03 °C/W
+Pulse:CaseTemperature80°C,1000WPeak,100μsecPulseWidth,20%DutyCycle
+1. ContinuoususeatmaximumtemperaturewillaffectMTTF.
+2. MTTFcalculatoravailableathttp://www.freescale.com/rf.SelectSoftware&Tools/DevelopmentTools/CalculatorstoaccessMTTF
+calculatorsbyproduct.
+3. RefertoAN1955,ThermalMeasurementMethodologyofRFPowerAmplifiers.Gotohttp://www.freescale.com/rf.
+SelectDocumentation/ApplicationNotes--AN1955.
+©FreescaleSemiconductor,Inc.,2008--2010,2012.Allrightsreserved. MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+FreescaleSemiconductor,Inc. 1
+Table3.ESDProtectionCharacteristics
+TestMethodology Class
+HumanBodyModel(perJESD22--A114) 2,passes2000V
+MachineModel(perEIA/JESD22--A115) A,passes125V
+ChargeDeviceModel(perJESD22--C101) IV,passes2000V
+Table4.ElectricalCharacteristics (TA=25°Cunlessotherwisenoted)
+Characteristic Symbol Min Typ Max Unit
+OffCharacteristics(1)
+Gate--SourceLeakageCurrent IGSS — — 10 μAdc
+(VGS=5Vdc,VDS=0Vdc)
+Drain--SourceBreakdownVoltage V(BR)DSS 110 — — Vdc
+(ID=300mA,VGS=0Vdc)
+ZeroGateVoltageDrainLeakageCurrent IDSS — — 100 μAdc
+(VDS=50Vdc,VGS=0Vdc)
+ZeroGateVoltageDrainLeakageCurrent IDSS — — 5 mA
+(VDS=100Vdc,VGS=0Vdc)
+OnCharacteristics
+GateThresholdVoltage(1) VGS(th) 1 1.63 3 Vdc
+(VDS=10Vdc,ID=1600μAdc)
+GateQuiescentVoltage(2) VGS(Q) 1.5 2.2 3.5 Vdc
+(VDD=50Vdc,ID=150mAdc,MeasuredinFunctionalTest)
+Drain--SourceOn--Voltage(1) VDS(on) — 0.28 — Vdc
+(VGS=10Vdc,ID=4Adc)
+DynamicCharacteristics(1)
+ReverseTransferCapacitance Crss — 3.3 — pF
+(VDS=50Vdc±30mV(rms)ac@1MHz,VGS=0Vdc)
+OutputCapacitance Coss — 147 — pF
+(VDS=50Vdc±30mV(rms)ac@1MHz,VGS=0Vdc)
+InputCapacitance Ciss — 506 — pF
+(VDS=50Vdc,VGS=0Vdc±30mV(rms)ac@1MHz)
+FunctionalTests(2,3)(InFreescaleTestFixture,50ohmsystem)VDD=50Vdc,IDQ=150mA,Pout=1000WPeak(200WAvg.),f=130
+MHz,100μsecPulseWidth,20%DutyCycle
+PowerGain Gps 24 26 28 dB
+DrainEfficiency ηD 69 71 — %
+InputReturnLoss IRL — --16 --9 dB
+1. Eachsideofdevicemeasuredseparately.
+2. Measurementsmadewithdeviceinpush--pullconfiguration.
+3. Measurementsmadewithdeviceinstraightleadconfigurationbeforeanyleadformingoperationisapplied.Leadformingisusedforgull
+wing(GS)parts.
+MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+2 FreescaleSemiconductor,Inc.
+R2
+VBIAS B1 L1 R1 VSUPPLY
++ + + L3 + + +
+C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 C11 C13 C14 C15 C16 C17 C18 C19 C20
+C21
+Z8 Z10 Z12 Z14 Z16
+Z4 Z6
+RF RF
+INPUT OUTPUT
+Z1 Z2 Z3 Z18 Z19
+DUT C23 C24 C25
+J1 J2
+L2 Z5 Z7
+C12 Z9 Z11 Z13 Z15 Z17 C26
+T1 T2
+C22
+Z1 0.175″x0.082″Microstrip Z12,Z13 0.206″x0.253″Microstrip
+Z2* 1.461″x0.082″Microstrip Z14,Z15 0.116″x0.253″Microstrip
+Z3* 0.080″x0.082″Microstrip Z16*,Z17* 0.035″x0.253″Microstrip
+Z4,Z5 0.133″x0.193″Microstrip Z18 0.275″x0.082″Microstrip
+Z6,Z7,Z8,Z9 0.500″x0.518″Microstrip Z19 0.845″x0.082″Microstrip
+Z10,Z11 0.102″x0.253″Microstrip
+*Linelengthincludesmicrostripbends.
+Figure2.MRF6VP11KHR6TestCircuitSchematic
+Table5.MRF6VP11KHR6TestCircuitComponentDesignationsandValues
+Part Description PartNumber Manufacturer
+B1 95Ω,100MHzLongFerriteBead 2743021447 Fair--Rite
+C1 47μF,50VElectrolyticCapacitor 476KXM050M IllinoisCap
+C2 22μF,35VTantalumCapacitor T491X226K035AT Kemet
+C3 10μF,35VTantalumCapacitor T491D106K035AT Kemet
+C4,C9,C17 10KpFChipCapacitors ATC200B103KT50XT ATC
+C5,C16 20KpFChipCapacitors ATC200B203KT50XT ATC
+C6,C15 0.1μF,50VChipCapacitors CDR33BX104AKYS Kemet
+C7 2.2μF,50VChipCapacitor C1825C225J5RAC Kemet
+C8 0.22μF,100VChipCapacitor C1825C223K1GAC Kemet
+C10,C11,C13,C14 1000pFChipCapacitors ATC100B102JT50XT ATC
+C12 18pFChipCapacitor ATC100B180JT500XT ATC
+C18,C19,C20 470μF,63VElectrolyticCapacitors MCGPR63V477M13X26--RH Multicomp
+C21,C22 47pFChipCapacitors ATC100B470JT500XT ATC
+C23 75pFChipCapacitor ATC100B750JT500XT ATC
+C24,C25 100pFChipCapacitors ATC100B101JT500XT ATC
+C26 33pFChipCapacitor ATC100B330JT500XT ATC
+J1,J2 JumpersfromPCBtoT1andT2 CopperFoil
+L1 82nHInductor 1812SMS--82NJLC CoilCraft
+L2 47nHInductor 1812SMS--47NJLC CoilCraft
+L3* 10Turn,18AWGInductor,HandWound CopperWire
+R1 1KΩ,1/4WCarbonLeadedResistor MCCFR0W4J0102A50 Multicomp
+R2 20Ω,3WChipResistor CPF320R000FKE14 Vishay
+T1 Balun TUI--9 CommConcepts
+T2 Balun TUO--4 CommConcepts
+PCB 0.030″,εr=2.55 CuClad250GX--0300--55--22 Arlon
+*L3iswrappedaroundR2.
+MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+FreescaleSemiconductor,Inc. 3
+MRF6VP11KH
+Figure3.MRF6VP11KHR6TestCircuitComponentLayout
+MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+4 FreescaleSemiconductor,Inc.
+AERATUOTUC
+C1 C19
+C4 C17 C18
+B1 C5 C16
+C6 C15
+C2 C3 L1 C20
+C7 C14 L3,R2*
+C8 R1
+C13
+C9 C21
+C11 C10 T1 T2
+C24
+J1 C25 J2
+C23
+L2
+C12 C22
+C26
+Rev.3
+*L3iswrappedaroundR2.
+TYPICALCHARACTERISTICS
+1000
+1
+0 10 20 50
+VDS,DRAIN--SOURCEVOLTAGE(VOLTS)
+Figure4.CapacitanceversusDrain--SourceVoltage
+MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+FreescaleSemiconductor,Inc. 5
+)Fp(ECNATICAPAC,C
+100
+Ciss
+Coss
+100
+Measuredwith±30mV(rms)ac@1MHz 10
+VGS=0Vdc
+Crss
+10
+TC=25°C
+1
+30 40 1 10
+VDS,DRAIN--SOURCEVOLTAGE(VOLTS)
+Figure5.DCSafeOperatingArea
+)SPMA(TNERRUCNIARD,DI
+TJ=200°C
+TJ=175°C
+TJ=150°C
+100
+27 80
+70
+25 60
+50
+23 40
+30
+21
+10
+10 100
+Pout,OUTPUTPOWER(WATTS)PEAK
+Figure6.PowerGainandDrainEfficiency
+versusOutputPower
+)Bd(NIAGREWOP,spG
+)%(YCNEICIFFENIARD,Dη
+65
+64
+26
+Gps 63
+62
+24
+61
+60
+ηD
+59
+22
+58
+20
+57
+20 56
+1000 2000 30 31 32 33 34 35 36 37 38 39
+Pin,INPUTPOWER(dBm)PEAK
+Figure7.OutputPowerversusInputPower
+)mBd(REWOPTUPTUO,tuoP
+Ideal
+P3dB=61.23dBm(1327.39W)
+P1dB=60.57dBm(1140.24W)
+Actual
+32
+28
+24
+16
+10
+Pout,OUTPUTPOWER(WATTS)PEAK
+Figure8.PowerGainversusOutputPower
+)Bd(NIAGREWOP,spG
+IDQ=6000mA
+3600mA
+1500mA
+750mA
+375mA
+150mA
+20
+100 1000 2000
+Pout,OUTPUTPOWER(WATTS)PEAK
+Figure9.PowerGainversusOutputPower
+)Bd(NIAGREWOP,spG
+Note:Eachsideofdevicemeasuredseparately. Note:Eachsideofdevicemeasuredseparately.
+VDD=50Vdc,IDQ=150mA,f=130MHz
+VDD=50Vdc,IDQ=150mA,f=130MHz
+PulseWidth=100μsec,DutyCycle=20%
+PulseWidth=100μsec,DutyCycle=20%
+28
+24
+20
+50V
+45V
+40V
+35V
+VDD=30V
+16
+IDQ=150mA,f=130MHz
+VDD=50Vdc,f=130MHz PulseWidth=100μsec
+PulseWidth=100μsec,DutyCycle=20% DutyCycle=20%
+12
+0 200 400 600 800 1000 1200 1400 1600
+TYPICALCHARACTERISTICS
+65
+TC=--30_C
+25_C
+85_C
+55
+50
+45
+20 25 35 45
+Pin,INPUTPOWER(dBm)PEAK
+Figure10.OutputPowerversusInputPower
+MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+6 FreescaleSemiconductor,Inc.
+)mBd(REWOPTUPTUO,tuoP
+27 80
+70
+60
+25 60
+50
+23 40
+30
+21
+10
+30 40 10 100
+Pout,OUTPUTPOWER(WATTS)PEAK
+Figure11.PowerGainandDrainEfficiency
+versusOutputPower
+)Bd(NIAGREWOP,spG
+)%(YCNEICIFFENIARD,Dη
+TC=--30_C
+26
+25_C
+85_C
+24
+Gps
+VDD=50Vdc ηD
+VDD=50Vdc
+IDQ=150mA 22 IDQ=150mA
+f=130MHz
+f=130MHz
+PulseWidth=100μsec PulseWidth=100μsec 20
+DutyCycle=20%
+DutyCycle=20%
+20
+1000 2000
+108
+107
+106
+105
+90 110 130 150 170 190 250
+TJ,JUNCTIONTEMPERATURE(°C)
+Figure12.TransientThermalImpedance
+)SRUOH(FTTM
+0.18
+VDD=50Vdc
+Pout=1000WCW
+ηD=72%
+1 10 210 230
+RECTANGULARPULSEWIDTH(S)
+)W/C°(ECNADEPMILAMREHT,CJθZ 0.16
+0.14
+0.12 D=0.7
+0.1
+D=0.5
+PD
+t1
+0.08 t2
+0.06 D=0.3 TC=CaseTemperature
+ZθJC=ThermalImpedance(fromgraph)
+0.04 PD=PeakPowerDissipation
+D=0.1 t1=PulseWidth;t2=PulsePeriod
+0.02 D=DutyFactor=t1/t2
+0
+TJ(peak)=PD*ZθJC+TC
+0.00001 0.0001 0.001 0.01 0.1
+Note:MTTFvaluerepresentsthetotalcumulativeoperatingtime
+underindicatedtestconditions.
+MTTFcalculatoravailableatfreescale.com/RFpower.Select
+Software&Tools/DevelopmentTools/CalculatorstoaccessMTTF
+calculatorsbyproduct.
+ForPulseapplicationsorCWconditions,usetheMTTFcalculator
+referencedabove.
+Figure13.MTTFversusJunctionTemperature-- CW
+f=130MHz
+Zsource
+Zo=10Ω
+f=130MHz
+Zload
+VDD=50Vdc,IDQ=150mA,Pout=1000WPeak
+f Zsource Zload
+MHz Ω Ω
+130 1.58+j6.47 4.6+j1.85
+Zsource = Testcircuitimpedanceasmeasuredfrom
+gatetogate,balancedconfiguration.
+Zload = Testcircuitimpedanceasmeasuredfrom
+draintodrain,balancedconfiguration.
+Input Device Output
+Matching + Under -- Matching
+Network Test Network
+-- +
+Z Z
+source load
+Figure14.SeriesEquivalentSourceandLoadImpedance
+MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+FreescaleSemiconductor,Inc. 7
+PACKAGEDIMENSIONS
+MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+8 FreescaleSemiconductor,Inc.
+MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+FreescaleSemiconductor,Inc. 9
+MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+10 FreescaleSemiconductor,Inc.
+MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+FreescaleSemiconductor,Inc. 11
+PRODUCTDOCUMENTATIONANDSOFTWARE
+Refertothefollowingdocumentstoaidyourdesignprocess.
+ApplicationNotes
+• AN1955:ThermalMeasurementMethodologyofRFPowerAmplifiers
+EngineeringBulletins
+• EB212:UsingDataSheetImpedancesforRFLDMOSDevices
+Software
+• ElectromigrationMTTFCalculator
+• RFHighPowerModel
+ForSoftware,doaPartNumbersearchathttp://www.freescale.com,andselectthe“PartNumber”link.GototheSoftware&
+Toolstabonthepart’sProductSummarypagetodownloadtherespectivetool.
+REVISIONHISTORY
+Thefollowingtablesummarizesrevisionstothisdocument.
+Revision Date Description
+0 Jan.2008 • InitialReleaseofDataSheet
+1 Apr.2008 • CorrecteddescriptionandpartnumberfortheR1resistorandupdatedR2resistortolatestRoHS
+compliantpartnumberinTable5,TestCircuitComponentDesignationsandValues,p.3.
+• AddedFig.12,MaximumTransientThermalImpedance,p.6
+2 July2008 • AddedMTTFCWgraph,Fig.13,MTTFversusJunctionTemperature,p.6
+3 Sept.2008 • AddedNotetoFig.4,CapacitanceversusDrain--SourceVoltage,todenotethateachsideofdeviceis
+measuredseparately,p.5
+• UpdatedFig.5,DCSafeOperatingArea,toclarifythatmeasurementisonaper--sidebasis,p.5
+• CorrectedFig.13,MTTFversusJunctionTemperature–CW,toreflectthecorrectdiesizeandincreased
+theMTTFfactoraccordingly,p.6
+• CorrectedFig.14,MTTFversusJunctionTemperature–Pulsed,toreflectthecorrectdiesizeand
+increasedtheMTTFfactoraccordingly,p.6
+4 Dec.2008 • Fig.15,SeriesEquivalentSourceandLoadImpedance,correctedZsourcecopytoread“Testcircuit
+impedanceasmeasuredfromgatetogate,balancedconfiguration”andZloadcopytoread“Testcircuit
+impedanceasmeasuredfromdraintodrain,balancedconfiguration”,p.7
+5 July2009 • Added1000WCWthermaldataat100MHztoThermalCharacteristicstable,p.1
+• Changed“EKME630ELL471MK25S”partnumberto“MCGPR63V477M13X26--RH”,changedR1
+Descriptionfrom“1KΩ,1/4WAxialLeadedResistor”to“1KΩ,1/4WCarbonLeadedResistor”and
+“CMF601000R0FKEK”partnumberto“MCCFR0W4J0102A50”,Table5,TestCircuitComponent
+DesignationsandValues,p.3
+• CorrectedFig.13,MTTFversusJunctionTemperature–CW,toreflectchangeinDrainEfficiencyfrom
+70%to72%,p.6
+• AddedElectromigrationMTTFCalculatorandRFHighPowerModelavailabilitytoProductDocumentation,
+ToolsandSoftware,p.20
+6 Dec.2009 • Devicefrequencyrangeimprovedfrom10--150MHzto1.8--150MHz,p.1
+• ReportingofpulsedthermaldatanowshownusingtheZθJCsymbol,Table2.ThermalCharacteristics,p.1
+7 Apr.2010 • OperatingJunctionTemperatureincreasedfrom200°Cto225°CinMaximumRatingstableandrelated
+“ContinuoususeatmaximumtemperaturewillaffectMTTF”footnoteadded,p.1
+8 Sept.2012 • AddedpartnumberMRF6VP11KGSR5,p.1
+• Added2282--02(NI--1230S--4Gull)packageisometric,p.1,andMechanicalOutline,p.10,11
+• Table3,ESDProtectionCharacteristics:addedthedevice’sESDpassinglevelasapplicabletoeachESD
+class,p.2
+• Modifiedfiguretitlesand/orgraphaxeslabelstoclarifyapplicationuse,p.5,6
+• Fig.12,TransientThermalImpedance:graphupdatedtoshowcorrectCWoperation,p.6
+• Fig.13,MTTFversusJunctionTemperature–CW:MTTFendtemperatureongraphchangedtomatch
+maximumoperatingjunctiontemperature,p.6
+• Fig.14,MTTFversusJunctionTemperature--Pulsedremoved,p.6.Refertothedevice’sMTTF
+Calculatoravailableatfreescale.com/RFpower.SelectSoftware&Tools/DevelopmentTools/Calculatorsto
+accessMTTFcalculatorsbyproduct.
+MRF6VP11KHR6MRF6VP11KGSR5
+RFDeviceData
+12 FreescaleSemiconductor,Inc.
+HowtoReachUs: Informationinthisdocumentisprovidedsolelytoenablesystemandsoftware
+implementerstouseFreescaleproducts.Therearenoexpressorimpliedcopyright
+HomePage: licensesgrantedhereundertodesignorfabricateanyintegratedcircuitsbasedonthe
+freescale.com informationinthisdocument.
+WebSupport: Freescalereservestherighttomakechangeswithoutfurthernoticetoanyproducts
+freescale.com/support herein.Freescalemakesnowarranty,representation,orguaranteeregardingthe
+suitabilityofitsproductsforanyparticularpurpose,nordoesFreescaleassumeany
+liabilityarisingoutoftheapplicationoruseofanyproductorcircuit,andspecifically
+disclaimsanyandallliability,includingwithoutlimitationconsequentialorincidental
+damages.“Typical”parametersthatmaybeprovidedinFreescaledatasheetsand/or
+specificationscananddovaryindifferentapplications,andactualperformancemay
+varyovertime.Alloperatingparameters,including“typicals,”mustbevalidatedfor
+eachcustomerapplicationbycustomer’stechnicalexperts.Freescaledoesnotconvey
+anylicenseunderitspatentrightsnortherightsofothers.Freescalesellsproducts
+pursuanttostandardtermsandconditionsofsale,whichcanbefoundatthefollowing
+address:freescale.com/SalesTermsandConditions.
+Freescale,theFreescalelogo,AltiVec,C--5,CodeTest,CodeWarrior,ColdFire,
+C--Ware,EnergyEfficientSolutionslogo,Kinetis,mobileGT,PowerQUICC,Processor
+Expert,QorIQ,Qorivva,StarCore,Symphony,andVortiQaaretrademarksof
+FreescaleSemiconductor,Inc.,Reg.U.S.Pat.&Tm.Off.Airfast,BeeKit,BeeStack,
+ColdFire+,CoreNet,Flexis,MagniV,MXC,PlatforminaPackage,QorIQQonverge,
+QUICCEngine,ReadyPlay,SafeAssure,SMARTMOS,TurboLink,Vybrid,andXtrinsic
+aretrademarksofFreescaleSemiconductor,Inc.Allotherproductorservicenames
+arethepropertyoftheirrespectiveowners.
+E2008--2010,2012FreescaleSemiconductor,Inc.
+MRF6VP11KHR6MRF6VP11KGSR5
+RDFocDumeevnicteNuDmabetar:MRF6VP11KH
+FRreeve.s8,c9a/2le01S2emiconductor,Inc.
+13

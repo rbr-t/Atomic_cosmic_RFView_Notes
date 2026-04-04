@@ -3,8 +3,15 @@
 # PA Design App Launcher
 # Run this script to start the Shiny application
 
-# Set working directory to app root
-setwd("/workspaces/Atomic_cosmic_RFView_Notes/PA design App")
+# Set working directory to the script location so the launcher works on Windows and Linux.
+args <- commandArgs(trailingOnly = FALSE)
+script_arg <- grep("^--file=", args, value = TRUE)
+script_path <- if (length(script_arg) > 0) {
+  sub("^--file=", "", script_arg[1])
+} else {
+  normalizePath("run_app.R", winslash = "/", mustWork = FALSE)
+}
+setwd(dirname(normalizePath(script_path, winslash = "/", mustWork = FALSE)))
 
 # Print startup message
 cat("\n")

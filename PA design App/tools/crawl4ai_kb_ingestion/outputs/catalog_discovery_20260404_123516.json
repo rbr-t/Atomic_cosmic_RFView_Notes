@@ -1,0 +1,134 @@
+{
+  "success": true,
+  "catalog_url": "https://www.qorvo.com/products/amplifiers/power-amplifiers",
+  "discovered_at_utc": "2026-04-04T10:35:16.764657+00:00",
+  "url_pattern": "/products/p/",
+  "total_found": 25,
+  "products": [
+    {
+      "part_number": "CMD184",
+      "product_url": "https://www.qorvo.com/products/p/CMD184",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "CMD262",
+      "product_url": "https://www.qorvo.com/products/p/CMD262",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA0001",
+      "product_url": "https://www.qorvo.com/products/p/QPA0001",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA0004",
+      "product_url": "https://www.qorvo.com/products/p/QPA0004",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA0007",
+      "product_url": "https://www.qorvo.com/products/p/QPA0007",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA0015",
+      "product_url": "https://www.qorvo.com/products/p/QPA0015",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA0016",
+      "product_url": "https://www.qorvo.com/products/p/QPA0016",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA0017",
+      "product_url": "https://www.qorvo.com/products/p/QPA0017",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA0022D",
+      "product_url": "https://www.qorvo.com/products/p/QPA0022D",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA0106",
+      "product_url": "https://www.qorvo.com/products/p/QPA0106",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA0506",
+      "product_url": "https://www.qorvo.com/products/p/QPA0506",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA0524",
+      "product_url": "https://www.qorvo.com/products/p/QPA0524",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA0708T",
+      "product_url": "https://www.qorvo.com/products/p/QPA0708T",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1000",
+      "product_url": "https://www.qorvo.com/products/p/QPA1000",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1003D",
+      "product_url": "https://www.qorvo.com/products/p/QPA1003D",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1003P",
+      "product_url": "https://www.qorvo.com/products/p/QPA1003P",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1006D",
+      "product_url": "https://www.qorvo.com/products/p/QPA1006D",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1009",
+      "product_url": "https://www.qorvo.com/products/p/QPA1009",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1009D",
+      "product_url": "https://www.qorvo.com/products/p/QPA1009D",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1010",
+      "product_url": "https://www.qorvo.com/products/p/QPA1010",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1010D",
+      "product_url": "https://www.qorvo.com/products/p/QPA1010D",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1011",
+      "product_url": "https://www.qorvo.com/products/p/QPA1011",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1011D",
+      "product_url": "https://www.qorvo.com/products/p/QPA1011D",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1013D",
+      "product_url": "https://www.qorvo.com/products/p/QPA1013D",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "QPA1019",
+      "product_url": "https://www.qorvo.com/products/p/QPA1019",
+      "source": "catalog_discovery"
+    }
+  ]
+}

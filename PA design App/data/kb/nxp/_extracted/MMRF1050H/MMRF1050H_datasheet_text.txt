@@ -1,0 +1,379 @@
+NXP Semiconductors DocumentNumber:MMRF1050H
+Technical Data Rev.0,02/2021
+RF Power LDMOS Transistor
+MMRF1050H
+High Ruggedness N--Channel
+Enhancement--Mode Lateral MOSFET
+ThisRFpowertransistorisdesignedforshortpulseapplicationsoperatingat
+frequenciesfrom850to950MHz.
+850–950MHz,1050WPEAK,50V
+TypicalPerformance:VDD=50Vdc,IDQ(A+B)=100mA RFPOWERLDMOSTRANSISTOR
+Frequency Pout Gps D
+(MHz) SignalType (W) (dB) (%)
+950 Pulse 1050Peak 21.3 63.7
+(100sec,20%DutyCycle)
+LoadMismatch/Ruggedness
+Frequency Pin Test
+(MHz) SignalType VSWR (W) Voltage Result
+NI--1230H--4S
+950 Pulse >20:1atall 15WPeak 50 NoDevice
+(100sec,20% PhaseAngles (3dB Degradation
+DutyCycle) Overdrive)
+Features
+GateA 3 1 DrainA
+ Internallyinputandoutputmatchedforbroadbandoperationandeaseofuse
+ Devicecanbeusedinasingle--ended,push--pullorquadratureconfiguration
+ Qualifiedupto50V GateB 4 2 DrainB
+ Highruggedness,handles>20:1VSWR
+ IntegratedESDprotectionwithgreaternegativevoltagerangeforimproved
+ClassCoperationandgatevoltagepulsing
+(TopView)
+ Characterizedwithseriesequivalentlarge--signalimpedanceparameters
+Note: The backside of the package is the
+TypicalApplications
+sourceterminalforthetransistor.
+ Land--orsea--basedUHFradar
+Figure1.PinConnections
+2021NXPB.V. MMRF1050H
+RFDeviceData
+NXPSemiconductors 1
+Table1.MaximumRatings
+Rating Symbol Value Unit
+Drain--SourceVoltage VDSS –0.5,+105 Vdc
+Gate--SourceVoltage VGS –6.0,+10 Vdc
+StorageTemperatureRange Tstg –65to+150 C
+CaseOperatingTemperatureRange TC –55to150 C
+OperatingJunctionTemperatureRange(1,2) TJ –55to225 C
+Table2.ThermalCharacteristics
+Characteristic Symbol Value(2,3) Unit
+ThermalImpedance,JunctiontoCase ZJC 0.034 C/W
+Pulse:CaseTemperature87C,1050WPeak,100secPulseWidth,
+20%DutyCycle,50Vdc,IDQ(A+B)=100mA,950MHz
+Table3.ESDProtectionCharacteristics
+TestMethodology Class
+HumanBodyModel(perJS--001--2017) 2,passes2500V
+ChargeDeviceModel(perJS--002--2014) C3,passes1000V
+Table4.ElectricalCharacteristics(TA=25Cunlessotherwisenoted)
+Characteristic Symbol Min Typ Max Unit
+OffCharacteristics(4)
+Gate--SourceLeakageCurrent IGSS — — 1 Adc
+(VGS=5Vdc,VDS=0Vdc)
+Drain--SourceBreakdownVoltage V(BR)DSS 105 — — Vdc
+(VGS=0Vdc,ID=10A)
+ZeroGateVoltageDrainLeakageCurrent IDSS — — 1 Adc
+(VDS=50Vdc,VGS=0Vdc)
+ZeroGateVoltageDrainLeakageCurrent IDSS — — 10 Adc
+(VDS=105Vdc,VGS=0Vdc)
+OnCharacteristics
+GateThresholdVoltage(4) VGS(th) 1.3 1.7 2.3 Vdc
+(VDS=10Vdc,ID=396Adc)
+GateQuiescentVoltage(5) VGS(Q) 1.7 2.0 2.3 Vdc
+(VDD=50Vdc,IDQ(A+B)=100mAdc,MeasuredinFunctionalTest)
+Drain--SourceOn--Voltage(4) VDS(on) 0.05 0.14 0.35 Vdc
+(VGS=10Vdc,ID=1.98Adc)
+DynamicCharacteristics(4)
+ReverseTransferCapacitance Crss — 1.85 — pF
+(VDS=50Vdc30mV(rms)ac@1MHz,VGS=0Vdc)
+1. ContinuoususeatmaximumtemperaturewillaffectMTTF.
+2. MTTFcalculatoravailableathttp://www.nxp.com.
+3. RefertoAN1955,ThermalMeasurementMethodologyofRFPowerAmplifiers.Gotohttp://www.nxp.com/RFandsearchforAN1955.
+4. Eachsideofdevicemeasuredseparately.
+5. Measurementmadewithdeviceinpush--pullconfiguration.
+(continued)
+MMRF1050H
+RFDeviceData
+2 NXPSemiconductors
+Table4.ElectricalCharacteristics(TA=25Cunlessotherwisenoted)(continued)
+Characteristic Symbol Min Typ Max Unit
+FunctionalTests(1)(InNXPProductionTestFixture,50ohmsystem)VDD=50Vdc,IDQ(A+B)=100mA,Pout=1050WPeak(210WAvg.),
+f=950MHz,100secPulseWidth,20%DutyCycle
+PowerGain Gps 19.0 21.3 23.5 dB
+DrainEfficiency D 57.0 63.7 — %
+InputReturnLoss IRL — –18.5 –9.0 dB
+Table5.LoadMismatch/Ruggedness(InNXPProductionTestFixture,50ohmsystem)IDQ(A+B)=100mA
+Frequency Pin
+(MHz) SignalType VSWR (W) TestVoltage,VDD Result
+950 Pulse >20:1atall 15WPeak 50 NoDevice
+(100sec, PhaseAngles (3dBOverdrive) Degradation
+20%DutyCycle)
+Table6.OrderingInformation
+Device TapeandReelInformation Package
+MMRF1050HR6 R6Suffix=150Units,56mmTapeWidth,13--inchReel NI--1230H--4S
+1. Measurementmadewithdeviceinpush--pullconfiguration.
+MMRF1050H
+RFDeviceData
+NXPSemiconductors 3
+TYPICALCHARACTERISTICS
+1
+0 10 20
+VDS,DRAIN--SOURCEVOLTAGE(VOLTS)
+Figure2.CapacitanceversusDrain--SourceVoltage
+MMRF1050H
+RFDeviceData
+4 NXPSemiconductors
+)Fp(ECNATICAPAC,C
+100
+Measuredwith30mV(rms)ac@1MHz
+VGS=0Vdc
+IDQ(A+B)=100mA
+10
+Crss
+30 40 50
+Note:Eachsideofdevicemeasuredseparately.
+Figure3.NormalizedV versusQuiescent
+GS
+CurrentandCaseTemperature
+)Q(SGVDEZILAMRON
+1.08
+1.07
+1.06
+VDD=50Vdc
+1.05
+1.04
+500mA 1.03
+1.02
+1.01 1500mA
+1
+0.99
+0.98
+0.97
+0.96
+0.95
+0.94
+0.93
+0.92
+–50 –25 0 25 50 75 100
+TC,CASETEMPERATURE(C)
+IDQ(mA) Slope(mV/C)
+100 –2.36
+500 –2.26
+1500 –1.84
+109
+107
+106
+105
+90 110 130 150 170 190 250
+TJ,JUNCTIONTEMPERATURE(C)
+Note:MTTFvaluerepresentsthetotalcumulativeoperatingtime
+underindicatedtestconditions.
+MTTFcalculatoravailableathttp://www.nxp.com.
+Figure4.MTTFversusJunctionTemperature—Pulse
+)SRUOH(FTTM
+VDD=50Vdc
+PulseWidth=100sec,
+20%DutyCycle
+108
+ID=33.00Amps
+210 230
+950MHzPRODUCTIONFIXTURE—45(10.2cm12.7cm)
+C29
+C1
+MMRF1050H
+B1 C3 C5 Rev.0 C19 C27
+C7 D123998
+R1
+C13
+Coax1 L1 Coax3
+C15
+C21*
+C9 C22*
+C12 C23*
+C10
+C 11 C17*
+C18* C24*
+C25*
+C26*
+cutout
+C16
+area
+Coax2 L2 Coax4
+C14
+R2
+C8
+B2 C6 C28 C30
+C4 C20
+C2
+*C17,C18,C21,C22,C23,C24,C25andC26aremountedvertically. aaa--039673
+DummyBalun
+HSF-141C-35
+1.98''
+HSF-141C-35
+0.225'' 0.030''
+2plcs 4plcs
+0.50''
+DummyBalun
+HSF-141C-35
+Diameter=0.50''
+Length=1.98'' aaa--040819
+Figure5.MMRF1050HProductionFixtureComponentLayout—950MHz
+MMRF1050H
+RFDeviceData
+NXPSemiconductors 5
+Table7.MMRF1050HProductionFixtureComponentDesignationsandValues—950MHz
+Part Description PartNumber Manufacturer
+B1,B2 ShortRFBead 2743019447 Fair-Rite
+C1,C2 22F,35VTantalumCapacitor T491X226K035AS Kemet
+C3,C4 2.2FChipCapacitor C1825C225J5RACTU Kemet
+C5,C6 0.1FChipCapacitor CDR33BX104AKWS AVX
+C7,C8,C13,C14 36pFChipCapacitor 100B360JT500XT ATC
+C9 2.7pFChipCapacitor 100B2R7BT500XT ATC
+C10,C11 30pFChipCapacitor 100B300JT500XT ATC
+C12 6.2pFChipCapacitor 100B6R2BT500XT ATC
+C15,C16 8.2pFChipCapacitor 100B8R2CT500XT ATC
+C17,C18 4.7pFChipCapacitor 100B4R7CT500XT ATC
+C19,C20 0.01FChipCapacitor C1825C103K1GAC-TU Kemet
+C21,C22,C23,C24,C25,C26 43pFChipCapacitor 100B430JT500XT ATC
+C27,C28,C29,C30 470F,63VElectrolyticCapacitor MCGPR63V477M13X26 Multicomp
+Coax1,2,3,4 35SemirigidCoaxCable,1.98ShieldLength HSF-141C-35 HangzhouHongsen
+L1,L2 12nH,3TurnInductor GA3094-ALC Coilcraft
+Q1 RFPowerLDMOSTransistor MMRF1050H NXP
+R1,R2 1000,1/4WChipResistor CRCW12061K00FKEA Vishay
+PCB Arlon4500.030,r=2.55,2oz.Copper D123998 MTL
+MMRF1050H
+RFDeviceData
+6 NXPSemiconductors
+TYPICALCHARACTERISTICS—950MHz,T =25_C
+C
+PRODUCTIONTESTFIXTURE
+Pout,OUTPUTPOWER(WATTS)PEAK
+Figure6.PowerGainandDrainEfficiency
+versusOutputPowerandQuiescentCurrent
+MMRF1050H
+RFDeviceData
+NXPSemiconductors 7
+)Bd(NIAGREWOP,spG )%(YCNEICIFFENIARD,D
+26 70
+VDD=50Vdc,f=950MHz
+PulseWidth=100sec,20%DutyCycle
+24 60
+Gps 22
+22 IDQ(A+B)=1300mA 50
+500mA
+20 40
+D
+100mA
+18 30
+1300mA
+16 20
+100mA 500mA
+14 10
+10 100 1000 2000 100
+Pout,OUTPUTPOWER(WATTS)PEAK
+Figure7.PowerGainversusOutputPower
+andDrain--SourceVoltage
+)Bd(NIAGREWOP,spG
+24
+IDQ(A+B)=100mA,f=950MHz
+PulseWidth=100sec,20%DutyCycle
+20
+50V
+18 45V
+40V
+35V
+VDD=30V
+16
+1000 2000
+Pin,INPUTPOWER(dBm)PEAK
+Figure8.OutputPowerversusInputPower
+overTemperature
+KAEP)STTAW(REWOPTUPTUO,tuoP
+1400 26 80
+VDD=50Vdc,IDQ(A+B)=100mA,f=950MHz
+TC=–40_C
+PulseWidth=100sec,20%DutyCycle
+1200 24 70
+2255__CC
+1000 60
+85_C
+800 50
+TC=–40_C
+600 85_C 40
+400 16 30
+85_C
+200 VDD=50Vdc,IDQ(A+B)=100mA,f=950MHz 14 20
+PulseWidth=100sec,20%DutyCycle
+0
+30 32 34 36 38 40 42 44 46 100 1000
+Pout,OUTPUTPOWER(WATTS)PEAK
+Figure9.PowerGainandDrainEfficiency
+versusOutputPoweroverTemperature
+)Bd(NIAGREWOP,spG
+)%(YCNEICIFFENIARD,D Gps
+22
+20 –40_C
+D
+18
+25_C 25_C
+12 10
+2000
+PRODUCTIONFIXTURE
+Band--SpecificOptimizedPerformanceandImpedanceInformation(TC=25C)
+The measured input and output impedances are presented to the input of the device at the package reference plane.
+MeasurementsareperformedinNXPoptimallytunedfixturesinthefrequencyrangesof850and950MHz.
+f Zsource Zload
+(MHz) () ()
+850 3.0–j3.1 4.3–j2.0
+950 6.2–j2.9 4.0–j1.1
+Zsource = Testcircuitimpedanceasmeasuredfrom
+gatetogate.
+Zload = Testcircuitimpedanceasmeasuredfrom
+draintodrain.
+Input Device Output
+Matching + Under -- Matching
+Network Test Network
+50 50
+-- +
+Zsource Zload
+Figure10.SeriesEquivalentSourceandLoadImpedance
+MMRF1050H
+RFDeviceData
+8 NXPSemiconductors
+PACKAGEINFORMATION
+MMRF1050H
+RFDeviceData
+NXPSemiconductors 9
+MMRF1050H
+RFDeviceData
+10 NXPSemiconductors
+PRODUCTDOCUMENTATION,SOFTWAREANDTOOLS
+Refertothefollowingresourcestoaidyourdesignprocess.
+ApplicationNotes
+ AN1908:SolderReflowAttachMethodforHighPowerRFDevicesinAirCavityPackages
+ AN1955:ThermalMeasurementMethodologyofRFPowerAmplifiers
+EngineeringBulletins
+ EB212:UsingDataSheetImpedancesforRFLDMOSDevices
+Software
+ ElectromigrationMTTFCalculator
+ .s2pFile
+DevelopmentTools
+ PrintedCircuitBoards
+REVISIONHISTORY
+Thefollowingtablesummarizesrevisionstothisdocument.
+Revision Date Description
+0 Feb.2021  Initialreleaseofdatasheet
+MMRF1050H
+RFDeviceData
+NXPSemiconductors 11
+HowtoReachUs: Informationinthisdocumentisprovidedsolelytoenablesystemandsoftware
+implementerstouseNXPproducts.Therearenoexpressorimpliedcopyrightlicenses
+HomePage: grantedhereundertodesignorfabricateanyintegratedcircuitsbasedontheinformation
+nxp.com inthisdocument.NXPreservestherighttomakechangeswithoutfurthernoticetoany
+productsherein.
+WebSupport:
+nxp.com/support
+NXPmakesnowarranty,representation,orguaranteeregardingthesuitabilityofits
+productsforanyparticularpurpose,nordoesNXPassumeanyliabilityarisingoutofthe
+applicationoruseofanyproductorcircuit,andspecificallydisclaimsanyandallliability,
+includingwithoutlimitationconsequentialorincidentaldamages.“Typical”parameters
+thatmaybeprovidedinNXPdatasheetsand/orspecificationscananddovaryin
+differentapplications,andactualperformancemayvaryovertime.Alloperating
+parameters,including“typicals,”mustbevalidatedforeachcustomerapplicationby
+customer’stechnicalexperts.NXPdoesnotconveyanylicenseunderitspatentrights
+northerightsofothers.NXPsellsproductspursuanttostandardtermsandconditionsof
+sale,whichcanbefoundatthefollowingaddress:nxp.com/SalesTermsandConditions.
+NXPandtheNXPlogoaretrademarksofNXPB.V.Allotherproductorservicenames
+arethepropertyoftheirrespectiveowners.
+E2021NXPB.V.
+MMRF1050H
+DocumentNumber:MMRF1050H RFDeviceData
+1Re2v.0,02/2021 NXPSemiconductors

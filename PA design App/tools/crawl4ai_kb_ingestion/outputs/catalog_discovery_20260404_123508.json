@@ -1,0 +1,134 @@
+{
+  "success": true,
+  "catalog_url": "https://www.nxp.com/products/product-selector:PRODUCT-SELECTOR?category=c250_c65&page=1",
+  "discovered_at_utc": "2026-04-04T10:35:08.170956+00:00",
+  "url_pattern": ":",
+  "total_found": 25,
+  "products": [
+    {
+      "part_number": "unknown",
+      "product_url": "https://community.nxp.com/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "Products",
+      "product_url": "https://community.nxp.com/t5/Product-Forums/ct-p/Products",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "Software",
+      "product_url": "https://community.nxp.com/t5/Software-Forums/ct-p/Software",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "financial-information-0",
+      "product_url": "https://investors.nxp.com/financial-information/financial-information-0",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "irol-sec",
+      "product_url": "https://investors.nxp.com/financial-information/irol-sec",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "stock-quote",
+      "product_url": "https://investors.nxp.com/stocks-and-Bonds/stock-quote",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "nxp-delivers-new-innovations-advanced-physical-ai-nvidia",
+      "product_url": "https://media.nxp.com/news-releases/news-release-details/nxp-delivers-new-innovations-advanced-physical-ai-nvidia",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "nxp-semiconductors-announces-quarterly-dividend-21",
+      "product_url": "https://media.nxp.com/news-releases/news-release-details/nxp-semiconductors-announces-quarterly-dividend-21",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "nxp-semiconductors-reports-fourth-quarter-and-full-year-2025",
+      "product_url": "https://media.nxp.com/news-releases/news-release-details/nxp-semiconductors-reports-fourth-quarter-and-full-year-2025",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "nxps-new-imx-93w-fuses-edge-compute-and-secure-wireless",
+      "product_url": "https://media.nxp.com/news-releases/news-release-details/nxps-new-imx-93w-fuses-edge-compute-and-secure-wireless",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "unknown",
+      "product_url": "https://nxpcup.nxp.com/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "s",
+      "product_url": "https://support.nxp.com/s/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "unknown",
+      "product_url": "https://www.nxp.com",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "unknown",
+      "product_url": "https://www.nxp.com/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "privacy:PRIVACYPRACTICES",
+      "product_url": "https://www.nxp.com/about/about-nxp/about-nxp/privacy:PRIVACYPRACTICES",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "adas-and-safe-driving:ADAS-AND-AUTONOMOUS-DRIVING",
+      "product_url": "https://www.nxp.com/applications/automotive/adas-and-safe-driving:ADAS-AND-AUTONOMOUS-DRIVING",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "body-and-vehicle-control:BODY-COMFORT",
+      "product_url": "https://www.nxp.com/applications/automotive/body-and-vehicle-control:BODY-COMFORT",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "connected-vehicle:AUTOMOTIVE-CONNECTIVITY",
+      "product_url": "https://www.nxp.com/applications/automotive/connected-vehicle:AUTOMOTIVE-CONNECTIVITY",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "electrification-and-powertrain:POWERTRAIN-VEHICLE-DYNAMICS",
+      "product_url": "https://www.nxp.com/applications/automotive/electrification-and-powertrain:POWERTRAIN-VEHICLE-DYNAMICS",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "infotainment-and-in-vehicle-experience:INFOTAINMENT",
+      "product_url": "https://www.nxp.com/applications/automotive/infotainment-and-in-vehicle-experience:INFOTAINMENT",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "software-defined-vehicle:SOFTWARE-DEFINED-CARS",
+      "product_url": "https://www.nxp.com/applications/automotive/software-defined-vehicle:SOFTWARE-DEFINED-CARS",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "automotive:SECURE-CONNECTED-VEHICLE",
+      "product_url": "https://www.nxp.com/applications/automotive:SECURE-CONNECTED-VEHICLE",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "home-appliances:SMART-APPLIANCE",
+      "product_url": "https://www.nxp.com/applications/consumer/home-appliances:SMART-APPLIANCE",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "home-entertainment:HOME-ENTERTAINMENT",
+      "product_url": "https://www.nxp.com/applications/consumer/home-entertainment:HOME-ENTERTAINMENT",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "mobile-devices-and-peripherals:MOBILE",
+      "product_url": "https://www.nxp.com/applications/consumer/mobile-devices-and-peripherals:MOBILE",
+      "source": "catalog_discovery"
+    }
+  ]
+}

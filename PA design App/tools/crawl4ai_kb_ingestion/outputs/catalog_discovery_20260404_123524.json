@@ -1,0 +1,134 @@
+{
+  "success": true,
+  "catalog_url": "https://www.guerrilla-rf.com/products",
+  "discovered_at_utc": "2026-04-04T10:35:24.385209+00:00",
+  "url_pattern": "/products/detail/sku/",
+  "total_found": 25,
+  "products": [
+    {
+      "part_number": "GRF0010",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF0010",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF0010D",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF0010D",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF0020",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF0020",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF0020D",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF0020D",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF0030",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF0030",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF0030D",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF0030D",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF0065",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF0065",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF0090",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF0090",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF0135",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF0135",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF1201",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF1201",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF1201-W",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF1201-W",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF1202",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF1202",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF3012",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF3012",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF3016",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF3016",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF5923",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF5923",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF6011",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF6011",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF6018",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF6018",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF6402",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF6402",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF6402-W",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF6402-W",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF6403",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF6403",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF7001",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF7001",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF7042",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF7042",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF7163",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF7163",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF7240",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF7240",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "GRF7896",
+      "product_url": "https://www.guerrilla-rf.com/products/detail/sku/GRF7896",
+      "source": "catalog_discovery"
+    }
+  ]
+}

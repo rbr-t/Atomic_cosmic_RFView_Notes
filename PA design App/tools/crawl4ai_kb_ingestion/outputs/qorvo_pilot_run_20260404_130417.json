@@ -1,0 +1,109 @@
+{
+  "run_context": {
+    "vendor": "qorvo",
+    "started_at_utc": "2026-04-04T11:04:17.767205+00:00",
+    "python_version": "3.13.12",
+    "python_runtime_ready": true,
+    "runtime_note": "runtime_compatible",
+    "crawl4ai_available": true,
+    "discovery_url": "https://www.qorvo.com/products/amplifiers/power-amplifiers",
+    "max_products": 1,
+    "vendor_extraction_defaults": {
+      "selector_version": "pilot-v1",
+      "title_selectors": [
+        "h1",
+        "title"
+      ],
+      "datasheet_link_patterns": [
+        "/documents/data-sheet/",
+        "/documents/datasheet/",
+        "/docs/"
+      ],
+      "frequency_patterns": [
+        "GHz",
+        "MHz"
+      ]
+    },
+    "policy": {
+      "respect_robots_txt": true,
+      "delay_seconds": 1.5,
+      "allowed_domains": [
+        "ampleon.com",
+        "nxp.com",
+        "qorvo.com",
+        "guerrilla-rf.com"
+      ]
+    }
+  },
+  "records": [
+    {
+      "device_id": "qorvo_QPA2311",
+      "part_number": "QPA2311",
+      "manufacturer": "Qorvo",
+      "family": null,
+      "series": "QPA2311",
+      "technology": "LDMOS",
+      "freq_min_mhz": 5300.0,
+      "freq_max_mhz": 5900.0,
+      "datasheet_url": "https://www.qorvo.com/products/p/QPA2311",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "high",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "qorvo",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Datasheet PDF could not be parsed fully; provide direct PDF URL or review manually before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet'], a[href*='/docs/']",
+        "product_summary_selector": "main, .product-details, .product-page"
+      },
+      "vendor_profile": {
+        "key": "qorvo",
+        "display_name": "Qorvo",
+        "strategy": "build_qorvo_structured_sections_from_blocks",
+        "notes": [
+          "Qorvo currently uses generic structured extraction; extend this profile when a stable datasheet pattern is confirmed."
+        ]
+      },
+      "document_metadata": {
+        "document_number": null,
+        "revision": null,
+        "page_count": 0,
+        "pdf_url": null,
+        "title": null,
+        "part_number_detected": "QPA2311"
+      },
+      "app_notes": [],
+      "typical_applications": [],
+      "extracted_table_blocks": [],
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-04T11:04:17.766393+00:00",
+        "crawl_success": true,
+        "http_status": 200,
+        "source_domain": "www.qorvo.com",
+        "source_title_hint": "* Overview",
+        "content_sha256": "4bc4e62784371a92f9aa0b4bd2e194dbba4a9b5685b4190b1cb0ef594c6526f3",
+        "crawl_error": "",
+        "selector_version": "pilot-v1",
+        "pdf_datasheet_url": null,
+        "pdf_params_extracted": [],
+        "pdf_parse_status": "pdf_unreachable_from_candidates"
+      },
+      "application": [
+        "supporting communications",
+        "radar"
+      ],
+      "role": [
+        "driver"
+      ]
+    }
+  ],
+  "validation": {
+    "qorvo_QPA2311": []
+  },
+  "blocked_for_auto_merge": false
+}

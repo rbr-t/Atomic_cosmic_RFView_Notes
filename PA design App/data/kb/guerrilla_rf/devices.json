@@ -1,0 +1,129 @@
+[
+  {
+    "device_id": "guerrilla_rf_GRF5219",
+    "part_number": "GRF5219",
+    "manufacturer": "Guerrilla RF",
+    "family": null,
+    "series": "GRF5219",
+    "technology": "Other",
+    "freq_min_mhz": 1800.0,
+    "freq_max_mhz": 2200.0,
+    "datasheet_url": "https://www.guerrilla-rf.com/includes/prodFiles/5219/GRF5219DS.pdf",
+    "knowledge_source": "datasheet",
+    "knowledge_confidence": "high",
+    "status": "active",
+    "tags": [
+      "crawl4ai-pilot",
+      "guerrilla_rf",
+      "other"
+    ],
+    "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+    "extraction_blueprint": {
+      "selector_version": "pilot-v1",
+      "title_selector": "h1",
+      "datasheet_link_selector": "a[href*='DataSheet'], a[href*='datasheet'], a[href$='DS.pdf']",
+      "datasheet_pdf_url": "https://www.guerrilla-rf.com/products/DataSheet?sku=5219&file_name=GRF5219DS.pdf",
+      "product_summary_selector": "main, .product-details, .product-page, .sku-details, .product-title-wrapper"
+    },
+    "vendor_profile": {
+      "key": "guerrilla_rf",
+      "display_name": "Guerrilla RF",
+      "strategy": "build_generic_structured_sections_from_blocks",
+      "notes": [
+        "Guerrilla RF currently uses the generic guarded profile; promote to a dedicated parser after the first stable GRF5219 extraction pass."
+      ]
+    },
+    "document_metadata": {
+      "document_number": null,
+      "revision": "erse",
+      "page_count": 20,
+      "pdf_url": "https://www.guerrilla-rf.com/includes/prodFiles/5219/GRF5219DS.pdf",
+      "title": "Data Sheet | RELEASE 0/ DATA SHEET | GRF5219 | High Gain Linear Driver",
+      "part_number_detected": "GRF5219"
+    },
+    "app_notes": [
+      {
+        "title": "AN002",
+        "url": "https://www.guerrilla-rf.com/includes/prodFiles/AppNotes/GRF-AN002.pdf"
+      },
+      {
+        "title": "AN006",
+        "url": "https://www.guerrilla-rf.com/includes/prodFiles/AppNotes/GRF-AN006.pdf"
+      },
+      {
+        "title": "AN007",
+        "url": "https://www.guerrilla-rf.com/includes/prodFiles/AppNotes/GRF-AN007.pdf"
+      },
+      {
+        "title": "AN002",
+        "url": "https://www.guerrilla-rf.com/products/AppNotes?sku=5219&amp;file_name=GRF-AN002.pdf"
+      },
+      {
+        "title": "AN006",
+        "url": "https://www.guerrilla-rf.com/products/AppNotes?sku=5219&amp;file_name=GRF-AN006.pdf"
+      },
+      {
+        "title": "AN007",
+        "url": "https://www.guerrilla-rf.com/products/AppNotes?sku=5219&amp;file_name=GRF-AN007.pdf"
+      }
+    ],
+    "typical_applications": [],
+    "extracted_table_blocks": [],
+    "ingestion_provenance": {
+      "crawled_at_utc": "2026-04-04T10:59:51.184874+00:00",
+      "crawl_success": true,
+      "http_status": 200,
+      "source_domain": "www.guerrilla-rf.com",
+      "source_title_hint": "Guerrilla RF uses cookies and other technologies to enhance your experience, display customized content, secure our website and help us unde",
+      "content_sha256": "48af23356197865abb0be8481bcd4013598aecf66887d5a54eea9f6c7acd9843",
+      "crawl_error": "",
+      "selector_version": "pilot-v1",
+      "pdf_datasheet_url": "https://www.guerrilla-rf.com/includes/prodFiles/5219/GRF5219DS.pdf",
+      "pdf_params_extracted": [
+        "freq_max_mhz",
+        "freq_min_mhz",
+        "gain_db",
+        "p1db_dbm",
+        "pout_dbm"
+      ],
+      "pdf_parse_status": "params_extracted"
+    },
+    "datasheet_file": "data/kb/guerrilla_rf/_extracted/GRF5219/GRF5219_datasheet.pdf",
+    "datasheet_text_file": "data/kb/guerrilla_rf/_extracted/GRF5219/GRF5219_datasheet_text.txt",
+    "gain_db": 21.0,
+    "pout_dbm": 14.0,
+    "p1db_dbm": 33.7,
+    "role": [
+      "driver"
+    ],
+    "vdd_v": 5.0,
+    "p1db_w": 1.0,
+    "application": [
+      "Linearity"
+    ],
+    "graphical_data": {
+      "note": "Hover thumbnails open extracted datasheet figure pages for closer inspection.",
+      "assets": [
+        {
+          "fig": "Package page 18",
+          "caption": "Package information / outline",
+          "page": 18,
+          "category": "package",
+          "image_path": "data/kb/guerrilla_rf/_extracted/GRF5219/GRF5219_page_18.png"
+        }
+      ],
+      "cw_curves": [],
+      "layout_figures": [],
+      "package_figures": [
+        {
+          "fig": "Package page 18",
+          "caption": "Package information / outline",
+          "page": 18,
+          "category": "package",
+          "image_path": "data/kb/guerrilla_rf/_extracted/GRF5219/GRF5219_page_18.png"
+        }
+      ]
+    },
+    "package": "QFN-16"
+  }
+]

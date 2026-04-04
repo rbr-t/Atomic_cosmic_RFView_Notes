@@ -1,0 +1,628 @@
+Data Sheet
+RELEASE 0/ DATA SHEET
+GRF5219
+High Gain Linear Driver
+1.8 to 2.2 GHz
+FEATURES DESCRIPTION
+Gain Flatness < 1 dB
+The GRF5219 is a high-gain, three-stage driver amplifier
+Excellent Linearity Performance Over Wide Bandwidths targeting 1.8 to 2.2 GHz wireless infrastructure
+Flexible Biasing Provides Latitude for Linearity applications. The device delivers up to 30.1 dBm of
+Optimization OP1dB, 33.7 dBm of OIP3 and a low noise figure (NF) of
+less than 4.1 dB over its targeted band of operation.
+107 mA Native Mode Quiescent Current Consumption
+50 Ω Single-Ended Input and Output Impedances For optimal efficiency and linearity, the amplifier was
+designed to operate with a single 5 volt supply voltage
+-40 to 115 °C Operating Temperature Range
+while using only 85-109 mA of quiescent current. 3.3 volt
+Compact 3 x 3 mm QFN-16 Package
+supplies can also be used while still yielding 26.7 dBm of
+Process: InGaP HBT
+OP1dB. If desired, I can be increased beyond the
+CCQ
+native biasing point for enhanced linearity performance.
+Reference: 5 V / 107 mA / 2 GHz
+The GRF5219 is designed for 50 Ω systems, typically
+Gain: 43.1 dB
+needing only a two-element shunt-series match on the
+OP1dB: 30.1 dBm output port.
+OIP3: 33.7 dBm
+Additional tunes can be found on the GRF5219 “Custom
+Evaluation Board Noise Figure: 4.1 dB Tunes” product page: GRF5219 Custom Tunes
+APPLICATIONS BLOCK DIAGRAM
+Linear Driver / Pre-Driver Amplifiers
+VBIAS_1 VBIAS_2
+5G Sub-6 GHz Massive MIMO Base Stations
+Small Cells and Cellular Repeaters
+Millimeter Wave IF Stages Bias Control
+High-Performance RF Infrastructure
+RF_IN RF_OUT/VCC3
+VCC1 VCC2
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455 1
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+QFN-16 3 x 3 mm Pin Out (Top View)
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+2 www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455
+G
+G
+N
+N
+D / N
+R F _
+D / N
+V C
+C
+IN
+C
+C 2
+1
+2
+3
+4
+CN/DNG
+5
+CN/DNG
+1CCV
+6
+CN/DNG
+B i a
+1SAIBV
+s
+7
+CN/DNG
+C o n t r o l
+2SAIBV
+8
+CN/DNG
+1 2
+1 1
+1 0
+9
+G
+G
+R
+G
+N
+N
+F
+N
+D / N
+D / N
+_ O U
+D / N
+C
+C
+T /
+C
+V C C 3
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+Pin Assignments
+Pin Name Description Note
+No internal connection to die. These pins can be left unconnected or can be
+1, 3, 5, 6, 7, 8, 9,
+GND/NC Ground or No Connect connected to ground (recommended). Use a via as close to the pin as possible if
+11, 12, 16
+grounded.
+2 RF_IN RF Input RF input is fully matched to 50 Ω and contains an internal DC blocking capacitor.
+Pull up to VCC through inductor and use bypass capacitors as close to the pin as
+4 VCC2 VCC Bias Voltage possible. In addition to supplying the device with a DC voltage, there is also an RF
+signal present.
+10 RF_OUT/VCC3 RF Output/VCC3 Bias Voltage VCC must be applied through an RF choke to this pin.
+13 VBIAS2 2nd Bias Set C
+V
+o
+BIA
+n
+S
+n
+2
+e
+≤
+c t
+0
+v
+.2
+ia
+v
+r
+o
+e
+l
+s
+ts
+is
+w
+to
+i
+r
+ll
+t
+d
+o
+i s
+a
+a b
+co
+le
+m
+th
+m
+e
+o
+f
+n
+in
+V
+a
+C
+l
+C
+s
+.
+t
+V
+ag
+BIA
+e
+S 2
+o
+a
+f
+n
+th
+d
+e
+s
+d
+er
+e
+i
+v
+e
+i
+s
+c e
+re
+.
+sistor sets ICCQ3. Setting
+14 VBIAS1 1st Bias Set C
+Se
+o
+t
+n
+ti
+n
+n
+e
+g
+c t
+V
+v
+BI
+i
+A
+a
+S 1
+r e
+≤
+s i
+0
+st
+.2
+o r
+v o
+to
+lt s
+a
+w
+co
+il
+m
+l d
+m
+is
+o
+ab
+n
+l e
+V C
+t
+C
+h
+.
+e
+V
+1
+BI
+s
+A
+t
+S 1
+a
+a
+n
+n
+d
+d
+2
+s
+n
+e
+d
+ri e
+st
+s
+a
+r
+g
+e
+e
+s is
+o
+t
+f
+o
+t
+r
+h
+s
+e
+e
+d
+ts
+e
+I
+v
+C
+i
+C
+c
+Q
+e
+1
+.
+and ICCQ2.
+15 VCC1 VCC Bias Voltage Connect to a common VCC. Place bypass capacitors as close to the pin as possible.
+Provides DC and RF ground for the amplifier, as well as thermal heat sink.
+PKG BASE GND Ground Recommend multiple 8-mil vias beneath the package for optimal RF and thermal
+performance. Refer to evaluation board top layer graphic on schematic page.
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455 3
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+Absolute Ratings
+Parameter Symbol Min. Max. Unit
+Supply Voltage VCC 3 5.5 V
+R C F W I n T p o u n t e P , o 10 w 0 e % r: L D o u a t d y C V y S c W le R , T ≤ P K 2 G : B 1 A , S a E l = l p - h 4 a 0 s t e o a 1 n 1 g 5 le ° s C , . V CC = 5 V, PIN MAX 23 dBm
+Operating Temperature (package base). TPKG BASE -40 115 °C
+Maximum Channel Temperature (MTTF > 106 hours). TMAX 190 °C
+Maximum Dissipated Power Stage 1 (DC only, no RF applied). PDISS MAX 65 mW
+Maximum Dissipated Power Stage 2 (DC only, no RF applied). PDISS MAX 210 mW
+Maximum Dissipated Power Stage 3 (DC only, no RF applied). PDISS MAX 350 mW
+Electrostatic Discharge
+Charged Device Model CDM 750 V
+Human Body Model HBM 1000 V
+Storage
+Storage Temperature TSTG -65 150 °C
+Moisture Sensitivity Level MSL 1 --
+Caution! ESD Sensitive Device.
+Exceeding Absolute Maximum Rating conditions may cause permanent damage.
+Note: For additional information, please refer to Package Manufacturing Information | Guerrilla RF (guerrilla-rf.com)
+All Guerrilla RF products are provided in RoHS compliant lead (Pb)-free packaging requiring no exemptions. Additional
+information for this topic can be found at this link - Environmental and Restricted Substance Statement Library.
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+4 www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+Recommended Operating Conditions
+Specification
+Parameter Symbol Min. Typ. Max. Unit Condition
+Supply Voltage VCC 3 5 5.5 V
+RF Frequency Range FRF 1.8 2.2 GHz Notes 1 & 2.
+Operating Temperature (package base) TPKG BASE -40 115 °C
+RF_IN Port Impedance ZRF_IN 50 Ω
+RF_OUT Port Impedance ZRF_OUT 50 Ω
+Note 1: Operation outside of this range is supported by using different custom tunes. Examples of other optimized tunes can be found here: GRF5219
+Custom Tunes
+Note 2: Contact the Guerrilla RF Applications team for guidance on optimizing the tuning of the device for alternative bands.
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455 5
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+Nominal Operating Parameters – General
+The following conditions apply unless noted otherwise: typical application schematic using the 1.8 to 2.2 GHz tuning set. VCC = 5 V, RBIAS1 = 453 Ω, RBIAS2 =
+2940 Ω, POUT = 4 dBm, FTEST = 2 GHz, 50 Ω system impedance, TPKG BASE = 25 °C. Evaluation board losses are included within the specifications.
+Specification
+Parameter Symbol Min. Typ. Max. Unit Condition
+VBIAS1 Logic Input Low VIL 0 0.2 V
+Measured at VBIAS1 node with bias-setting resistor in
+line between node and pin 14.
+VBIAS1 Logic Input High VIH 1.5 VCC V
+VBIAS2 Logic Input Low VIL 0 0.2 V
+Measured at VBIAS2 node with bias-setting resistor in
+line between node and pin 13.
+VBIAS2 Logic Input High VIH 1.5 VCC V
+VBIAS1 Logic Low Current IIL 20 nA VBIAS1 = 0.2 V.
+VBIAS1 Logic High Current IIH 5.7 mA VBIAS1 = 5 V.
+VBIAS2 Logic Low Current IIL 30 nA VBIAS2 = 0.2 V.
+VBIAS2 Logic High Current IIH 0.7 mA VBIAS2 = 5 V.
+Standby Switching Rise Time tSTBY-RISE 115 ns Turn ON time: VBIAS1 and VBIAS2 Low to High (note 3).
+Standby Switching Fall Time tSTBY-FALL 15 ns Turn OFF time: VBIAS1 and VBIAS2 High to Low (note 4).
+Disabled Mode
+Standby Current ISTBY 150 nA VCC = 5 V, VBIAS1 = VBIAS2 = 0 V.
+Thermal Data
+Thermal Resistance (Infrared Scan) JC 73 °C/W On standard evaluation board.
+Channel Temperature at 115 °C VCC = 5 V, ICCQ = 115 mA, PDISS = 600 mW. No RF
+(reference package base).
+TCHANNEL 152 °C
+applied (note 5).
+Note 3: Switching Rise Time: 50% of VBIAS to 90% of POUT.
+Note 4: Switching Fall Time: 50% of VBIAS to 10% of POUT.
+Note 5: MTTF > 106 hours for TCHANNEL ≤ 190 °C.
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+6 www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+Nominal Operating Parameters – RF
+1.8 to 2.2 GHz, 5 V Operation
+The following conditions apply unless noted otherwise: typical application schematic using the 1.8 to 2.2 GHz tuning set. VCC = 5 V, RBIAS1 = 453 Ω, RBIAS2 =
+2940 Ω, POUT = 4 dBm, FTEST = 2 GHz, 50 Ω system impedance, TPKG BASE = 25 °C. Evaluation board losses are included within the specifications.
+Specification
+Parameter Symbol Min. Typ. Max. Unit Condition
+Supply Current (Quiescent) ICCQ 107 mA
+Supply Current with RF applied ICC 125 mA POUT = 14 dBm.
+Gain S21 43.1 dB
+Gain Flatness S21FLAT < 1.0 dB FRF = 1.8 to 2.2 GHz.
+Gain (Standby Mode) S21STBY -46 dB VBIAS1 < 0.2 V, VBIAS2 < 0.2 V.
+Input Return Loss S11 -9 dB FRF = 1.8 to 2.2 GHz.
+Output Return Loss S22 -7.4 dB FRF = 1.8 to 2.2 GHz.
+Reverse Isolation S12 -55 dB FRF = 1.8 to 2.2 GHz.
+Noise Figure NF 4.1 dB On standard evaluation board.
+Output 3rd Order Intercept Point OIP3 33.7 dBm POUT = 4 dBm per tone at 2 MHz spacing.
+Output 1 dB Compression Power OP1dB 30.1 dBm
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455 7
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+Nominal Operating Parameters – RF
+1.8 to 2.2 GHz, 3.3 V Operation
+The following conditions apply unless noted otherwise: typical application schematic using the 1.8 to 2.2 GHz tuning set. VCC = 3.3 V, RBIAS1 = 453 Ω, RBIAS2
+= 2940 Ω, POUT = 4 dBm, FTEST = 2 GHz, 50 Ω system impedance, TPKG BASE = 25 °C. Evaluation board losses are included within the specifications.
+Specification
+Parameter Symbol Min. Typ. Max. Unit Condition
+Supply Quiescent Current ICCQ 97 mA
+Supply Current with RF applied ICC 120 mA POUT = 14 dBm.
+Gain S21 45 dB
+Gain Flatness S21FLAT < 1.1 dB FRF = 1.8 to 2.2 GHz.
+Gain (Standby Mode) S21STBY -46 dB VBIAS1 < 0.2 V, VBIAS2 < 0.2 V.
+Input Return Loss S11 -9 dB FRF = 1.8 to 2.2 GHz.
+Output Return Loss S22 -7.4 dB FRF = 1.8 to 2.2 GHz.
+Reverse Isolation S12 -55 dB FRF = 1.8 to 2.2 GHz.
+Noise Figure NF 4.1 dB On standard evaluation board.
+Output 3rd Order Intercept Point OIP3 33.7 dBm POUT = 4 dBm per tone at 2 MHz spacing.
+Output 1 dB Compression Power OP1dB 26.7 dBm
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+8 www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+GRF5219 Typical Operating Curves: 5 V, 1.8 to 2.2 GHz Tune
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455 9
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+GRF5219 Typical Operating Curves: 5 V, 1.8 to 2.2 GHz Tune
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+10 www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+GRF5219 Typical Operating Curves: 5 V, 1.8 to 2.2 GHz Tune
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455 11
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+GRF5219 Typical Operating Curves: S-Parameters (5 V, 1.8 to 2.2 GHz Tune)
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+12 www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+GRF5219 Typical Operating Curves: Stability Mu Factor (10 MHz to 20 GHz)
+Note: Mu Prime factor ≥ 1.0 implies unconditional stability.
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455 13
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+GRF5219 Standard Evaluation Board Schematic
+VCC1 GPIO
+10 kΩ
+P-Channel
+4 1
+M
+MOSFET
+VCC3
+M15
+7 8
+1 1
+M M
+M34
+M24
+1 12
+Bias Control
+RF_IN M12 2 11 2 2
+M
+3 10 M30 RF_OUT
+8
+2
+M
+VCC2 M13 4 9
+8 M 1 1 M
+5 6 7 8
+GRF5219 recommended schematic for applications using low current GPIO to toggle V and V
+BIAS1 BIAS2
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+14 www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455
+R F
+V
+_
+C
+IN
+C 2
+8M 11M
+M
+M
+1 2
+1 3
+1
+2
+3
+4
+5
+M 1 5
+V C
+41M
+6
+C 1
+B
+71M
+ia s
+7
+ju m
+M
+C o n
+V B IA
+p e r
+1 0
+81M
+tr o l
+8
+S
+12
+11
+10
+9
+V C
+22M
+82M
+C 3
+M
+M 3
+M 2
+3 0
+4
+4
+R F _ O U T
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+GRF5219 Evaluation Board Assembly Diagram
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455 15
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+GRF5219 Evaluation Board Assembly Diagram Reference: 1.8 to 2.2 GHz Tune
+Component Type Manufacturer Family Value Package Size Substitution
+M8 Capacitor Murata GRM 10 µF 0402 ok
+M10 Resistor (jumper) Various 5% 0 Ω 0402 ok
+M11 Capacitor Murata GRM 0.1 µF 0201 ok
+M12 Resistor Various 5% 0 Ω 0201 ok
+M13 Inductor Murata LQP-TN 3.6 nH 0201 ok
+M14 Resistor Various 5% 0 Ω 0402 ok
+M15 Capacitor Murata GRM 0.1 µF 0201 ok
+M17 Resistor Various 5% 453 Ω 0402 ok
+M18 Resistor Various 5% 2940 Ω 0402 ok
+M22 Inductor Coilcraft HP High-Q 10 nH 0402 ok
+M24 Capacitor Murata GRM 0.1 µF 0402 ok
+M28 Capacitor Murata GJM 2.4 pF 0201 ok
+M30 Capacitor Murata GRM 10 pF 0201 ok
+M34 Capacitor Murata GRM 10 µF 0402 ok
+Evaluation Board QFN16-30-52-A
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+16 www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+Package Outline Drawing
+0.85±0.05
+0.00-0.05 0.203 Ref.
+SIDE VIEW
+3.00 SQ 1.70 SQ PIN 1 I.D.
+CHAMFER
+0.30x45°
+PIN #1 PIN 1
+MARKING
+0.50 Bsc.
+0.25
+0.30
+TOP VIEW BOTTOM VIEW
+Recommended PCB Footprint
+1.70 SQ
+3.00 x 3.00
+PKG.
+PIN 1 OUTLINE
+0.50 Bsc.
+0.25
+0.45
+0.15 0.30
+TOP VIEW
+QFN-16 3 x 3 mm Package Dimensions and Suggested PCB Footprint (Top View)
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455 17
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+Package Marking Diagram
+• Line 1: “YY” = YEAR. “WW” = WORK WEEK the device was assembled.
+• Line 2: “GRF” = Guerrilla RF.
+• Line 3: “XXXX” = Device PART NUMBER.
+Tape and Reel Information
+Guerrilla RF’s tape and reel specification complies with Electronic Industries Alliance (EIA) standards for “Embossed Carrier
+Tape of Surface Mount Components for Automatic Handling” (reference EIA-481). See the following page for the Tape and
+Reel Specification and Device Package Information table, which includes units per reel.
+Devices are loaded with pins down into the carrier pocket with protective cover tape and reeled onto a plastic reel. Each
+reel is packaged in a cardboard box. There are product labels on the reel, the protective ESD bag and the outside surface
+of the box.
+For the Tape and Reel Reference Table, please refer to: Package Manufacturing Information | Guerrilla RF (guerrilla-rf.com)
+CoverTape
+D
+Label CarrierTape
+Tape and Reel Packaging with Reel Diameter Noted (D)
+Pin 1Quadrant
+W Q1 Q2 Q1 Q2 Q1 Q2 Q1 Q2 Q1 Q1 Q2
+FeedDirection
+P
+Carrier Tape Width (W), Pitch (P), Feed Direction and Pin 1 Quadrant Information
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+18 www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+Revision History
+Revision Date Description of Change
+November 19, 2024 Preliminary Data Sheet.
+March 14, 2025 Added new specifications and plots.
+January 23, 2026 Upgraded Data Sheet to new format. No change to device or device specifications.
+March 5, 2026 Release 0/ Data Sheet. Updated specifications. Added new Gain, OP1dB, OIP3 and Icc plots.
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455 19
+GRF5219 High Gain Linear Driver 1.8 to 2.2 GHz RELEASE 0/ DATA SHEET
+Data Sheet Classifications
+Data Sheet Status Notes
+S-parameter and NF data based on EM simulations for the fully packaged device using foundry-supplied transistor
+Advance
+S-parameters. Linearity estimates based on device size, bias condition and experience with related devices.
+All data based on limited evaluation board measurements taken within the Guerrilla RF Applications Lab. All parametric values
+Preliminary
+are subject to change pending the collection of additional data.
+All data based on measurements taken with production-released material. TYP values are based on a combination of ATE and
+bench-level measurements, with MIN/MAX limits defined using modelled estimates that account for part-to-part variations
+Release 0/
+and expected process spreads. Although unlikely, future refinements to the TYP/MIN/MAX values may be in order as multiple
+lots are processed through the factory.
+All data based on measurements taken with production-released material derived from multiple lots which have been
+Release A-Z fabricated over an extended period of time. MIN/MAX limits may be refined over previous releases as more statistically
+significant data is collected to account for process spreads.
+Information in this data sheet is specific to the Guerrilla RF, Inc. (“Guerrilla RF”) product identified.
+This data sheet, including the information contained in it, is provided by Guerrilla RF as a service to its customers and may be used for informational purposes only by the
+customer. Guerrilla RF assumes no responsibility for errors or omissions on this data sheet or the information contained herein. Information provided is believed to be accurate
+and reliable, however, no responsibility is assumed by Guerrilla RF for its use, nor for any infringement of patents, or other rights of third parties, resulting from its use.
+Guerrilla RF assumes no liability for any data sheet, data sheet information, materials, products, product information, or other information provided hereunder, including the
+sale, distribution, reproduction or use of Guerrilla RF products, information, or materials.
+No license, whether express, implied, by estoppel, by implication or otherwise is granted by this data sheet for any intellectual property of Guerrilla RF, or any third party,
+including without limitation, patents, patent rights, copyrights, trademarks, and trade secrets. All rights are reserved by Guerrilla RF.
+All information herein, products, product information, data sheets, and data sheet information are subject to change and availability without notice. Guerrilla RF reserves the
+right to change component circuitry, recommended application circuitry and specifications at any time without prior notice. Guerrilla RF may further change its data sheet,
+product information, documentation, products, services, specifications, or product descriptions at any time, without notice. Guerrilla RF makes no commitment to update any
+materials or information and shall have no responsibility whatsoever for conflicts, incompatibilities, or other difficulties arising from any future changes.
+GUERRILLA RF INFORMATION, PRODUCTS, PRODUCT INFORMATION, DATA SHEETS AND DATA SHEET INFORMATION ARE PROVIDED “AS IS” AND WITHOUT WARRANTY OF
+ANY KIND, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, INCLUDING FITNESS FOR A PARTICULAR PURPOSE OR USE, MERCHANTABILITY, PERFORMANCE,
+QUALITY OR NON-INFRINGEMENT OF ANY INTELLECTUAL PROPERTY RIGHT; ALL SUCH WARRANTIES ARE HEREBY EXPRESSLY DISCLAIMED. GUERRILLA RF DOES NOT
+WARRANT THE ACCURACY OR COMPLETENESS OF THE INFORMATION, TEXT, GRAPHICS OR OTHER ITEMS CONTAINED WITHIN THESE MATERIALS. GUERRILLA RF SHALL
+NOT BE LIABLE FOR ANY DAMAGES, INCLUDING BUT NOT LIMITED TO ANY SPECIAL, INDIRECT, INCIDENTAL, STATUTORY, OR CONSEQUENTIAL DAMAGES, INCLUDING
+WITHOUT LIMITATION, LOST REVENUES OR LOST PROFITS THAT MAY RESULT FROM THE USE OF THE MATERIALS OR INFORMATION, WHETHER OR NOT THE RECIPIENT OF
+MATERIALS HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Customers are solely responsible for their use of Guerrilla RF products in the Customer’s products and applications or in ways which deviate from Guerrilla RF’s published
+specifications, either intentionally or as a result of design defects, errors, or operation of products outside of published parameters or design specifications. Customers should
+include design and operating safeguards to minimize these and other risks. Guerrilla RF assumes no liability or responsibility for applications assistance, customer product
+design, or damage to any equipment resulting from the use of Guerrilla RF products outside of stated published specifications or parameters.
+Guerrilla RF Proprietary Information. • ©2026 Guerrilla RF, Inc. • All rights reserved. • March 5, 2026
+20 www.guerrilla-rf.com • (336) 510-7840 • sales@guerrilla-rf.com • 2000 Pisgah Church Road. Greensboro, NC 27455

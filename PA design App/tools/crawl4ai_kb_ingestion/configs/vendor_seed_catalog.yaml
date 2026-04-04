@@ -2,81 +2,160 @@ version: 1
 crawl_policy:
   max_concurrency: 2
   delay_seconds: 1.5
-  respect_robots_txt: true
-  user_agent: "RFView-KBIngestionBot/0.1 (+internal-rnd; contact: app-owner)"
+  respect_robots_txt: yes
+  user_agent: 'RFView-KBIngestionBot/0.1 (+internal-rnd; contact: app-owner)'
   allowed_domains:
-    - ampleon.com
-    - nxp.com
+  - ampleon.com
+  - nxp.com
+  - qorvo.com
+  - guerrilla-rf.com
 vendors:
   ampleon:
-    discovery_url: "https://www.ampleon.com/products/mobile-broadband/1.4-2.2-ghz-transistors/#/"
+    discovery_url: https://www.ampleon.com/products/mobile-broadband/1.4-2.2-ghz-transistors/#/
     extraction_defaults:
-      selector_version: "pilot-v1"
+      selector_version: pilot-v1
       title_selectors:
-        - "h1"
-        - "title"
+      - h1
+      - title
       datasheet_link_patterns:
-        - "/documents/data-sheet/"
-        - "/documents/datasheet/"
+      - /documents/data-sheet/
+      - /documents/datasheet/
       frequency_patterns:
-        - "GHz"
-        - "MHz"
+      - GHz
+      - MHz
     products:
-      - part_number: "BLF7G22LS-160P"
-        product_url: "https://www.ampleon.com/products/rf-power-transistors/mobile-broadband-1.4-2.2-ghz/BLF7G22LS-160P.html"
-        expected:
-          manufacturer: "Ampleon"
-          technology: "LDMOS"
-          freq_min_mhz: 1400
-          freq_max_mhz: 2200
-        extraction:
-          selector_version: "pilot-v1"
-          title_selector: "h1"
-          datasheet_link_selector: "a[href*='data-sheet'], a[href*='datasheet']"
-          product_summary_selector: ".cmp-product-details, .product-details, main"
-      - part_number: "BLP9G0722-20"
-        product_url: "https://www.ampleon.com/products/rf-power-transistors/mobile-broadband-1.4-2.2-ghz/BLP9G0722-20.html"
-        expected:
-          manufacturer: "Ampleon"
-          technology: "LDMOS"
-          freq_min_mhz: 700
-          freq_max_mhz: 2200
-        extraction:
-          selector_version: "pilot-v1"
-          title_selector: "h1"
-          datasheet_link_selector: "a[href*='data-sheet'], a[href*='datasheet']"
-          product_summary_selector: ".cmp-product-details, .product-details, main"
+    - part_number: BLP9G0722-20G
+      product_url: https://www.ampleon.com/products/mobile-broadband/0.4-1.0-ghz-transistors/BLP9G0722-20G.html
+      expected:
+        manufacturer: ampleon
+        technology: LDMOS
+        freq_min_mhz: 100.0
+        freq_max_mhz: 2700.0
+      extraction:
+        selector_version: pilot-v1
+        title_selector: h1
+        datasheet_link_selector: a[href*='data-sheet'], a[href*='datasheet'], a[href*='/docs/']
+        product_summary_selector: main, .product-details, .product-page
+    - part_number: BLP9G0722-20
+      product_url: https://www.ampleon.com/products/rf-power-transistors/mobile-broadband-1.4-2.2-ghz/BLP9G0722-20.html
+      expected:
+        manufacturer: Ampleon
+        technology: LDMOS
+        freq_min_mhz: 700
+        freq_max_mhz: 2200
+      extraction:
+        selector_version: pilot-v1
+        title_selector: h1
+        datasheet_link_selector: a[href*='data-sheet'], a[href*='datasheet']
+        product_summary_selector: .cmp-product-details, .product-details, main
   nxp:
-    discovery_url: "https://www.nxp.com/products/product-selector:PRODUCT-SELECTOR?category=c250_c65&page=1"
+    discovery_url: https://www.nxp.com/products/product-selector:PRODUCT-SELECTOR?category=c250_c65&page=1
     extraction_defaults:
-      selector_version: "pilot-v1"
+      selector_version: pilot-v1
       title_selectors:
-        - "h1"
-        - "title"
+      - h1
+      - title
       datasheet_link_patterns:
-        - "/docs/"
-        - "data-sheet"
+      - /docs/
+      - data-sheet
       frequency_patterns:
-        - "GHz"
-        - "MHz"
+      - GHz
+      - MHz
     products:
-      - part_number: "MRF1K50H"
-        product_url: "https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf1k50h:MRF1K50H"
-        expected:
-          manufacturer: "NXP"
-          technology: "LDMOS"
-        extraction:
-          selector_version: "pilot-v1"
-          title_selector: "h1"
-          datasheet_link_selector: "a[href*='/docs/'], a[href*='data-sheet']"
-          product_summary_selector: "main, .product-details, .product-page"
-      - part_number: "MRF6VP11KH"
-        product_url: "https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf6vp11kh:MRF6VP11KH"
-        expected:
-          manufacturer: "NXP"
-          technology: "LDMOS"
-        extraction:
-          selector_version: "pilot-v1"
-          title_selector: "h1"
-          datasheet_link_selector: "a[href*='/docs/'], a[href*='data-sheet']"
-          product_summary_selector: "main, .product-details, .product-page"
+    - part_number: MMRF1050H
+      product_url: https://www.nxp.com/part/MMRF1050H
+      expected:
+        manufacturer: NXP
+      extraction:
+        selector_version: pilot-v1
+        title_selector: h1
+        datasheet_link_selector: a[href*='data-sheet'], a[href*='datasheet'], a[href*='/docs/']
+        datasheet_pdf_url: ~
+        product_summary_selector: main, .product-details, .product-page
+    - part_number: AFIC31025N
+      product_url: https://www.nxp.com/part/AFIC31025GN#/
+      expected:
+        manufacturer: nxp
+        technology: LDMOS
+        freq_min_mhz: 2400.0
+        freq_max_mhz: 3100.0
+      extraction:
+        selector_version: pilot-v1
+        title_selector: h1
+        datasheet_link_selector: chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://www.nxp.com/docs/en/data-sheet/AFIC31025N.pdf
+        datasheet_pdf_url: ~
+        product_summary_selector: main, .product-details, .product-page
+    - part_number: MRF1K50H
+      product_url: https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf1k50h:MRF1K50H
+      expected:
+        manufacturer: NXP
+        technology: LDMOS
+      extraction:
+        selector_version: pilot-v1
+        title_selector: h1
+        datasheet_link_selector: a[href*='/docs/'], a[href*='data-sheet']
+        product_summary_selector: main, .product-details, .product-page
+    - part_number: MRF6VP11KH
+      product_url: https://www.nxp.com/products/rf/rf-power/rf-power-ldmos-transistors/mrf6vp11kh:MRF6VP11KH
+      expected:
+        manufacturer: NXP
+        technology: LDMOS
+      extraction:
+        selector_version: pilot-v1
+        title_selector: h1
+        datasheet_link_selector: a[href*='/docs/'], a[href*='data-sheet']
+        product_summary_selector: main, .product-details, .product-page
+  qorvo:
+    discovery_url: https://www.qorvo.com/products/amplifiers/power-amplifiers
+    extraction_defaults:
+      selector_version: pilot-v1
+      title_selectors:
+      - h1
+      - title
+      datasheet_link_patterns:
+      - /documents/data-sheet/
+      - /documents/datasheet/
+      - /docs/
+      frequency_patterns:
+      - GHz
+      - MHz
+    products:
+    - part_number: QPA2311
+      product_url: https://www.qorvo.com/products/p/QPA2311
+      expected:
+        manufacturer: Qorvo
+        technology: GaN-SiC
+        freq_min_mhz: 5300.0
+        freq_max_mhz: 5900.0
+      extraction:
+        selector_version: pilot-v1
+        title_selector: h1
+        datasheet_link_selector: a[href*='data-sheet'], a[href*='datasheet'], a[href*='/docs/']
+        product_summary_selector: main, .product-details, .product-page
+  guerrilla_rf:
+    discovery_url: https://www.guerrilla-rf.com/products/detail/sku/GRF5219
+    extraction_defaults:
+      selector_version: pilot-v1
+      title_selectors:
+      - h1
+      - title
+      datasheet_link_patterns:
+      - datasheet
+      - data-sheet
+      - pdf
+      frequency_patterns:
+      - GHz
+      - MHz
+    products:
+    - part_number: GRF5219
+      product_url: https://www.guerrilla-rf.com/products/detail/sku/GRF5219
+      expected:
+        manufacturer: Guerrilla RF
+        freq_min_mhz: 1800
+        freq_max_mhz: 2200
+      extraction:
+        selector_version: pilot-v1
+        title_selector: h1
+        datasheet_link_selector: a[href*='DataSheet'], a[href*='datasheet'], a[href$='DS.pdf']
+        datasheet_pdf_url: https://www.guerrilla-rf.com/products/DataSheet?sku=5219&file_name=GRF5219DS.pdf
+        product_summary_selector: main, .product-details, .product-page, .sku-details, .product-title-wrapper

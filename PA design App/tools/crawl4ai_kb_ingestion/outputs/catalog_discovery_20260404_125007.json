@@ -1,0 +1,134 @@
+{
+  "success": true,
+  "catalog_url": "https://www.ampleon.com/products.html",
+  "discovered_at_utc": "2026-04-04T10:50:07.155166+00:00",
+  "url_pattern": null,
+  "total_found": 25,
+  "products": [
+    {
+      "part_number": "unknown",
+      "product_url": "https://www.ampleon.com/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "facebook.png",
+      "product_url": "https://www.ampleon.com/.resources/ampleon-theme/img/facebook.png",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "linkedin.png",
+      "product_url": "https://www.ampleon.com/.resources/ampleon-theme/img/linkedin.png",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "x.png",
+      "product_url": "https://www.ampleon.com/.resources/ampleon-theme/img/x.png",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "youtube.png",
+      "product_url": "https://www.ampleon.com/.resources/ampleon-theme/img/youtube.png",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "about.html",
+      "product_url": "https://www.ampleon.com/about.html",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "cookies.html",
+      "product_url": "https://www.ampleon.com/about/cookies.html",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "privacy.html",
+      "product_url": "https://www.ampleon.com/about/privacy.html",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "terms-and-policies.html",
+      "product_url": "https://www.ampleon.com/about/terms-and-policies.html",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "terms-of-use.html",
+      "product_url": "https://www.ampleon.com/about/terms-of-use.html",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "applications.html",
+      "product_url": "https://www.ampleon.com/applications.html",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "careers.html",
+      "product_url": "https://www.ampleon.com/careers.html",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "contact.html",
+      "product_url": "https://www.ampleon.com/contact.html",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "ampleon%20logo.svg",
+      "product_url": "https://www.ampleon.com/dam/jcr:0e0ee228-6dad-4469-af21-715d60c398c6/ampleon%20logo.svg",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "news.html",
+      "product_url": "https://www.ampleon.com/news.html",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "media-download.html",
+      "product_url": "https://www.ampleon.com/news/media-download.html",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "packages.html",
+      "product_url": "https://www.ampleon.com/packages.html",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "products",
+      "product_url": "https://www.ampleon.com/products",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "extremely-rugged",
+      "product_url": "https://www.ampleon.com/products/extremely-rugged/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "50-v",
+      "product_url": "https://www.ampleon.com/products/extremely-rugged/50-v/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "65-v",
+      "product_url": "https://www.ampleon.com/products/extremely-rugged/65-v/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "75-v",
+      "product_url": "https://www.ampleon.com/products/extremely-rugged/75-v/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "general-purpose-wideband",
+      "product_url": "https://www.ampleon.com/products/general-purpose-wideband/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "12.5-14-v",
+      "product_url": "https://www.ampleon.com/products/general-purpose-wideband/12.5-14-v/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "32-v",
+      "product_url": "https://www.ampleon.com/products/general-purpose-wideband/32-v/",
+      "source": "catalog_discovery"
+    }
+  ]
+}

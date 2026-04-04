@@ -1,0 +1,547 @@
+{
+  "run_context": {
+    "vendor": "nxp",
+    "started_at_utc": "2026-04-04T08:46:15.538257+00:00",
+    "python_version": "3.13.12",
+    "python_runtime_ready": true,
+    "runtime_note": "runtime_compatible",
+    "crawl4ai_available": true,
+    "discovery_url": "https://www.nxp.com/products/product-selector:PRODUCT-SELECTOR?category=c250_c65&page=1",
+    "max_products": 1,
+    "vendor_extraction_defaults": {
+      "selector_version": "pilot-v1",
+      "title_selectors": [
+        "h1",
+        "title"
+      ],
+      "datasheet_link_patterns": [
+        "/docs/",
+        "data-sheet"
+      ],
+      "frequency_patterns": [
+        "GHz",
+        "MHz"
+      ]
+    },
+    "policy": {
+      "respect_robots_txt": true,
+      "delay_seconds": 1.5,
+      "allowed_domains": [
+        "ampleon.com",
+        "nxp.com",
+        "qorvo.com"
+      ]
+    }
+  },
+  "records": [
+    {
+      "device_id": "nxp_MMRF1050H",
+      "part_number": "MMRF1050H",
+      "manufacturer": "NXP",
+      "family": null,
+      "series": "MMRF1050H",
+      "technology": "LDMOS",
+      "freq_min_mhz": 850.0,
+      "freq_max_mhz": 950.0,
+      "datasheet_url": "https://www.nxp.com/docs/en/data-sheet/MMRF1050H.pdf",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "high",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "nxp",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet'], a[href*='/docs/']",
+        "datasheet_pdf_url": null,
+        "product_summary_selector": "main, .product-details, .product-page"
+      },
+      "document_metadata": {
+        "document_number": "MMRF1050H",
+        "revision": "0,02/2021",
+        "page_count": 12,
+        "pdf_url": "https://www.nxp.com/docs/en/data-sheet/MMRF1050H.pdf",
+        "title": "NXP Semiconductors DocumentNumber:MMRF1050H | Technical Data Rev.0,02/2021 | RF Power LDMOS Transistor | MMRF1050H",
+        "part_number_detected": "MMRF1050H"
+      },
+      "app_notes": [
+        {
+          "title": "AN1908 \u2014 SolderReflowAttachMethodforHighPowerRFDevicesinAirCavityPackages",
+          "url": "https://www.nxp.com/docs/en/application-note/AN1908.pdf"
+        },
+        {
+          "title": "AN1955 \u2014 ThermalMeasurementMethodologyofRFPowerAmplifiers",
+          "url": "https://www.nxp.com/docs/en/application-note/AN1955.pdf"
+        }
+      ],
+      "typical_applications": [
+        "or-sea-based UH Fradar"
+      ],
+      "extracted_table_blocks": [
+        {
+          "title": "Table1.MaximumRatings",
+          "content": "Table1.MaximumRatings Rating Symbol Value Unit Drain--SourceVoltage VDSS \u20130.5,+105 Vdc Gate--SourceVoltage VGS \u20136.0,+10 Vdc StorageTemperatureRange Tstg \u201365to+150 \uf0b0C CaseOperatingTemperatureRange TC \u201355to150 \uf0b0C OperatingJunctionTemperatureRange(1,2) TJ \u201355to225 \uf0b0C"
+        },
+        {
+          "title": "Table2.ThermalCharacteristics",
+          "content": "Table2.ThermalCharacteristics Characteristic Symbol Value(2,3) Unit ThermalImpedance,JunctiontoCase Z\uf071JC 0.034 \uf0b0C/W Pulse:CaseTemperature87\uf0b0C,1050WPeak,100\uf06dsecPulseWidth, 20%DutyCycle,50Vdc,IDQ(A+B)=100mA,950MHz"
+        },
+        {
+          "title": "Table3.ESDProtectionCharacteristics",
+          "content": "Table3.ESDProtectionCharacteristics TestMethodology Class HumanBodyModel(perJS--001--2017) 2,passes2500V ChargeDeviceModel(perJS--002--2014) C3,passes1000V"
+        },
+        {
+          "title": "Table4.ElectricalCharacteristics(TA=25\uf0b0Cunlessotherwisenoted)",
+          "content": "Table4.ElectricalCharacteristics(TA=25\uf0b0Cunlessotherwisenoted) Characteristic Symbol Min Typ Max Unit OffCharacteristics(4) Gate--SourceLeakageCurrent IGSS \u2014 \u2014 1 \uf06dAdc (VGS=5Vdc,VDS=0Vdc) Drain--SourceBreakdownVoltage V(BR)DSS 105 \u2014 \u2014 Vdc (VGS=0Vdc,ID=10\uf06dA) ZeroGateVoltageDrainLeakageCurrent IDSS \u2014 \u2014 1 \uf06dAdc (VDS=50Vdc,VGS=0Vdc) ZeroGateVoltageDrainLeakageCurrent IDSS \u2014 \u2014 10 \uf06dAdc (VDS=105Vdc,VGS=0Vdc) OnCharacteristics GateThresholdVoltage(4) VGS(th) 1.3 1.7 2.3 Vdc (VDS=10Vdc,ID=396\uf06dAdc) GateQuiescentVoltage(5) VGS(Q) 1.7 2.0 2.3 Vdc (VDD=50Vdc,IDQ(A+B)=100mAdc,MeasuredinFunctionalTest) Drain--SourceOn--Voltage(4) VDS(on) 0.05 0.14 0.35 Vdc (VGS=10Vdc,ID=1.98Adc) DynamicCharacteristics(4) ReverseTransferCapacitance Crss \u2014 1.85 \u2014 pF (VDS=50Vdc\uf0b130mV(rms)ac@1MHz,VGS=0Vdc) 1. ContinuoususeatmaximumtemperaturewillaffectMTTF. 2. MTTFcalculatoravailableathttp://www.nxp.com. 3. RefertoAN1955,ThermalMeasurementMethodologyofRFPowerAmplifiers.Gotohttp://www.nxp.com/RFandsearchforAN1955. 4. Eachsideofdevicemeasuredseparately. 5. Measurementmadewithdeviceinpush--pullconfiguration. (continued) MMRF1050H RFDeviceData 2 NXPSemiconductors"
+        },
+        {
+          "title": "Table4.ElectricalCharacteristics(TA=25\uf0b0Cunlessotherwisenoted)(continued)",
+          "content": "Table4.ElectricalCharacteristics(TA=25\uf0b0Cunlessotherwisenoted)(continued) Characteristic Symbol Min Typ Max Unit FunctionalTests(1)(InNXPProductionTestFixture,50ohmsystem)VDD=50Vdc,IDQ(A+B)=100mA,Pout=1050WPeak(210WAvg.), f=950MHz,100\uf06dsecPulseWidth,20%DutyCycle PowerGain Gps 19.0 21.3 23.5 dB DrainEfficiency \uf068D 57.0 63.7 \u2014 % InputReturnLoss IRL \u2014 \u201318.5 \u20139.0 dB"
+        },
+        {
+          "title": "Table5.LoadMismatch/Ruggedness(InNXPProductionTestFixture,50ohmsystem)IDQ(A+B)=100mA",
+          "content": "Table5.LoadMismatch/Ruggedness(InNXPProductionTestFixture,50ohmsystem)IDQ(A+B)=100mA Frequency Pin (MHz) SignalType VSWR (W) TestVoltage,VDD Result 950 Pulse >20:1atall 15WPeak 50 NoDevice (100\uf06dsec, PhaseAngles (3dBOverdrive) Degradation 20%DutyCycle)"
+        },
+        {
+          "title": "Table6.OrderingInformation",
+          "content": "Table6.OrderingInformation Device TapeandReelInformation Package MMRF1050HR6 R6Suffix=150Units,56mmTapeWidth,13--inchReel NI--1230H--4S 1. Measurementmadewithdeviceinpush--pullconfiguration. MMRF1050H RFDeviceData NXPSemiconductors 3 TYPICALCHARACTERISTICS 1 0 10 20 VDS,DRAIN--SOURCEVOLTAGE(VOLTS) Figure2.CapacitanceversusDrain--SourceVoltage MMRF1050H RFDeviceData 4 NXPSemiconductors )Fp(ECNATICAPAC,C 100 Measuredwith\uf0b130mV(rms)ac@1MHz VGS=0Vdc IDQ(A+B)=100mA 10 Crss 30 40 50 Note:Eachsideofdevicemeasuredseparately. Figure3.NormalizedV versusQuiescent GS CurrentandCaseTemperature )Q(SGVDEZILAMRON 1.08 1.07 1.06 VDD=50Vdc 1.05 1.04 500mA 1.03 1.02 1.01 1500mA 1 0.99 0.98 0.97 0.96 0.95 0.94 0.93 0.92 \u201350 \u201325 0 25 50 75 100 TC,CASETEMPERATURE(\uf0b0C) IDQ(mA) Slope(mV/\uf0b0C) 100 \u20132.36 500 \u20132.26 1500 \u20131.84 109 107 106 105 90 110 130 150 170 190 250 TJ,JUNCTIONTEMPERATURE(\uf0b0C) Note:MTTFvaluerepresentsthetotalcumulativeoperatingtime underindicatedtestconditions. MTTFcalculatoravailableathttp://www.nxp.com. Figure4.MTTFversusJunctionTemperature\u2014Pulse )SRUOH(FTTM VDD=50Vdc PulseWidth=100\uf06dsec, 20%DutyCycle 108 ID=33.00Amps 210 230 950MHzPRODUCTIONFIXTURE\u20144\uf0b2\uf0b45\uf0b2(10.2cm\uf0b412.7cm) C29 C1 MMRF1050H B1 C3 C5 Rev.0 C19 C27 C7 D123998 R1 C13 Coax1 L1 Coax3 C15 C21* C9 C22* C12 C23* C10 C 11 C17* C18* C24* C25* C26* cutout C16 area Coax2 L2 Coax4 C14 R2 C8 B2 C6 C28 C30 C4 C20 C2 *C17,C18,C21,C22,C23,C24,C25andC26aremountedvertically. aaa--039673 DummyBalun HSF-141C-35 1.98'' HSF-141C-35 0.225'' 0.030'' 2plcs 4plcs \uf0c60.50'' DummyBalun HSF-141C-35 Diameter=0.50'' Length=1.98'' aaa--040819 Figure5.MMRF1050HProductionFixtureComponentLayout\u2014950MHz MMRF1050H RFDeviceData NXPSemiconductors 5"
+        },
+        {
+          "title": "Table7.MMRF1050HProductionFixtureComponentDesignationsandValues\u2014950MHz",
+          "content": "Table7.MMRF1050HProductionFixtureComponentDesignationsandValues\u2014950MHz Part Description PartNumber Manufacturer B1,B2 ShortRFBead 2743019447 Fair-Rite C1,C2 22\uf06dF,35VTantalumCapacitor T491X226K035AS Kemet C3,C4 2.2\uf06dFChipCapacitor C1825C225J5RACTU Kemet C5,C6 0.1\uf06dFChipCapacitor CDR33BX104AKWS AVX C7,C8,C13,C14 36pFChipCapacitor 100B360JT500XT ATC C9 2.7pFChipCapacitor 100B2R7BT500XT ATC C10,C11 30pFChipCapacitor 100B300JT500XT ATC C12 6.2pFChipCapacitor 100B6R2BT500XT ATC C15,C16 8.2pFChipCapacitor 100B8R2CT500XT ATC C17,C18 4.7pFChipCapacitor 100B4R7CT500XT ATC C19,C20 0.01\uf06dFChipCapacitor C1825C103K1GAC-TU Kemet C21,C22,C23,C24,C25,C26 43pFChipCapacitor 100B430JT500XT ATC C27,C28,C29,C30 470\uf06dF,63VElectrolyticCapacitor MCGPR63V477M13X26 Multicomp Coax1,2,3,4 35\uf057SemirigidCoaxCable,1.98\uf0b2ShieldLength HSF-141C-35 HangzhouHongsen L1,L2 12nH,3TurnInductor GA3094-ALC Coilcraft Q1 RFPowerLDMOSTransistor MMRF1050H NXP R1,R2 1000\uf057,1/4WChipResistor CRCW12061K00FKEA Vishay PCB Arlon4500.030\uf0b2,\uf065r=2.55,2oz.Copper D123998 MTL MMRF1050H RFDeviceData 6 NXPSemiconductors TYPICALCHARACTERISTICS\u2014950MHz,T =25_C C PRODUCTIONTESTFIXTURE Pout,OUTPUTPOWER(WATTS)PEAK Figure6.PowerGainandDrainEfficiency versusOutputPowerandQuiescentCurrent MMRF1050H RFDeviceData NXPSemiconductors 7 )Bd(NIAGREWOP,spG )%(YCNEICIFFENIARD,D\uf068 26 70 VDD=50Vdc,f=950MHz PulseWidth=100\uf06dsec,20%DutyCycle 24 60 Gps 22 22 IDQ(A+B)=1300mA 50 500mA 20 40 \uf068D 100mA 18 30 1300mA 16 20 100mA 500mA 14 10 10 100 1000 2000 100 Pout,OUTPUTPOWER(WATTS)PEAK Figure7.PowerGainversusOutputPower andDrain--SourceVoltage )Bd(NIAGREWOP,spG 24 IDQ(A+B)=100mA,f=950MHz PulseWidth=100\uf06dsec,20%DutyCycle 20 50V 18 45V 40V 35V VDD=30V 16 1000 2000 Pin,INPUTPOWER(dBm)PEAK Figure8.OutputPowerversusInputPower overTemperature KAEP)STTAW(REWOPTUPTUO,tuoP 1400 26 80 VDD=50Vdc,IDQ(A+B)=100mA,f=950MHz TC=\u201340_C PulseWidth=100\uf06dsec,20%DutyCycle 1200 24 70 2255__CC 1000 60 85_C 800 50 TC=\u201340_C 600 85_C 40 400 16 30 85_C 200 VDD=50Vdc,IDQ(A+B)=100mA,f=950MHz 14 20 PulseWidth=100\uf06dsec,20%DutyCycle 0 30 32 34 36 38 40 42 44 46 100 1000 Pout,OUTPUTPOWER(WATTS)PEAK Figure9.PowerGainandDrainEfficiency versusOutputPoweroverTemperature )Bd(NIAGREWOP,spG )%(YCNEICIFFENIARD,D\uf068 Gps 22 20 \u201340_C \uf068D 18 25_C 25_C 12 10 2000 PRODUCTIONFIXTURE Band--SpecificOptimizedPerformanceandImpedanceInformation(TC=25\uf0b0C) The measured input and output impedances are presented to the input of the device at the package reference plane. MeasurementsareperformedinNXPoptimallytunedfixturesinthefrequencyrangesof850and950MHz. f Zsource Zload (MHz) (\uf057) (\uf057) 850 3.0\u2013j3.1 4.3\u2013j2.0 950 6.2\u2013j2.9 4.0\u2013j1.1 Zsource = Testcircuitimpedanceasmeasuredfrom gatetogate. Zload = Testcircuitimpedanceasmeasuredfrom draintodrain. Input Device Output Matching + Under -- Matching Network Test Network 50\uf057 50\uf057 -- + Zsource Zload Figure10.SeriesEquivalentSourceandLoadImpedance MMRF1050H RFDeviceData 8 NXPSemiconductors PACKAGEINFORMATION MMRF1050H RFDeviceData NXPSemiconductors 9 MMRF1050H RFDeviceData 10 NXPSemiconductors PRODUCTDOCUMENTATION,SOFTWAREANDTOOLS Refertothefollowingresourcestoaidyourdesignprocess. ApplicationNotes \uf0b7 AN1908:SolderReflowAttachMethodforHighPowerRFDevicesinAirCavityPackages \uf0b7 AN1955:ThermalMeasurementMethodologyofRFPowerAmplifiers EngineeringBulletins \uf0b7 EB212:UsingDataSheetImpedancesforRFLDMOSDevices Software \uf0b7 ElectromigrationMTTFCalculator \uf0b7 .s2pFile DevelopmentTools \uf0b7 PrintedCircuitBoards REVISIONHISTORY Thefollowingtablesummarizesrevisionstothisdocument. Revision Date Description 0 Feb.2021 \uf0b7 Initialreleaseofdatasheet MMRF1050H RFDeviceData NXPSemiconductors 11 HowtoReachUs: Informationinthisdocumentisprovidedsolelytoenablesystemandsoftware implementerstouseNXPproducts.Therearenoexpressorimpliedcopyrightlicenses HomePage: grantedhereundertodesignorfabricateanyintegratedcircuitsbasedontheinformation nxp.com inthisdocument.NXPreservestherighttomakechangeswithoutfurthernoticetoany productsherein. WebSupport: nxp.com/support NXPmakesnowarranty,representation,orguaranteeregardingthesuitabilityofits productsforanyparticularpurpose,nordoesNXPassumeanyliabilityarisingoutofthe applicationoruseofanyproductorcircuit,andspecificallydisclaimsanyandallliability, includingwithoutlimitationconsequentialorincidentaldamages.\u201cTypical\u201dparameters thatmaybeprovidedinNXPdatasheetsand/orspecificationscananddovaryin differentapplications,andactualperformancemayvaryovertime.Alloperating parameters,including\u201ctypicals,\u201dmustbevalidatedforeachcustomerapplicationby customer\u2019stechnicalexperts.NXPdoesnotconveyanylicenseunderitspatentrights northerightsofothers.NXPsellsproductspursuanttostandardtermsandconditionsof sale,whichcanbefoundatthefollowingaddress:nxp.com/SalesTermsandConditions. NXPandtheNXPlogoaretrademarksofNXPB.V.Allotherproductorservicenames arethepropertyoftheirrespectiveowners. E2021NXPB.V. MMRF1050H DocumentNumber:MMRF1050H RFDeviceData 1Re2v.0,02/2021 NXPSemiconductors"
+        }
+      ],
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-04T08:46:15.537930+00:00",
+        "crawl_success": true,
+        "http_status": 200,
+        "source_domain": "www.nxp.com",
+        "source_title_hint": "MMRF1050H Product Information | NXP Semiconductors",
+        "content_sha256": "f5d928a3814df28d7592c4aeb028028f8c779f2c0e9bd25c535aa7ab3eb5911c",
+        "crawl_error": "",
+        "selector_version": "pilot-v1",
+        "pdf_datasheet_url": "https://www.nxp.com/docs/en/data-sheet/MMRF1050H.pdf",
+        "pdf_params_extracted": [
+          "drain_eff_pct",
+          "freq_max_mhz",
+          "freq_min_mhz",
+          "gain_db",
+          "pout_w_cw",
+          "vdd_v"
+        ],
+        "pdf_parse_status": "params_extracted"
+      },
+      "datasheet_file": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_datasheet.pdf",
+      "datasheet_text_file": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_datasheet_text.txt",
+      "datasheet_tables_file": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_table_blocks.json",
+      "pout_w_cw": 1050.0,
+      "vdd_v": 50.0,
+      "gain_db": 21.3,
+      "drain_eff_pct": 63.7,
+      "ruggedness": {
+        "vswr": 20,
+        "pout_cw_w": 15.0,
+        "note": "No device degradation in load mismatch test"
+      },
+      "variants": [
+        {
+          "type_number": "MMRF1050HR6",
+          "package": "NI-1230H-4S",
+          "description": "R6Suffix=150Units,56mmTapeWidth,13-inchReel"
+        }
+      ],
+      "package": "NI-1230H-4S",
+      "dc_characteristics": {
+        "test_conditions": "Extracted from datasheet Table 4 electrical characteristics (TA=25 C unless otherwise noted)",
+        "params": [
+          {
+            "symbol": "VGS(th)",
+            "parameter": "gate threshold voltage",
+            "conditions": "OnCharacteristics",
+            "min": 1.3,
+            "typ": 1.7,
+            "max": 2.3,
+            "unit": "V"
+          },
+          {
+            "symbol": "VGS(Q)",
+            "parameter": "gate quiescent voltage",
+            "conditions": "OnCharacteristics",
+            "min": 1.7,
+            "typ": 2.0,
+            "max": 2.3,
+            "unit": "V"
+          },
+          {
+            "symbol": "VDS(on)",
+            "parameter": "drain-source on voltage",
+            "conditions": "OnCharacteristics",
+            "min": 0.05,
+            "typ": 0.14,
+            "max": 0.35,
+            "unit": "V"
+          },
+          {
+            "symbol": "Crss",
+            "parameter": "reverse transfer capacitance",
+            "conditions": "DynamicCharacteristics(4)",
+            "min": null,
+            "typ": 1.85,
+            "max": null,
+            "unit": "pF"
+          }
+        ]
+      },
+      "rf_characteristics": {
+        "test_conditions": "",
+        "test_note": "Extracted from datasheet functional test rows in Table 4 (continued).",
+        "params": [
+          {
+            "symbol": "Gps",
+            "parameter": "power gain",
+            "conditions": "",
+            "min": 19.0,
+            "typ": 21.3,
+            "max": 23.5,
+            "unit": "dB"
+          },
+          {
+            "symbol": "\uf068D",
+            "parameter": "drain efficiency",
+            "conditions": "",
+            "min": 57.0,
+            "typ": 63.7,
+            "max": null,
+            "unit": "%"
+          },
+          {
+            "symbol": "IRL",
+            "parameter": "input return loss",
+            "conditions": "",
+            "min": null,
+            "typ": -18.5,
+            "max": -9.0,
+            "unit": "dB"
+          }
+        ]
+      },
+      "test_circuits": [
+        {
+          "freq_mhz": 950,
+          "pcb_substrate": "Arlon4500",
+          "pcb_thickness_mm": 0.762,
+          "pcb_size_mm": "102 x 127",
+          "figure": "Figure 5. MMRF1050H Production Fixture Component Layout - 950 MHz",
+          "bom": [
+            {
+              "ref": "B1,B2",
+              "type": "ShortRFBead",
+              "value": "2743019447",
+              "vendor": "Fair-Rite"
+            },
+            {
+              "ref": "C1,C2",
+              "type": "22uF,35VTantalumCapacitor",
+              "value": "T491X226K035AS",
+              "vendor": "Kemet"
+            },
+            {
+              "ref": "C3,C4",
+              "type": "2.2uFChipCapacitor",
+              "value": "C1825C225J5RACTU",
+              "vendor": "Kemet"
+            },
+            {
+              "ref": "C5,C6",
+              "type": "0.1uFChipCapacitor",
+              "value": "CDR33BX104AKWS",
+              "vendor": "AVX"
+            },
+            {
+              "ref": "C7,C8,C13,C14",
+              "type": "36pFChipCapacitor",
+              "value": "100B360JT500XT",
+              "vendor": "ATC"
+            },
+            {
+              "ref": "C9",
+              "type": "2.7pFChipCapacitor",
+              "value": "100B2R7BT500XT",
+              "vendor": "ATC"
+            },
+            {
+              "ref": "C10,C11",
+              "type": "30pFChipCapacitor",
+              "value": "100B300JT500XT",
+              "vendor": "ATC"
+            },
+            {
+              "ref": "C12",
+              "type": "6.2pFChipCapacitor",
+              "value": "100B6R2BT500XT",
+              "vendor": "ATC"
+            },
+            {
+              "ref": "C15,C16",
+              "type": "8.2pFChipCapacitor",
+              "value": "100B8R2CT500XT",
+              "vendor": "ATC"
+            },
+            {
+              "ref": "C17,C18",
+              "type": "4.7pFChipCapacitor",
+              "value": "100B4R7CT500XT",
+              "vendor": "ATC"
+            },
+            {
+              "ref": "C19,C20",
+              "type": "0.01uFChipCapacitor",
+              "value": "C1825C103K1GAC-TU",
+              "vendor": "Kemet"
+            },
+            {
+              "ref": "C21,C22,C23,C24,C25,C26",
+              "type": "43pFChipCapacitor",
+              "value": "100B430JT500XT",
+              "vendor": "ATC"
+            },
+            {
+              "ref": "C27,C28,C29,C30",
+              "type": "470uF,63VElectrolyticCapacitor",
+              "value": "MCGPR63V477M13X26",
+              "vendor": "Multicomp"
+            },
+            {
+              "ref": "Coax1,2,3,4",
+              "type": "35ohmSemirigidCoaxCable,1.98inShieldLength",
+              "value": "HSF-141C-35",
+              "vendor": "HangzhouHongsen"
+            },
+            {
+              "ref": "L1,L2",
+              "type": "12nH,3TurnInductor",
+              "value": "GA3094-ALC",
+              "vendor": "Coilcraft"
+            },
+            {
+              "ref": "Q1",
+              "type": "RFPowerLDMOSTransistor",
+              "value": "MMRF1050H",
+              "vendor": "NXP"
+            },
+            {
+              "ref": "R1,R2",
+              "type": "1000ohm,1/4WChipResistor",
+              "value": "CRCW12061K00FKEA",
+              "vendor": "Vishay"
+            },
+            {
+              "ref": "PCB",
+              "type": "Arlon4500.030in,\uf065r=2.55,2oz.Copper",
+              "value": "D123998",
+              "vendor": "MTL"
+            }
+          ]
+        }
+      ],
+      "load_pull_table": [
+        {
+          "freq_mhz": 850.0,
+          "condition": "measured_impedance",
+          "zs_r": 3.0,
+          "zs_x": -3.1,
+          "zl_r": 4.3,
+          "zl_x": -2.0,
+          "figure": "Figure 10. Series Equivalent Source and Load Impedance"
+        },
+        {
+          "freq_mhz": 950.0,
+          "condition": "measured_impedance",
+          "zs_r": 6.2,
+          "zs_x": -2.9,
+          "zl_r": 4.0,
+          "zl_x": -1.1,
+          "figure": "Figure 10. Series Equivalent Source and Load Impedance"
+        }
+      ],
+      "impedance_ref_plane": "Measured at the package reference plane in NXP tuned fixtures; Zsource is gate-to-gate and Zload is drain-to-drain.",
+      "input_rl_db": -18.5,
+      "graphical_data": {
+        "note": "Hover thumbnails open extracted datasheet figure pages for closer inspection.",
+        "assets": [
+          {
+            "fig": "Figure 1",
+            "caption": "PinConnections",
+            "page": 1,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_1.png"
+          },
+          {
+            "fig": "Figure 2",
+            "caption": "CapacitanceversusDrain-SourceVoltage",
+            "page": 4,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_4.png"
+          },
+          {
+            "fig": "Figure 3",
+            "caption": "NormalizedV versusQuiescent",
+            "page": 4,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_4.png"
+          },
+          {
+            "fig": "Figure 4",
+            "caption": "MTTFversusJunctionTemperature-Pulse",
+            "page": 4,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_4.png"
+          },
+          {
+            "fig": "Figure 5",
+            "caption": "MMRF1050HProductionFixtureComponentLayout-950MHz",
+            "page": 5,
+            "category": "layout",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_5.png"
+          },
+          {
+            "fig": "Figure 6",
+            "caption": "PowerGainandDrainEfficiency",
+            "page": 7,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_7.png"
+          },
+          {
+            "fig": "Figure 7",
+            "caption": "PowerGainversusOutputPower",
+            "page": 7,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_7.png"
+          },
+          {
+            "fig": "Figure 8",
+            "caption": "OutputPowerversusInputPower",
+            "page": 7,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_7.png"
+          },
+          {
+            "fig": "Figure 9",
+            "caption": "PowerGainandDrainEfficiency",
+            "page": 7,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_7.png"
+          },
+          {
+            "fig": "Figure 10",
+            "caption": "SeriesEquivalentSourceandLoadImpedance",
+            "page": 8,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_8.png"
+          },
+          {
+            "fig": "Package page 9",
+            "caption": "Package information / outline",
+            "page": 9,
+            "category": "package",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_9.png"
+          }
+        ],
+        "cw_curves": [
+          {
+            "fig": "Figure 1",
+            "caption": "PinConnections",
+            "page": 1,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_1.png"
+          },
+          {
+            "fig": "Figure 2",
+            "caption": "CapacitanceversusDrain-SourceVoltage",
+            "page": 4,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_4.png"
+          },
+          {
+            "fig": "Figure 3",
+            "caption": "NormalizedV versusQuiescent",
+            "page": 4,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_4.png"
+          },
+          {
+            "fig": "Figure 4",
+            "caption": "MTTFversusJunctionTemperature-Pulse",
+            "page": 4,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_4.png"
+          },
+          {
+            "fig": "Figure 6",
+            "caption": "PowerGainandDrainEfficiency",
+            "page": 7,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_7.png"
+          },
+          {
+            "fig": "Figure 7",
+            "caption": "PowerGainversusOutputPower",
+            "page": 7,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_7.png"
+          },
+          {
+            "fig": "Figure 8",
+            "caption": "OutputPowerversusInputPower",
+            "page": 7,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_7.png"
+          },
+          {
+            "fig": "Figure 9",
+            "caption": "PowerGainandDrainEfficiency",
+            "page": 7,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_7.png"
+          },
+          {
+            "fig": "Figure 10",
+            "caption": "SeriesEquivalentSourceandLoadImpedance",
+            "page": 8,
+            "category": "plot",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_8.png"
+          }
+        ],
+        "layout_figures": [
+          {
+            "fig": "Figure 5",
+            "caption": "MMRF1050HProductionFixtureComponentLayout-950MHz",
+            "page": 5,
+            "category": "layout",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_5.png"
+          }
+        ],
+        "package_figures": [
+          {
+            "fig": "Package page 9",
+            "caption": "Package information / outline",
+            "page": 9,
+            "category": "package",
+            "image_path": "data/kb/nxp/_extracted/MMRF1050H/MMRF1050H_page_9.png"
+          }
+        ]
+      },
+      "application": [
+        "or-sea-based UH Fradar"
+      ]
+    }
+  ],
+  "validation": {
+    "nxp_MMRF1050H": []
+  },
+  "blocked_for_auto_merge": false
+}

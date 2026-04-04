@@ -1,0 +1,34 @@
+[
+  {
+    "title": "Table1.MaximumRatings",
+    "content": "Table1.MaximumRatings Rating Symbol Value Unit Drain--SourceVoltage VDSS \u20130.5,+65 Vdc Gate--SourceVoltage VGS \u20130.5,+10 Vdc OperatingVoltage VDD 32,+0 Vdc StorageTemperatureRange Tstg \u201365to+150 \uf0b0C CaseOperatingTemperatureRange TC \u201340to+150 \uf0b0C OperatingJunctionTemperatureRange(1) TJ \u201340to+225 \uf0b0C InputPower Pin 20 dBm"
+  },
+  {
+    "title": "Table2.ThermalCharacteristics",
+    "content": "Table2.ThermalCharacteristics Characteristic Symbol Value(2) Unit ThermalResistance,JunctiontoCase R\uf071JC \uf0b0C/W CaseTemperature81\uf0b0C,DC,TotalPD=29.3W Stage1,28Vdc,PD=3.8W 5.85 Stage2,28Vdc,PD=25.5W 1.92"
+  },
+  {
+    "title": "Table3.ESDProtectionCharacteristics",
+    "content": "Table3.ESDProtectionCharacteristics TestMethodology Class HumanBodyModel(perJESD22--A114) 1B ChargeDeviceModel(perJESD22--C101) II"
+  },
+  {
+    "title": "Table4.MoistureSensitivityLevel",
+    "content": "Table4.MoistureSensitivityLevel TestMethodology Rating PackagePeakTemperature Unit PerJESD22--A113,IPC/JEDECJ--STD--020 3 260 \uf0b0C"
+  },
+  {
+    "title": "Table5.ElectricalCharacteristics(TA=25\uf0b0Cunlessotherwisenoted)",
+    "content": "Table5.ElectricalCharacteristics(TA=25\uf0b0Cunlessotherwisenoted) Characteristic Symbol Min Typ Max Unit Stage1--OffCharacteristics(3) ZeroGateVoltageDrainLeakageCurrent IDSS \u2014 \u2014 10 \uf06dAdc (VDS=65Vdc,VGS=0Vdc) ZeroGateVoltageDrainLeakageCurrent IDSS \u2014 \u2014 1 \uf06dAdc (VDS=32Vdc,VGS=0Vdc) Gate--SourceLeakageCurrent IGSS \u2014 \u2014 1 \uf06dAdc (VGS=1.0Vdc,VDS=0Vdc) Stage1--OnCharacteristics GateThresholdVoltage(3) VGS(th) 0.8 1.2 1.6 Vdc (VDS=10Vdc,ID=2.5\uf06dAdc) GateQuiescentVoltage VGS(Q) \u2014 2.0 \u2014 Vdc (VDS=28Vdc,IDQ1(A+B)=59mAdc) FixtureGateQuiescentVoltage VGG(Q) 4.6 5.3 6.1 Vdc (VDD=28Vdc,IDQ1(A+B)=59mAdc,MeasuredinFunctionalTest) 1. ContinuoususeatmaximumtemperaturewillaffectMTTF. 2. RefertoAN1955,ThermalMeasurementMethodologyofRFPowerAmplifiers.Gotohttp://www.nxp.com/RFandsearchforAN1955. 3. Eachsideofdevicemeasuredseparately. (continued) AFIC31025NAFIC31025GN RFDeviceData 2 NXPSemiconductors"
+  },
+  {
+    "title": "Table5.ElectricalCharacteristics(TA=25\uf0b0Cunlessotherwisenoted) (continued)",
+    "content": "Table5.ElectricalCharacteristics(TA=25\uf0b0Cunlessotherwisenoted) (continued) Characteristic Symbol Min Typ Max Unit Stage2--OffCharacteristics(1) ZeroGateVoltageDrainLeakageCurrent IDSS \u2014 \u2014 10 \uf06dAdc (VDS=65Vdc,VGS=0Vdc) ZeroGateVoltageDrainLeakageCurrent IDSS \u2014 \u2014 1 \uf06dAdc (VDS=32Vdc,VGS=0Vdc) Gate--SourceLeakageCurrent IGSS \u2014 \u2014 1 \uf06dAdc (VGS=1.0Vdc,VDS=0Vdc) Stage2--OnCharacteristics GateThresholdVoltage(1) VGS(th) 0.8 1.2 1.6 Vdc (VDS=10Vdc,ID=16\uf06dAdc) GateQuiescentVoltage VGS(Q) \u2014 1.9 \u2014 Vdc (VDS=28Vdc,IDQ2(A+B)=157mAdc) FixtureGateQuiescentVoltage VGG(Q) 4.3 5.0 5.8 Vdc (VDD=28Vdc,IDQ2(A+B)=157mAdc,MeasuredinFunctionalTest) Drain--SourceOn--Voltage(1) VDS(on) 0.1 0.22 1.5 Vdc (VGS=10Vdc,ID= 200mAdc) 1. Eachsideofdevicemeasuredseparately. (continued) AFIC31025NAFIC31025GN RFDeviceData NXPSemiconductors 3"
+  },
+  {
+    "title": "Table5.ElectricalCharacteristics(TA=25\uf0b0Cunlessotherwisenoted) (continued)",
+    "content": "Table5.ElectricalCharacteristics(TA=25\uf0b0Cunlessotherwisenoted) (continued) Characteristic Symbol Min Typ Max Unit FunctionalTests(1,2)(InNXPProductionTestFixture,50ohmsystem)VDD=28Vdc,IDQ1(A+B)=59mA,IDQ2(A+B)=157mA, Pout=3.2WAvg.,f=2690MHz,Single--CarrierW--CDMA,IQMagnitudeClipping,InputSignalPAR=9.9dB@0.01%Probabilityon CCDF.ACPRmeasuredin3.84MHzChannelBandwidth@\uf0b15MHzOffset. PowerGain Gps 30.5 31.9 34.5 dB PowerAddedEfficiency PAE 18.0 19.7 \u2014 % LoadMismatch(InNXPProductionTestFixture,50ohmsystem)IDQ1(A+B)=59mA,IDQ2(A+B)=157mA,f=2600MHz VSWR10:1at32Vdc,36WCWOutputPower NoDeviceDegradation (3dBInputOverdrivefrom25WCWRatedPower)"
+  },
+  {
+    "title": "Table6.OrderingInformation",
+    "content": "Table6.OrderingInformation Device TapeandReelInformation Package AFIC31025NR1 TO--270WB--17 R1Suffix=500Units,44mmTapeWidth,13--Reel AFIC31025GNR1 TO--270WBG--17 1. Partinternallyinputandoutputmatched. 2. Measurementsmadewithdeviceinstraightleadconfigurationbeforeanyleadformingoperationisapplied.Leadformingisusedfor gullwing(GN)parts. AFIC31025NAFIC31025GN RFDeviceData 4 NXPSemiconductors PACKAGEDIMENSIONS AFIC31025NAFIC31025GN RFDeviceData NXPSemiconductors 5 AFIC31025NAFIC31025GN RFDeviceData 6 NXPSemiconductors AFIC31025NAFIC31025GN RFDeviceData NXPSemiconductors 7 AFIC31025NAFIC31025GN RFDeviceData 8 NXPSemiconductors AFIC31025NAFIC31025GN RFDeviceData NXPSemiconductors 9 AFIC31025NAFIC31025GN RFDeviceData 10 NXPSemiconductors PRODUCTDOCUMENTATION Refertothefollowingresourcestoaidyourdesignprocess. ApplicationNotes \uf0b7 AN1907:SolderReflowAttachMethodforHighPowerRFDevicesinPlasticPackages \uf0b7 AN1955:ThermalMeasurementMethodologyofRFPowerAmplifiers \uf0b7 AN1977:QuiescentCurrentThermalTrackingCircuitintheRFIntegratedCircuitFamily \uf0b7 AN1987:QuiescentCurrentControlfortheRFIntegratedCircuitDeviceFamily EngineeringBulletins \uf0b7 EB212:UsingDataSheetImpedancesforRFLDMOSDevices ToDownloadResourcesSpecifictoaGivenPartNumber: 1.Gotohttp://www.nxp.com/RF 2.Searchbypartnumber 3.Clickpartnumberlink 4.Choosethedesiredresourcefromthedropdownmenu REVISIONHISTORY Thefollowingtablesummarizesrevisionstothisdocument. Revision Date Description 0 Oct.2017 \uf0b7 Initialreleaseofdatasheet AFIC31025NAFIC31025GN RFDeviceData NXPSemiconductors 11 HowtoReachUs: Informationinthisdocumentisprovidedsolelytoenablesystemandsoftware implementerstouseNXPproducts.Therearenoexpressorimpliedcopyrightlicenses HomePage: grantedhereundertodesignorfabricateanyintegratedcircuitsbasedontheinformation nxp.com inthisdocument.NXPreservestherighttomakechangeswithoutfurthernoticetoany productsherein. WebSupport: nxp.com/support NXPmakesnowarranty,representation,orguaranteeregardingthesuitabilityofits productsforanyparticularpurpose,nordoesNXPassumeanyliabilityarisingoutofthe applicationoruseofanyproductorcircuit,andspecificallydisclaimsanyandallliability, includingwithoutlimitationconsequentialorincidentaldamages.\u201cTypical\u201dparameters thatmaybeprovidedinNXPdatasheetsand/orspecificationscananddovaryin differentapplications,andactualperformancemayvaryovertime.Alloperating parameters,including\u201ctypicals,\u201dmustbevalidatedforeachcustomerapplicationby customer\u2019stechnicalexperts.NXPdoesnotconveyanylicenseunderitspatentrights northerightsofothers.NXPsellsproductspursuanttostandardtermsandconditionsof sale,whichcanbefoundatthefollowingaddress:nxp.com/SalesTermsandConditions. NXP,theNXPlogo,andAirfastaretrademarksofNXPB.V.Allotherproductorservice namesarethepropertyoftheirrespectiveowners. E2017NXPB.V. AFIC31025NAFIC31025GN DocumentNumber:AFIC31025N RFDeviceData 1Re2v.0,10/2017 NXPSemiconductors"
+  }
+]

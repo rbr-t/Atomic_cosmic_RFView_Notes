@@ -1,0 +1,794 @@
+NXP Semiconductors DocumentNumber:MRF1K50H
+Technical Data Rev.1.1,03/2017
+RF Power LDMOS Transistor
+High Ruggedness N--Channel MRF1K50H
+Enhancement--Mode Lateral MOSFET
+ThishighruggednessdeviceisdesignedforuseinhighVSWRindustrial,
+scientificandmedicalapplications,aswellasradioandVHFTVbroadcast,
+1.8–500MHz,1500WCW,50V
+sub--GHzaerospaceandmobileradioapplications.Itsunmatchedinputand
+WIDEBAND
+outputdesignallowsforwidefrequencyrangeusefrom1.8to500MHz.
+RFPOWERLDMOSTRANSISTOR
+TypicalPerformance:V =50Vdc
+DD
+Frequency Pout Gps ηηηηD
+(MHz) SignalType (W) (dB) (%)
+27 CW 1550CW 25.9 78.3
+81.36(1) CW 1400CW 23.0 75.0
+87.5–108(2,3) CW 1475CW 23.3 83.4
+230(4) Pulse 1500Peak 23.7 74.0
+(100µsec,20%DutyCycle)
+NI--1230H--4S
+LoadMismatch/Ruggedness
+Frequency Pin Test
+(MHz) SignalType VSWR (W) Voltage Result
+230(4) Pulse >65:1atall 13Peak 50 NoDevice
+GateA 3 1 DrainA
+(100µsec,20% PhaseAngles (3dB Degradation
+DutyCycle) Overdrive)
+1. Datafrom81.36MHznarrowbandreferencecircuit(page11).
+2. Datafrom87.5–108MHzbroadbandreferencecircuit(page5). GateB 4 2 DrainB
+3. Thevaluesshownarethecenterbandperformancenumbersacrosstheindicated
+frequencyrange.
+4. Datafrom230MHznarrowbandproductiontestfixture(page16).
+(TopView)
+Features
+Note: Thebacksideofthepackageisthe
+• Highdrain--sourceavalancheenergyabsorptioncapability
+sourceterminalforthetransistor.
+• Unmatchedinputandoutputallowingwidefrequencyrangeutilization
+• Devicecanbeusedsingle--endedorinapush--pullconfiguration Figure1.PinConnections
+• Characterizedfrom30to50Vforeaseofuse
+• Suitableforlinearapplication
+• IntegratedESDprotectionwithgreaternegativegate--sourcevoltagerange
+forimprovedClassCoperation
+• Recommendeddriver:MRFE6VS25N(25W)
+• Lowerthermalresistancepartavailable:MRF1K50N
+• IncludedinNXPproductlongevityprogramwithassuredsupplyfora
+minimumof15yearsafterlaunch
+TypicalApplications
+• Industrial,scientific,medical(ISM)
+– Lasergeneration
+– Plasmaetching
+– Particleaccelerators
+– MRIandothermedicalapplications
+– Industrialheating,weldinganddryingsystems
+• Broadcast
+– Radiobroadcast
+– VHFTVbroadcast
+• Aerospace
+– VHFomnidirectionalrange(VOR)
+– HFandVHFcommunications
+– Weatherradar
+• Mobileradio
+– VHFandUHFbasestations
+2016–2017NXPB.V. MRF1K50H
+RFDeviceData
+NXPSemiconductors 1
+Table1.MaximumRatings
+Rating Symbol Value Unit
+Drain--SourceVoltage VDSS –0.5,+135 Vdc
+Gate--SourceVoltage VGS –6.0,+10 Vdc
+OperatingVoltage VDD 50 Vdc
+StorageTemperatureRange Tstg –65to+150 °C
+CaseOperatingTemperatureRange TC –40to+150 °C
+OperatingJunctionTemperatureRange(1,2) TJ –40to+225 °C
+TotalDeviceDissipation@TC=25°C PD 1667 W
+Derateabove25°C 8.33 W/°C
+Table2.ThermalCharacteristics
+Characteristic Symbol Value(2,3) Unit
+ThermalResistance,JunctiontoCase RθJC 0.10 °C/W
+CW:CaseTemperature78°C,1500WCW,50Vdc,IDQ(A+B)=200mA,88MHz
+ThermalImpedance,JunctiontoCase ZθJC 0.028 °C/W
+Pulse:CaseTemperature73°C,1500WPeak,100µsecPulseWidth,20%DutyCycle,
+IDQ(A+B)=100mA,230MHz
+Table3.ESDProtectionCharacteristics
+TestMethodology Class
+HumanBodyModel(perJESD22--A114) 2,passes2500V
+MachineModel(perEIA/JESD22--A115) B,passes250V
+ChargeDeviceModel(perJESD22--C101) IV,passes2000V
+Table4.ElectricalCharacteristics (TA=25°Cunlessotherwisenoted)
+Characteristic Symbol Min Typ Max Unit
+OffCharacteristics(4)
+Gate--SourceLeakageCurrent IGSS — — 1 µAdc
+(VGS=5Vdc,VDS=0Vdc)
+Drain--SourceBreakdownVoltage V(BR)DSS 135 — — Vdc
+(VGS=0Vdc,ID=30µAdc)
+ZeroGateVoltageDrainLeakageCurrent IDSS — — 10 µAdc
+(VDS=50Vdc,VGS=0Vdc)
+ZeroGateVoltageDrainLeakageCurrent IDSS — — 20 µAdc
+(VDS=100Vdc,VGS=0Vdc)
+OnCharacteristics
+GateThresholdVoltage(4) VGS(th) 1.7 2.2 2.7 Vdc
+(VDS=10Vdc,ID=2130µAdc)
+GateQuiescentVoltage VGS(Q) 1.9 2.4 2.9 Vdc
+(VDD=50Vdc,ID(A+B)=100mAdc,MeasuredinFunctionalTest)
+Drain--SourceOn--Voltage(4) VDS(on) — 0.15 — Vdc
+(VGS=10Vdc,ID=2.4Adc)
+ForwardTransconductance(4) gfs — 33.5 — S
+(VDS=10Vdc,ID=36Adc)
+1. ContinuoususeatmaximumtemperaturewillaffectMTTF.
+2. MTTFcalculatoravailableathttp://www.nxp.com/RF/calculators.
+3. RefertoAN1955,ThermalMeasurementMethodologyofRFPowerAmplifiers.Gotohttp://www.nxp.com/RFandsearchforAN1955.
+4. Eachsideofdevicemeasuredseparately.
+(continued)
+MRF1K50H
+RFDeviceData
+2 NXPSemiconductors
+Table4.ElectricalCharacteristics (TA=25°Cunlessotherwisenoted)(continued)
+Characteristic Symbol Min Typ Max Unit
+DynamicCharacteristics(1)
+ReverseTransferCapacitance Crss — 3.48 — pF
+(VDS=50Vdc±30mV(rms)ac@1MHz,VGS=0Vdc)
+OutputCapacitance Coss — 205 — pF
+(VDS=50Vdc±30mV(rms)ac@1MHz,VGS=0Vdc)
+InputCapacitance Ciss — 664 — pF
+(VDS=50Vdc,VGS=0Vdc±30mV(rms)ac@1MHz)
+FunctionalTests(InNXPProductionTestFixture,50ohmsystem)VDD=50Vdc,IDQ(A+B)=100mA,Pout=1500WPeak(300WAvg.),
+f=230MHz,100µsecPulseWidth,20%DutyCycle
+PowerGain Gps 22.5 23.7 25.5 dB
+DrainEfficiency ηD 70.0 74.0 — %
+InputReturnLoss IRL — –18.3 –9 dB
+Table5.LoadMismatch/Ruggedness(InNXPProductionTestFixture,50ohmsystem)IDQ(A+B)=100mA
+Frequency Pin
+(MHz) SignalType VSWR (W) TestVoltage,VDD Result
+230 Pulse >65:1atall 13Peak 50 NoDeviceDegradation
+(100µsec,20%DutyCycle) PhaseAngles (3dBOverdrive)
+Table6.OrderingInformation
+Device TapeandReelInformation Package
+MRF1K50HR5 R5Suffix=50Units,56mmTapeWidth,13--inchReel NI--1230H--4S
+1. Eachsideofdevicemeasuredseparately.
+MRF1K50H
+RFDeviceData
+NXPSemiconductors 3
+TYPICALCHARACTERISTICS
+100
+1
+0 10 20
+VDS,DRAIN--SOURCEVOLTAGE(VOLTS)
+Figure2.CapacitanceversusDrain--SourceVoltage
+MRF1K50H
+RFDeviceData
+4 NXPSemiconductors
+)Fp(ECNATICAPAC,C
+10000
+Measuredwith±30mV(rms)ac@1MHz IDQ(A+B)=100mA
+VGS=0Vdc
+1000 Ciss
+Coss
+Crss
+10
+30 40 50
+Note:Eachsideofdevicemeasuredseparately.
+Figure3.NormalizedV versusQuiescent
+GS
+CurrentandCaseTemperature
+)Q(SGVDEZILAMRON
+1.08
+500mA
+VDD=50Vdc
+1.06
+1.04
+1500mA
+1.02
+2000mA
+1
+0.98
+0.96
+0.94
+0.92
+–50 –25 0 25 50 75 100
+TC,CASETEMPERATURE(°C)
+IDQ(mA) Slope(mV/°°°°C)
+100 –2.87
+500 –2.56
+1500 –2.29
+2000 –2.11
+0.07
+1 10
+RECTANGULARPULSEWIDTH(S)
+Figure4.MaximumTransientThermalImpedance
+)W/C°(ECNADEPMILAMREHT,CJZ
+0.11 108
+0.09
+D=0.7
+106
+D=0.5
+0.05
+PD
+t1
+105
+D=0.3
+0.03
+t2
+D=DutyFactor=t1/t2
+D=0.1
+t1=PulseWidth
+0.01
+t2=PulsePeriod
+TJ=PD*ZJC+TC
+0 103
+0.00001 0.0001 0.001 0.01 0.1 90 110 130 250
+TJ,JUNCTIONTEMPERATURE(°C)
+Note:MTTFvaluerepresentsthetotalcumulativeoperatingtime
+underindicatedtestconditions.
+MTTFcalculatoravailableathttp:/www.nxp.com/RF/calculators.
+Figure5.MTTFversusJunctionTemperature—CW
+)SRUOH(FTTM
+VDD=50Vdc
+107 ID=36.0Amps
+104
+150 170 190 210 230
+87.5–108MHzBROADBANDREFERENCECIRCUIT
+Table7.87.5–108MHzBroadbandPerformance(InNXPReferenceCircuit,50ohmsystem)
+VDD=50Vdc,IDQ(A+B)=200mA,Pin=7W,CW
+Frequency Gps ηηηηD Pout
+(MHz) (dB) (%) (W)
+87.5 22.8 81.8 1325
+98 23.3 83.4 1475
+108 23.0 81.2 1410
+MRF1K50H
+RFDeviceData
+NXPSemiconductors 5
+87.5–108MHzBROADBANDREFERENCECIRCUIT—2.88″″″″××××5.12″″″″(73mm××××130mm)
+C6 C7 C25 C22 C26 C21 C27 L4
+C28
+C5
+L1 R2 C20
+C19
+C4
+C18
+R1 C11 C17
+C3 Q1 C16
+C12 C24
+C1
+C2* L3 C23*
+L2 C15*
+R3
+C8 C13 C14*
+C9 C10 MRF1K50H
+Rev.0 D62499
+*C2,C14,C15andC23aremountedvertically.
+Note:Q1leadsaresolderedtothePCBwithL3soldereddirectlyontopofthedrainleads.
+0.26
+(6.5)
+0.63
+(16.0)
+0.26
+(6.6)
+Inches
+L3totalwirelength=2.04″(52mm) (mm)
+Figure6.MRF1K50H87.5–108MHzBroadbandReferenceCircuit
+ComponentLayout
+Figure7.MRF1K50H87.5–108MHzBroadbandReferenceCircuit
+ComponentLayout—Bottom
+MRF1K50H
+RFDeviceData
+6 NXPSemiconductors
+87.5–108MHzBROADBANDREFERENCECIRCUIT
+Table8.MRF1K50HBroadbandReferenceCircuitComponentDesignationsandValues—87.5–108MHz
+Part Description PartNumber Manufacturer
+C1,C3,C6,C9,C18,C19, 1000pFChipCapacitors ATC100B102JT50XT ATC
+C20,C21,C22
+C2 33pFChipCapacitor ATC100B330JT500XT ATC
+C4,C5,C8 10,000pFChipCapacitors ATC200B103KT50XT ATC
+C7,C10,C15,C16,C17,C23 470pFChipCapacitors ATC100B471JT200XT ATC
+C11 91pF300VMicaCapacitor MIN02-002EC910J-F CDE
+C12 56pF300VMicaCapacitor MIN02-002DC560J-F CDE
+C13 2.2pFChipCapacitor ATC100B2R2JT500XT ATC
+C14,C24 12pFChipCapacitors ATC100B120GT500XT ATC
+C25,C26,C27 220µF,63VElectrolyticCapacitors EEV-FK2A221M Panasonic
+C28 22µF,35VElectrolyticCapacitor UUD1V220MCL1GS Nichicon
+L1,L2 17.5nHInductors,6Turns B06TJLC Coilcraft
+L3 1.5mmNon--TarnishSilverPlatedCopperWire SP1500NT-001 ScientificWireCompany
+L4 22nHInductor 1212VS-22NMEB Coilcraft
+Q1 RFPowerLDMOSTransistor MRF1K50H NXP
+R1 10Ω,1/4WChipResistor CRCW120610R0JNEA Vishay
+R2,R3 33Ω,2WChipResistors 1-2176070-3 TEConnectivity
+PCB ArlonTC3500.030″,εr=3.5 D62499 MTL
+Note: RefertoMRF1K50H’sprintedcircuitboardsandschematicstodownloadthe87.5–108MHzheatsinkdrawing.
+MRF1K50H
+RFDeviceData
+NXPSemiconductors 7
+TYPICALCHARACTERISTICS—87.5–108MHz
+BROADBANDREFERENCECIRCUIT
+27 85
+26 83
+81
+77
+Gps
+1600
+1500
+1200
+93
+f,FREQUENCY(MHz)
+Figure8.PowerGain,DrainEfficiencyandCWOutput
+PowerversusFrequencyataConstantInputPower
+87.5MHz
+98MHz
+108MHz
+MRF1K50H
+RFDeviceData
+8 NXPSemiconductors
+NIARD,Dη
+)%(YCNEICIFFE
+ηD
+)Bd(NIAGREWOP,spG
+25
+24 79
+23
+22
+21
+1400
+18
+95 97 99 101 103 105 107
+TUPTUO,tuoP
+)STTAW(REWOP
+Pout
+20
+19 1300
+VDD=50Vdc,Pin=7W,lDQ(A+B)=200mA
+87 89 91 109
+0
+0
+Pin,INPUTPOWER(WATTS)
+Figure9.CWOutputPowerversusInputPowerandFrequency
+KAEP)STTAW(REWOPTUPTUO,tuoP
+1600
+1400
+1200
+1000
+800
+600
+400
+200 VDD=50Vdc,IDQ(A+B)=200mA
+1 2 3 4 5 6 7
+100
+29
+60
+40
+26 20
+23
+0
+0 1
+Pin,INPUTPOWER(WATTS)
+Figure10.PowerGain,DrainEfficiencyandCWOutput
+PowerversusInputPowerandFrequency
+)Bd(NIAGREWOP,spG
+f=87.5MHz
+80
+ηD 98MHz
+28 108MHz
+27
+25 1600
+24 1200
+800
+Gps
+22 400
+108MHz
+21
+2 3 4 5 6 7 8
+NIARD,Dη
+TUPTUO,tuoP
+)%(YCNEICIFFE
+)STTAW(REWOP
+8 9
+30
+87.5MHz
+98MHz
+108MHz
+87.5MHz
+Pout
+98MHz
+VDD=50Vdc,lDQ(A+B)=200mA
+9
+87.5–108MHzBROADBANDREFERENCECIRCUIT
+Zo=10Ω
+Zsource
+f=108MHz f=87.5MHz
+f=108MHz
+f=87.5MHz
+Zload
+f Zsource Zload
+MHz ΩΩΩΩ ΩΩΩΩ
+87.5 4.07+j5.13 3.92+j2.89
+98 3.93+j4.84 3.39+j2.35
+108 3.50+j4.72 2.83+j2.56
+Zsource = Testcircuitimpedanceasmeasuredfrom
+gatetogate,balancedconfiguration.
+Zload = Testcircuitimpedanceasmeasured
+fromdraintodrain,balancedconfiguration.
+Input Device Output
+Matching + Under -- Matching
+Network Test Network
+50Ω 50Ω
+-- +
+Z Z
+source load
+Figure11.BroadbandSeriesEquivalentSourceandLoadImpedance—87.5–108MHz
+MRF1K50H
+RFDeviceData
+NXPSemiconductors 9
+HARMONICMEASUREMENTS—87.5–108MHz
+BROADBANDREFERENCECIRCUIT
+F1 87.5MHz
+Fundamental(F1)
+H2 175MHz –30dB
+H3 262.5MHz –28dB
+H2 H3 H4
+H4 350MHz –46dB
+(175MHz) (262.5MHz) (350MHz)
+–30dB –28dB –46dB
+H3
+H2
+H4
+Center:228.5MHz 35MHz Span:350MHz
+Figure12.87.5MHzHarmonics@1200WCW
+MRF1K50H
+RFDeviceData
+10 NXPSemiconductors
+81.36MHzNARROWBANDREFERENCECIRCUIT
+Table9.81.36MHzNarrowbandPerformance(InNXPReferenceCircuit,50ohmsystem)
+VDD=50Vdc,IDQ(A+B)=150mA,Pin=3W,CW
+Frequency Gps ηηηηD Pout
+(MHz) (dB) (%) (W)
+81.36 23.0 75.0 1400
+MRF1K50H
+RFDeviceData
+NXPSemiconductors 11
+81.36MHzNARROWBANDREFERENCECIRCUIT—2.88″″″″××××6.38″″″″(73.2mm××××162mm)
+C24
+L4
+C25 C8 C9
+C23
+C10 C22
+R2 C21*
+C20*
+C4 L3 C12 C19*
+L1 C18*
+R1 Q1 C17*
+C3
+L2
+C1
+C11
+C16*
+C2 R3 C15*
+C6 C13*
+C14*
+C7
+C5
+D81078 Rev.0
+*C13,C14,C15,C16,C17,C18,C19,C20,andC21aremountedvertically.
+L3totalwirelength=1.50″(38mm)
+0.394 C24
+(10)
+0.394
+(10) C23
+C22
+C22,C23topview(locatedbeneathC24)
+Inches
+0.158 0.158
+(mm)
+(4) (4)
+Figure13.MRF1K50H81.36MHzNarrowbandReferenceCircuit
+ComponentLayout
+Figure14.MRF1K50H81.36MHzNarrowbandReferenceCircuit
+ComponentLayout—Bottom
+MRF1K50H
+RFDeviceData
+12 NXPSemiconductors
+81.36MHzNARROWBANDREFERENCECIRCUIT
+Table10.MRF1K50HNarrowbandReferenceCircuitComponentDesignationsandValues—81.36MHz
+Part Description PartNumber Manufacturer
+C1,C3,C6,C9,C19,C20, 1000pFChipCapacitors ATC100B102JT50XT ATC
+C21,C22
+C2 22pFChipCapacitor ATC100B220JT500XT ATC
+C4,C5,C8,C23 10,000pFChipCapacitors ATC200B103KT50XT ATC
+C7,C10,C15,C16,C17, 470pFChipCapacitors ATC100B471JT200XT ATC
+C18
+C11 62pF300VMicaCapacitor MIN02-002EC620J-F CDE
+C12 91pF 300VMicaCapacitor MIN02-002EC910J-F CDE
+C13 6.8pFChipCapacitor ATC100B6R8CT500XT ATC
+C14 1.5pFChipCapacitor ATC100B1R5BT500XT ATC
+C24 220µF,63VElectrolyticCapacitor EEU-FC1J221S Panasonic
+C25 22µF,35VElectrolyticCapacitor UUD1V220MCL1GS Nichicon
+L1,L2 12.5nHInductors,4Turns A04TJLC Coilcraft
+L3 1.5mmNon--TarnishSilverPlatedCopperWire SP1500NT-001 ScientificWireCompany
+L4 22nHInductor 1212VS-22NMEB Coilcraft
+Q1 RFPowerLDMOSTransistor MRF1K50H NXP
+R1 10Ω,1/4WChipResistor CRCW120610R0JNEA Vishay
+R2,R3 33Ω, 2WChipResistors 1-2176070-3 TEConnectivity
+PCB ArlonTC3500.030″,εr=3.5 D81078 MTL
+Note: RefertoMRF1K50H’sprintedcircuitboardsandschematicstodownloadthe81.36MHzheatsinkdrawing.
+MRF1K50H
+RFDeviceData
+NXPSemiconductors 13
+TYPICALCHARACTERISTICS—81.36MHz
+NARROWBANDREFERENCECIRCUIT
+0
+9
+Pin,INPUTPOWER(WATTS)
+MRF1K50H
+RFDeviceData
+14 NXPSemiconductors
+)STTAW(REWOPTUPTUO,tuoP
+1800
+VDD=50Vdc,IDQ(A+B)=150mA,f=81.36MHz
+26
+24
+22
+0 1 2 3
+Pout,OUTPUTPOWER(WATTS)
+f P1dB P3dB Figure16.PowerGainandDrainEfficiency
+(MHz) (W) (W) versusCWOutputPower
+81.36 890 1414
+Figure15.CWOutputPowerversusInputPower
+)Bd(NIAGREWOP,spG
+)%(YCNEICIFFENIARD,Dη
+29 100
+VDD=50Vdc,IDQ(A+B)=150mA,f=81.36MHz
+1600 28 90
+1400
+27 80
+1200
+Gps
+70
+1000
+25 60
+800 ηD
+50
+600
+400 23 40
+200 30
+21 20
+4 5 6 7 8 100 500 900 1300 1700
+81.36MHzNARROWBANDREFERENCECIRCUIT
+f Zsource Zload
+MHz ΩΩΩΩ ΩΩΩΩ
+81.36 3.12+j6.2 3.5+j2.5
+Zsource = Testcircuitimpedanceasmeasuredfrom
+gatetogate,balancedconfiguration.
+Zload = Testcircuitimpedanceasmeasuredfrom
+draintodrain,balancedconfiguration.
+Input Device Output
+Matching + Under -- Matching
+50Ω Network Test Network 50Ω
+-- +
+Zsource Zload
+Figure17.NarrowbandSeriesEquivalentSourceandLoadImpedance—81.36MHz
+MRF1K50H
+RFDeviceData
+NXPSemiconductors 15
+230MHzNARROWBANDPRODUCTIONTESTFIXTURE—6″″″″××××4″″″″(152mm××××102mm)
+C10
+C27 C28 C29
+C6 C9 C12
+D80474
+C25
+Coax1 Coax3
+R1 L3
+C18*
+C2 L1 C15 C19*
+C4* C13 C14 C20*
+C21*
+C3 L2 C16 C17 C22*
+C1 C23* C24
+L4
+R2
+Coax2 Coax4
+C26
+MRF1K50H
+C11 Rev.1
+C5 C7
+C30 C31 C32
+C8
+Figure18.MRF1K50HNarrowbandTestCircuitComponentLayout—230MHz
+MRF1K50H
+RFDeviceData
+16 NXPSemiconductors
+AERATUOTUC
+*C4,C18,C19,C20,C21,C22,andC23aremountedvertically.
+Table11.MRF1K50HNarrowbandTestCircuitComponentDesignationsandValues—230MHz
+Part Description PartNumber Manufacturer
+C1,C2,C3 22pFChipCapacitors ATC100B220JT500XT ATC
+C4 27pFChipCapacitor ATC100B270JT500XT ATC
+C5,C6 22µF,35VTantalumCapacitors T491X226K035AT Kemet
+C7,C9 0.1µFChipCapacitors C1210C104K5RACTU Kemet
+C8,C10 220nFChipCapacitors C1812C224K5RACTU Kemet
+C11,C12,C25,C26 1000pFChipCapacitors ATC100B102JT50XT ATC
+C13 51pFChipCapacitor ATC800R510JT500XT ATC
+C14 24pFChipCapacitor ATC800R240JT500XT ATC
+C15,C16,C17 20pFChipCapacitors ATC800R200JT500XT ATC
+C18,C19,C20,C21,C22,C23 240pFChipCapacitors ATC100B241JT200XT ATC
+C24 8.2pFChipCapacitor ATC100B8R2CT500XT ATC
+C27,C28,C29,C30,C31,C32 470µF,63VElectrolyticCapacitors MCGPR63V477M13X26-RH Multicomp
+Coax1,2,3,4 25ΩSemiRigidCoax,2.2″ShieldLength UT-141C-25 Micro--Coax
+L1,L2 5nHInductors A02TKLC Coilcraft
+L3,L4 6.6nHInductors GA3093-ALC Coilcraft
+R1,R2 10Ω,1/4WChipResistors CRCW120610R0JNEA Vishay
+PCB ArlonAD255A0.030″,εr=2.55 D80474 MTL
+TYPICALCHARACTERISTICS—230MHz
+PRODUCTIONTESTFIXTURE
+0
+0
+VGS,GATE--SOURCEVOLTAGE(VOLTS)
+Figure19.OutputPowerversusGate--Source
+VoltageataConstantInputPower
+MRF1K50H
+RFDeviceData
+NXPSemiconductors 17
+KAEP)STTAW(REWOPTUPTUO,tuoP
+VDD=50Vdc,f=230MHz
+1600 PulseWidth=100µsec,20%DutyCycle
+1400
+1200
+Pin=6.5W
+1000
+Pin=3.2W
+800
+600
+400
+200
+0.5 1 1.5 2 2.5 3
+56
+52
+40
+Pin,INPUTPOWER(dBm)PEAK
+KAEP)mBd(REWOPTUPTUO,tuoP
+VDD=50Vdc,IDQ(A+B)=100mA,f=230MHz
+64 PulseWidth=100µsec,20%DutyCycle
+60
+48
+20 24 28 32 36 40 44
+Pout,OUTPUTPOWER(WATTS)PEAK
+f P1dB P3dB Figure21.PowerGainandDrainEfficiency
+(MHz) (W) (W) versusOutputPowerandQuiescentCurrent
+230 1460 1740
+Figure20.OutputPowerversusInputPower
+)Bd(NIAGREWOP,spG
+)%(YCNEICIFFENIARD,Dη
+27
+VDD=50Vdc,IDQ(A+B)=100mA,f=230MHz
+PulseWidth=100µsec,20%DutyCycle
+25 80
+Gps
+IDQ(A+B)=900mA
+23 60
+600mA
+21 900mA 40
+300mA
+600mA
+ηD
+19 100mA 300mA 20
+100mA
+0
+10 100 1000
+29 90
+VDD=50Vdc,IDQ(A+B)=100mA,f=230MHz
+27 PulseWidth=100µsec,20%DutyCycle 80
+70
+60
+TC=–40(cid:1)C 50
+25(cid:1)C 40
+ηD
+17 30
+85(cid:1)C
+15 20
+85(cid:1)C
+13 –40(cid:1)C 10
+25(cid:1)C
+30 100 1000
+Pout,OUTPUTPOWER(WATTS)PEAK
+Figure22.PowerGainandDrainEfficiency
+versusOutputPower
+)Bd(NIAGREWOP,spG
+)%(YCNEICIFFENIARD,Dη
+24
+11
+0
+Pout,OUTPUTPOWER(WATTS)PEAK
+Figure23.PowerGainversusOutputPower
+andDrain--SourceVoltage
+)Bd(NIAGREWOP,spG
+1800
+68 100
+300mA
+44
+17
+2000
+28
+IDQ(A+B)=100mA,f=230MHz
+PulseWidth=100µsec,20%DutyCycle
+26
+25 Gps
+23
+21
+22
+19 50V
+45V
+20
+40V
+18
+–40(cid:1)C
+VDD=30V
+35V
+0 16
+2000 200 400 600 800 1000 1200 1400 1600 1800 2000
+230MHzNARROWBANDPRODUCTIONTESTFIXTURE
+f Zsource Zload
+MHz ΩΩΩΩ ΩΩΩΩ
+230 1.4+j2.8 2.2+j1.7
+Zsource = Testcircuitimpedanceasmeasuredfrom
+gatetogate,balancedconfiguration.
+Zload = Testcircuitimpedanceasmeasuredfrom
+draintodrain,balancedconfiguration.
+Input Device Output
+Matching + Under -- Matching
+50Ω Network Test Network 50Ω
+-- +
+Zsource Zload
+Figure24.NarrowbandSeriesEquivalentSourceandLoadImpedance—230MHz
+MRF1K50H
+RFDeviceData
+18 NXPSemiconductors
+PACKAGEDIMENSIONS
+MRF1K50H
+RFDeviceData
+NXPSemiconductors 19
+MRF1K50H
+RFDeviceData
+20 NXPSemiconductors
+PRODUCTDOCUMENTATION,SOFTWAREANDTOOLS
+Refertothefollowingresourcestoaidyourdesignprocess.
+ApplicationNotes
+• AN1908:SolderReflowAttachMethodforHighPowerRFDevicesinAirCavityPackages
+• AN1955:ThermalMeasurementMethodologyofRFPowerAmplifiers
+EngineeringBulletins
+• EB212:UsingDataSheetImpedancesforRFLDMOSDevices
+Software
+• ElectromigrationMTTFCalculator
+• RFHighPowerModel
+• .s2pFile
+DevelopmentTools
+• PrintedCircuitBoards
+ToDownloadResourcesSpecifictoaGivenPartNumber:
+1.Gotohttp://www.nxp.com/RF
+2.Searchbypartnumber
+3.Clickpartnumberlink
+4.Choosethedesiredresourcefromthedropdownmenu
+REVISIONHISTORY
+Thefollowingtablesummarizesrevisionstothisdocument.
+Revision Date Description
+0 June2016 • InitialReleaseofDataSheet
+1 Jan.2017 • Table2,ThermalCharacteristics:updatedthermalresistancetoshowdataat88MHz,p.2
+• Table6,OrderingInformation:correctednumberofunitsinreelto50,p.3
+• Figure4,MaximumTransientThermalImpedance:addedperformancegraphtodatasheet,p.4
+1.1 Mar.2017 • Featurebullets:addedproductlongevityprogrambullet,p.1
+• Figure12,87.5MHzHarmonics@1200WCW:correctedH2,H3andH4frequencyvalues,p.10
+MRF1K50H
+RFDeviceData
+NXPSemiconductors 21
+HowtoReachUs: Informationinthisdocumentisprovidedsolelytoenablesystemandsoftware
+implementerstouseNXPproducts.Therearenoexpressorimpliedcopyrightlicenses
+HomePage: grantedhereundertodesignorfabricateanyintegratedcircuitsbasedontheinformation
+nxp.com inthisdocument.NXPreservestherighttomakechangeswithoutfurthernoticetoany
+productsherein.
+WebSupport:
+nxp.com/support
+NXPmakesnowarranty,representation,orguaranteeregardingthesuitabilityofits
+productsforanyparticularpurpose,nordoesNXPassumeanyliabilityarisingoutofthe
+applicationoruseofanyproductorcircuit,andspecificallydisclaimsanyandallliability,
+includingwithoutlimitationconsequentialorincidentaldamages.“Typical”parameters
+thatmaybeprovidedinNXPdatasheetsand/orspecificationscananddovaryin
+differentapplications,andactualperformancemayvaryovertime.Alloperating
+parameters,including“typicals,”mustbevalidatedforeachcustomerapplicationby
+customer’stechnicalexperts.NXPdoesnotconveyanylicenseunderitspatentrights
+northerightsofothers.NXPsellsproductspursuanttostandardtermsandconditionsof
+sale,whichcanbefoundatthefollowingaddress:nxp.com/SalesTermsandConditions.
+NXP,theNXPlogo,Freescale,andtheFreescalelogoaretrademarksofNXPB.V.
+Allotherproductorservicenamesarethepropertyoftheirrespectiveowners.
+(cid:2)2016–2017NXPB.V.
+MRF1K50H
+DocumentNumber:MRF1K50H RFDeviceData
+2Re2v.1.1,03/2017 NXPSemiconductors

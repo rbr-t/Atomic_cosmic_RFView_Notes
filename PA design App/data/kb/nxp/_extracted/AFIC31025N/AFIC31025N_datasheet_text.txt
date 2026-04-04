@@ -1,0 +1,218 @@
+NXP Semiconductors DocumentNumber:AFIC31025N
+Technical Data Rev.0,10/2017
+RF LDMOS Integrated
+AFIC31025N
+Power Amplifiers
+AFIC31025GN
+TheAFIC31025Nintegratedcircuitisdesignedwithon--chipmatchingthat
+makesitusablefrom2400to3100MHz.Thismulti--stagedeviceisdesigned
+tosupportCWandpulseapplications.
+TypicalPerformance:In2400–3100MHzreferencecircuit,VDD=32Vdc 2400–3100MHz,25WPEAK,32V
+AIRFASTRFLDMOS
+Frequency Pout Gps D INTEGRATEDPOWERAMPLIFIERS
+(MHz) SignalType (W) (dB) (%)
+2400–2500 CW 25 30.0 45.5
+2700–3100 Pulse 25Peak 22.0 40.0
+(300sec,15%DutyCycle)
+TO--270WB--17
+Features
+PLASTIC
+ On--chipmatching(50ohminput,DCblocked) AFIC31025N
+ Integratedquiescentcurrenttemperaturecompensationwith
+enable/disablefunction(1)
+ Qualifieduptoamaximumof32V DD operation
+ IntegratedESDprotection
+TO--270WBG--17
+TypicalApplications PLASTIC
+ CivilS--Bandradar AFIC31025GN
+ Weatherradar
+ Maritimeradar
+ Industrialheating
+ Datalinks
+ Plasmageneration
+VDS1A Carrier
+VBWA
+VDS1A 1
+17
+VBWA
+VGS2A 2
+RFinA RFout1/VDS2A V
+R
+G
+F
+S
+in
+1
+A
+A 3
+4
+16 RFout1/VDS2A
+N.C. 5
+GND 6
+VGS1A QuiescentCurrent GND 7 15 GND
+VGS2A TemperatureCompensation(1) N.C. 8
+RFinB 9 14
+VGS1B QuiescentCurrent VGS1B 10 RFout2/VDS2B
+VGS2B TemperatureCompensation(1) VGS2B 11 13
+VDS1B 12 VBWB
+Peaking
+RFinB RFout2/VDS2B (TopView)
+Note: Exposedbacksideofthepackageis
+VDS1B VBWB thesourceterminalforthetransistor.
+Figure1.FunctionalBlockDiagram Figure2.PinConnections
+1. RefertoAN1977,QuiescentCurrentThermalTrackingCircuitintheRFIntegratedCircuitFamily,andtoAN1987,QuiescentCurrentControl
+fortheRFIntegratedCircuitDeviceFamily.Gotohttp://www.nxp.com/RFandsearchforAN1977orAN1987.
+2017NXPB.V. AFIC31025NAFIC31025GN
+RFDeviceData
+NXPSemiconductors 1
+Table1.MaximumRatings
+Rating Symbol Value Unit
+Drain--SourceVoltage VDSS –0.5,+65 Vdc
+Gate--SourceVoltage VGS –0.5,+10 Vdc
+OperatingVoltage VDD 32,+0 Vdc
+StorageTemperatureRange Tstg –65to+150 C
+CaseOperatingTemperatureRange TC –40to+150 C
+OperatingJunctionTemperatureRange(1) TJ –40to+225 C
+InputPower Pin 20 dBm
+Table2.ThermalCharacteristics
+Characteristic Symbol Value(2) Unit
+ThermalResistance,JunctiontoCase RJC C/W
+CaseTemperature81C,DC,TotalPD=29.3W
+Stage1,28Vdc,PD=3.8W 5.85
+Stage2,28Vdc,PD=25.5W 1.92
+Table3.ESDProtectionCharacteristics
+TestMethodology Class
+HumanBodyModel(perJESD22--A114) 1B
+ChargeDeviceModel(perJESD22--C101) II
+Table4.MoistureSensitivityLevel
+TestMethodology Rating PackagePeakTemperature Unit
+PerJESD22--A113,IPC/JEDECJ--STD--020 3 260 C
+Table5.ElectricalCharacteristics(TA=25Cunlessotherwisenoted)
+Characteristic Symbol Min Typ Max Unit
+Stage1--OffCharacteristics(3)
+ZeroGateVoltageDrainLeakageCurrent IDSS — — 10 Adc
+(VDS=65Vdc,VGS=0Vdc)
+ZeroGateVoltageDrainLeakageCurrent IDSS — — 1 Adc
+(VDS=32Vdc,VGS=0Vdc)
+Gate--SourceLeakageCurrent IGSS — — 1 Adc
+(VGS=1.0Vdc,VDS=0Vdc)
+Stage1--OnCharacteristics
+GateThresholdVoltage(3) VGS(th) 0.8 1.2 1.6 Vdc
+(VDS=10Vdc,ID=2.5Adc)
+GateQuiescentVoltage VGS(Q) — 2.0 — Vdc
+(VDS=28Vdc,IDQ1(A+B)=59mAdc)
+FixtureGateQuiescentVoltage VGG(Q) 4.6 5.3 6.1 Vdc
+(VDD=28Vdc,IDQ1(A+B)=59mAdc,MeasuredinFunctionalTest)
+1. ContinuoususeatmaximumtemperaturewillaffectMTTF.
+2. RefertoAN1955,ThermalMeasurementMethodologyofRFPowerAmplifiers.Gotohttp://www.nxp.com/RFandsearchforAN1955.
+3. Eachsideofdevicemeasuredseparately.
+(continued)
+AFIC31025NAFIC31025GN
+RFDeviceData
+2 NXPSemiconductors
+Table5.ElectricalCharacteristics(TA=25Cunlessotherwisenoted) (continued)
+Characteristic Symbol Min Typ Max Unit
+Stage2--OffCharacteristics(1)
+ZeroGateVoltageDrainLeakageCurrent IDSS — — 10 Adc
+(VDS=65Vdc,VGS=0Vdc)
+ZeroGateVoltageDrainLeakageCurrent IDSS — — 1 Adc
+(VDS=32Vdc,VGS=0Vdc)
+Gate--SourceLeakageCurrent IGSS — — 1 Adc
+(VGS=1.0Vdc,VDS=0Vdc)
+Stage2--OnCharacteristics
+GateThresholdVoltage(1) VGS(th) 0.8 1.2 1.6 Vdc
+(VDS=10Vdc,ID=16Adc)
+GateQuiescentVoltage VGS(Q) — 1.9 — Vdc
+(VDS=28Vdc,IDQ2(A+B)=157mAdc)
+FixtureGateQuiescentVoltage VGG(Q) 4.3 5.0 5.8 Vdc
+(VDD=28Vdc,IDQ2(A+B)=157mAdc,MeasuredinFunctionalTest)
+Drain--SourceOn--Voltage(1) VDS(on) 0.1 0.22 1.5 Vdc
+(VGS=10Vdc,ID= 200mAdc)
+1. Eachsideofdevicemeasuredseparately.
+(continued)
+AFIC31025NAFIC31025GN
+RFDeviceData
+NXPSemiconductors 3
+Table5.ElectricalCharacteristics(TA=25Cunlessotherwisenoted) (continued)
+Characteristic Symbol Min Typ Max Unit
+FunctionalTests(1,2)(InNXPProductionTestFixture,50ohmsystem)VDD=28Vdc,IDQ1(A+B)=59mA,IDQ2(A+B)=157mA,
+Pout=3.2WAvg.,f=2690MHz,Single--CarrierW--CDMA,IQMagnitudeClipping,InputSignalPAR=9.9dB@0.01%Probabilityon
+CCDF.ACPRmeasuredin3.84MHzChannelBandwidth@5MHzOffset.
+PowerGain Gps 30.5 31.9 34.5 dB
+PowerAddedEfficiency PAE 18.0 19.7 — %
+LoadMismatch(InNXPProductionTestFixture,50ohmsystem)IDQ1(A+B)=59mA,IDQ2(A+B)=157mA,f=2600MHz
+VSWR10:1at32Vdc,36WCWOutputPower NoDeviceDegradation
+(3dBInputOverdrivefrom25WCWRatedPower)
+Table6.OrderingInformation
+Device TapeandReelInformation Package
+AFIC31025NR1 TO--270WB--17
+R1Suffix=500Units,44mmTapeWidth,13--Reel
+AFIC31025GNR1 TO--270WBG--17
+1. Partinternallyinputandoutputmatched.
+2. Measurementsmadewithdeviceinstraightleadconfigurationbeforeanyleadformingoperationisapplied.Leadformingisusedfor
+gullwing(GN)parts.
+AFIC31025NAFIC31025GN
+RFDeviceData
+4 NXPSemiconductors
+PACKAGEDIMENSIONS
+AFIC31025NAFIC31025GN
+RFDeviceData
+NXPSemiconductors 5
+AFIC31025NAFIC31025GN
+RFDeviceData
+6 NXPSemiconductors
+AFIC31025NAFIC31025GN
+RFDeviceData
+NXPSemiconductors 7
+AFIC31025NAFIC31025GN
+RFDeviceData
+8 NXPSemiconductors
+AFIC31025NAFIC31025GN
+RFDeviceData
+NXPSemiconductors 9
+AFIC31025NAFIC31025GN
+RFDeviceData
+10 NXPSemiconductors
+PRODUCTDOCUMENTATION
+Refertothefollowingresourcestoaidyourdesignprocess.
+ApplicationNotes
+ AN1907:SolderReflowAttachMethodforHighPowerRFDevicesinPlasticPackages
+ AN1955:ThermalMeasurementMethodologyofRFPowerAmplifiers
+ AN1977:QuiescentCurrentThermalTrackingCircuitintheRFIntegratedCircuitFamily
+ AN1987:QuiescentCurrentControlfortheRFIntegratedCircuitDeviceFamily
+EngineeringBulletins
+ EB212:UsingDataSheetImpedancesforRFLDMOSDevices
+ToDownloadResourcesSpecifictoaGivenPartNumber:
+1.Gotohttp://www.nxp.com/RF
+2.Searchbypartnumber
+3.Clickpartnumberlink
+4.Choosethedesiredresourcefromthedropdownmenu
+REVISIONHISTORY
+Thefollowingtablesummarizesrevisionstothisdocument.
+Revision Date Description
+0 Oct.2017  Initialreleaseofdatasheet
+AFIC31025NAFIC31025GN
+RFDeviceData
+NXPSemiconductors 11
+HowtoReachUs: Informationinthisdocumentisprovidedsolelytoenablesystemandsoftware
+implementerstouseNXPproducts.Therearenoexpressorimpliedcopyrightlicenses
+HomePage: grantedhereundertodesignorfabricateanyintegratedcircuitsbasedontheinformation
+nxp.com inthisdocument.NXPreservestherighttomakechangeswithoutfurthernoticetoany
+productsherein.
+WebSupport:
+nxp.com/support NXPmakesnowarranty,representation,orguaranteeregardingthesuitabilityofits
+productsforanyparticularpurpose,nordoesNXPassumeanyliabilityarisingoutofthe
+applicationoruseofanyproductorcircuit,andspecificallydisclaimsanyandallliability,
+includingwithoutlimitationconsequentialorincidentaldamages.“Typical”parameters
+thatmaybeprovidedinNXPdatasheetsand/orspecificationscananddovaryin
+differentapplications,andactualperformancemayvaryovertime.Alloperating
+parameters,including“typicals,”mustbevalidatedforeachcustomerapplicationby
+customer’stechnicalexperts.NXPdoesnotconveyanylicenseunderitspatentrights
+northerightsofothers.NXPsellsproductspursuanttostandardtermsandconditionsof
+sale,whichcanbefoundatthefollowingaddress:nxp.com/SalesTermsandConditions.
+NXP,theNXPlogo,andAirfastaretrademarksofNXPB.V.Allotherproductorservice
+namesarethepropertyoftheirrespectiveowners.
+E2017NXPB.V.
+AFIC31025NAFIC31025GN
+DocumentNumber:AFIC31025N RFDeviceData
+1Re2v.0,10/2017 NXPSemiconductors

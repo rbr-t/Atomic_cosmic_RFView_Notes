@@ -1,0 +1,129 @@
+{
+  "success": true,
+  "catalog_url": "https://www.ampleon.com/products.html",
+  "discovered_at_utc": "2026-04-04T10:35:01.815227+00:00",
+  "url_pattern": "/products/",
+  "total_found": 24,
+  "products": [
+    {
+      "part_number": "extremely-rugged",
+      "product_url": "https://www.ampleon.com/products/extremely-rugged/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "50-v",
+      "product_url": "https://www.ampleon.com/products/extremely-rugged/50-v/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "65-v",
+      "product_url": "https://www.ampleon.com/products/extremely-rugged/65-v/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "75-v",
+      "product_url": "https://www.ampleon.com/products/extremely-rugged/75-v/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "general-purpose-wideband",
+      "product_url": "https://www.ampleon.com/products/general-purpose-wideband/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "12.5-14-v",
+      "product_url": "https://www.ampleon.com/products/general-purpose-wideband/12.5-14-v/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "32-v",
+      "product_url": "https://www.ampleon.com/products/general-purpose-wideband/32-v/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "50-v",
+      "product_url": "https://www.ampleon.com/products/general-purpose-wideband/50-v/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "matched-ism-cooking-defrosting",
+      "product_url": "https://www.ampleon.com/products/matched-ism-cooking-defrosting/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "1300-mhz",
+      "product_url": "https://www.ampleon.com/products/matched-ism-cooking-defrosting/1300-mhz/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "2450-mhz",
+      "product_url": "https://www.ampleon.com/products/matched-ism-cooking-defrosting/2450-mhz/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "433-mhz",
+      "product_url": "https://www.ampleon.com/products/matched-ism-cooking-defrosting/433-mhz/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "915-mhz",
+      "product_url": "https://www.ampleon.com/products/matched-ism-cooking-defrosting/915-mhz/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "mobile-broadband",
+      "product_url": "https://www.ampleon.com/products/mobile-broadband/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "0.4-1.0-ghz-transistors",
+      "product_url": "https://www.ampleon.com/products/mobile-broadband/0.4-1.0-ghz-transistors/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "1.4-2.2-ghz-transistors",
+      "product_url": "https://www.ampleon.com/products/mobile-broadband/1.4-2.2-ghz-transistors/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "2.3-2.7-ghz-transistors",
+      "product_url": "https://www.ampleon.com/products/mobile-broadband/2.3-2.7-ghz-transistors/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "3.3-5.0-ghz-transistors",
+      "product_url": "https://www.ampleon.com/products/mobile-broadband/3.3-5.0-ghz-transistors/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "pulsed-radars",
+      "product_url": "https://www.ampleon.com/products/pulsed-radars/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "avionics",
+      "product_url": "https://www.ampleon.com/products/pulsed-radars/avionics/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "hf-vhf-uhf",
+      "product_url": "https://www.ampleon.com/products/pulsed-radars/hf-vhf-uhf/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "l-band-s-band-c-band",
+      "product_url": "https://www.ampleon.com/products/pulsed-radars/l-band-s-band-c-band/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "uhf-broadcast",
+      "product_url": "https://www.ampleon.com/products/uhf-broadcast/",
+      "source": "catalog_discovery"
+    },
+    {
+      "part_number": "470-860-mhz",
+      "product_url": "https://www.ampleon.com/products/uhf-broadcast/470-860-mhz/",
+      "source": "catalog_discovery"
+    }
+  ]
+}

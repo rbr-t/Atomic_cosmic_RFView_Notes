@@ -1,0 +1,502 @@
+{
+  "run_context": {
+    "vendor": "ampleon",
+    "started_at_utc": "2026-04-04T10:51:17.146290+00:00",
+    "python_version": "3.13.12",
+    "python_runtime_ready": true,
+    "runtime_note": "runtime_compatible",
+    "crawl4ai_available": true,
+    "discovery_url": "https://www.ampleon.com/products/mobile-broadband/1.4-2.2-ghz-transistors/#/",
+    "max_products": 3,
+    "vendor_extraction_defaults": {
+      "selector_version": "pilot-v1",
+      "title_selectors": [
+        "h1",
+        "title"
+      ],
+      "datasheet_link_patterns": [
+        "/documents/data-sheet/",
+        "/documents/datasheet/"
+      ],
+      "frequency_patterns": [
+        "GHz",
+        "MHz"
+      ]
+    },
+    "policy": {
+      "respect_robots_txt": true,
+      "delay_seconds": 1.5,
+      "allowed_domains": [
+        "ampleon.com",
+        "nxp.com",
+        "qorvo.com",
+        "guerrilla-rf.com"
+      ]
+    }
+  },
+  "records": [
+    {
+      "device_id": "ampleon_BLP9G0722-20G",
+      "part_number": "BLP9G0722-20G",
+      "manufacturer": "Ampleon",
+      "family": null,
+      "series": "BLP9G0722",
+      "technology": "LDMOS",
+      "freq_min_mhz": 100.0,
+      "freq_max_mhz": 2700.0,
+      "datasheet_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "high",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "ampleon",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet'], a[href*='/docs/']",
+        "product_summary_selector": "main, .product-details, .product-page"
+      },
+      "vendor_profile": {
+        "key": "ampleon",
+        "display_name": "Ampleon",
+        "strategy": "build_ampleon_structured_sections_from_blocks",
+        "notes": [
+          "Ampleon currently uses generic structured extraction with vendor-specific selectors from the seed catalog."
+        ]
+      },
+      "document_metadata": {
+        "document_number": null,
+        "revision": "3",
+        "page_count": 20,
+        "pdf_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+        "title": "BLP9G0722-20; | BLP9G0722-20G | Power LDMOS transistor | Rev. 3 \u2014 26 February 2018 Product data sheet",
+        "part_number_detected": "BLP9G0722-20G"
+      },
+      "app_notes": [
+        {
+          "title": "application-notes",
+          "url": "https://www.ampleon.com/zip/products/BLP9G0722-20G/application-notes"
+        },
+        {
+          "title": "AN11183",
+          "url": "https://www.ampleon.com/documents/application-note/AN11183.pdf"
+        }
+      ],
+      "typical_applications": [],
+      "extracted_table_blocks": [
+        {
+          "title": "Table 1. Application performance (multiple frequencies)",
+          "content": "Table 1. Application performance (multiple frequencies) Typical RF performance at T =25\uf0b0C; I =180mA; in a class-AB demo board, tested on case Dq gullwing lead device. Test signal f I V P G \uf068 ACPR Dq DS L(AV) p D 5M (MHz) (mA) (V) (dBm) (dB) (%) (dBc) 1-carrier W-CDMA 400 to 430 180 28 35 25.5 24 \uf02d45 [1] 728 to 768 180 28 35 23 22 \uf02d45 [1] 1805 to 1880 180 28 35 19 21 \uf02d45 [1] 2110 to 2170 180 28 35 18 21 \uf02d45 [1] 2300 to 2400 180 28 35 17.3 21 \uf02d45 [1] 2570 to 2620 180 28 35 16 20 \uf02d45 [1] [1] Test signal: 3GPP test model 1; 64 DCHP; PAR=7.2dB at 0.01% probability on CCDF. 1.2 Features and benefits \uf06e High efficiency \uf06e Excellent ruggedness \uf06e Designed for broadband operation \uf06e Excellent thermal stability \uf06e High power gain \uf06e Integrated ESD protection \uf06e Compliant to Directive 2002/95/EC, regarding Restriction of Hazardous Substances (RoHS) 1.3 Applications \uf06e FDD/TDD LTE \uf06e W-CDMA \uf06e GSM EDGE \uf06e MC-GSM \uf06e CDMA \uf06e WiMAX BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 2. Pinning information"
+        },
+        {
+          "title": "Table 2. Pinning",
+          "content": "Table 2. Pinning Pin Description Simplified outline Graphic symbol BLP9G0722-20 (SOT1482-1) 1 drain 2 1 2 gate 3 3 source [1] 2 1 3 sym112 BLP9G0722-20G (SOT1483-1) 1 drain 2 1 2 gate 3 3 source [1] 2 1 3 sym112 [1] Connected to flange. 3. Ordering information"
+        },
+        {
+          "title": "Table 3. Ordering information",
+          "content": "Table 3. Ordering information Type number Package Name Description Version BLP9G0722-20 - plastic; heatsink small outline package; 2 leads (flat) SOT1482-1 BLP9G0722-20G - plastic; heatsink small outline package; 2 leads SOT1483-1 4. Limiting values"
+        },
+        {
+          "title": "Table 4. Limiting values",
+          "content": "Table 4. Limiting values In accordance with the Absolute Maximum Rating System (IEC 60134). Symbol Parameter Conditions Min Max Unit V drain-source voltage - 65 V DS V gate-source voltage \uf02d5 +13 V GS T storage temperature \uf02d65 +150 \uf0b0C stg T junction temperature - 225 \uf0b0C j 5. Thermal characteristics"
+        },
+        {
+          "title": "Table 5. Thermal characteristics",
+          "content": "Table 5. Thermal characteristics Symbol Parameter Conditions Typ Unit R thermal resistance from junction to case T =80\uf0b0C; P =3W 1.1 K/W th(j-c) case L BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 2 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 6. Characteristics"
+        },
+        {
+          "title": "Table 6. DC characteristics",
+          "content": "Table 6. DC characteristics T = 25 \uf0b0C; unless otherwise specified. j Symbol Parameter Conditions Min Typ Max Unit V drain-source breakdown V =0V; I =0.3mA 65 - - V (BR)DSS GS D voltage V gate-source threshold voltage V =10 V; I =30mA 1.5 2.0 - V GS(th) DS D V gate-source quiescent voltage V =28 V; I =180mA 1.6 2.1 2.6 V GSq DS D I drain leakage current V =0V; V =28V - - 1.4 \uf06dA DSS GS DS I drain cut-off current V =V +3.75V - 6 - A DSX GS GS(th) I gate leakage current V =11V; V =0V - - 140 nA GSS GS DS g forward transconductance V =10V; I =30mA - 300 - mS fs DS D R drain-source on-state V =V +3.75V; - 500 - m\uf057 DS(on) GS GS(th) resistance I =1.05A D"
+        },
+        {
+          "title": "Table 7. RF characteristics",
+          "content": "Table 7. RF characteristics A derivative functional RF test is performed in production. The performance as mentioned below is verified by design and characterization in a class AB production board. Test signal: pulsed CW; \uf064 = 10%; t = 100 \uf06ds; V = 28 V; I = 180mA; T = 25 \uf0b0C; p DS Dq case f=1842.5MHz. Symbol Parameter Conditions Min Typ Max Unit G power gain P =35dBm 17 19 - dB p L(AV) \uf068 drain efficiency P =35dBm 18 22 - % D L(AV) RL input return loss P =35dBm - \uf02d10 \uf02d6 dB in L(AV) P output power at 1 dB gaincompression 42.5 43.9 - dBm L(1dB) P output power at 3 dB gaincompression 43 44.3 - dBm L(3dB) 7. Test information 7.1 Ruggedness in Doherty operation The BLP9G0722-20 and BLP9G0722-20G are capable of withstanding a load mismatch corresponding to a VSWR=10: 1 through all phases under the following conditions: V =28V; P =20 W(CW); f=728MHz and 1805MHz on development board. DS L 7.2 Impedance information"
+        },
+        {
+          "title": "Table 8. Typical impedance of BLP9G0722-20G",
+          "content": "Table 8. Typical impedance of BLP9G0722-20G Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) Maximum power load 740 0.5 +j0.1 10.6 \uf02d j1.0 37 55.1 22.8 880 0.6\uf02d j1.4 3.8 +j2.0 49 70.9 22.8 1810 1.6 \uf02d j5.5 3.4 \uf02d j1.0 43 62.2 19.0 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 3 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor"
+        },
+        {
+          "title": "Table 8. Typical impedance of BLP9G0722-20G \u2026continued",
+          "content": "Table 8. Typical impedance of BLP9G0722-20G \u2026continued Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) 1840 1.3 \uf02d j5.8 3.0 \uf02d j1.2 43 62.7 19.1 1880 1.3\uf02d j6.2 2.6 \uf02d j1.5 42 61.2 18.7 2110 5.3 \uf02d j9.6 2.6 \uf02d j2.5 41 58.2 17.7 2170 6.2 \uf02d j8.1 2.6 \uf02d j2.5 41 60.4 18.2 Maximum drain efficiency load 740 0.5 +j0.1 6.0 +j10.0 20 74.1 24.8 880 0.6\uf02d j1.4 3.7 +j5.9 26 82.7 24.7 1810 1.6 \uf02d j5.5 1.9 +j0.2 31 70.9 20.9 1840 1.3 \uf02d j5.8 1.7 +j0.0 29 69.8 21.3 1880 1.3\uf02d j6.2 1.6 \uf02d j0.2 28 69.8 21.3 2110 5.3 \uf02d j9.6 1.7 \uf02d j1.5 32 65.6 19.5 2170 6.2 \uf02d j8.1 1.6 \uf02d j1.7 30 65.9 20.2 [1] Z and Z defined in Figure1. S L [2] at 3 dB gain compression."
+        },
+        {
+          "title": "Table 9. Typical impedance of BLP9G0722-20",
+          "content": "Table 9. Typical impedance of BLP9G0722-20 Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) Maximum power load 740 0.6 +j0.6 10.6 \uf02d j1.0 39 56.8 22.7 880 0.6\uf02d j0.7 4.0 +j1.6 51 70.9 22.1 1810 1.8 \uf02d j5.4 3.0 \uf02d j1.2 44 60.9 19.1 1840 1.6 \uf02d j5.8 3.0 \uf02d j1.2 44 62.6 19.6 1880 1.8\uf02d j6.1 2.9 \uf02d j1.6 44 60.9 19.1 2110 7.3 \uf02d j8.2 2.6 \uf02d j2.5 41 57.7 17.8 2170 8.7 \uf02d j6.8 2.6 \uf02d j2.5 43 62.1 18.7 Maximum drain efficiency load 740 0.6 +j0.6 6.0 +j10.0 22 77.0 24.6 880 0.6\uf02d j0.7 3.7 +j5.9 26 85.3 24.4 1810 1.8 \uf02d j5.4 1.9 +j0.0 33 69.4 20.9 1840 1.6 \uf02d j5.8 1.9 +j0.0 31 69.4 21.7 1880 1.8\uf02d j6.1 1.8 \uf02d j0.2 32 70.7 21.6 2110 7.3 \uf02d j8.2 1.5 \uf02d j1.4 30 65.3 19.9 2170 8.7 \uf02d j6.8 1.4 \uf02d j1.6 29 69.3 21.3 [1] Z and Z defined in Figure1. S L [2] at 3 dB gain compression. BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 4 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor drain ZL gate ZS 001aaf059 Fig 1. Definition of transistor impedance 7.3 Test circuit 76.2 mm C6 C1 C7 C8 C2 C9 C10 40 mm R1 C11 C12 C13 C4 C5 C3 BLP9G0722-20G 700MHz Rogers 4350 20mil amp00286 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table10 for a list of components. Fig 2. Component layout for test circuit at 740MHz T able 10. List of components See Figure2 for component layout. Component Description Value Remarks C1, C7, C8, C9 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C3, C10, C11 multilayer ceramic chip capacitor 36pF ATC 600F C4, C5 multilayer ceramic chip capacitor 15pF ATC 600F C6 electrolytic capacitor 2200 \uf06dF, 50V C12 multilayer ceramic chip capacitor 5.6pF ATC 600F C13 multilayer ceramic chip capacitor 0.2pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 5 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 76.2 mm C8 C1C2 C3 C9 C10 C11 C4 C5R1 C12 C6 C13 40 mm C16 C14 C15 BLP9G0722-20G 1800MHz Rogers 4350 20mil C7 amp00287 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table11 for a list of components. Fig 3. Component layout for test circuit at 1800MHz T able 11. List of components See Figure3 for component layout. Component Description Value Remarks C1, C9, C10 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C3, C11, C13 multilayer ceramic chip capacitor 12pF ATC 600F C4, C5 multilayer ceramic chip capacitor 0.8pF ATC 600F C6 multilayer ceramic chip capacitor 6.2pF ATC 600F C7 multilayer ceramic chip capacitor 2pF ATC 600F C8 electrolytic capacitor 2200 \uf06dF, 50V C12, C15 multilayer ceramic chip capacitor 0.3pF ATC 600F C14 multilayer ceramic chip capacitor 2.2pF ATC 600F C16 multilayer ceramic chip capacitor 0.3pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 6 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 76.2 mm C6 C1C2 C3 C7C8 R1 C9 C4 C10 40 mm C5 C11 C12 BLP9G0722-20G 2100MHz Rogers 4350 20mil amp00288 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table12 for a list of components. Fig 4. Component layout for test circuit at 2100MHz T able 12. List of components See Figure4 for component layout. Component Description Value Remarks C1, C8 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C7, C10 multilayer ceramic chip capacitor 12pF ATC 600F C3 multilayer ceramic chip capacitor 62pF ATC 600F C4 multilayer ceramic chip capacitor 5.6pF ATC 600F C5 multilayer ceramic chip capacitor 0.5pF ATC 600F C6 electrolytic capacitor 2200 \uf06dF, 50V C9 multilayer ceramic chip capacitor 2.2pF ATC 600F C11 multilayer ceramic chip capacitor 1.2pF ATC 600F C12 multilayer ceramic chip capacitor 1.8pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 7 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 7.4 Graphical data 7.4.1 CW amp00289 amp00290 27 80 23 80 GGpp \u03b7\u03b7DD GGpp \u03b7\u03b7DD (((dddBBB))) (((%%%))) (((dddBBB))) (((%%%))) 25 (((111))) 60 21 60 (((222))) (((111))) GGpp (((222))) (((111))) GGpp 23 (((222))) 40 19 40 (((111))) (((222))) 21 20 17 20 \u03b7\u03b7DD \u03b7\u03b7DD 19 0 15 0 0 5 10 15 20 25 30 35 40 0 5 10 15 20 25 30 35 40 PL (W) PL (W) V =28V; I =180mA. V =28V; I =180mA. DS Dq DS Dq (1) f = 728 MHz (1) f = 1805 MHz (2) f = 768 MHz (2) f = 1880 MHz Fig 5. Power gain and drain efficiency as function of Fig 6. Power gain and drain efficiency as function of output power; typical values output power; typical values amp00291 22 80 GGpp \u03b7\u03b7DD (((dddBBB))) (((%%%))) 20 60 (((111))) (((222))) GGpp 18 40 (((111))) (((222))) 16 20 \u03b7\u03b7DD 14 0 0 5 10 15 20 25 30 35 40 PL (W) V =28V; I =180mA. DS Dq (1) f = 2110 MHz (2) f = 2170 MHz Fig 7. Power gain and drain efficiency as function of output power; typical values BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 8 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 7.4.2 Pulsed CW amp00292 amp00293 27 80 23 80 GGpp \u03b7\u03b7DD GGpp \u03b7\u03b7DD (((dddBBB))) (((111))) (((%%%))) (((dddBBB))) (((%%%))) (((222))) 25 60 21 (((111))) 60 (((222))) GGpp GGpp 23 40 19 40 (((111))) (((222))) (((111))) (((222))) 21 20 17 20 \u03b7\u03b7DD \u03b7\u03b7DD 19 0 15 0 0 5 10 15 20 25 30 35 40 0 5 10 15 20 25 30 35 40 PL (W) PL (W) V =28V; I =180mA. V =28V; I =180mA. DS Dq DS Dq (1) f = 728 MHz (1) f = 1805 MHz (2) f = 768 MHz (2) "
+        },
+        {
+          "title": "Table 13. ESD sensitivity",
+          "content": "Table 13. ESD sensitivity ESD model Class Charged Device Model (CDM); According to ANSI/ESDA/JEDEC standard JS-002 C2A [1] Human Body Model (HBM); According to ANSI/ESDA/JEDEC standard JS-001 2 [2] [1] CDM classification C2A is granted to any part that passes after exposure to an ESD pulse of 500V, but fails after exposure to an ESD pulse of 750V. [2] HBM classification 2 is granted to any part that passes after exposure to an ESD pulse of 2000V, but fails after exposure to an ESD pulse of 4000V. 10. Abbreviations"
+        },
+        {
+          "title": "Table 14. Abbreviations",
+          "content": "Table 14. Abbreviations Acronym Description 3GPP 3rd Generation Partnership Project CCDF Complementary Cumulative Distribution Function CDMA Code Division Multiple Access CW Continuous Wave DCPH Dedicated Physical CHannel EDGE Enhanced Data rates for GSM Evolution ESD ElectroStatic Discharge FDD Frequency Division Duplex GSM Global System for Mobile Communication LDMOS Laterally Diffused Metal-Oxide Semiconductor LTE Long Term Evolution MC-GSM Multi Carrier GSM MTF Median Time to Failure PAR Peak-to-Average Ratio SMD Surface Mounted Device TDD Time Division Duplex W-CDMA Wideband Code Division Multiple Access WiMAX Worldwide Interoperability for Microwave Access BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 16 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 11. Revision history"
+        },
+        {
+          "title": "Table 15. Revision history",
+          "content": "Table 15. Revision history Document ID Release date Data sheet status Change notice Supersedes BLP9G0722-20_9G0722-20G v.3 20180226 Product data sheet - BLP9G0722-20_9G0722-20G v.2 Modifications: \u2022 Section1.1 on page1: changed \u201c400 MHz\u201d to \u201c100MHz\u201d BLP9G0722-20_9G0722-20G v.2 20170801 Product data sheet - BLP9G0722-20_9G0722-20G v.1 BLP9G0722-20_9G0722-20G v.1 20170606 Product data sheet - - BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 17 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 12. Legal information 12.1 Data sheet status Document status[1][2] Product status[3] Definition Objective [short] data sheet Development This document contains data from the objective specification for product development. Preliminary [short] data sheet Qualification This document contains data from the preliminary specification. Product [short] data sheet Production This document contains the product specification. [1] Please consult the most recently issued document before initiating or completing a design. [2] The term \u2018short data sheet\u2019 is explained in section \u201cDefinitions\u201d. [3] The product status of device(s) described in this document may have changed since this document was published and may differ in case of multiple devices. The latest product status information is available on the Internet at URLhttp://www.ampleon.com. 12.2 Definitions Ampleon product can reasonably be expected to result in personal injury, death or severe property or environmental damage. Ampleon and its suppliers accept no liability for inclusion and/or use of Ampleon products in Draft \u2014 The document is a draft version only. The content is still under such equipment or applications and therefore such inclusion and/or use is at internal review and subject to formal approval, which may result in the customer\u2019s own risk. modifications or additions. Ampleon does not give any representations or warranties as to the accuracy or completeness of information included herein Applications \u2014 Applications that are described herein for any of these and shall have no liability for the consequences of use of such information. products are for illustrative purposes only. Ampleon makes no representation or warranty that such applications will be suitable for the specified use without Short data sheet \u2014 A short data sheet is an extract from a full data sheet further testing or modification. with the same product type number(s) and title. A short data sheet is intended for quick reference only and should not be relied upon to contain detailed and Customers are responsible for the design and operation of their applications full information. For detailed and full information see the relevant full data and products using Ampleon products, and Ampleon accepts no liability for sheet, which is available on request via the local Ampleon sales office. In any assistance with applications or customer product design. It is customer\u2019s case of any inconsistency or conflict with the short data sheet, the full data sole responsibility to determine whether the Ampleon product is suitable and sheet shall prevail. fit for the customer\u2019s applications and products planned, as well as for the planned application and use of customer\u2019s third party customer(s). Customers Product specification \u2014 The information and data provided in a Product should provide appropriate design and operating safeguards to minimize the data sheet shall define the specification of the product as agreed between risks associated with their applications and products. Ampleon and its customer, unless Ampleon and customer have explicitly Ampleon does not accept any liability related to any default, damage, costs or agreed otherwise in writing. In no event however, shall an agreement be valid problem which is based on any weakness or default in the customer\u2019s in which the Ampleon product is deemed to offer functions and qualities applications or products, or the application or use by customer\u2019s third party beyond those described in the Product data sheet. customer(s). Customer is responsible for doing all necessary testing for the customer\u2019s applications and products using Ampleon products in order to 12.3 Disclaimers avoid a default of the applications and the products or of the application or use by customer\u2019s third party customer(s). Ampleon does not accept any liability in this respect. Limited warranty and liability \u2014 Information in this document is believed to be accurate and reliable. However, Ampleon does not give any Limiting values \u2014 Stress above one or more limiting values (as defined in representations or warranties, expressed or implied, as to the accuracy or the Absolute Maximum Ratings System of IEC60134) will cause permanent completeness of such information and shall have no liability for the damage to the device. Limiting values are stress rat"
+        }
+      ],
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-04T10:50:52.438584+00:00",
+        "crawl_success": true,
+        "http_status": 200,
+        "source_domain": "www.ampleon.com",
+        "source_title_hint": "This website uses cookies",
+        "content_sha256": "a35befdededb845fcc089d04b48bc9c28c6a67e84d3bd595170a6d951754057b",
+        "crawl_error": "",
+        "selector_version": "pilot-v1",
+        "pdf_datasheet_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+        "pdf_params_extracted": [
+          "gain_db"
+        ],
+        "pdf_parse_status": "params_extracted"
+      },
+      "datasheet_file": "data/kb/ampleon/_extracted/BLP9G0722-20G/BLP9G0722-20G_datasheet.pdf",
+      "datasheet_text_file": "data/kb/ampleon/_extracted/BLP9G0722-20G/BLP9G0722-20G_datasheet_text.txt",
+      "datasheet_tables_file": "data/kb/ampleon/_extracted/BLP9G0722-20G/BLP9G0722-20G_table_blocks.json",
+      "gain_db": 291.0,
+      "variants": [
+        {
+          "type_number": "Table",
+          "package": "Ordering",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "information",
+          "package": "number",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "Package",
+          "package": "Description",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "Version",
+          "package": "plastic",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "heatsink",
+          "package": "outline",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "2",
+          "package": "SOT1482-1",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "BLP9G0722-20G",
+          "package": "plastic",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "heatsink",
+          "package": "outline",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "2",
+          "package": "SOT1483-1",
+          "description": "Ordering information from datasheet"
+        }
+      ],
+      "package": "Ordering",
+      "graphical_data": {
+        "note": "Hover thumbnails open extracted datasheet figure pages for closer inspection.",
+        "assets": [
+          {
+            "fig": "Figure 1",
+            "caption": "S L",
+            "page": 4,
+            "category": "plot",
+            "image_path": "data/kb/ampleon/_extracted/BLP9G0722-20G/BLP9G0722-20G_page_4.png"
+          }
+        ],
+        "cw_curves": [
+          {
+            "fig": "Figure 1",
+            "caption": "S L",
+            "page": 4,
+            "category": "plot",
+            "image_path": "data/kb/ampleon/_extracted/BLP9G0722-20G/BLP9G0722-20G_page_4.png"
+          }
+        ],
+        "layout_figures": [],
+        "package_figures": []
+      }
+    },
+    {
+      "device_id": "ampleon_BLF7G22LS-160P",
+      "part_number": "BLF7G22LS-160P",
+      "manufacturer": "Ampleon",
+      "family": null,
+      "series": "BLF7G22LS",
+      "technology": "LDMOS",
+      "freq_min_mhz": 1400.0,
+      "freq_max_mhz": 2200.0,
+      "datasheet_url": "https://wp-assets.highcharts.com/www-highcharts-com/blog/wp-content/uploads/2018/07/19144117/Privacy-Policy.pdf",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "medium",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "ampleon",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Datasheet PDF could not be parsed fully; provide direct PDF URL or review manually before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet']",
+        "product_summary_selector": ".cmp-product-details, .product-details, main"
+      },
+      "vendor_profile": {
+        "key": "ampleon",
+        "display_name": "Ampleon",
+        "strategy": "build_ampleon_structured_sections_from_blocks",
+        "notes": [
+          "Ampleon currently uses generic structured extraction with vendor-specific selectors from the seed catalog."
+        ]
+      },
+      "document_metadata": {
+        "document_number": null,
+        "revision": "ision",
+        "page_count": 25,
+        "pdf_url": "https://wp-assets.highcharts.com/www-highcharts-com/blog/wp-content/uploads/2018/07/19144117/Privacy-Policy.pdf",
+        "title": "Website Privacy Policy | 25 May 2018 | Document Ref. Website Privacy Policy | Version: 1",
+        "part_number_detected": "BLF7G22LS-160P"
+      },
+      "app_notes": [],
+      "typical_applications": [],
+      "extracted_table_blocks": [],
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-04T10:51:04.477935+00:00",
+        "crawl_success": true,
+        "http_status": 404,
+        "source_domain": "www.ampleon.com",
+        "source_title_hint": "This website uses cookies",
+        "content_sha256": "657ad2440e03d19095799468b9872b975006c895080e1e473a79fc0bd75c75af",
+        "crawl_error": "",
+        "selector_version": "pilot-v1",
+        "pdf_datasheet_url": "https://wp-assets.highcharts.com/www-highcharts-com/blog/wp-content/uploads/2018/07/19144117/Privacy-Policy.pdf",
+        "pdf_params_extracted": [],
+        "pdf_parse_status": "pdf_downloaded_no_params"
+      },
+      "datasheet_file": "data/kb/ampleon/_extracted/BLF7G22LS-160P/BLF7G22LS-160P_datasheet.pdf",
+      "datasheet_text_file": "data/kb/ampleon/_extracted/BLF7G22LS-160P/BLF7G22LS-160P_datasheet_text.txt"
+    },
+    {
+      "device_id": "ampleon_BLP9G0722-20",
+      "part_number": "BLP9G0722-20",
+      "manufacturer": "Ampleon",
+      "family": null,
+      "series": "BLP9G0722",
+      "technology": "LDMOS",
+      "freq_min_mhz": 700.0,
+      "freq_max_mhz": 2200.0,
+      "datasheet_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "high",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "ampleon",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet']",
+        "product_summary_selector": ".cmp-product-details, .product-details, main"
+      },
+      "vendor_profile": {
+        "key": "ampleon",
+        "display_name": "Ampleon",
+        "strategy": "build_ampleon_structured_sections_from_blocks",
+        "notes": [
+          "Ampleon currently uses generic structured extraction with vendor-specific selectors from the seed catalog."
+        ]
+      },
+      "document_metadata": {
+        "document_number": null,
+        "revision": "3",
+        "page_count": 20,
+        "pdf_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+        "title": "BLP9G0722-20; | BLP9G0722-20G | Power LDMOS transistor | Rev. 3 \u2014 26 February 2018 Product data sheet",
+        "part_number_detected": "BLP9G0722-20"
+      },
+      "app_notes": [
+        {
+          "title": "application-notes",
+          "url": "https://www.ampleon.com/zip/products/BLP9G0722-20/application-notes"
+        },
+        {
+          "title": "AN11183",
+          "url": "https://www.ampleon.com/documents/application-note/AN11183.pdf"
+        }
+      ],
+      "typical_applications": [],
+      "extracted_table_blocks": [
+        {
+          "title": "Table 1. Application performance (multiple frequencies)",
+          "content": "Table 1. Application performance (multiple frequencies) Typical RF performance at T =25\uf0b0C; I =180mA; in a class-AB demo board, tested on case Dq gullwing lead device. Test signal f I V P G \uf068 ACPR Dq DS L(AV) p D 5M (MHz) (mA) (V) (dBm) (dB) (%) (dBc) 1-carrier W-CDMA 400 to 430 180 28 35 25.5 24 \uf02d45 [1] 728 to 768 180 28 35 23 22 \uf02d45 [1] 1805 to 1880 180 28 35 19 21 \uf02d45 [1] 2110 to 2170 180 28 35 18 21 \uf02d45 [1] 2300 to 2400 180 28 35 17.3 21 \uf02d45 [1] 2570 to 2620 180 28 35 16 20 \uf02d45 [1] [1] Test signal: 3GPP test model 1; 64 DCHP; PAR=7.2dB at 0.01% probability on CCDF. 1.2 Features and benefits \uf06e High efficiency \uf06e Excellent ruggedness \uf06e Designed for broadband operation \uf06e Excellent thermal stability \uf06e High power gain \uf06e Integrated ESD protection \uf06e Compliant to Directive 2002/95/EC, regarding Restriction of Hazardous Substances (RoHS) 1.3 Applications \uf06e FDD/TDD LTE \uf06e W-CDMA \uf06e GSM EDGE \uf06e MC-GSM \uf06e CDMA \uf06e WiMAX BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 2. Pinning information"
+        },
+        {
+          "title": "Table 2. Pinning",
+          "content": "Table 2. Pinning Pin Description Simplified outline Graphic symbol BLP9G0722-20 (SOT1482-1) 1 drain 2 1 2 gate 3 3 source [1] 2 1 3 sym112 BLP9G0722-20G (SOT1483-1) 1 drain 2 1 2 gate 3 3 source [1] 2 1 3 sym112 [1] Connected to flange. 3. Ordering information"
+        },
+        {
+          "title": "Table 3. Ordering information",
+          "content": "Table 3. Ordering information Type number Package Name Description Version BLP9G0722-20 - plastic; heatsink small outline package; 2 leads (flat) SOT1482-1 BLP9G0722-20G - plastic; heatsink small outline package; 2 leads SOT1483-1 4. Limiting values"
+        },
+        {
+          "title": "Table 4. Limiting values",
+          "content": "Table 4. Limiting values In accordance with the Absolute Maximum Rating System (IEC 60134). Symbol Parameter Conditions Min Max Unit V drain-source voltage - 65 V DS V gate-source voltage \uf02d5 +13 V GS T storage temperature \uf02d65 +150 \uf0b0C stg T junction temperature - 225 \uf0b0C j 5. Thermal characteristics"
+        },
+        {
+          "title": "Table 5. Thermal characteristics",
+          "content": "Table 5. Thermal characteristics Symbol Parameter Conditions Typ Unit R thermal resistance from junction to case T =80\uf0b0C; P =3W 1.1 K/W th(j-c) case L BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 2 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 6. Characteristics"
+        },
+        {
+          "title": "Table 6. DC characteristics",
+          "content": "Table 6. DC characteristics T = 25 \uf0b0C; unless otherwise specified. j Symbol Parameter Conditions Min Typ Max Unit V drain-source breakdown V =0V; I =0.3mA 65 - - V (BR)DSS GS D voltage V gate-source threshold voltage V =10 V; I =30mA 1.5 2.0 - V GS(th) DS D V gate-source quiescent voltage V =28 V; I =180mA 1.6 2.1 2.6 V GSq DS D I drain leakage current V =0V; V =28V - - 1.4 \uf06dA DSS GS DS I drain cut-off current V =V +3.75V - 6 - A DSX GS GS(th) I gate leakage current V =11V; V =0V - - 140 nA GSS GS DS g forward transconductance V =10V; I =30mA - 300 - mS fs DS D R drain-source on-state V =V +3.75V; - 500 - m\uf057 DS(on) GS GS(th) resistance I =1.05A D"
+        },
+        {
+          "title": "Table 7. RF characteristics",
+          "content": "Table 7. RF characteristics A derivative functional RF test is performed in production. The performance as mentioned below is verified by design and characterization in a class AB production board. Test signal: pulsed CW; \uf064 = 10%; t = 100 \uf06ds; V = 28 V; I = 180mA; T = 25 \uf0b0C; p DS Dq case f=1842.5MHz. Symbol Parameter Conditions Min Typ Max Unit G power gain P =35dBm 17 19 - dB p L(AV) \uf068 drain efficiency P =35dBm 18 22 - % D L(AV) RL input return loss P =35dBm - \uf02d10 \uf02d6 dB in L(AV) P output power at 1 dB gaincompression 42.5 43.9 - dBm L(1dB) P output power at 3 dB gaincompression 43 44.3 - dBm L(3dB) 7. Test information 7.1 Ruggedness in Doherty operation The BLP9G0722-20 and BLP9G0722-20G are capable of withstanding a load mismatch corresponding to a VSWR=10: 1 through all phases under the following conditions: V =28V; P =20 W(CW); f=728MHz and 1805MHz on development board. DS L 7.2 Impedance information"
+        },
+        {
+          "title": "Table 8. Typical impedance of BLP9G0722-20G",
+          "content": "Table 8. Typical impedance of BLP9G0722-20G Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) Maximum power load 740 0.5 +j0.1 10.6 \uf02d j1.0 37 55.1 22.8 880 0.6\uf02d j1.4 3.8 +j2.0 49 70.9 22.8 1810 1.6 \uf02d j5.5 3.4 \uf02d j1.0 43 62.2 19.0 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 3 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor"
+        },
+        {
+          "title": "Table 8. Typical impedance of BLP9G0722-20G \u2026continued",
+          "content": "Table 8. Typical impedance of BLP9G0722-20G \u2026continued Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) 1840 1.3 \uf02d j5.8 3.0 \uf02d j1.2 43 62.7 19.1 1880 1.3\uf02d j6.2 2.6 \uf02d j1.5 42 61.2 18.7 2110 5.3 \uf02d j9.6 2.6 \uf02d j2.5 41 58.2 17.7 2170 6.2 \uf02d j8.1 2.6 \uf02d j2.5 41 60.4 18.2 Maximum drain efficiency load 740 0.5 +j0.1 6.0 +j10.0 20 74.1 24.8 880 0.6\uf02d j1.4 3.7 +j5.9 26 82.7 24.7 1810 1.6 \uf02d j5.5 1.9 +j0.2 31 70.9 20.9 1840 1.3 \uf02d j5.8 1.7 +j0.0 29 69.8 21.3 1880 1.3\uf02d j6.2 1.6 \uf02d j0.2 28 69.8 21.3 2110 5.3 \uf02d j9.6 1.7 \uf02d j1.5 32 65.6 19.5 2170 6.2 \uf02d j8.1 1.6 \uf02d j1.7 30 65.9 20.2 [1] Z and Z defined in Figure1. S L [2] at 3 dB gain compression."
+        },
+        {
+          "title": "Table 9. Typical impedance of BLP9G0722-20",
+          "content": "Table 9. Typical impedance of BLP9G0722-20 Measured load-pull data; I = 180 mA; V = 28 V. Dq DS f Z [1] Z [1] P [2] \uf068 [2] G [2] S L L D p (MHz) (\uf057) (\uf057) (W) (%) (dB) Maximum power load 740 0.6 +j0.6 10.6 \uf02d j1.0 39 56.8 22.7 880 0.6\uf02d j0.7 4.0 +j1.6 51 70.9 22.1 1810 1.8 \uf02d j5.4 3.0 \uf02d j1.2 44 60.9 19.1 1840 1.6 \uf02d j5.8 3.0 \uf02d j1.2 44 62.6 19.6 1880 1.8\uf02d j6.1 2.9 \uf02d j1.6 44 60.9 19.1 2110 7.3 \uf02d j8.2 2.6 \uf02d j2.5 41 57.7 17.8 2170 8.7 \uf02d j6.8 2.6 \uf02d j2.5 43 62.1 18.7 Maximum drain efficiency load 740 0.6 +j0.6 6.0 +j10.0 22 77.0 24.6 880 0.6\uf02d j0.7 3.7 +j5.9 26 85.3 24.4 1810 1.8 \uf02d j5.4 1.9 +j0.0 33 69.4 20.9 1840 1.6 \uf02d j5.8 1.9 +j0.0 31 69.4 21.7 1880 1.8\uf02d j6.1 1.8 \uf02d j0.2 32 70.7 21.6 2110 7.3 \uf02d j8.2 1.5 \uf02d j1.4 30 65.3 19.9 2170 8.7 \uf02d j6.8 1.4 \uf02d j1.6 29 69.3 21.3 [1] Z and Z defined in Figure1. S L [2] at 3 dB gain compression. BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 4 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor drain ZL gate ZS 001aaf059 Fig 1. Definition of transistor impedance 7.3 Test circuit 76.2 mm C6 C1 C7 C8 C2 C9 C10 40 mm R1 C11 C12 C13 C4 C5 C3 BLP9G0722-20G 700MHz Rogers 4350 20mil amp00286 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table10 for a list of components. Fig 2. Component layout for test circuit at 740MHz T able 10. List of components See Figure2 for component layout. Component Description Value Remarks C1, C7, C8, C9 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C3, C10, C11 multilayer ceramic chip capacitor 36pF ATC 600F C4, C5 multilayer ceramic chip capacitor 15pF ATC 600F C6 electrolytic capacitor 2200 \uf06dF, 50V C12 multilayer ceramic chip capacitor 5.6pF ATC 600F C13 multilayer ceramic chip capacitor 0.2pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 5 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 76.2 mm C8 C1C2 C3 C9 C10 C11 C4 C5R1 C12 C6 C13 40 mm C16 C14 C15 BLP9G0722-20G 1800MHz Rogers 4350 20mil C7 amp00287 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table11 for a list of components. Fig 3. Component layout for test circuit at 1800MHz T able 11. List of components See Figure3 for component layout. Component Description Value Remarks C1, C9, C10 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C3, C11, C13 multilayer ceramic chip capacitor 12pF ATC 600F C4, C5 multilayer ceramic chip capacitor 0.8pF ATC 600F C6 multilayer ceramic chip capacitor 6.2pF ATC 600F C7 multilayer ceramic chip capacitor 2pF ATC 600F C8 electrolytic capacitor 2200 \uf06dF, 50V C12, C15 multilayer ceramic chip capacitor 0.3pF ATC 600F C14 multilayer ceramic chip capacitor 2.2pF ATC 600F C16 multilayer ceramic chip capacitor 0.3pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 6 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 76.2 mm C6 C1C2 C3 C7C8 R1 C9 C4 C10 40 mm C5 C11 C12 BLP9G0722-20G 2100MHz Rogers 4350 20mil amp00288 Printed-Circuit Board (PCB): Rogers RO4350B;thickness = 0.508 mm. See Table12 for a list of components. Fig 4. Component layout for test circuit at 2100MHz T able 12. List of components See Figure4 for component layout. Component Description Value Remarks C1, C8 multilayer ceramic chip capacitor 10 \uf06dF, 50V Murata C2, C7, C10 multilayer ceramic chip capacitor 12pF ATC 600F C3 multilayer ceramic chip capacitor 62pF ATC 600F C4 multilayer ceramic chip capacitor 5.6pF ATC 600F C5 multilayer ceramic chip capacitor 0.5pF ATC 600F C6 electrolytic capacitor 2200 \uf06dF, 50V C9 multilayer ceramic chip capacitor 2.2pF ATC 600F C11 multilayer ceramic chip capacitor 1.2pF ATC 600F C12 multilayer ceramic chip capacitor 1.8pF ATC 600F R1 resistor 5.1 \uf057 SMD 0805 BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 7 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 7.4 Graphical data 7.4.1 CW amp00289 amp00290 27 80 23 80 GGpp \u03b7\u03b7DD GGpp \u03b7\u03b7DD (((dddBBB))) (((%%%))) (((dddBBB))) (((%%%))) 25 (((111))) 60 21 60 (((222))) (((111))) GGpp (((222))) (((111))) GGpp 23 (((222))) 40 19 40 (((111))) (((222))) 21 20 17 20 \u03b7\u03b7DD \u03b7\u03b7DD 19 0 15 0 0 5 10 15 20 25 30 35 40 0 5 10 15 20 25 30 35 40 PL (W) PL (W) V =28V; I =180mA. V =28V; I =180mA. DS Dq DS Dq (1) f = 728 MHz (1) f = 1805 MHz (2) f = 768 MHz (2) f = 1880 MHz Fig 5. Power gain and drain efficiency as function of Fig 6. Power gain and drain efficiency as function of output power; typical values output power; typical values amp00291 22 80 GGpp \u03b7\u03b7DD (((dddBBB))) (((%%%))) 20 60 (((111))) (((222))) GGpp 18 40 (((111))) (((222))) 16 20 \u03b7\u03b7DD 14 0 0 5 10 15 20 25 30 35 40 PL (W) V =28V; I =180mA. DS Dq (1) f = 2110 MHz (2) f = 2170 MHz Fig 7. Power gain and drain efficiency as function of output power; typical values BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 8 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 7.4.2 Pulsed CW amp00292 amp00293 27 80 23 80 GGpp \u03b7\u03b7DD GGpp \u03b7\u03b7DD (((dddBBB))) (((111))) (((%%%))) (((dddBBB))) (((%%%))) (((222))) 25 60 21 (((111))) 60 (((222))) GGpp GGpp 23 40 19 40 (((111))) (((222))) (((111))) (((222))) 21 20 17 20 \u03b7\u03b7DD \u03b7\u03b7DD 19 0 15 0 0 5 10 15 20 25 30 35 40 0 5 10 15 20 25 30 35 40 PL (W) PL (W) V =28V; I =180mA. V =28V; I =180mA. DS Dq DS Dq (1) f = 728 MHz (1) f = 1805 MHz (2) f = 768 MHz (2) "
+        },
+        {
+          "title": "Table 13. ESD sensitivity",
+          "content": "Table 13. ESD sensitivity ESD model Class Charged Device Model (CDM); According to ANSI/ESDA/JEDEC standard JS-002 C2A [1] Human Body Model (HBM); According to ANSI/ESDA/JEDEC standard JS-001 2 [2] [1] CDM classification C2A is granted to any part that passes after exposure to an ESD pulse of 500V, but fails after exposure to an ESD pulse of 750V. [2] HBM classification 2 is granted to any part that passes after exposure to an ESD pulse of 2000V, but fails after exposure to an ESD pulse of 4000V. 10. Abbreviations"
+        },
+        {
+          "title": "Table 14. Abbreviations",
+          "content": "Table 14. Abbreviations Acronym Description 3GPP 3rd Generation Partnership Project CCDF Complementary Cumulative Distribution Function CDMA Code Division Multiple Access CW Continuous Wave DCPH Dedicated Physical CHannel EDGE Enhanced Data rates for GSM Evolution ESD ElectroStatic Discharge FDD Frequency Division Duplex GSM Global System for Mobile Communication LDMOS Laterally Diffused Metal-Oxide Semiconductor LTE Long Term Evolution MC-GSM Multi Carrier GSM MTF Median Time to Failure PAR Peak-to-Average Ratio SMD Surface Mounted Device TDD Time Division Duplex W-CDMA Wideband Code Division Multiple Access WiMAX Worldwide Interoperability for Microwave Access BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 16 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 11. Revision history"
+        },
+        {
+          "title": "Table 15. Revision history",
+          "content": "Table 15. Revision history Document ID Release date Data sheet status Change notice Supersedes BLP9G0722-20_9G0722-20G v.3 20180226 Product data sheet - BLP9G0722-20_9G0722-20G v.2 Modifications: \u2022 Section1.1 on page1: changed \u201c400 MHz\u201d to \u201c100MHz\u201d BLP9G0722-20_9G0722-20G v.2 20170801 Product data sheet - BLP9G0722-20_9G0722-20G v.1 BLP9G0722-20_9G0722-20G v.1 20170606 Product data sheet - - BLP9G0722-20_9G0722-20G All information provided in this document is subject to legal disclaimers. \u00a9 Ampleon Netherlands B.V. 2018. All rights reserved. Product data sheet Rev. 3 \u2014 26 February 2018 17 of 20 BLP9G0722-20; BLP9G0722-20G Power LDMOS transistor 12. Legal information 12.1 Data sheet status Document status[1][2] Product status[3] Definition Objective [short] data sheet Development This document contains data from the objective specification for product development. Preliminary [short] data sheet Qualification This document contains data from the preliminary specification. Product [short] data sheet Production This document contains the product specification. [1] Please consult the most recently issued document before initiating or completing a design. [2] The term \u2018short data sheet\u2019 is explained in section \u201cDefinitions\u201d. [3] The product status of device(s) described in this document may have changed since this document was published and may differ in case of multiple devices. The latest product status information is available on the Internet at URLhttp://www.ampleon.com. 12.2 Definitions Ampleon product can reasonably be expected to result in personal injury, death or severe property or environmental damage. Ampleon and its suppliers accept no liability for inclusion and/or use of Ampleon products in Draft \u2014 The document is a draft version only. The content is still under such equipment or applications and therefore such inclusion and/or use is at internal review and subject to formal approval, which may result in the customer\u2019s own risk. modifications or additions. Ampleon does not give any representations or warranties as to the accuracy or completeness of information included herein Applications \u2014 Applications that are described herein for any of these and shall have no liability for the consequences of use of such information. products are for illustrative purposes only. Ampleon makes no representation or warranty that such applications will be suitable for the specified use without Short data sheet \u2014 A short data sheet is an extract from a full data sheet further testing or modification. with the same product type number(s) and title. A short data sheet is intended for quick reference only and should not be relied upon to contain detailed and Customers are responsible for the design and operation of their applications full information. For detailed and full information see the relevant full data and products using Ampleon products, and Ampleon accepts no liability for sheet, which is available on request via the local Ampleon sales office. In any assistance with applications or customer product design. It is customer\u2019s case of any inconsistency or conflict with the short data sheet, the full data sole responsibility to determine whether the Ampleon product is suitable and sheet shall prevail. fit for the customer\u2019s applications and products planned, as well as for the planned application and use of customer\u2019s third party customer(s). Customers Product specification \u2014 The information and data provided in a Product should provide appropriate design and operating safeguards to minimize the data sheet shall define the specification of the product as agreed between risks associated with their applications and products. Ampleon and its customer, unless Ampleon and customer have explicitly Ampleon does not accept any liability related to any default, damage, costs or agreed otherwise in writing. In no event however, shall an agreement be valid problem which is based on any weakness or default in the customer\u2019s in which the Ampleon product is deemed to offer functions and qualities applications or products, or the application or use by customer\u2019s third party beyond those described in the Product data sheet. customer(s). Customer is responsible for doing all necessary testing for the customer\u2019s applications and products using Ampleon products in order to 12.3 Disclaimers avoid a default of the applications and the products or of the application or use by customer\u2019s third party customer(s). Ampleon does not accept any liability in this respect. Limited warranty and liability \u2014 Information in this document is believed to be accurate and reliable. However, Ampleon does not give any Limiting values \u2014 Stress above one or more limiting values (as defined in representations or warranties, expressed or implied, as to the accuracy or the Absolute Maximum Ratings System of IEC60134) will cause permanent completeness of such information and shall have no liability for the damage to the device. Limiting values are stress rat"
+        }
+      ],
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-04T10:51:17.146012+00:00",
+        "crawl_success": true,
+        "http_status": 200,
+        "source_domain": "www.ampleon.com",
+        "source_title_hint": "This website uses cookies",
+        "content_sha256": "5794cd4cb5d7f67f2dbfa2628c07d9b0bfef914394a04569b513e6651cbb9add",
+        "crawl_error": "",
+        "selector_version": "pilot-v1",
+        "pdf_datasheet_url": "https://www.ampleon.com/documents/data-sheet/BLP9G0722-20_9G0722-20G.PDF",
+        "pdf_params_extracted": [
+          "gain_db"
+        ],
+        "pdf_parse_status": "params_extracted"
+      },
+      "datasheet_file": "data/kb/ampleon/_extracted/BLP9G0722-20/BLP9G0722-20_datasheet.pdf",
+      "datasheet_text_file": "data/kb/ampleon/_extracted/BLP9G0722-20/BLP9G0722-20_datasheet_text.txt",
+      "datasheet_tables_file": "data/kb/ampleon/_extracted/BLP9G0722-20/BLP9G0722-20_table_blocks.json",
+      "gain_db": 291.0,
+      "variants": [
+        {
+          "type_number": "Table",
+          "package": "Ordering",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "information",
+          "package": "number",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "Package",
+          "package": "Description",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "Version",
+          "package": "plastic",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "heatsink",
+          "package": "outline",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "2",
+          "package": "SOT1482-1",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "BLP9G0722-20G",
+          "package": "plastic",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "heatsink",
+          "package": "outline",
+          "description": "Ordering information from datasheet"
+        },
+        {
+          "type_number": "2",
+          "package": "SOT1483-1",
+          "description": "Ordering information from datasheet"
+        }
+      ],
+      "package": "Ordering",
+      "graphical_data": {
+        "note": "Hover thumbnails open extracted datasheet figure pages for closer inspection.",
+        "assets": [
+          {
+            "fig": "Figure 1",
+            "caption": "S L",
+            "page": 4,
+            "category": "plot",
+            "image_path": "data/kb/ampleon/_extracted/BLP9G0722-20/BLP9G0722-20_page_4.png"
+          }
+        ],
+        "cw_curves": [
+          {
+            "fig": "Figure 1",
+            "caption": "S L",
+            "page": 4,
+            "category": "plot",
+            "image_path": "data/kb/ampleon/_extracted/BLP9G0722-20/BLP9G0722-20_page_4.png"
+          }
+        ],
+        "layout_figures": [],
+        "package_figures": []
+      }
+    }
+  ],
+  "validation": {
+    "ampleon_BLP9G0722-20G": [],
+    "ampleon_BLF7G22LS-160P": [
+      "unexpected_http_status",
+      "suspicious_page_title"
+    ],
+    "ampleon_BLP9G0722-20": []
+  },
+  "blocked_for_auto_merge": true
+}

@@ -1296,47 +1296,350 @@ server <- function(input, output, session) {
             " = placeholder."
           ),
           verbatimTextOutput("kb_stats_text"),
-          fluidRow(
-            # ── Filter panel ───────────────────────────────────────────
-            column(3,
-              div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
-                h5(icon("filter"), " Filters", style = "color:#f0f0f0; margin-top:0;"),
-                textInput("kb_search_box", "Search",
-                  placeholder = "Part number, technology, tag\u2026"),
-                hr(),
-                uiOutput("kb_filter_mfr_ui"),
-                uiOutput("kb_filter_tech_ui"),
-                numericInput("kb_filter_freq_mhz", "Covers frequency (MHz)",
-                  value = NULL, min = 0.01, max = 50000, step = 1),
-                numericInput("kb_filter_pout_w", "Min Pout (W)",
-                  value = NULL, min = 0, max = 10000, step = 5),
-                selectInput("kb_filter_app", "Application",
-                  choices  = c("All", "cellular", "avionics", "ism", "broadcast",
-                               "defense", "medical", "radar", "5G", "4G"),
-                  selected = "All", multiple = TRUE),
-                selectInput("kb_filter_role", "Role in PA chain",
-                  choices  = c("All", "driver", "main", "peak", "combined"),
-                  selected = "All", multiple = TRUE),
-                hr(),
-                checkboxInput("kb_show_placeholders", "Show placeholder entries", value = FALSE),
-                actionButton("kb_clear_filters", "Clear all filters",
-                  icon = icon("times"), class = "btn-default btn-block btn-sm")
+          uiOutput("kb_agent_brief_ui"),
+          tags$style(HTML("\
+            .kb-collapsible, .kb-hover-panel {\
+              margin-top: 8px;\
+              border: 1px solid #2a2a3a;\
+              border-radius: 8px;\
+              background: #191925;\
+              overflow: hidden;\
+              transition: border-color 0.24s var(--ease-out, cubic-bezier(.2,0,.0,1)), box-shadow 0.32s var(--ease-out, cubic-bezier(.2,0,.0,1)), background 0.24s var(--ease-out, cubic-bezier(.2,0,.0,1));\
+            }\
+            .kb-collapsible > summary, .kb-hover-panel > summary {\
+              list-style: none;\
+            }\
+            .kb-collapsible > summary::-webkit-details-marker, .kb-hover-panel > summary::-webkit-details-marker {\
+              display: none;\
+            }\
+            .kb-collapsible__summary, .kb-hover-panel__summary {\
+              display: flex;\
+              align-items: center;\
+              justify-content: space-between;\
+              gap: 10px;\
+              padding: 8px 10px;\
+              border-radius: 8px;\
+              border: 1px solid rgba(255,127,17,0.45);\
+              color: #f0f0f0;\
+              font-weight: 600;\
+              font-size: 12px;\
+              background: linear-gradient(180deg, rgba(255,127,17,0.18), rgba(255,127,17,0.08));\
+              box-shadow: 0 0 0 1px rgba(255,127,17,0.2) inset, 0 0 14px rgba(255,127,17,0.25);\
+              cursor: pointer;\
+            }\
+            .kb-collapsible[open] .kb-collapsible__summary, .kb-hover-panel[open] .kb-hover-panel__summary {\
+              box-shadow: 0 0 0 1px rgba(255,127,17,0.25) inset, 0 0 18px rgba(255,127,17,0.33);\
+            }\
+            .kb-collapsible__body, .kb-hover-panel__body {\
+              padding: 0 10px;\
+              max-height: 0;\
+              opacity: 0.2;\
+              overflow: hidden;\
+              transition: max-height 0.42s cubic-bezier(.2,0,.0,1), opacity 0.28s var(--ease-out, cubic-bezier(.2,0,.0,1)), padding-top 0.32s var(--ease-out, cubic-bezier(.2,0,.0,1)), padding-bottom 0.32s var(--ease-out, cubic-bezier(.2,0,.0,1));\
+            }\
+            .kb-collapsible[open] .kb-collapsible__body, .kb-hover-panel[open] .kb-hover-panel__body {\
+              padding-top: 10px;\
+              padding-bottom: 10px;\
+              max-height: 960px;\
+              opacity: 1;\
+            }\
+            .kb-hover-panel__title {\
+              display: inline-flex;\
+              align-items: center;\
+              gap: 8px;\
+            }\
+            .kb-panel-toggle {\
+              min-width: 26px;\
+              height: 24px;\
+              padding: 0;\
+              border-radius: 999px;\
+              border: 1px solid rgba(255,255,255,0.18);\
+              background: rgba(12,12,18,0.45);\
+              color: #f5f7fb;\
+              font-weight: 700;\
+              line-height: 1;\
+            }\
+            .kb-hover-hint {\
+              display: block;\
+              margin-bottom: 8px;\
+              font-size: 10px;\
+              color: #9aa0aa;\
+            }\
+            .kb-layout {\
+              display: flex;\
+              flex-wrap: nowrap;\
+              align-items: start;\
+              gap: 10px;\
+              width: 100%;\
+              min-width: 0;\
+            }\
+            .kb-sidebar-rail {\
+              flex: 0 0 284px;\
+              width: 284px;\
+              max-width: 284px;\
+              min-width: 236px;\
+            }\
+            .kb-sidebar-rail .kb-hover-panel, .kb-sidebar-rail .kb-collapsible {\
+              margin-top: 6px;\
+            }\
+            .kb-sidebar-rail .kb-hover-panel__summary, .kb-sidebar-rail .kb-collapsible__summary {\
+              padding: 7px 8px;\
+              font-size: 11px;\
+            }\
+            .kb-sidebar-rail .kb-hover-panel__body, .kb-sidebar-rail .kb-collapsible__body {\
+              font-size: 11px;\
+            }\
+            .kb-sidebar-rail .form-group label, .kb-sidebar-rail .control-label, .kb-sidebar-rail .help-block {\
+              font-size: 11px;\
+            }\
+            .kb-sidebar-rail .form-control, .kb-sidebar-rail .selectize-input, .kb-sidebar-rail .btn {\
+              font-size: 11px;\
+            }\
+            .kb-sidebar-rail .btn-block {\
+              padding-top: 6px;\
+              padding-bottom: 6px;\
+            }\
+            .kb-main-pane {\
+              flex: 1 1 auto;\
+              min-width: 0;\
+              width: auto;\
+              overflow: hidden;\
+            }\
+            .kb-main-pane .well {\
+              margin-bottom: 10px;\
+            }\
+            .kb-main-pane .dataTables_wrapper, .kb-main-pane .dataTables_scroll, .kb-main-pane .dataTables_scrollHead, .kb-main-pane .dataTables_scrollBody {\
+              width: 100%;\
+            }\
+            .kb-main-pane .dataTables_scrollBody {\
+              overflow-x: auto !important;\
+              overflow-y: auto !important;\
+            }\
+            @media (max-width: 640px) {\
+              .kb-layout {\
+                display: block;\
+              }\
+              .kb-sidebar-rail {\
+                width: 100%;\
+                max-width: none;\
+                min-width: 0;\
+                margin-bottom: 10px;\
+              }\
+            }\
+            @media (prefers-reduced-motion: reduce) {\
+              .kb-collapsible, .kb-hover-panel, .kb-collapsible__body, .kb-hover-panel__body {\
+                transition: none !important;\
+              }\
+            }\
+          ")),
+          tags$script(HTML("\
+            (function() {\
+              if (window.__kbHoverPanelsBound) return;\
+              window.__kbHoverPanelsBound = true;\
+              var openDelay = 120;\
+              var closeDelay = 360;\
+              function syncButton(details) {\
+                var btn = details && details.querySelector('.kb-panel-toggle');\
+                if (!btn) return;\
+                var isOpen = details.hasAttribute('open');\
+                btn.textContent = isOpen ? '\u2212' : '+';\
+                btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');\
+              }\
+              function clearTimers(details) {\
+                if (details.__kbOpenTimer) clearTimeout(details.__kbOpenTimer);\
+                if (details.__kbCloseTimer) clearTimeout(details.__kbCloseTimer);\
+              }\
+              document.addEventListener('click', function(event) {\
+                var btn = event.target.closest('.kb-panel-toggle');\
+                if (!btn) return;\
+                event.preventDefault();\
+                event.stopPropagation();\
+                var details = btn.closest('.kb-hover-panel');\
+                if (!details) return;\
+                clearTimers(details);\
+                var isManual = details.dataset.manualOpen === 'true';\
+                if (details.hasAttribute('open') && isManual) {\
+                  details.removeAttribute('open');\
+                  details.dataset.manualOpen = 'false';\
+                } else {\
+                  details.setAttribute('open', 'open');\
+                  details.dataset.manualOpen = 'true';\
+                }\
+                syncButton(details);\
+              }, true);\
+              if (window.jQuery) {\
+                window.jQuery(document)\
+                  .on('mouseenter', '.kb-hover-panel', function() {\
+                    if (this.dataset.manualOpen === 'true') return;\
+                    clearTimers(this);\
+                    var details = this;\
+                    details.__kbOpenTimer = setTimeout(function() {\
+                      details.setAttribute('open', 'open');\
+                      syncButton(details);\
+                    }, openDelay);\
+                  })\
+                  .on('mouseleave', '.kb-hover-panel', function(event) {\
+                    if (this.dataset.manualOpen === 'true') return;\
+                    if (event.relatedTarget && this.contains(event.relatedTarget)) return;\
+                    clearTimers(this);\
+                    var details = this;\
+                    details.__kbCloseTimer = setTimeout(function() {\
+                      if (details.dataset.manualOpen === 'true') return;\
+                      details.removeAttribute('open');\
+                      syncButton(details);\
+                    }, closeDelay);\
+                  });\
+              }\
+              document.addEventListener('toggle', function(event) {\
+                var details = event.target;\
+                if (!details.classList || !details.classList.contains('kb-hover-panel')) return;\
+                syncButton(details);\
+              }, true);\
+              document.addEventListener('shown.bs.tab', function() {\
+                document.querySelectorAll('.kb-hover-panel').forEach(syncButton);\
+              }, true);\
+              setTimeout(function() {\
+                document.querySelectorAll('.kb-hover-panel').forEach(syncButton);\
+              }, 0);\
+            })();\
+          ")),
+          tags$div(class = "kb-layout",
+            tags$div(class = "kb-sidebar-rail",
+              tags$details(class = "kb-hover-panel", `data-manual-open` = "false",
+                tags$summary(class = "kb-hover-panel__summary",
+                  tags$span(class = "kb-hover-panel__title", icon("filter"), " Filters"),
+                  tags$button(type = "button", class = "kb-panel-toggle", `aria-label` = "Toggle Filters", "+")
+                ),
+                div(class = "kb-hover-panel__body",
+                  tags$small(class = "kb-hover-hint", icon("hand-pointer"), " Hover to preview. Use + to pin open."),
+                  uiOutput("kb_filter_suggestions_ui"),
+                  textInput("kb_search_box", "Search",
+                    placeholder = "Part number, technology, tag\u2026"),
+                  hr(),
+                  uiOutput("kb_filter_mfr_ui"),
+                  uiOutput("kb_filter_tech_ui"),
+                  uiOutput("kb_filter_app_ui"),
+                  uiOutput("kb_filter_role_ui"),
+                  numericInput("kb_filter_freq_mhz", "Covers frequency (MHz)",
+                    value = NULL, min = 0.01, max = 50000, step = 1),
+                  numericInput("kb_filter_pout_w", "Min Pout (W)",
+                    value = NULL, min = 0, max = 10000, step = 5),
+                  hr(),
+                  checkboxInput("kb_show_placeholders", "Show placeholder entries", value = FALSE),
+                  actionButton("kb_clear_filters", "Clear all filters",
+                    icon = icon("times"), class = "btn-default btn-block btn-sm")
+                )
+              ),
+              tags$details(class = "kb-hover-panel", `data-manual-open` = "false",
+                  tags$summary(class = "kb-hover-panel__summary",
+                    tags$span(class = "kb-hover-panel__title", icon("cloud-download-alt"), " KB Ingestion"),
+                    tags$button(type = "button", class = "kb-panel-toggle", `aria-label` = "Toggle KB Ingestion", "+")
+                  ),
+                  div(class = "kb-hover-panel__body",
+                    tags$small(class = "kb-hover-hint", icon("hand-pointer"), " Hover to preview. Use + to pin open."),
+                    textInput("kb_ingest_vendor", "Vendor key",
+                      placeholder = "e.g. nxp, ampleon, qorvo, guerrilla_rf"),
+                    textInput("kb_ingest_part_number", "Product / Part number",
+                      placeholder = "e.g. MRF1K50H or GRF5219"),
+                    textInput("kb_ingest_product_url", "Product page URL",
+                      placeholder = "https://vendor.com/..."),
+                    textInput("kb_ingest_manufacturer", "Manufacturer name",
+                      placeholder = "e.g. NXP or Guerrilla RF"),
+                    uiOutput("kb_ingest_technology_ui"),
+                    fluidRow(
+                      column(6, numericInput("kb_ingest_freq_min_mhz", "Freq min (MHz)",
+                        value = NA, min = 0, step = 0.1)),
+                      column(6, numericInput("kb_ingest_freq_max_mhz", "Freq max (MHz)",
+                        value = NA, min = 0, step = 0.1))
+                    ),
+                    tags$small(style = "display:block; color:#8b8b96; margin-bottom:6px;",
+                      icon("info-circle"), " Values in MHz \u2014 e.g. 5900 for 5.9\u202fGHz"),
+                    textInput("kb_ingest_selector_title", "Title selector (optional)",
+                      placeholder = "h1"),
+                    textInput("kb_ingest_selector_datasheet", "Datasheet selector OR direct PDF URL (optional)",
+                      placeholder = "a[href*='data-sheet'] OR https://vendor.com/datasheet.pdf"),
+                    textInput("kb_ingest_selector_summary", "Summary selector (optional)",
+                      placeholder = "main, .product-details, .product-page"),
+                    actionButton("kb_ingest_fetch_preview", "Fetch Preview",
+                      icon = icon("download"), class = "btn-primary btn-block btn-sm"),
+                    actionButton("kb_ingest_validate", "Validate",
+                      icon = icon("check-circle"), class = "btn-info btn-block btn-sm"),
+                    actionButton("kb_ingest_apply", "Apply to KB",
+                      icon = icon("save"), class = "btn-success btn-block btn-sm"),
+                    tags$small(style = "display:block; color:#8b8b96; margin-top:6px;",
+                      "Flow: Fetch Preview -> Validate -> Apply to KB"),
+                    verbatimTextOutput("kb_ingest_status"),
+                    uiOutput("kb_ingest_artifact_summary")
+                  )
+              ),
+              tags$details(class = "kb-hover-panel", `data-manual-open` = "false",
+                  tags$summary(class = "kb-hover-panel__summary",
+                    tags$span(class = "kb-hover-panel__title", icon("list-ul"), " Batch Catalog Import"),
+                    tags$button(type = "button", class = "kb-panel-toggle", `aria-label` = "Toggle Batch Catalog Import", "+")
+                  ),
+                  div(class = "kb-hover-panel__body",
+                    tags$small(class = "kb-hover-hint", icon("hand-pointer"), " Hover to preview. Use + to pin open."),
+                    p(style = "color:#8b8b96; font-size:11px; margin:0 0 6px 0;",
+                      "Discover all products from a vendor catalog page and batch-import them."),
+                    textInput("kb_batch_vendor", "Vendor key",
+                      placeholder = "e.g. nxp, ampleon, qorvo, guerrilla_rf"),
+                    textInput("kb_batch_catalog_url", "Catalog page URL",
+                      placeholder = "https://vendor.com/products/..."),
+                    textInput("kb_batch_url_pattern", "URL filter pattern (optional)",
+                      placeholder = "e.g. /products/p/"),
+                    numericInput("kb_batch_max_links", "Max links to discover",
+                      value = 50, min = 1, max = 500, step = 10),
+                    actionButton("kb_batch_discover", "Discover Products",
+                      icon = icon("search"), class = "btn-primary btn-block btn-sm"),
+                    uiOutput("kb_batch_product_list_ui"),
+                    uiOutput("kb_batch_action_buttons_ui"),
+                    verbatimTextOutput("kb_batch_status")
+                  )
+                )
               )
             ),
-            # ── Devices + Detail ────────────────────────────────────────
-            column(9,
-              div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px; margin-bottom:10px;",
+            tags$div(class = "kb-main-pane",
+              div(class = "well kb-devices-shell", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px; margin-bottom:10px;",
                 h5(icon("list"), " Devices", style = "color:#f0f0f0; margin-top:0;"),
-                DT::DTOutput("kb_device_table", height = "340px")
+                DT::DTOutput("kb_device_table", height = "300px")
               ),
               div(class = "well", style = "background:#1e1e2e; border:1px solid #2a2a3a; padding:12px;",
                 h5(icon("info-circle"), " Device Detail", style = "color:#f0f0f0; margin-top:0;"),
                 uiOutput("kb_device_detail")
+              ),
+              tags$details(class = "kb-collapsible", style = "margin-top:10px;",
+                tags$summary(class = "kb-collapsible__summary",
+                  icon("shield-alt"), " Protected KB Maintenance"
+                ),
+                div(class = "kb-collapsible__body",
+                  p(style = "color:#9aa0aa; font-size:11px; margin:0 0 8px 0;",
+                    "Select a row in the table, then load it here for controlled update/delete."),
+                  checkboxInput("kb_protected_mode", "Enable protected mode", value = FALSE),
+                  fluidRow(
+                    column(3,
+                      actionButton("kb_protected_load", "Load Selected",
+                        icon = icon("download"), class = "btn-default btn-block btn-sm")
+                    ),
+                    column(3,
+                      actionButton("kb_protected_save", "Save Update",
+                        icon = icon("save"), class = "btn-warning btn-block btn-sm")
+                    ),
+                    column(3,
+                      actionButton("kb_protected_delete", "Delete Record",
+                        icon = icon("trash"), class = "btn-danger btn-block btn-sm")
+                    ),
+                    column(3,
+                      textInput("kb_protected_confirm", "Confirm token",
+                        placeholder = "UPDATE / DELETE")
+                    )
+                  ),
+                  uiOutput("kb_protected_editor_ui"),
+                  verbatimTextOutput("kb_protected_status")
+                )
               )
             )
           )
-        )
-      ),
+        ),
 
       # ── Agents ───────────────────────────────────────────────────────────
       "util_agents" = tagList(

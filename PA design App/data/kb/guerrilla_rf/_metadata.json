@@ -1,0 +1,13 @@
+{
+  "manufacturer": "Guerrilla RF",
+  "manufacturer_id": "guerrilla_rf",
+  "full_name": "Guerrilla RF, Inc.",
+  "website": "https://www.guerrilla-rf.com",
+  "products_url": "https://www.guerrilla-rf.com/products",
+  "catalog_url": "https://www.guerrilla-rf.com/products",
+  "catalog_url_pattern": "/products/detail/sku/",
+  "catalog_priority": 65,
+  "focus_areas": ["driver amplifiers", "linear gain blocks", "wireless infrastructure"],
+  "key_markets": ["wireless infrastructure", "small cell", "5G", "test and measurement"],
+  "notes": "Catalog metadata used by KB Agent for workspace-driven refresh planning. Use direct DataSheet links when present because compliance PDFs may outrank product datasheets on the public site."
+}

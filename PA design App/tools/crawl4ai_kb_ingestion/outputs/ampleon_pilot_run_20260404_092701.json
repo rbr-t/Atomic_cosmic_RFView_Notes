@@ -1,0 +1,80 @@
+{
+  "run_context": {
+    "vendor": "ampleon",
+    "started_at_utc": "2026-04-04T07:27:01.229646+00:00",
+    "python_version": "3.13.12",
+    "python_runtime_ready": true,
+    "runtime_note": "runtime_compatible",
+    "crawl4ai_available": true,
+    "discovery_url": "https://www.ampleon.com/products/mobile-broadband/1.4-2.2-ghz-transistors/#/",
+    "max_products": 1,
+    "vendor_extraction_defaults": {
+      "selector_version": "pilot-v1",
+      "title_selectors": [
+        "h1",
+        "title"
+      ],
+      "datasheet_link_patterns": [
+        "/documents/data-sheet/",
+        "/documents/datasheet/"
+      ],
+      "frequency_patterns": [
+        "GHz",
+        "MHz"
+      ]
+    },
+    "policy": {
+      "respect_robots_txt": true,
+      "delay_seconds": 1.5,
+      "allowed_domains": [
+        "ampleon.com",
+        "nxp.com",
+        "qorvo.com"
+      ]
+    }
+  },
+  "records": [
+    {
+      "device_id": "ampleon_BLP9G0722-20G",
+      "part_number": "BLP9G0722-20G",
+      "manufacturer": "ampleon",
+      "family": null,
+      "series": null,
+      "technology": "LDMOS",
+      "freq_min_mhz": 100.0,
+      "freq_max_mhz": 2700.0,
+      "datasheet_url": "https://www.ampleon.com/documents/application-note/AN11183.pdf",
+      "knowledge_source": "datasheet",
+      "knowledge_confidence": "high",
+      "status": "active",
+      "tags": [
+        "crawl4ai-pilot",
+        "ampleon",
+        "ldmos"
+      ],
+      "notes": "Auto-seeded by Crawl4AI pilot. Requires engineering review before production merge.",
+      "extraction_blueprint": {
+        "selector_version": "pilot-v1",
+        "title_selector": "h1",
+        "datasheet_link_selector": "a[href*='data-sheet'], a[href*='datasheet'], a[href*='/docs/']",
+        "product_summary_selector": "main, .product-details, .product-page"
+      },
+      "ingestion_provenance": {
+        "crawled_at_utc": "2026-04-04T07:27:01.228713+00:00",
+        "crawl_success": true,
+        "http_status": 200,
+        "source_domain": "www.ampleon.com",
+        "source_title_hint": "This website uses cookies",
+        "content_sha256": "a35befdededb845fcc089d04b48bc9c28c6a67e84d3bd595170a6d951754057b",
+        "crawl_error": "",
+        "selector_version": "pilot-v1",
+        "pdf_datasheet_url": "https://www.ampleon.com/documents/application-note/AN11183.pdf",
+        "pdf_params_extracted": []
+      }
+    }
+  ],
+  "validation": {
+    "ampleon_BLP9G0722-20G": []
+  },
+  "blocked_for_auto_merge": false
+}

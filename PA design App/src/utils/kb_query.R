@@ -144,11 +144,19 @@ kb_search <- function(df, query) {
 kb_display_table <- function(df) {
   if (is.null(df) || nrow(df) == 0) return(data.frame())
 
+  target_market <- ifelse(
+    !is.na(df$application) & nzchar(df$application),
+    df$application,
+    ifelse(!is.na(df$use_case) & nzchar(df$use_case), df$use_case, "—")
+  )
+  target_market <- gsub(";", " / ", target_market, fixed = TRUE)
+
   display <- data.frame(
     `Part #`      = df$part_number      %||% "—",
     `Maker`       = df$manufacturer     %||% "—",
     `Tech`        = df$technology       %||% "—",
     `Gen`         = df$generation       %||% "—",
+    `Target Market/Application` = target_market,
     `Package`     = df$package          %||% "—",
     `Vdd (V)`     = .fmt_num(df$vdd_v),
     `Fmin (MHz)`  = .fmt_num(df$freq_min_mhz),
@@ -358,34 +366,235 @@ kb_device_card <- function(dev) {
   )
 }
 
+.render_extracted_blocks <- function(dev, title_pattern, empty_message) {
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+  blocks <- dev[["extracted_table_blocks"]]
+  if (is.null(blocks) || length(blocks) == 0) {
+    return(div(style = "padding:12px; color:#666; font-style:italic; font-size:12px;", empty_message))
+  }
+
+  matched <- Filter(function(b) {
+    grepl(title_pattern, tolower(b$title %||% ""), perl = TRUE)
+  }, blocks)
+
+  if (length(matched) == 0) {
+    return(div(style = "padding:12px; color:#666; font-style:italic; font-size:12px;", empty_message))
+  }
+
+  tagList(lapply(matched, function(b) {
+    div(style = "margin-bottom:14px;",
+      h5(style = "color:#f0f0f0; font-size:13px; font-weight:600; margin:0 0 6px 0;",
+        b$title %||% "Extracted datasheet block"),
+      tags$pre(style = paste0(
+        "white-space:pre-wrap; background:#141420; border:1px solid #1e1e2e;",
+        " color:#aaa; font-size:11px; padding:10px; border-radius:4px; max-height:320px; overflow:auto;"
+      ), b$content %||% "")
+    )
+  }))
+}
+
+.resolve_local_asset_path <- function(rel_path) {
+  if (is.null(rel_path) || !nzchar(rel_path)) return(NULL)
+  candidates <- c(
+    rel_path,
+    file.path(getwd(), rel_path),
+    file.path(getwd(), "PA design App", rel_path),
+    file.path(getwd(), "..", rel_path),
+    file.path(getwd(), "..", "PA design App", rel_path)
+  )
+  for (candidate in unique(candidates)) {
+    if (file.exists(candidate)) {
+      return(normalizePath(candidate, winslash = "/", mustWork = TRUE))
+    }
+  }
+  NULL
+}
+
+.image_data_uri <- function(rel_path) {
+  abs_path <- .resolve_local_asset_path(rel_path)
+  if (is.null(abs_path)) return(NULL)
+  ext <- tolower(tools::file_ext(abs_path))
+  mime <- switch(ext,
+    png = "image/png",
+    jpg = "image/jpeg",
+    jpeg = "image/jpeg",
+    webp = "image/webp",
+    "application/octet-stream"
+  )
+  tryCatch(base64enc::dataURI(file = abs_path, mime = mime), error = function(...) NULL)
+}
+
+.image_public_url <- function(rel_path) {
+  abs_path <- .resolve_local_asset_path(rel_path)
+  if (is.null(abs_path)) return(NULL)
+  normalized <- gsub("\\\\", "/", rel_path)
+  normalized <- sub("^/?", "", normalized)
+  if (!grepl("^data/kb/", normalized)) return(NULL)
+  sub("^data/kb/", "kb-data/", normalized)
+}
+
+.graph_assets <- function(dev, category = NULL) {
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+  gd <- dev[["graphical_data"]] %||% list()
+  assets <- gd$assets %||% list()
+  if (!is.null(category)) {
+    assets <- Filter(function(asset) identical(asset$category %||% "", category), assets)
+  }
+  assets
+}
+
+.match_graph_asset <- function(dev, reference = NULL, category = NULL) {
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+  assets <- .graph_assets(dev, category = category)
+  if (length(assets) == 0) return(NULL)
+  if (is.null(reference) || !nzchar(trimws(reference))) return(assets[[1]])
+
+  reference_lc <- tolower(trimws(reference))
+  scores <- vapply(assets, function(asset) {
+    fig_lc <- tolower(asset$fig %||% "")
+    caption_lc <- tolower(asset$caption %||% "")
+    score <- 0
+    if (nzchar(fig_lc) && grepl(fig_lc, reference_lc, fixed = TRUE)) score <- score + 4
+    if (nzchar(reference_lc) && grepl(reference_lc, fig_lc, fixed = TRUE)) score <- score + 4
+    if (nzchar(caption_lc) && grepl(reference_lc, caption_lc, fixed = TRUE)) score <- score + 3
+    if (nzchar(reference_lc) && grepl(caption_lc, reference_lc, fixed = TRUE)) score <- score + 2
+    score
+  }, numeric(1))
+
+  if (max(scores) <= 0) return(assets[[1]])
+  assets[[which.max(scores)]]
+}
+
+.hover_preview_label <- function(label, dev, reference = NULL, category = NULL, accent = "#ff7f11") {
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+  asset <- .match_graph_asset(dev, reference = reference %||% label, category = category)
+  if (is.null(asset)) return(label)
+
+  img_uri <- .image_data_uri(asset$image_path %||% "")
+  if (is.null(img_uri)) return(label)
+
+  caption <- asset$caption %||% (reference %||% "Datasheet preview")
+  fig_label <- asset$fig %||% "Figure"
+  page_label <- paste0("Page ", asset$page %||% "?")
+
+  tags$span(
+    title = paste(fig_label, caption),
+    style = paste0(
+      "position:relative; display:inline-flex; align-items:center; gap:4px; color:", accent, "; ",
+      "cursor:help; border-bottom:1px dotted rgba(255,127,17,0.5); transition:color 0.15s ease-out, border-color 0.15s ease-out;"
+    ),
+    onmouseover = paste0(
+      "this.style.color='", accent, "';",
+      "this.style.borderBottomColor='", accent, "';",
+      "var card=this.querySelector('[data-kb-hover-card]'); if(card){card.style.opacity='1'; card.style.transform='translateY(0px)'; card.style.pointerEvents='auto';}"
+    ),
+    onmouseout = "var card=this.querySelector('[data-kb-hover-card]'); if(card){card.style.opacity='0'; card.style.transform='translateY(8px)'; card.style.pointerEvents='none';}",
+    label,
+    tags$span(
+      `data-kb-hover-card` = "true",
+      style = paste0(
+        "position:absolute; left:0; top:calc(100% + 8px); z-index:25; width:228px; padding:8px;",
+        "background:rgba(18,18,28,0.98); border:1px solid rgba(255,127,17,0.45); border-radius:8px;",
+        "box-shadow:0 14px 34px rgba(0,0,0,0.42); opacity:0; transform:translateY(8px); pointer-events:none;",
+        "transition:opacity 0.15s ease-out, transform 0.15s ease-out;"
+      ),
+      tags$img(
+        src = img_uri,
+        alt = caption,
+        style = "display:block; width:100%; height:132px; object-fit:cover; border-radius:5px; background:#0f0f16;"
+      ),
+      div(style = "margin-top:8px; color:#f0f0f0; font-size:11px; font-weight:600;", fig_label),
+      div(style = "margin-top:4px; color:#b7b7c2; font-size:11px; line-height:1.35;", caption),
+      div(style = "margin-top:6px; color:#777; font-size:10px;", paste(page_label, "• hover for quick preview"))
+    )
+  )
+}
+
+.render_graph_asset_gallery <- function(dev, category = NULL, title = "Figures") {
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
+  assets <- .graph_assets(dev, category = category)
+  if (length(assets) == 0) return(NULL)
+
+  cards <- lapply(assets, function(asset) {
+    img_uri <- .image_data_uri(asset$image_path %||% "")
+    img_url <- .image_public_url(asset$image_path %||% "")
+    img_src <- img_url %||% img_uri
+    if (is.null(img_src)) return(NULL)
+    fig_label <- asset$fig %||% "Figure"
+    caption <- asset$caption %||% fig_label
+    page_label <- paste0("Page ", asset$page %||% "?")
+    tags$a(
+      href = img_src,
+      target = "_blank",
+      rel = "noopener noreferrer",
+      title = paste(fig_label, caption),
+      style = paste0(
+        "display:block; position:relative; width:172px; min-width:172px; text-decoration:none;",
+        " background:#141420; border:1px solid #2a2a3a; border-radius:6px; overflow:hidden;"
+      ),
+      tags$img(
+        src = img_src,
+        alt = caption,
+        style = paste0(
+          "display:block; width:100%; height:112px; object-fit:cover; background:#0f0f16;",
+          " transition:transform 0.18s ease-out;"
+        ),
+        onmouseover = "this.style.transform='scale(1.06)'",
+        onmouseout = "this.style.transform='scale(1)'"
+      ),
+      div(style = "padding:8px 10px;",
+        div(style = "color:#ff7f11; font-size:11px; font-weight:600; margin-bottom:4px;", fig_label),
+        div(style = "color:#d7d7df; font-size:11px; line-height:1.35; min-height:30px;", caption),
+        div(style = "color:#777; font-size:10px; margin-top:6px;", paste(page_label, "• click to open"))
+      )
+    )
+  })
+  cards <- Filter(Negate(is.null), cards)
+  if (length(cards) == 0) return(NULL)
+
+  div(style = "margin-top:14px;",
+    h5(style = "color:#f0f0f0; font-size:13px; font-weight:600; margin:0 0 8px 0;",
+      icon("images"), paste0(" ", title, " — hover preview, click to expand")),
+    div(style = "display:flex; gap:12px; overflow-x:auto; padding-bottom:6px;",
+      do.call(tagList, cards))
+  )
+}
+
 # Render a single load-pull impedance table.
 # lp_data: list of row lists (pass NULL to read dev[["load_pull_table"]]).
 # variant_label: text shown in the section header (e.g. "BLP9G0722-20 (flat lead)").
 .render_lp_table <- function(dev, lp_data = NULL, variant_label = NULL) {
+  `%||%` <- function(a, b) if (!is.null(a)) a else b
   lp <- if (!is.null(lp_data)) lp_data else dev[["load_pull_table"]]
   # strip metadata rows (those without numeric freq_mhz)
   lp <- Filter(function(r) !is.null(r$freq_mhz) && !is.na(suppressWarnings(as.numeric(r$freq_mhz))), lp)
   if (is.null(lp) || length(lp) == 0) return(NULL)
 
-  .make_rows <- function(condition_filter, header_label) {
-    rows <- Filter(function(r) identical(r$condition, condition_filter), lp)
+  .fmt_cell <- function(v, digits = 1) {
+    if (is.null(v) || length(v) == 0 || isTRUE(is.na(v))) return("\u2014")
+    num <- suppressWarnings(as.numeric(v))
+    if (is.na(num)) return(as.character(v))
+    format(round(num, digits), nsmall = digits, trim = TRUE)
+  }
+
+  .make_rows <- function(rows, header_label) {
     if (length(rows) == 0) return(NULL)
 
     row_tags <- lapply(rows, function(r) {
       freq  <- r$freq_mhz
-      zl_r  <- round(r$zl_r, 2)
-      zl_x  <- round(r$zl_x, 2)
-      zs_r  <- round(r$zs_r, 2)
-      zs_x  <- round(r$zs_x, 2)
-      pout  <- r$pout_w
-      de    <- round(r$drain_eff_pct, 1)
-      gp    <- round(r$gain_db, 1)
-      zl_str <- paste0(zl_r, if (zl_x >= 0) "+" else "", zl_x, "j")
-      zs_str <- paste0(zs_r, if (zs_x >= 0) "+" else "", zs_x, "j")
+      zl_r  <- suppressWarnings(as.numeric(r$zl_r))
+      zl_x  <- suppressWarnings(as.numeric(r$zl_x))
+      zs_r  <- suppressWarnings(as.numeric(r$zs_r))
+      zs_x  <- suppressWarnings(as.numeric(r$zs_x))
+      pout  <- .fmt_cell(r$pout_w, digits = 1)
+      de    <- .fmt_cell(r$drain_eff_pct, digits = 1)
+      gp    <- .fmt_cell(r$gain_db, digits = 1)
+      zl_str <- if (is.na(zl_r) || is.na(zl_x)) "\u2014" else paste0(.fmt_cell(zl_r, 2), if (zl_x >= 0) "+" else "", .fmt_cell(zl_x, 2), "j")
+      zs_str <- if (is.na(zs_r) || is.na(zs_x)) "\u2014" else paste0(.fmt_cell(zs_r, 2), if (zs_x >= 0) "+" else "", .fmt_cell(zs_x, 2), "j")
 
       js_payload <- sprintf(
         '{\"freq\":%s,\"zl_r\":%s,\"zl_x\":%s,\"zs_r\":%s,\"zs_x\":%s,\"condition\":\"%s\"}',
-        freq, zl_r, zl_x, zs_r, zs_x, condition_filter
+        freq, zl_r, zl_x, zs_r, zs_x, r$condition %||% "unspecified"
       )
       send_btn <- tags$td(
         style = "text-align:center; padding:2px 4px;",
@@ -414,15 +623,30 @@ kb_device_card <- function(dev) {
     )
   }
 
+  has_power_cols <- any(vapply(lp, function(r) !is.null(r$pout_w) || !is.null(r$drain_eff_pct) || !is.null(r$gain_db), logical(1)))
+
   header_text <- if (!is.null(variant_label) && nzchar(variant_label))
     paste("Load-Pull Table \u2014", variant_label)
+  else if (!has_power_cols)
+    "Measured Fixture Impedance"
   else
     "Multi-frequency Load-Pull Table"
+
+  max_power_rows <- Filter(function(r) identical(r$condition %||% "", "max_power"), lp)
+  max_eff_rows   <- Filter(function(r) identical(r$condition %||% "", "max_efficiency"), lp)
+  generic_rows   <- Filter(function(r) !(r$condition %||% "") %in% c("max_power", "max_efficiency"), lp)
+
+  body_rows <- tagList(
+    .make_rows(max_power_rows, "Max Output Power Load"),
+    .make_rows(max_eff_rows, "Max Drain Efficiency Load"),
+    if (length(max_power_rows) == 0 && length(max_eff_rows) == 0)
+      .make_rows(generic_rows, "Measured Fixture Impedance")
+  )
 
   div(class = "kb-detail-section",
     tags$b(header_text),
     tags$small(style = "color:#666; margin-left:8px;",
-      " \u2014 ZL / ZS at package lead tips, VDS=28V IDq=180mA, P3dB"),
+      paste0(" \u2014 ", dev[["impedance_ref_plane"]] %||% "ZL / ZS at package lead tips, VDS=28V IDq=180mA, P3dB")),
     div(style = "overflow-x:auto; margin-top:6px;",
       tags$table(
         style = paste0("width:100%; border-collapse:collapse; font-size:12px;",
@@ -434,10 +658,7 @@ kb_device_card <- function(dev) {
             )
           )
         ),
-        tags$tbody(
-          .make_rows("max_power",      "Max Output Power Load"),
-          .make_rows("max_efficiency", "Max Drain Efficiency Load")
-        )
+        tags$tbody(body_rows)
       )
     ),
     tags$small(style = "color:#555;",
@@ -461,10 +682,17 @@ kb_device_card <- function(dev) {
       "Load-pull impedance data not available for this device."))
   }
 
+  flat_variant_label <- if (!is.null(lp_flat) && length(lp_flat) > 0 &&
+      all(vapply(lp_flat, function(r) identical(r$condition %||% "", "measured_impedance"), logical(1)))) {
+    NULL
+  } else {
+    paste0(pn, " (SOT1482-1 \u2014 flat lead)")
+  }
+
   div(style = "padding:8px 0;",
     if (has_flat)
       .render_lp_table(dev, lp_data = lp_flat,
-        variant_label = paste0(pn, " (SOT1482-1 \u2014 flat lead)")),
+        variant_label = flat_variant_label),
     if (has_gull)
       div(style = "margin-top:16px;",
         .render_lp_table(dev, lp_data = lp_gull,
@@ -476,7 +704,8 @@ kb_device_card <- function(dev) {
 .render_dc_table <- function(dev) {
   dc <- dev[["dc_characteristics"]]
   if (is.null(dc) || is.null(dc$params) || length(dc$params) == 0) {
-    return(div(style = "padding:12px; color:#666; font-style:italic; font-size:12px;",
+    return(.render_extracted_blocks(dev,
+      "electrical characteristics|maximum ratings|thermal characteristics",
       "DC characteristic data not available for this device."))
   }
   `%||%` <- function(a, b) if (!is.null(a)) a else b
@@ -572,7 +801,14 @@ kb_device_card <- function(dev) {
           tags$tr(tags$td(style="padding:2px 6px; font-weight:600;", "P1dB (typ):"), tags$td(paste0(dev$p1db_dbm %||% "\u2014", " dBm"))),
           tags$tr(tags$td(style="padding:2px 6px; font-weight:600;", "P3dB (typ):"), tags$td(paste0(dev$p3db_dbm %||% "\u2014", " dBm")))
         )
-      )
+      ),
+      if (!is.null(dev[["ruggedness"]]))
+        div(style = "margin-top:10px; background:#1a1a2a; border-left:3px solid #27ae60; padding:8px 10px; font-size:11px; color:#aaa;",
+          icon("shield-alt"), " Ruggedness summary: VSWR ", dev[["ruggedness"]]$vswr %||% "\u2014", ":1, test power ",
+          dev[["ruggedness"]]$pout_cw_w %||% "\u2014", " W peak. ", dev[["ruggedness"]]$note %||% ""),
+      .render_extracted_blocks(dev,
+        "typical performance|electrical characteristics",
+        "Detailed RF performance tables not available for this device.")
     )
   }
 
@@ -613,7 +849,8 @@ kb_device_card <- function(dev) {
     )
   } else NULL
 
-  div(style = "padding:8px 0;", rf_section, ap_section)
+  div(style = "padding:8px 0;", rf_section, ap_section,
+    .render_graph_asset_gallery(dev, category = "plot", title = "Performance plots"))
 }
 
 # Render Test PCBs / BOM tab
@@ -621,7 +858,8 @@ kb_device_card <- function(dev) {
   `%||%` <- function(a, b) if (!is.null(a)) a else b
   circs <- dev[["test_circuits"]]
   if (is.null(circs) || length(circs) == 0) {
-    return(div(style = "padding:12px; color:#666; font-style:italic; font-size:12px;",
+    return(.render_extracted_blocks(dev,
+      "ordering information|production fixture|component layout|test circuit|fixture",
       "Reference PCB designs not available for this device."))
   }
 
@@ -646,7 +884,8 @@ kb_device_card <- function(dev) {
         icon("microchip"), " Test Circuit \u2014 ", freq_str),
       div(style = "font-size:11px; color:#888; margin-bottom:8px;",
         icon("server"), " PCB: ", pcb_info,
-        if (nzchar(fig_ref)) span(style = "margin-left:10px; color:#666;", "\u2014 ", fig_ref) else NULL
+        if (nzchar(fig_ref)) span(style = "margin-left:10px; color:#666;", "\u2014 ",
+          .hover_preview_label(fig_ref, dev, reference = fig_ref, category = "layout", accent = "#5bc0de")) else NULL
       ),
       div(style = "overflow-x:auto;",
         tags$table(
@@ -663,8 +902,9 @@ kb_device_card <- function(dev) {
 
   div(style = "padding:8px 0;",
     div(style = "background:#1a1a2a; border-left:3px solid #666; padding:6px 10px; margin-bottom:14px; font-size:11px; color:#888;",
-      icon("info-circle"), " All three reference designs use Ampleon BLP9G0722-20G (gull-wing). Schematics in datasheet Figs 2\u20134. Default bias: VDS=28V, IDq=180mA, class-AB."),
-    do.call(tagList, circ_sections)
+      icon("info-circle"), " Extracted reference PCB / fixture data from the device datasheet. Use these rows as a starting point and confirm against the original figure and BOM before build."),
+    do.call(tagList, circ_sections),
+    .render_graph_asset_gallery(dev, category = "layout", title = "Fixture / layout figures")
   )
 }
 
@@ -843,7 +1083,10 @@ kb_device_card <- function(dev) {
                       gd$wcdma_curves %||% list())
       curve_rows <- if (length(all_curves) > 0) {
         lapply(all_curves, function(cv) tags$tr(
-          tags$td(style = "padding:2px 8px; border-bottom:1px solid #1a1a2a; color:#ff7f11; font-size:11px; font-weight:600;", cv$fig %||% ""),
+          tags$td(style = "padding:2px 8px; border-bottom:1px solid #1a1a2a; color:#ff7f11; font-size:11px; font-weight:600;",
+            .hover_preview_label(cv$fig %||% "", dev,
+              reference = paste(cv$fig %||% "", cv$signal %||% "", cv$axes %||% ""),
+              category = "plot")),
           tags$td(style = "padding:2px 8px; border-bottom:1px solid #1a1a2a; color:#aaa; font-size:11px;", cv$signal %||% ""),
           tags$td(style = "padding:2px 8px; border-bottom:1px solid #1a1a2a; color:#888; font-size:11px;",
             paste(unlist(cv$freqs_mhz), collapse=" / "), " MHz"),
@@ -865,12 +1108,18 @@ kb_device_card <- function(dev) {
               tags$tbody(do.call(tagList, curve_rows))
             )
           )
-        else NULL
+        else NULL,
+        .render_graph_asset_gallery(dev, title = "Extracted datasheet figures")
       )
     }
   }
 
-  div(style = "padding:8px 0;", variants_section, pins_section, dims_section, esd_section, gd_section)
+  raw_pkg <- .render_extracted_blocks(dev,
+    "esd|maximum ratings|thermal characteristics|ordering information",
+    "Package, ESD, and ordering details not available for this device.")
+
+  div(style = "padding:8px 0;", variants_section, pins_section, dims_section, esd_section, gd_section,
+      if (is.null(dev[["variants"]]) && is.null(dev[["package_dimensions"]]) && is.null(dev[["esd"]])) raw_pkg else NULL)
 }
 
 # ── Convenience wrappers ──────────────────────────────────────────────────────

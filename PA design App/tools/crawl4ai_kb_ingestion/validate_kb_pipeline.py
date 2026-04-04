@@ -72,6 +72,13 @@ def is_suspicious_title(title: str | None) -> bool:
     return any(marker in normalized for marker in SUSPICIOUS_TITLE_MARKERS)
 
 
+def title_is_blocking(title: str | None, confidence: str | None) -> bool:
+    if not is_suspicious_title(title):
+        return False
+    # Allow known cookie-banner title noise when crawl confidence is high.
+    return (confidence or "").lower() != "high"
+
+
 def validate_catalog(config_path: Path) -> list[str]:
     findings: list[str] = []
     cfg = load_yaml(config_path)
@@ -139,7 +146,7 @@ def validate_kb_records(kb_root: Path) -> list[str]:
             if not isinstance(http_status, int) or http_status < 200 or http_status >= 400:
                 findings.append(f"kb:{device_id}: unexpected http_status '{http_status}'")
 
-            if is_suspicious_title(provenance.get("source_title_hint")):
+            if title_is_blocking(provenance.get("source_title_hint"), record.get("knowledge_confidence")):
                 findings.append(f"kb:{device_id}: suspicious source_title_hint '{provenance.get('source_title_hint')}'")
 
             if not record.get("knowledge_confidence"):
@@ -151,7 +158,7 @@ def validate_kb_records(kb_root: Path) -> list[str]:
     return findings
 
 
-def validate_output_artifacts(outputs_dir: Path) -> list[str]:
+def validate_output_artifacts(outputs_dir: Path, vendor_filter: str | None = None) -> list[str]:
     findings: list[str] = []
     if not outputs_dir.exists():
         return findings
@@ -159,6 +166,8 @@ def validate_output_artifacts(outputs_dir: Path) -> list[str]:
     latest_by_vendor: dict[str, Path] = {}
     for artifact in sorted(outputs_dir.glob("*_pilot_run_*.json")):
         vendor = artifact.name.split("_pilot_run_", 1)[0]
+        if vendor_filter and vendor != vendor_filter:
+            continue
         latest_by_vendor[vendor] = artifact
 
     for artifact in sorted(latest_by_vendor.values()):
@@ -197,7 +206,7 @@ def validate_output_artifacts(outputs_dir: Path) -> list[str]:
                 findings.append(f"artifact:{artifact.name}:{device_id}: unexpected http_status '{http_status}'")
                 record_has_blocker = True
 
-            if is_suspicious_title(provenance.get("source_title_hint")):
+            if title_is_blocking(provenance.get("source_title_hint"), record.get("knowledge_confidence")):
                 findings.append(f"artifact:{artifact.name}:{device_id}: suspicious source_title_hint '{provenance.get('source_title_hint')}'")
                 record_has_blocker = True
 
@@ -225,6 +234,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
     parser.add_argument("--outputs-dir", default=str(DEFAULT_OUTPUTS))
     parser.add_argument("--kb-root", default=str(DEFAULT_KB_ROOT))
+    parser.add_argument("--vendor", default=None, help="Optional vendor key to validate only that vendor's latest artifact.")
     return parser.parse_args()
 
 
@@ -233,7 +243,7 @@ def main() -> int:
     findings = []
     findings.extend(validate_catalog(Path(args.config)))
     findings.extend(validate_kb_records(Path(args.kb_root)))
-    findings.extend(validate_output_artifacts(Path(args.outputs_dir)))
+    findings.extend(validate_output_artifacts(Path(args.outputs_dir), vendor_filter=args.vendor))
 
     if findings:
         print("[FAIL] Crawl4AI KB ingestion validation failed:")

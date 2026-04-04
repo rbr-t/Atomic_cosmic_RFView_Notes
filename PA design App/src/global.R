@@ -23,6 +23,7 @@ addResourcePath("js",     normalizePath("../assets/js/common"))
 addResourcePath("css",    normalizePath("../assets/css/theme"))
 addResourcePath("images", normalizePath("../assets/images"))
 addResourcePath("data",   normalizePath("../assets/data"))
+addResourcePath("kb-data", normalizePath("../data/kb"))
 
 # Source core systems
 source("core/project_mgmt/project_manager.R")

@@ -1,0 +1,13 @@
+{
+  "manufacturer": "NXP",
+  "manufacturer_id": "nxp",
+  "full_name": "NXP Semiconductors N.V.",
+  "website": "https://www.nxp.com",
+  "products_url": "https://www.nxp.com/products/product-selector:PRODUCT-SELECTOR?category=c250_c65&page=1",
+  "catalog_url": "https://www.nxp.com/products/product-selector:PRODUCT-SELECTOR?category=c250_c65&page=1",
+  "catalog_url_pattern": ":",
+  "catalog_priority": 80,
+  "focus_areas": ["LDMOS RF power transistors", "GaN RF power devices", "base-station power amplifiers"],
+  "key_markets": ["cellular infrastructure", "broadcast", "ISM", "defense", "avionics", "medical"],
+  "notes": "Catalog metadata used by KB Agent for workspace-driven refresh planning. Validate individual device availability on the product selector before apply."
+}

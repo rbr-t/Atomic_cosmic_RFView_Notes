@@ -27,7 +27,8 @@ AgentManager <- R6Class("AgentManager",
         "MeasurementAgent",
         "DocumentationAgent",
         "DebugAgent",
-        "StrategyAgent"
+        "StrategyAgent",
+        "KBAgent"
       )
       
       for (agent_name in agent_classes) {
@@ -138,6 +139,8 @@ AgentManager <- R6Class("AgentManager",
         return("DebugAgent")
       } else if (grepl("strategy|plan|approach", task_lower)) {
         return("StrategyAgent")
+      } else if (grepl("knowledge base|kb|datasheet|vendor|crawl|ingestion|pdf|device library", task_lower)) {
+        return("KBAgent")
       } else {
         # Default to Theory Agent for general questions
         return("TheoryAgent")

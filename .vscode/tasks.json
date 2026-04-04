@@ -4,7 +4,10 @@
 		{
 			"label": "Run Shiny App",
 			"type": "shell",
-			"command": "Rscript -e 'shiny::runApp(\"d:/GitHub/Atomic_cosmic_RFView_Notes/PA design App/src/app.R\", launch.browser=TRUE)'",
+			"command": "C:/Program Files/R/R-4.4.1/bin/Rscript.exe",
+			"args": [
+				"d:/GitHub/Atomic_cosmic_RFView_Notes/PA design App/run_app.R"
+			],
 			"isBackground": true,
 			"problemMatcher": [],
 			"group": "build"
