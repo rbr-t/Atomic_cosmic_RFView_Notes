@@ -446,4 +446,36 @@ Protect repo-local Copilot customization files and git operations in Atomic with
 
 ---
 
+### 2026-04-06 — Inbound from Global_Agentic_Operating_System
+
+| Item | Type | Source | Notes |
+|------|------|--------|-------|
+| `DESIGN.md` | New file | — | Created for this repo — Signal Orange `#ff7f11` accent, instrument-panel dark aesthetic, Konva.js canvas glow affordances, RF unit typography rules |
+| `.github/AGENTS.md` skills table | Edit | Atomic | Fixed `||` double-pipe typo in table separator |
+
+### Evaluated but not installed (2026-04-06)
+
+| Item | Decision | Reason |
+|------|----------|--------|
+| `instructions/gitnexus.instructions.md` | Removed | Privacy/security: unpinned `@latest` supply chain risk; MCP process has full filesystem access; `wiki` command forwards codebase content (including RF IP, guardrails, device data) to external LLM APIs; prompt-injection vector via repo content returned by MCP tools |
+| `skills/gitnexus/SKILL.md` | Removed | Same as above — removed alongside instruction |
+
+### Design System Notes (added 2026-04-06)
+
+`DESIGN.md` is now the authoritative design spec for the RF PA Design App. Key differences from `Global_Agentic_Operating_System/DESIGN.md`:
+
+| Attribute | Global (developer tooling) | Atomic (RF instrument) |
+|-----------|---------------------------|------------------------|
+| Canvas background | `#0d0f11` | `#0b0b0b` |
+| Primary accent | Electric Blue `#3b82f6` | Signal Orange `#ff7f11` |
+| Secondary accent | — | Measurement Blue `#00aaff` (multi-select / traces) |
+| State affordance | Border / background shift | Canvas component glow (`drop-shadow`) |
+| RF value typography | Standard body | JetBrains Mono with mandatory unit |
+| Property editor border | Translucent white | `2px solid #ff7f11` (instrument-live indicator) |
+| Canvas error state | Status badge | Red pulse glow on canvas component |
+
+AI agents generating UI for this app must read `DESIGN.md` before producing any component.
+
+---
+
 *This document was generated from a full T-IKIA-T codebase audit conducted on 2026-04-01. Update this file when major milestones are completed.*

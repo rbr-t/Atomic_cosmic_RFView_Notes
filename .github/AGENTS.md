@@ -113,7 +113,7 @@ Use hooks for enforcement and automation, not for reasoning or architectural jud
 ## Skills
 
 | Skill | Trigger |
-|-------|---------||
+|-------|---------|
 | `.github/skills/mobile-responsive/SKILL.md` | Mobile UI implementation or audit |
 | `.github/skills/rich-document/SKILL.md` | HTML/PDF document, TOC, tabs, day/night toggle, colour-blind safe, bibliography |
 | `.github/skills/legal-document/SKILL.md` | Terms & Conditions, Privacy Policy, EULA, legal HTML/PDF, GDPR/CCPA/DPDP clauses |
