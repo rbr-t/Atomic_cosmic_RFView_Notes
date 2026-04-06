@@ -110,6 +110,7 @@ def validate_markdown_frontmatter(path: Path):
 
 def validate_hook_json(path: Path):
     relative_path = path.as_posix()
+    repo_root = path.parents[2]
     errors = []
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -145,7 +146,7 @@ def validate_hook_json(path: Path):
                 errors.append(f"{relative_path}: hook entry {event_name}[{index}] must reference a script under .github/hooks/scripts/")
                 continue
             for script_path in command_paths:
-                script_file = path.parent.parent / script_path.relative_to(".github/hooks")
+                script_file = repo_root / script_path
                 if not script_file.exists():
                     errors.append(f"{relative_path}: referenced script does not exist: {script_path.as_posix()}")
                 registrations.append((event_name, script_path.as_posix(), relative_path))

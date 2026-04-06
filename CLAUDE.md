@@ -425,4 +425,25 @@ Protect repo-local Copilot customization files and git operations in Atomic with
 
 ---
 
+## 14. Propagation Log
+
+### 2026-04-06 — Cross-repo propagation from Atomic
+
+| Item | Type | Propagated to | Notes |
+|------|------|---------------|-------|
+| `skills/legal-document/` | Skill (full folder + assets) | Global, Digital_twin, House | Richer replacement for `accessible-legal-documents`; includes HTML templates, GDPR/DPDP/CCPA references |
+| `skills/mobile-responsive/` | Skill (adapted) | Global, Digital_twin, House | Domain-adapted per repo: generic Shiny (Global), ag-field canvas (Digital_twin), BOQ/budget tracker (House) |
+| `agents/localisation-guardian.agent.md` | Agent (adapted) | Global, Digital_twin, House | Generalised for Global; ag measurement units for Digital_twin; construction cost/area units for House |
+| `agents/legal-guardian.agent.md` | Agent (generalised) | Global | RF/ITAR-specific content stripped; universal legal risk framework retained |
+| Hook validator `script_file` path bug | Bug fix (back-ported from Global) | Atomic | `path.parent.parent / relative_to(...)` → `repo_root = path.parents[2]; repo_root / script_path` |
+
+### Non-propagated (deliberate)
+| Item | Reason |
+|------|--------|
+| `instructions/locale-aware-formatting.instructions.md` | References `rv$lang` / `t()` / `R/i18n.R` — specific to album-editor app; not applicable to RF/ag/house apps without that i18n infrastructure |
+| Hook `04-posttool-global-propagation-reminder.json` | Deliberately absent from Atomic per CLAUDE.md §13b boundary; originates in Global and back-ported selectively |
+| RF-specific agents (theory, architecture, simulation, layout, measurement, debug, strategy, kb, etc.) | RF PA domain-specific; not applicable to other repos |
+
+---
+
 *This document was generated from a full T-IKIA-T codebase audit conducted on 2026-04-01. Update this file when major milestones are completed.*
