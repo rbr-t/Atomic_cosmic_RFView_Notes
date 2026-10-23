@@ -23,6 +23,21 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#sizing")).to_contain_text("33.800 ohm")
         expect(page.locator("#sizing")).to_contain_text("4.000 mm")
 
+        page.get_by_text("Technology charts and summary", exact=True).click()
+        expect(page.locator("#technology_charts svg")).to_have_count(3)
+        expect(page.locator("#technology_charts svg").first).to_be_visible()
+        expect(page.locator("#technology_summary_table tbody tr")).to_have_count(6)
+        expect(page.locator("#technology_charts polyline")).to_have_count(24)
+        page.locator("#chart_technology").select_option("GaN_SiC")
+        page.locator("#chart_pa_class").select_option("Doherty")
+        expect(page.locator("#technology_summary_table tbody tr")).to_have_count(1)
+        expect(page.locator("#technology_charts polyline")).to_have_count(4)
+        expect(page.locator("#technology_charts")).to_contain_text("PAE-backoff curves - Doherty")
+        expect(page.locator("#summary")).to_contain_text("35.400 dBm")
+        page.locator("#chart_technology").select_option("all")
+        expect(page.locator("#technology_summary_table tbody tr")).to_have_count(6)
+        page.get_by_text("Technology charts and summary", exact=True).click()
+
         # Exercise the real selection event and Python-to-browser edit.
         page.locator('.component[data-id="20"] polygon').click(position={"x": 5, "y": 20})
         page.get_by_text("Technology guardrail advisory", exact=True).click()
@@ -100,14 +115,17 @@ def main(url: str, channel: str | None = None) -> None:
         assert page.evaluate("window.paCanvas.components.length") == 4
 
         for width in (375, 768, 1440):
+            if width == 375:
+                page.get_by_text("Technology charts and summary", exact=True).click()
             page.set_viewport_size({"width": width, "height": 1000})
+            expect(page.locator("#technology_charts svg").first).to_be_visible()
             assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"), (
                 f"Page overflows at width {width}"
             )
         assert not errors, errors
         browser.close()
     print(
-        "Browser smoke passed: calculation, guardrails, edit, undo/redo, "
+        "Browser smoke passed: calculation, charts, guardrails, edit, undo/redo, "
         "download/upload, isolation and errors."
     )
 

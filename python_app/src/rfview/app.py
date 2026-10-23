@@ -20,6 +20,7 @@ from rfview.services import (
     serialize_document,
     with_operating_point,
 )
+from rfview.technology_ui import technology_panel
 
 logger = logging.getLogger(__name__)
 PACKAGE_ROOT = Path(__file__).resolve().parent
@@ -139,6 +140,24 @@ app_ui = ui.page_fluid(
             ui.tags.summary("Calculation rationale and limitations"),
             ui.output_code("rationale"),
         ),
+        ui.tags.details(
+            ui.tags.summary("Technology charts and summary"),
+            ui.input_select(
+                "chart_technology",
+                "Chart technology",
+                {
+                    "all": "All technologies",
+                    **{key: tech.label for key, tech in GUARDRAILS.technologies.items()},
+                },
+            ),
+            ui.input_select(
+                "chart_pa_class",
+                "PA class for backoff curves",
+                ["A", "AB", "B", "Doherty", "F"],
+                selected="AB",
+            ),
+            ui.output_ui("technology_charts"),
+        ),
     ),
     title="RF PA Design - Python migration",
 )
@@ -154,6 +173,14 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     last_serialized = reactive.Value("")
     result_input = reactive.Value("")
     prepared = reactive.Value(False)
+
+    @render.ui
+    def technology_charts() -> ui.Tag:
+        try:
+            return technology_panel(GUARDRAILS, input.chart_technology(), input.chart_pa_class())
+        except ValueError as exc:
+            logger.warning("Technology charts rejected: %s", exc)
+            return ui.p(f"Technology charts rejected: {exc}", role="alert")
 
     def failure(message: str) -> None:
         logger.warning("%s", message)

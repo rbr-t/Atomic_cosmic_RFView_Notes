@@ -133,9 +133,34 @@ decimal places rather than R's one. This preserves the SiGe minimum of
 original summary and separately calculated two-decimal density labels.
 Underlying numerical data is unchanged.
 
-The full suite now has **388 passing tests**. These builders are ready for
-consumption by charts, but chart UI and visual parity are **not** delivered by
-this batch.
+The data-builder batch reached **388 passing tests**.
+
+### Batch 4 - technology charts and summary UI
+
+Expand **Technology charts and summary** below the lineup results to view:
+
+- Typical power density versus logarithmic frequency.
+- Typical and maximum available gain versus logarithmic frequency.
+- PAE versus output backoff for a selected PA class.
+- A horizontally scrollable technology summary with units in column headings.
+
+Choose all technologies or one technology; choose A/AB/B/Doherty/F for the
+backoff chart. Filters are session-local and independent of the lineup and
+device advisory. Chart generation reuses the qualified builders without adding
+dependencies. The SVG views have labelled axes, accessible image descriptions,
+native trace-name tooltips, technology-color legends and dashed maximum-gain
+traces. Summary regions support keyboard focus and scrolling.
+
+This is a deliberate initial presentation adaptation, **not full visual parity**:
+the legacy multidimensional bubble view is represented by a 2D density envelope,
+with PAE and gain in separate charts. No point picking, numerical hover readout,
+zoom/pan or chart export is implemented yet. The envelopes remain legacy
+empirical estimates, not measurements or qualified operating limits.
+
+The suite now has **393 passing tests**, including SVG coordinate/shape/unit
+checks, escaping and invalid-filter checks. Chromium workflow checks cover
+all/single-technology filtering, PA-class changes, visible charts at 375/768/1440
+pixel widths and unchanged lineup behavior.
 
 ### Adapter boundary
 
@@ -184,7 +209,7 @@ to silence a mismatch.
 
 Each batch should deliver runnable behavior, targeted tests and a scope update:
 
-1. Wire guardrail charts/summary UI, then complete remaining calculations and legacy property controls.
+1. Complete remaining calculations and legacy property controls; qualify advanced chart interactions separately.
 2. Migrate load-pull and Touchstone parsers with frozen file fixtures and viewers.
 3. Add project persistence, snapshots and multi-canvas lifecycle.
 4. Integrate AI/KB and the existing guarded Python ingestion pipeline.

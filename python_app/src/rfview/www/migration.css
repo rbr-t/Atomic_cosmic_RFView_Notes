@@ -61,6 +61,17 @@ caption { color: var(--rf-secondary); }
 pre { white-space: pre-wrap; color: var(--rf-secondary); }
 .sidebar p { font-size: var(--rf-caption-size); }
 .main { min-width: 0; }
+.technology-chart { margin: var(--rf-spacing) 0; }
+.technology-chart svg { display: block; width: 100%; min-width: 0; }
+.technology-chart text { fill: var(--rf-secondary); font-family: var(--rf-mono); font-size: var(--rf-caption-size); }
+.technology-chart figcaption { font-size: var(--rf-heading-size); color: var(--rf-accent); }
+.chart-axis { stroke: var(--rf-secondary); fill: none; }
+.chart-grid { stroke: var(--rf-border); stroke-dasharray: 2 4; }
+.chart-trace { stroke: var(--trace-color); }
+.legend-swatch { display: inline-block; width: var(--rf-heading-size); border-top: 2px solid var(--trace-color); margin-right: var(--rf-spacing); }
+.legend-swatch.dashed { border-top-style: dashed; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: var(--rf-spacing); font-size: var(--rf-caption-size); color: var(--rf-secondary); }
+summary:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--rf-focus); }
 @media (max-width: 768px) {
   .migration-toolbar .btn { min-height: 44px; }
   .btn, input, select { min-height: 44px; }
