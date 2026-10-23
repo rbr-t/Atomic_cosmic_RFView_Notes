@@ -8,7 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 LoadPullFormat = Literal[
-    "spl", "focus", "lpcwave", "mdf", "amcad", "anteverta", "mdif", "cst", "alps_mdf"
+    "spl", "focus", "lpcwave", "mdf", "amcad", "anteverta", "mdif", "cst", "alps_mdf", "spl_plan"
 ]
 MAX_LOADPULL_BYTES = 5 * 1024 * 1024
 MAX_LOADPULL_POINTS = 100_000

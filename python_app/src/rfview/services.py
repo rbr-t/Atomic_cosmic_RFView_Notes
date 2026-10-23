@@ -12,6 +12,7 @@ from rfview.domain.loadpull import (
     parse_loadpull,
 )
 from rfview.domain.models import CanvasWorkspace, LineupDocument, OperatingPoint
+from rfview.domain.spl_plan import SplPlanImport, parse_spl_plan
 from rfview.domain.touchstone import (
     MAX_TOUCHSTONE_BYTES,
     TouchstoneData,
@@ -35,6 +36,14 @@ def read_alps_mdf(
         return read_alps_lines(
             stream, filename, plane=plane, block_index=block_index, backoff_db=backoff_db
         )
+
+
+def read_spl_plan(path: Path, filename: str, *, section_index: int = 1) -> SplPlanImport:
+    if path.stat().st_size > MAX_LOADPULL_BYTES:
+        raise ValueError("SPL plan exceeds the 5 MiB limit")
+    return parse_spl_plan(
+        path.read_text(encoding="utf-8-sig"), filename, section_index=section_index
+    )
 
 
 def read_loadpull(

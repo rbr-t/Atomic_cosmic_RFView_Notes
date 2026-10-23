@@ -223,11 +223,66 @@ def main(url: str) -> None:
         expect(page.locator("#loadpull_status")).to_contain_text("Last valid dataset retained")
         expect(page.locator("#loadpull_measurement_table tbody tr")).to_have_count(456)
         close_notifications(page)
+
+        page.locator("#loadpull_show_contours").uncheck()
+        page.locator("#loadpull_format").select_option("spl_plan")
+        plan_source = next(source.parent.glob("*.spl"))
+        page.locator("#loadpull_upload").set_input_files(plan_source)
+        expect(page.locator("#loadpull_upload_progress")).to_contain_text("Upload complete")
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text("Section 1/8 at 1.75 GHz")
+        expect(page.locator("#loadpull_status")).to_contain_text(
+            "811 valid measurements, 260 VALID=0 slots excluded"
+        )
+        expect(page.locator("#loadpull_status")).to_contain_text("All 7791 source slots checked")
+        expect(page.locator("#loadpull_spl_section option")).to_have_count(8)
+        expect(page.locator("#loadpull_view")).to_contain_text("Eff_col is drain efficiency (%)")
+        for width in (375, 768, 1440):
+            page.set_viewport_size({"width": width, "height": 1000})
+            expect(page.locator("#loadpull_spl_section")).to_be_visible()
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+        with page.expect_download() as download:
+            page.locator("#download_loadpull").click()
+        exported_plan = Path(temp) / "selected-plan.json"
+        download.value.save_as(exported_plan)
+        plan_subset = json.loads(exported_plan.read_text(encoding="utf-8"))
+        assert len(plan_subset["points"]) == 811
+        first = plan_subset["points"][0]
+        assert first["pout_dbm"] == 28.09750
+        assert first["idc_a"] == 1.92811920
+        assert first["vdc_v"] == 30.04331
+        assert first["de_pct"] == 1.11396
+        assert first["extra"]["source.iq_out_ma"] == 1802.29898
+        assert first["extra"]["source.pdis"] == 57.28988
+        assert first["extra"]["source.poutw"] == 0.64528
+        page.locator("#loadpull_spl_section").select_option("2")
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text("Section 2/8 at 1.8 GHz")
+        expect(page.locator("#loadpull_status")).to_contain_text("632 valid measurements")
+        page.locator("#loadpull_fractional").check()
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text("SPL plan Eff_col uses percent")
+        expect(page.locator("#loadpull_status")).to_contain_text("Last valid dataset retained")
+        expect(page.locator("#loadpull_view")).to_contain_text("Selected section 2/8")
+        close_notifications(page)
+        page.locator("#loadpull_fractional").uncheck()
+        invalid_plan = Path(temp) / "truncated-plan.spl"
+        invalid_plan.write_text(
+            plan_source.read_text(encoding="utf-8-sig").split("Freq = 2.0500 GHz")[0],
+            encoding="utf-8",
+        )
+        page.locator("#loadpull_upload").set_input_files(invalid_plan)
+        expect(page.locator("#loadpull_upload_progress")).to_contain_text("Upload complete")
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text("missing declared")
+        expect(page.locator("#loadpull_status")).to_contain_text("Last valid dataset retained")
+        expect(page.locator("#loadpull_view")).to_contain_text("Selected section 2/8")
+        close_notifications(page)
         assert not errors, errors
         browser.close()
     print(
         "Advanced browser smoke passed: comparison, lifecycle, geometry/history, "
-        "triangles, noise, mixed-mode and streamed ALPS selection/export."
+        "triangles, noise, mixed-mode, streamed ALPS and SPL plan selection/export."
     )
 
 

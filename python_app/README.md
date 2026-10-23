@@ -910,12 +910,53 @@ the corresponding source columns for Pin/Pout/Gt/Gamma/Freq/Vout/Iout/Pdc.
 ALPS backoff overlays now render as explicit same-frequency/fixed-BO
 comparisons (not mislabeled fixed-Pin sweeps).
 
-Remaining RF-data blockers are now narrowed to:
+At batch 26, remaining RF-data blockers were narrowed to:
 
 - Repository SPL preamble/efficiency-column dialect acceptance.
 - Repository CST pre-block metadata acceptance and explicit wave-normalization
   qualification.
 - Harmonic/wave-specific engineering workflows and broader overlay interaction.
+
+### Batch 27 - repository SPL power-sweep-plan acceptance
+
+Select **SPL_PLAN** for the repository's fundamental-only power-sweep-plan
+dialect; **SPL** retains its generic-table semantics and efficiency unit
+options. The new profile validates the preamble, frequency table, declared
+source/load harmonics, Cartesian Gamma columns and every planned slot across
+all sections. Truncation, slot-count mismatches, malformed or nonfinite
+measurements and unsupported harmonics fail explicitly, including errors in
+unselected sections.
+
+Import once to discover the frequency catalogue, select a section, then
+reimport. Only its valid measurements enter the viewer and normalized JSON;
+other sections are not silently decimated. Limits are **5 MiB**, **100,000
+source slots**, **1,000 sections** and **2,000 selected valid points**.
+`VALID=0` slots are explicitly counted and excluded, not replaced with zero
+power measurements. Valid rows retain original slot/section indices.
+Rejected imports retain the last valid dataset.
+
+The mapping uses `Pin_avail_dBm`, `Pout_dBm`, `Gt_dB`, `Freq`, `Vout_v`,
+`Iout_mA` and `Eff_col` (drain efficiency in percent). PDC is
+`Vout_v * Iout_mA / 1000`; PAE is derived from that DC power and Pin/Pout.
+All original numeric columns remain in `extra["source.*"]`. In particular,
+`Eff_%`, `Pdis`, `PoutW`, quiescent current and gate bias are not conflated
+with drain efficiency, DC input, dBm-derived output watts or measured drain
+current. Fractional-efficiency selection is rejected for this fixed-percent
+profile, not silently ignored.
+
+Repository acceptance covers **8 sections, 7,791 planned slots, 5,431 valid
+measurements and 2,360 invalid slots**. Every valid row across all sections
+is checked against source Gamma, Pin/Pout/gain, frequency, voltage/current,
+efficiency and alternate columns. Browser acceptance checks actual upload,
+section switching, normalized download, responsive controls and retention
+after truncated-file/unit-option errors.
+
+This is file/profile acceptance, not calibration or universal SPL support.
+Gamma retains the source file's reference plane without transformation.
+Exact measured Pin/source-Gamma/bias grouping stays unchanged: rounding or
+nearest-neighbour selection must not fabricate constant-Pin contour sweeps.
+Repository CST pre-block metadata, harmonic/wave workflows and advanced
+RF-data interactions remain separate migration work.
 
 The browser protocol also explicitly decodes JSON at the input boundary:
 Python Shiny freezes nested JSON arrays to tuples, which are not Pydantic
@@ -923,13 +964,15 @@ Python Shiny freezes nested JSON arrays to tuples, which are not Pydantic
 preserves component display arrays/workspace extras without weakening domain
 validation or silently dropping fields.
 
-Current qualification: **885 Python tests**, Ruff, strict source mypy,
-JavaScript/dependency checks and Pylance syntax checks. Both Chromium suites
+Current qualification: **924 Python tests**, Ruff, strict source mypy,
+JavaScript/dependency checks and Python compilation. Both Chromium suites
 cover the established flows plus triangular/noise export, mixed-mode reference
 labels/analysis gates, comparison freshness/responsiveness, component creation,
 copy/clear confirmation/cancel/stale-target rejection, metadata/pose
-undo/redo, and streamed ALPS block/backoff selection with export/error
-retention. The legacy R sources remain unchanged. **Workstreams 1-2 are not
+undo/redo, streamed ALPS block/backoff selection and SPL plan frequency
+selection with export/error retention. Pylance tools were unavailable during
+batch 27; runtime tests, compilation and strict mypy provided local validation
+instead. The legacy R sources remain unchanged. **Workstreams 1-2 are not
 fully complete**: delivered slices do not imply full legacy-editor/file parity
 or device-calibrated engineering acceptance.
 
@@ -972,10 +1015,10 @@ to silence a mismatch.
 
 Each batch should deliver runnable behavior, targeted tests and a scope update:
 
-1. Complete RF-data acceptance: repository SPL/CST dialects, harmonic/wave
+1. Complete RF-data acceptance: repository CST dialect, harmonic/wave
    workflows, implicit 1.x noise, mixed-mode basis conversion and richer
    overlays/interaction. Explicit TS2 noise, mixed-mode basis preservation,
-   triangular matrices and streamed ALPS typed MDF selection are delivered,
+   triangular matrices, streamed ALPS MDF and SPL plan selection are delivered,
    not universal file/viewer parity.
 2. Complete remaining calculations, engineering-model decisions, legacy
    property/display/synthesis controls, simultaneous editable comparison and

@@ -44,6 +44,7 @@ from rfview.services import (
     read_document,
     read_guardrails,
     read_loadpull,
+    read_spl_plan,
     read_touchstone,
     read_workspace,
     serialize_document,
@@ -224,6 +225,7 @@ app_ui = ui.page_fluid(
                 "Session-only UTF-8 ASCII adapters; explicitly choose format and efficiency "
                 "units before importing. Generic adapters: max 5 MiB / 2,000 viewer points. "
                 "ALPS typed MDF: streamed up to 64 MiB; explicitly selected block only. "
+                "SPL power-sweep plans: selected frequency section only, within 5 MiB. "
                 "Numeric/block variants are qualified, not every vendor revision."
             ),
             ui.input_select(
@@ -241,6 +243,7 @@ app_ui = ui.page_fluid(
                         "mdif",
                         "cst",
                         "alps_mdf",
+                        "spl_plan",
                     )
                 },
             ),
@@ -248,6 +251,22 @@ app_ui = ui.page_fluid(
                 "loadpull_fractional",
                 "Imported efficiencies are fractions (0-1), not percent",
                 False,
+            ),
+            ui.panel_conditional(
+                "input.loadpull_format === 'spl_plan'",
+                ui.input_select(
+                    "loadpull_spl_section",
+                    "SPL plan frequency section",
+                    {"1": "1 (import once to discover frequency sections)"},
+                ),
+                ui.p(
+                    "Fundamental-only SPL power-sweep-plan profile. Eff_col is drain "
+                    "efficiency (%); PAE uses Pin_avail_dBm, Pout_dBm and Vout_v*Iout_mA. "
+                    "Eff_%, Pdis, PoutW and quiescent bias stay separate in JSON export. "
+                    "All sections and declared slots are checked; only VALID=1 rows from "
+                    "the chosen section are loaded. Reimport to change frequency. "
+                    "Use SPL for the existing generic table dialect."
+                ),
             ),
             ui.panel_conditional(
                 "input.loadpull_format === 'alps_mdf'",
@@ -478,6 +497,31 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
                     selected=str(block_index),
                     session=session,
                 )
+            elif adapter == "spl_plan":
+                if input.loadpull_fractional():
+                    raise ValueError(
+                        "SPL plan Eff_col uses percent; deselect fractional efficiencies"
+                    )
+                section_index = int(input.loadpull_spl_section())
+                plan = await asyncio.to_thread(
+                    read_spl_plan,
+                    Path(files[0]["datapath"]),
+                    files[0]["name"],
+                    section_index=section_index,
+                )
+                parsed = plan.dataset
+                ui.update_select(
+                    "loadpull_spl_section",
+                    choices={
+                        str(section.index): (
+                            f"{section.index}: {section.frequency_ghz:.12g} GHz | "
+                            f"{section.valid_rows} valid / {section.invalid_rows} invalid slots"
+                        )
+                        for section in plan.sections
+                    },
+                    selected=str(section_index),
+                    session=session,
+                )
             else:
                 parsed = read_loadpull(
                     Path(files[0]["datapath"]),
@@ -504,6 +548,15 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             if adapter == "alps_mdf"
             else ""
         )
+        if adapter == "spl_plan":
+            scope = (
+                f" Section {parsed.metadata['selected_section']}/"
+                f"{parsed.metadata['total_sections']} at "
+                f"{float(parsed.metadata['frequency_ghz']):.12g} GHz; "
+                f"{len(parsed.points)} valid measurements, "
+                f"{parsed.metadata['selected_invalid_rows']} VALID=0 slots excluded. "
+                f"All {parsed.metadata['total_source_slots']} source slots checked."
+            )
         loadpull_status_state.set(
             f"Loaded {parsed.filename} using {parsed.format}.{scope} Session-only."
         )
