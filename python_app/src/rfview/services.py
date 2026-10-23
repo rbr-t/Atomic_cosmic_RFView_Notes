@@ -3,6 +3,7 @@ from pathlib import Path
 
 import yaml
 
+from rfview.domain.alps_mdf import MAX_ALPS_BYTES, AlpsImport, AlpsPlane, read_alps_lines
 from rfview.domain.guardrails import GuardrailCatalog
 from rfview.domain.loadpull import (
     MAX_LOADPULL_BYTES,
@@ -18,6 +19,22 @@ from rfview.domain.touchstone import (
 )
 
 MAX_DOCUMENT_BYTES = 5 * 1024 * 1024
+
+
+def read_alps_mdf(
+    path: Path,
+    filename: str,
+    *,
+    plane: AlpsPlane,
+    block_index: int,
+    backoff_db: float | None = None,
+) -> AlpsImport:
+    if path.stat().st_size > MAX_ALPS_BYTES:
+        raise ValueError("ALPS input exceeds the 64 MiB limit")
+    with path.open(encoding="utf-8-sig", newline=None) as stream:
+        return read_alps_lines(
+            stream, filename, plane=plane, block_index=block_index, backoff_db=backoff_db
+        )
 
 
 def read_loadpull(

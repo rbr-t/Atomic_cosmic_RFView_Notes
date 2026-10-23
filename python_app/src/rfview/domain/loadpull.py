@@ -7,7 +7,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-LoadPullFormat = Literal["spl", "focus", "lpcwave", "mdf", "amcad", "anteverta", "mdif", "cst"]
+LoadPullFormat = Literal[
+    "spl", "focus", "lpcwave", "mdf", "amcad", "anteverta", "mdif", "cst", "alps_mdf"
+]
 MAX_LOADPULL_BYTES = 5 * 1024 * 1024
 MAX_LOADPULL_POINTS = 100_000
 
@@ -31,6 +33,7 @@ class LoadPullPoint(BaseModel):
     pdc_w: float | None = None
     freq_ghz: float | None = None
     extra: dict[str, float | None] = Field(default_factory=dict)
+    source_strings: dict[str, str] = Field(default_factory=dict)
 
 
 class LoadPullData(BaseModel):
@@ -142,7 +145,7 @@ def _polar(magnitude: float, angle: float) -> tuple[float, float]:
     return magnitude * math.cos(radians), magnitude * math.sin(radians)
 
 
-def _normalise(
+def normalise_loadpull_row(
     raw: dict[str, float | None],
     frequency: float | None,
     efficiency_unit: str,
@@ -373,7 +376,8 @@ def parse_loadpull(
         warnings[f"Skipped {skipped} rows explicitly marked VALID=0."] = None
     try:
         points = tuple(
-            _normalise(row, None, efficiency_unit, warnings, i + 1) for i, row in enumerate(rows)
+            normalise_loadpull_row(row, None, efficiency_unit, warnings, i + 1)
+            for i, row in enumerate(rows)
         )
     except OverflowError as exc:
         raise ValueError("Load-pull calculation exceeds numeric range") from exc
@@ -489,7 +493,9 @@ def _parse_cst(text: str, filename: str) -> LoadPullData:
                 ] = None
             if pin > 0 and pout > 0:
                 raw_values["GAIN_DB"] = 10 * (math.log10(pout) - math.log10(pin))
-            points.append(_normalise(raw_values, frequency, "percent", warnings, len(points) + 1))
+            points.append(
+                normalise_loadpull_row(raw_values, frequency, "percent", warnings, len(points) + 1)
+            )
         except OverflowError as exc:
             raise ValueError("CST calculation exceeds numeric range") from exc
         if len(points) > MAX_LOADPULL_POINTS:

@@ -2,15 +2,31 @@ from html import escape
 
 from shiny import ui
 
-from rfview.domain.loadpull import LoadPullData
+from rfview.domain.loadpull import LoadPullData, LoadPullPoint
 from rfview.domain.loadpull_contours import (
     METRICS,
     LoadPullMetric,
+    SweepKey,
     loadpull_contours,
     loadpull_sweeps,
 )
 
 MAX_LOADPULL_VIEW_POINTS = 2000
+
+
+def _backoff(data: LoadPullData) -> float | None:
+    if data.format == "alps_mdf" and data.metadata.get("selection_kind") == "backoff":
+        return float(data.metadata["backoff_db"])
+    return None
+
+
+def _viewer_sweeps(data: LoadPullData) -> dict[SweepKey, tuple[LoadPullPoint, ...]]:
+    if _backoff(data) is None:
+        return loadpull_sweeps(data.points)
+    grouped: dict[SweepKey, list[LoadPullPoint]] = {}
+    for point in data.points:
+        grouped.setdefault((point.freq_ghz, None, None, None, None), []).append(point)
+    return {key: tuple(points) for key, points in grouped.items()}
 
 
 def sweep_choices(data: LoadPullData) -> dict[str, str]:
@@ -19,10 +35,13 @@ def sweep_choices(data: LoadPullData) -> dict[str, str]:
 
     return {
         f"sweep-{i}": (
-            f"{label(key[0])} GHz | Pin {label(key[1])} dBm | "
+            f"{label(key[0])} GHz | source BO {_backoff(data):.12g} dB | "
+            "Pin/source Gamma/bias may vary (not a fixed-Pin sweep)"
+            if _backoff(data) is not None
+            else f"{label(key[0])} GHz | Pin {label(key[1])} dBm | "
             f"Gs {label(key[2])},{label(key[3])} | Vdc {label(key[4])} V"
         )
-        for i, key in enumerate(loadpull_sweeps(data.points))
+        for i, key in enumerate(_viewer_sweeps(data))
     }
 
 
@@ -35,7 +54,7 @@ def loadpull_panel(
         )
     if metric not in METRICS:
         raise ValueError("Choose a supported load-pull metric")
-    groups = list(loadpull_sweeps(data.points).values())
+    groups = list(_viewer_sweeps(data).values())
     choices = sweep_choices(data)
     if sweep not in choices:
         raise ValueError("Choose an available load-pull sweep")
@@ -53,7 +72,9 @@ def loadpull_panel(
         if high == low:
             raise ValueError("Constant metric: no distinct contour levels; choose measured points")
         levels = tuple(low * (1 - i / 6) + high * (i / 6) for i in range(1, 6))
-    segments = loadpull_contours(points, metric, levels) if contours else ()
+    segments = (
+        loadpull_contours(points, metric, levels, backoff_db=_backoff(data)) if contours else ()
+    )
     extent = max(1, *(max(abs(p.gl_r), abs(p.gl_i)) for p in points))
 
     def x(value: float) -> float:

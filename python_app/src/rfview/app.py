@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from collections.abc import Iterator
@@ -9,6 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
+from rfview.domain.alps_mdf import ALPS_PLANES, AlpsPlane
 from rfview.domain.component_properties import (
     ComponentGeometry,
     property_fields,
@@ -38,6 +40,7 @@ from rfview.loadpull_ui import MAX_LOADPULL_VIEW_POINTS, loadpull_panel, sweep_c
 from rfview.services import (
     example_document,
     operating_point,
+    read_alps_mdf,
     read_document,
     read_guardrails,
     read_loadpull,
@@ -219,7 +222,8 @@ app_ui = ui.page_fluid(
             ui.tags.summary("Load-pull measurements and contours"),
             ui.p(
                 "Session-only UTF-8 ASCII adapters; explicitly choose format and efficiency "
-                "units before importing. Max 5 MiB / 2,000 viewer points. "
+                "units before importing. Generic adapters: max 5 MiB / 2,000 viewer points. "
+                "ALPS typed MDF: streamed up to 64 MiB; explicitly selected block only. "
                 "Numeric/block variants are qualified, not every vendor revision."
             ),
             ui.input_select(
@@ -236,6 +240,7 @@ app_ui = ui.page_fluid(
                         "anteverta",
                         "mdif",
                         "cst",
+                        "alps_mdf",
                     )
                 },
             ),
@@ -243,6 +248,37 @@ app_ui = ui.page_fluid(
                 "loadpull_fractional",
                 "Imported efficiencies are fractions (0-1), not percent",
                 False,
+            ),
+            ui.panel_conditional(
+                "input.loadpull_format === 'alps_mdf'",
+                ui.input_select("loadpull_alps_plane", "ALPS Gamma reference plane", ALPS_PLANES),
+                ui.input_select(
+                    "loadpull_alps_selection",
+                    "ALPS measurement subset",
+                    {
+                        "block": "Power sweep at one load block",
+                        "backoff": "Load-pull across blocks at a fixed BO (dB)",
+                    },
+                ),
+                ui.panel_conditional(
+                    "input.loadpull_alps_selection === 'backoff'",
+                    ui.input_numeric("loadpull_alps_backoff", "BO column value (dB)", 0, step=0.1),
+                    ui.p("Match source BO within 1e-8 dB, not nearest-neighbour interpolation."),
+                ),
+                ui.panel_conditional(
+                    "input.loadpull_alps_selection === 'block'",
+                    ui.input_select(
+                        "loadpull_alps_block",
+                        "ALPS block to load",
+                        {"1": "1 (import once to discover the block catalogue)"},
+                    ),
+                ),
+                ui.p(
+                    "Fixed ALPS measurement profile: Pin_avail_dBm, Pout_dBm, Gt_dB, Freq, "
+                    "Eff_col (%), Vout_v and Iout_mA. Compression and alternative columns "
+                    "remain in the selected-block JSON export. Reimport to change block/plane. "
+                    "The first scan can take several seconds."
+                ),
             ),
             ui.input_file(
                 "loadpull_upload",
@@ -396,18 +432,59 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
 
     @reactive.effect
     @reactive.event(input.loadpull_import)
-    def _loadpull_import() -> None:
+    async def _loadpull_import() -> None:
         files = input.loadpull_upload()
         try:
             if not files:
                 raise ValueError("Choose a load-pull ASCII file first")
             adapter: LoadPullFormat = input.loadpull_format()
-            parsed = read_loadpull(
-                Path(files[0]["datapath"]),
-                files[0]["name"],
-                adapter,
-                fractional=input.loadpull_fractional(),
-            )
+            if adapter == "alps_mdf":
+                if input.loadpull_fractional():
+                    raise ValueError("ALPS Eff_col uses percent; deselect fractional efficiencies")
+                plane: AlpsPlane = input.loadpull_alps_plane()
+                block_index = int(input.loadpull_alps_block())
+                backoff_db = (
+                    input.loadpull_alps_backoff()
+                    if input.loadpull_alps_selection() == "backoff"
+                    else None
+                )
+                if input.loadpull_alps_selection() == "backoff" and backoff_db is None:
+                    raise ValueError("Enter the source BO value in dB")
+                with ui.Progress(min=0, max=1, session=session) as progress:
+                    progress.set(
+                        message="Validating ALPS stream; retaining selected block", value=0.1
+                    )
+                    imported = await asyncio.to_thread(
+                        read_alps_mdf,
+                        Path(files[0]["datapath"]),
+                        files[0]["name"],
+                        plane=plane,
+                        block_index=block_index,
+                        backoff_db=backoff_db,
+                    )
+                    progress.set(value=1)
+                parsed = imported.dataset
+                ui.update_select(
+                    "loadpull_alps_block",
+                    choices={
+                        str(block.index): (
+                            f"{block.index}: {block.rows} rows; "
+                            + ", ".join(
+                                f"{key}={value:.6g}" for key, value in block.variables.items()
+                            )
+                        )
+                        for block in imported.blocks
+                    },
+                    selected=str(block_index),
+                    session=session,
+                )
+            else:
+                parsed = read_loadpull(
+                    Path(files[0]["datapath"]),
+                    files[0]["name"],
+                    adapter,
+                    fractional=input.loadpull_fractional(),
+                )
             if len(parsed.points) > MAX_LOADPULL_VIEW_POINTS:
                 raise ValueError(f"Viewer limit is {MAX_LOADPULL_VIEW_POINTS} load-pull points")
         except (ValueError, OSError) as exc:
@@ -420,7 +497,16 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         ui.update_select(
             "loadpull_sweep", choices=sweep_choices(parsed), selected="sweep-0", session=session
         )
-        loadpull_status_state.set(f"Loaded {parsed.filename} using {parsed.format}. Session-only.")
+        scope = (
+            f" {parsed.metadata['selection']}; "
+            f"{len(parsed.points)}/{parsed.metadata['total_source_rows']} source rows. "
+            f"{parsed.metadata['gamma_plane']}."
+            if adapter == "alps_mdf"
+            else ""
+        )
+        loadpull_status_state.set(
+            f"Loaded {parsed.filename} using {parsed.format}.{scope} Session-only."
+        )
 
     @render.text
     def loadpull_status() -> str:

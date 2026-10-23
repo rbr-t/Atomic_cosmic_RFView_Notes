@@ -879,20 +879,43 @@ No source samples are copied or modified. This does not establish wave
 normalization/calibration or harmonic engineering-model validity. CI watches
 the sample directory so changes trigger the acceptance checks.
 
-Local probes also identified remaining blockers rather than assuming
-eight-adapter synthetic coverage established vendor parity:
+### Batch 26 - streamed ALPS MDF with explicit selection semantics
 
-- Repository ALPS MDF samples are approximately **40-49 MB**, above the
-  deliberate 5 MiB import bound, and contain quoted string columns and
-  overlapping aliases that need an explicit dialect/measurement mapping.
-- The repository SPL has a preamble/efficiency-column dialect not accepted by
-  the bounded adapter.
-- The repository CST uses pre-block metadata, unlike the qualified adapter's
-  per-block layout; wave normalization still requires explicit confirmation.
+ALPS typed MDF is now a separate bounded adapter (`alps_mdf`) with explicit,
+non-heuristic mappings and stream parsing:
 
-Those formats remain rejected; no measurements are silently discarded to
-force acceptance. Large-file streaming/sweep selection and dialect mapping
-are still implementation work, not just external sign-off.
+- Streamed validation up to **64 MiB** per file (1 MiB max line), with no
+  whole-file `read_text()` path.
+- Full-file structural/numeric validation remains strict while importing only
+  the selected subset for the viewer/export.
+- Explicit Gamma reference-plane selection:
+  - `dut`: `GLRE/GLIM`, `GSRE/GSIM`
+  - `instrument`: `gamma_ld1_re/im`, `gamma_src1_re/im`
+- Fixed measurement profile (Pin/Pout/Gt/Freq/Eff_col/Vout/Iout), while
+  preserving compression and alternate columns in `point.extra` and quoted
+  source strings in `point.source_strings`.
+- Two explicit subset modes:
+  - one selected Sweep block; or
+  - fixed backoff (`BO`) across blocks, matched at 1e-8 dB tolerance.
+- No silent truncation: selected subset still enforces the 2,000-point viewer
+  bound and rejects overflow explicitly.
+
+Repository qualification now includes both large ALPS samples:
+
+- `...1.750GHz.tdp.mdf`: **500 blocks, 117,000 validated rows**
+- `...1.800GHz.tdp.mdf`: **456 blocks, 97,584 validated rows**
+
+For selected subsets, every row in the selected import was asserted against
+the corresponding source columns for Pin/Pout/Gt/Gamma/Freq/Vout/Iout/Pdc.
+ALPS backoff overlays now render as explicit same-frequency/fixed-BO
+comparisons (not mislabeled fixed-Pin sweeps).
+
+Remaining RF-data blockers are now narrowed to:
+
+- Repository SPL preamble/efficiency-column dialect acceptance.
+- Repository CST pre-block metadata acceptance and explicit wave-normalization
+  qualification.
+- Harmonic/wave-specific engineering workflows and broader overlay interaction.
 
 The browser protocol also explicitly decodes JSON at the input boundary:
 Python Shiny freezes nested JSON arrays to tuples, which are not Pydantic
@@ -900,12 +923,13 @@ Python Shiny freezes nested JSON arrays to tuples, which are not Pydantic
 preserves component display arrays/workspace extras without weakening domain
 validation or silently dropping fields.
 
-Current qualification: **862 Python tests**, Ruff, strict source mypy,
+Current qualification: **885 Python tests**, Ruff, strict source mypy,
 JavaScript/dependency checks and Pylance syntax checks. Both Chromium suites
 cover the established flows plus triangular/noise export, mixed-mode reference
 labels/analysis gates, comparison freshness/responsiveness, component creation,
-copy/clear confirmation/cancel/stale-target rejection, and metadata/pose
-undo/redo. The legacy R sources remain unchanged. **Workstreams 1-2 are not
+copy/clear confirmation/cancel/stale-target rejection, metadata/pose
+undo/redo, and streamed ALPS block/backoff selection with export/error
+retention. The legacy R sources remain unchanged. **Workstreams 1-2 are not
 fully complete**: delivered slices do not imply full legacy-editor/file parity
 or device-calibrated engineering acceptance.
 
@@ -948,11 +972,11 @@ to silence a mismatch.
 
 Each batch should deliver runnable behavior, targeted tests and a scope update:
 
-1. Complete RF-data acceptance: large ALPS quoted/string MDF with explicit
-   measurement mapping, repository SPL/CST dialects, harmonic/wave workflows,
-   implicit 1.x noise, mixed-mode basis conversion and richer overlays/
-   interaction. Explicit TS2 noise, mixed-mode basis preservation and triangular
-   matrices are delivered, not universal file/viewer parity.
+1. Complete RF-data acceptance: repository SPL/CST dialects, harmonic/wave
+   workflows, implicit 1.x noise, mixed-mode basis conversion and richer
+   overlays/interaction. Explicit TS2 noise, mixed-mode basis preservation,
+   triangular matrices and streamed ALPS typed MDF selection are delivered,
+   not universal file/viewer parity.
 2. Complete remaining calculations, engineering-model decisions, legacy
    property/display/synthesis controls, simultaneous editable comparison and
    persistent multi-canvas lifecycle; qualify advanced chart interactions and

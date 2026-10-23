@@ -1,12 +1,24 @@
 """Advanced RF structures, geometry controls and confirmed workspace lifecycle."""
 
 import argparse
+import json
 import tempfile
 from pathlib import Path
 
-from playwright.sync_api import expect, sync_playwright
+from playwright.sync_api import Error, expect, sync_playwright
 
 from rfview.domain.touchstone import parse_touchstone
+
+
+def close_notifications(page) -> None:
+    for _ in range(16):
+        close_button = page.locator(".shiny-notification-close").first
+        if close_button.count() == 0:
+            return
+        try:
+            close_button.click(timeout=1500)
+        except Error:
+            continue
 
 
 def main(url: str) -> None:
@@ -56,7 +68,7 @@ def main(url: str) -> None:
         page.locator("#confirm_canvas_replace").click()
         expect(page.locator("#status")).to_contain_text("Target canvas changed")
         assert page.evaluate("window.paCanvas.components.length") == 4
-        page.locator(".shiny-notification-close").click()
+        close_notifications(page)
         page.locator("#python_undo").click()
 
         page.locator("#python_canvas_slot").select_option("2")
@@ -110,7 +122,7 @@ def main(url: str) -> None:
         page.locator("#design_x").fill("1000001")
         page.locator("#apply_design_properties").click()
         expect(page.locator("#status")).to_contain_text("Design edit rejected")
-        page.locator(".shiny-notification-close").click()
+        close_notifications(page)
         assert page.evaluate("window.paCanvas.components.find(c=>c.id===20).x") == 450
         page.get_by_text("Design metadata and geometry", exact=True).click()
 
@@ -158,11 +170,64 @@ def main(url: str) -> None:
         expect(page.locator("#touchstone_view")).to_contain_text("not physical single-ended ports")
         page.locator("#touchstone_representation").select_option("Stability")
         expect(page.locator("#touchstone_view")).to_contain_text("declared basis")
+
+        page.get_by_text("Load-pull measurements and contours", exact=True).click()
+        page.locator("#loadpull_format").select_option("alps_mdf")
+        source = next(
+            (Path(__file__).resolve().parents[2] / "PA design App" / "data" / "sample-files").glob(
+                "*1.800GHz.tdp.mdf"
+            )
+        )
+        page.locator("#loadpull_upload").set_input_files(source)
+        expect(page.locator("#loadpull_upload_progress")).to_contain_text(
+            "Upload complete", timeout=60_000
+        )
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text(
+            "214/97584 source rows", timeout=60_000
+        )
+        expect(page.locator("#loadpull_alps_block option")).to_have_count(456)
+        page.locator("#loadpull_alps_block").select_option("2")
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text("block 2/456", timeout=60_000)
+        page.locator("#loadpull_alps_selection").select_option("backoff")
+        page.locator("#loadpull_alps_plane").select_option("instrument")
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text(
+            "456/97584 source rows", timeout=60_000
+        )
+        expect(page.locator("#loadpull_sweep option")).to_have_count(1)
+        expect(page.locator("#loadpull_measurement_table tbody tr")).to_have_count(456)
+        page.locator("#loadpull_show_contours").check()
+        expect(page.locator(".loadpull-contour").first).to_be_visible()
+        for width in (375, 768, 1440):
+            page.set_viewport_size({"width": width, "height": 1000})
+            expect(page.locator("#loadpull_view svg")).to_be_visible()
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+        with page.expect_download() as download:
+            page.locator("#download_loadpull").click()
+        exported_alps = Path(temp) / "selected-alps.json"
+        download.value.save_as(exported_alps)
+        subset = json.loads(exported_alps.read_text(encoding="utf-8"))
+        assert len(subset["points"]) == 456
+        assert subset["points"][0]["extra"]["source.bo"] == 0
+        assert subset["points"][0]["source_strings"]["fname"] == source.name.removesuffix(
+            ".tdp.mdf"
+        )
+        assert "Instrument" in subset["metadata"]["gamma_plane"]
+        page.locator("#loadpull_alps_backoff").fill("999")
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text(
+            "No ALPS rows match", timeout=60_000
+        )
+        expect(page.locator("#loadpull_status")).to_contain_text("Last valid dataset retained")
+        expect(page.locator("#loadpull_measurement_table tbody tr")).to_have_count(456)
+        close_notifications(page)
         assert not errors, errors
         browser.close()
     print(
         "Advanced browser smoke passed: comparison, lifecycle, geometry/history, "
-        "triangles, noise and mixed-mode."
+        "triangles, noise, mixed-mode and streamed ALPS selection/export."
     )
 
 

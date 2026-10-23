@@ -39,13 +39,28 @@ class ContourSegment(BaseModel):
 
 
 def loadpull_contours(
-    points: tuple[LoadPullPoint, ...], metric: LoadPullMetric, levels: tuple[float, ...]
+    points: tuple[LoadPullPoint, ...],
+    metric: LoadPullMetric,
+    levels: tuple[float, ...],
+    *,
+    backoff_db: float | None = None,
 ) -> tuple[ContourSegment, ...]:
     if metric not in METRICS:
         raise ValueError("Unsupported load-pull contour metric")
     if not 3 <= len(points) <= MAX_CONTOUR_POINTS:
         raise ValueError(f"Contours require 3-{MAX_CONTOUR_POINTS} measurement points")
-    if len({sweep_key(p) for p in points}) != 1:
+    if backoff_db is not None:
+        if (
+            not math.isfinite(backoff_db)
+            or len({p.freq_ghz for p in points}) != 1
+            or any(
+                p.extra.get("source.bo") is None
+                or not math.isclose(p.extra["source.bo"] or 0, backoff_db, rel_tol=0, abs_tol=1e-8)
+                for p in points
+            )
+        ):
+            raise ValueError("Choose one frequency and matching source BO for ALPS contours")
+    elif len({sweep_key(p) for p in points}) != 1:
         raise ValueError("Choose one frequency/input-power/source-Gamma/bias sweep for contours")
     if not 1 <= len(levels) <= 20 or not all(math.isfinite(level) for level in levels):
         raise ValueError("Contours require 1-20 finite levels")
