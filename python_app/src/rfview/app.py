@@ -170,6 +170,7 @@ app_ui = ui.page_fluid(
                     "S": "S magnitude / phase",
                     "Z": "Z real / imaginary (ohm)",
                     "Y": "Y real / imaginary (siemens)",
+                    "Smith": "Smith impedance chart (S11/S22)",
                 },
             ),
             ui.output_text("touchstone_status"),

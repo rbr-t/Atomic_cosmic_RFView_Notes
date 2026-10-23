@@ -72,6 +72,9 @@ pre { white-space: pre-wrap; color: var(--rf-secondary); }
 .legend-swatch.dashed { border-top-style: dashed; }
 .chart-legend { display: flex; flex-wrap: wrap; gap: var(--rf-spacing); font-size: var(--rf-caption-size); color: var(--rf-secondary); }
 summary:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--rf-focus); }
+.smith-chart svg { max-width: 600px; margin-inline: auto; }
+.smith-trace { stroke: var(--rf-focus); stroke-width: 2; }
+.smith-point { fill: var(--rf-focus); }
 @media (max-width: 768px) {
   .migration-toolbar .btn { min-height: 44px; }
   .btn, input, select { min-height: 44px; }

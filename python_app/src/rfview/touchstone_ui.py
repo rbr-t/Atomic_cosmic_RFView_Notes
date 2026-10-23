@@ -2,6 +2,7 @@ from shiny import ui
 
 from rfview.domain.network_parameters import s_to_y, s_to_z
 from rfview.domain.touchstone import TouchstoneData
+from rfview.smith_ui import smith_chart
 from rfview.technology_ui import Trace, line_chart
 
 MAX_VIEWER_FREQUENCIES = 2000
@@ -13,12 +14,14 @@ def touchstone_panel(network: TouchstoneData, parameter: str, representation: st
     points = [point for point in network.points if point.param == parameter]
     if not points:
         raise ValueError(f"Parameter {parameter} is not present in {network.filename}")
-    if representation not in ("S", "Z", "Y"):
+    if representation not in ("S", "Z", "Y", "Smith"):
         raise ValueError(f"Unsupported network representation: {representation}")
-    if representation != "S" and network.nports != 2:
+    if representation in ("Z", "Y") and network.nports != 2:
         raise ValueError("Z/Y conversion requires a two-port dataset; select S for one-port data")
     charts: list[ui.Tag]
-    if representation == "S":
+    if representation == "Smith":
+        charts = [smith_chart(points, parameter, network.z0)]
+    elif representation == "S":
         charts = [
             line_chart(
                 f"{parameter} magnitude",

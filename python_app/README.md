@@ -395,6 +395,36 @@ views and singular-frequency reporting. Browser workflows verify Z/Y switching,
 singularity recovery, one-port rejection, session defaults and preserved
 upload/lineup/sizing behavior.
 
+### Batch 11 - bounded reflection Smith chart
+
+Select **Smith impedance chart (S11/S22)** in Network representation, then
+choose S11 or (for two-port datasets) S22. The responsive SVG shows a normalized
+impedance grid, unit-circle boundary and a frequency-ordered reflection trace
+with visible markers, including a single-record dataset.
+
+The center is matched, left boundary is short, and right boundary is open.
+Positive reactance lies above the real axis. The grid uses normalized resistance
+`r = 0.2, 0.5, 1, 2, 5` and reactance
+`x = +/-0.2, +/-0.5, +/-1, +/-2, +/-5`, normalized to the uploaded reference
+impedance. Native marker tooltips identify frequency in GHz and complex Gamma.
+
+S21/S12 transmission data are explicitly rejected in this view. If a selected
+reflection point exceeds the unit circle (`|Gamma| > 1 + 1e-12`), an error names
+its frequency, and no partial/clipped trace is shown. The source dataset remains
+available through S magnitude/phase. A displayed trace inside the circle does
+**not** establish full-network passivity, stability or calibration integrity.
+
+The existing 2,000-record viewer limit remains. This is an impedance grid, not
+an admittance Smith grid; no matching-element synthesis, movable markers,
+multi-dataset overlays, zoom/pan or chart export is included.
+
+The full suite now has **548 passing tests**. Tests verify known
+short/match/open/positive/negative-reactance coordinates, resistance-circle
+geometry, reactance-locus bounds, single-point visibility, input preservation,
+unsupported parameters and out-of-circle errors. Browser workflows verify
+one-/two-port Smith views, error recovery and responsive layouts while retaining
+the existing S/Z/Y and lineup behavior.
+
 ## Validation
 
 From the repository root:
