@@ -5,13 +5,19 @@ import logging
 from collections.abc import Iterator
 from pathlib import Path
 
-from pydantic import BaseModel, JsonValue, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
 from rfview.domain.guardrails import DeviceParameters, validate_device_params
 from rfview.domain.lineup import calculate_lineup
 from rfview.domain.models import LineupDocument, LineupResult, OperatingPoint
-from rfview.domain.transistor import gate_width, ropt
+from rfview.domain.transistor import (
+    DesignTopology,
+    StageSizingInput,
+    gate_width,
+    ropt,
+    transistor_design_suite,
+)
 from rfview.services import (
     example_document,
     operating_point,
@@ -37,6 +43,16 @@ class BrowserAction(BaseModel):
     action: str
     document: LineupDocument
     request_id: int
+
+
+class SizingRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    stage: StageSizingInput
+    freq_ghz: float = Field(gt=0)
+    topology: DesignTopology
+    er: float = Field(ge=1)
+    h_mm: float = Field(gt=0)
 
 
 def toolbar_button(identifier: str, label: str) -> ui.Tag:
@@ -136,6 +152,34 @@ app_ui = ui.page_fluid(
         ui.output_text("status"),
         ui.output_ui("summary"),
         ui.output_ui("stage_table"),
+        ui.tags.details(
+            ui.tags.summary("Full-stage transistor sizing"),
+            ui.p(
+                "Independent preliminary GaN synthesis. Inputs are session-only, "
+                "not saved with lineup JSON or applied to canvas devices. "
+                "Output power is a manual target, not automatically taken from lineup results."
+            ),
+            ui.input_numeric("suite_pout", "Sizing target output power (dBm)", 40),
+            ui.input_numeric("suite_pae", "Sizing entered PAE (%)", 55, min=0, max=100),
+            ui.input_numeric("suite_vdd", "Sizing supply voltage (V)", 28, min=0),
+            ui.input_numeric("suite_frequency", "Sizing frequency (GHz)", 3.5, min=0),
+            ui.input_select(
+                "suite_topology",
+                "Sizing topology",
+                {
+                    "single_ended": "Single-ended",
+                    "doherty_symmetric": "Symmetric Doherty",
+                    "doherty_asymmetric_6dB": "Asymmetric Doherty (6 dB)",
+                    "doherty_asymmetric_9dB": "Asymmetric Doherty (9 dB)",
+                },
+                selected="doherty_symmetric",
+            ),
+            ui.input_numeric(
+                "suite_er", "Substrate relative permittivity (dimensionless)", 3.55, min=1
+            ),
+            ui.input_numeric("suite_h", "Substrate thickness (mm)", 0.508, min=0),
+            ui.output_ui("full_stage_sizing"),
+        ),
         ui.tags.details(
             ui.tags.summary("Calculation rationale and limitations"),
             ui.output_code("rationale"),
@@ -474,6 +518,104 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         except (ValueError, OverflowError) as exc:
             return f"Sizing rejected: {exc}"
         return f"Ropt: {resistance:.3f} ohm\nGate width: {width:.3f} mm"
+
+    @render.ui
+    def full_stage_sizing() -> ui.Tag:
+        try:
+            request = SizingRequest(
+                stage=StageSizingInput(
+                    pout_dbm=input.suite_pout(),
+                    pae_pct=input.suite_pae(),
+                    vdd_v=input.suite_vdd(),
+                ),
+                freq_ghz=input.suite_frequency(),
+                topology=input.suite_topology(),
+                er=input.suite_er(),
+                h_mm=input.suite_h(),
+            )
+            design = transistor_design_suite(
+                request.stage, request.freq_ghz, request.topology, request.er, request.h_mm
+            )
+        except (ValueError, OverflowError) as exc:
+            logger.warning("Full-stage sizing rejected: %s", exc)
+            return ui.p(f"Full-stage sizing rejected: {exc}", role="alert")
+        groups = [
+            (
+                "Optimum load",
+                design["ropt"],
+                [
+                    ("Ropt_ohm", "Ropt", "ohm"),
+                ],
+            ),
+            (
+                "Gate sizing",
+                design["gate_width"],
+                [
+                    ("gate_width_mm", "Gate width", "mm"),
+                ],
+            ),
+            ("Bias", design["idq"], [("Idq_mA", "Quiescent current", "mA")]),
+            (
+                "Input match",
+                design["matching_input"],
+                [
+                    ("topology", "Matching topology", ""),
+                    ("Q", "Loaded Q", "dimensionless"),
+                    ("L_nH", "Inductance", "nH"),
+                    ("C_pF", "Capacitance", "pF"),
+                    ("bw_pct", "Legacy bandwidth estimate", "%"),
+                ],
+            ),
+            (
+                "Doherty sizing",
+                design["doherty"],
+                [
+                    ("Ropt_peak_ohm", "Peak Ropt", "ohm"),
+                    ("gate_ratio", "Peak/main gate ratio", "dimensionless"),
+                ],
+            ),
+            (
+                "Doherty combiner",
+                design["combiner"],
+                [
+                    ("Zt_ohm", "Combiner impedance", "ohm"),
+                    ("len_mm", "Combiner length", "mm"),
+                    ("width_mm", "Combiner width", "mm"),
+                ],
+            ),
+        ]
+        rows = []
+        for group, values, fields in groups:
+            if values is None:
+                rows.append(
+                    ui.tags.tr(ui.tags.th(group, scope="row"), ui.tags.td("Not applicable"))
+                )
+                continue
+            for key, label, unit in fields:
+                value = values[key]
+                text = (
+                    "Not required"
+                    if value is None
+                    else f"{value:.3f} {unit}".strip()
+                    if isinstance(value, (int, float))
+                    else str(value)
+                )
+                rows.append(ui.tags.tr(ui.tags.th(label, scope="row"), ui.tags.td(text)))
+        return ui.div(
+            ui.p(
+                f"Model: {design['model_version']} | Topology: {design['topology']} | "
+                f"Target: {design['pout_dbm']:.3f} dBm | Frequency: {design['freq_ghz']:.3f} GHz"
+            ),
+            ui.div(
+                ui.tags.table(
+                    ui.tags.caption("Full-stage transistor sizing results"),
+                    ui.tags.tbody(*rows),
+                ),
+                class_="table-scroll",
+            ),
+            ui.tags.ul(*(ui.tags.li(note) for note in design["limitations"])),
+            ui.p("Not a device-model, stability, thermal or EM qualification."),
+        )
 
     @render.ui
     def download_control() -> ui.Tag:

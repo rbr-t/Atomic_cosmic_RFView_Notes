@@ -199,9 +199,9 @@ match at `rtol=1e-10`, `atol=1e-12`. Invalid parameters/topologies raise errors;
 the port does not reproduce legacy NA/default-shaped error returns.
 The suite now has **422 passing tests**.
 
-This is an API-level batch: the existing sizing UI still shows its original
-Ropt/gate-width check. The full design-suite panel and human-readable rationale
-formatter are not yet migrated.
+The API batch leaves the original Ropt/gate-width check intact. The separate
+full-suite panel is delivered in Batch 6 below. The legacy formatted rationale
+function is not yet ported.
 
 The suite intentionally retains R's hard-coded GaN assumptions: knee voltage
 2 V, power density 2.5 W/mm, maximum current density 800 mA/mm, conduction angle
@@ -225,6 +225,34 @@ Calculation inventory after this batch:
 The MTTF issue must be resolved as an explicitly versioned engineering change,
 not silently corrected inside a legacy-parity port. The remaining runtime,
 parser, persistence, AI/KB and document migrations are still required.
+
+### Batch 6 - full-stage sizing UI
+
+Expand **Full-stage transistor sizing** below the lineup results. Set a manual
+output-power target (dBm), entered PAE (%), supply voltage (V), design frequency
+(GHz), topology, substrate relative permittivity and thickness (mm). Results
+update reactively through the qualified suite:
+
+- Ropt, gate width and quiescent current.
+- Input matching topology, Q, L, C and legacy bandwidth estimate.
+- Doherty peak-device Ropt and peak/main gate ratio.
+- Combiner impedance, length and width.
+
+Single-ended topology explicitly marks Doherty quantities as **Not applicable**.
+Invalid or blank inputs replace the results with an inline error; old successful
+results are not left visible. Model assumptions and qualification limits remain
+visible with each valid result.
+
+This is an independent session-only calculator, not a selected-canvas-device
+editor. Its inputs are not saved in lineup JSON, inferred from the current
+lineup, or applied to canvas devices. The original quick sizing check is
+unchanged and uses its own knee-voltage/power-density controls; the full suite
+retains the fixed legacy GaN assumptions described above.
+
+Chromium tests verify default numeric outputs, single-ended and asymmetric
+Doherty behavior, zero frequency, blank power, invalid supply voltage, recovery,
+session isolation, narrow layouts and unchanged lineup results. The full suite
+continues to pass **422 tests**, with lint and strict type checks.
 
 ## Validation
 

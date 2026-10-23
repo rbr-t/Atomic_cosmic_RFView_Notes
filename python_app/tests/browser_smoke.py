@@ -23,6 +23,40 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#sizing")).to_contain_text("33.800 ohm")
         expect(page.locator("#sizing")).to_contain_text("4.000 mm")
 
+        page.get_by_text("Full-stage transistor sizing", exact=True).click()
+        suite = page.locator("#full_stage_sizing")
+        expect(suite).to_be_visible()
+        expect(suite).to_contain_text("33.800 ohm")
+        expect(suite).to_contain_text("4.000 mm")
+        expect(suite).to_contain_text("533.333 mA")
+        expect(suite).to_contain_text("67.600 ohm")
+        page.locator("#suite_topology").select_option("single_ended")
+        expect(suite).to_contain_text("Not applicable")
+        expect(suite.locator("table")).not_to_contain_text("Combiner length")
+        page.locator("#suite_topology").select_option("doherty_asymmetric_9dB")
+        expect(suite).to_contain_text("101.400 ohm")
+        page.locator("#suite_frequency").fill("0")
+        page.locator("#suite_frequency").press("Tab")
+        expect(suite).to_contain_text("Full-stage sizing rejected")
+        expect(suite.locator("table")).to_have_count(0)
+        page.locator("#suite_frequency").fill("3.5")
+        page.locator("#suite_frequency").press("Tab")
+        expect(suite.locator("table")).to_contain_text("Combiner length")
+        page.locator("#suite_pout").fill("")
+        page.locator("#suite_pout").press("Tab")
+        expect(suite).to_contain_text("Full-stage sizing rejected")
+        page.locator("#suite_pout").fill("40")
+        page.locator("#suite_pout").press("Tab")
+        expect(suite).to_contain_text("33.800 ohm")
+        page.locator("#suite_vdd").fill("2")
+        page.locator("#suite_vdd").press("Tab")
+        expect(suite).to_contain_text("Full-stage sizing rejected")
+        page.locator("#suite_vdd").fill("28")
+        page.locator("#suite_vdd").press("Tab")
+        expect(suite.locator("table")).to_contain_text("33.800 ohm")
+        expect(page.locator("#summary")).to_contain_text("35.400 dBm")
+        page.get_by_text("Full-stage transistor sizing", exact=True).click()
+
         page.get_by_text("Technology charts and summary", exact=True).click()
         expect(page.locator("#technology_charts svg")).to_have_count(3)
         expect(page.locator("#technology_charts svg").first).to_be_visible()
@@ -106,6 +140,7 @@ def main(url: str, channel: str | None = None) -> None:
             == 16
         )
         expect(second.locator("#input_power_dbm")).to_have_value("20")
+        expect(second.locator("#suite_topology")).to_have_value("doherty_symmetric")
         second.close()
 
         malformed = Path(temp) / "invalid.json"
@@ -117,16 +152,18 @@ def main(url: str, channel: str | None = None) -> None:
         for width in (375, 768, 1440):
             if width == 375:
                 page.get_by_text("Technology charts and summary", exact=True).click()
+                page.get_by_text("Full-stage transistor sizing", exact=True).click()
             page.set_viewport_size({"width": width, "height": 1000})
             expect(page.locator("#technology_charts svg").first).to_be_visible()
+            expect(page.locator("#full_stage_sizing table")).to_be_visible()
             assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"), (
                 f"Page overflows at width {width}"
             )
         assert not errors, errors
         browser.close()
     print(
-        "Browser smoke passed: calculation, charts, guardrails, edit, undo/redo, "
-        "download/upload, isolation and errors."
+        "Browser smoke passed: calculation, full-stage sizing, charts, guardrails, "
+        "edit, undo/redo, download/upload, isolation and errors."
     )
 
 
