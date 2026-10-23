@@ -10,8 +10,84 @@ from rfview.domain.loadpull_contours import (
     loadpull_contours,
     loadpull_sweeps,
 )
+from rfview.technology_ui import Trace, line_chart
 
 MAX_LOADPULL_VIEW_POINTS = 2000
+
+
+def cst_wave_panel(data: LoadPullData) -> ui.Tag:
+    if data.format != "cst":
+        return ui.div()
+    if len(data.points) > MAX_LOADPULL_VIEW_POINTS:
+        raise ValueError("CST wave view exceeds 2000 points; select a smaller block")
+    fields = {
+        "frequency_hz": "Frequency (Hz)",
+        "v1_v": "V1 (V)",
+        "i1_a": "I1 (A)",
+        "v2_v": "V2 (V)",
+        "i2_a": "I2 (A)",
+        **{
+            f"{wave}_{part}": f"{wave} {part} (declared wave units)"
+            for wave in ("a1", "b1", "a2", "b2")
+            for part in ("real", "imag")
+        },
+        "z0source": "Source Z0 (ohm)",
+        "z0load": "Load Z0 (ohm)",
+    }
+    traces = []
+    for key, label, color in (
+        ("pin_w", "Net input (W)", "#56B4E9"),
+        ("pout_w", "Net output (W)", "#E69F00"),
+    ):
+        values = []
+        for i, point in enumerate(data.points, 1):
+            value = getattr(point, key)
+            if value is None:
+                raise ValueError("CST net wave power is undefined; no partial sweep is drawn")
+            values.append((float(i), value))
+        traces.append(Trace(label, values, color))
+    return ui.div(
+        ui.h4("CST block net-power sweep and raw waves"),
+        ui.p(
+            f"Declared normalization: {data.metadata['wave_normalization']}. "
+            "Whole imported block in source row order, independent of the exact "
+            "Gamma/Pin/bias grouping above. No interpolation or harmonic summation. "
+            "Raw waves retain declared units: peak V, RMS V, or sqrt(W)."
+        ),
+        line_chart("CST net wave powers", "Source block row (index)", "Net power (W)", traces),
+        ui.div(
+            ui.tags.table(
+                ui.tags.caption("CST raw source waves, DC and port references"),
+                ui.tags.thead(
+                    ui.tags.tr(
+                        ui.tags.th("Row", scope="col"),
+                        *(ui.tags.th(label, scope="col") for label in fields.values()),
+                    )
+                ),
+                ui.tags.tbody(
+                    *(
+                        ui.tags.tr(
+                            ui.tags.th(str(index), scope="row"),
+                            *(
+                                ui.tags.td(
+                                    "Undefined"
+                                    if point.extra.get(f"source.{key}") is None
+                                    else f"{point.extra[f'source.{key}']:.12g}"
+                                )
+                                for key in fields
+                            ),
+                        )
+                        for index, point in enumerate(data.points, 1)
+                    )
+                ),
+                id="cst_wave_table",
+            ),
+            class_="table-scroll",
+            tabindex="0",
+            role="region",
+            **{"aria-label": "Scrollable CST raw source waves"},
+        ),
+    )
 
 
 def _backoff(data: LoadPullData) -> float | None:
@@ -133,6 +209,7 @@ def loadpull_panel(
             "rather than average/drop data."
         ),
         ui.p("Contour levels: " + (", ".join(f"{v:.6g} {unit}" for v in levels) or "off")),
+        cst_wave_panel(data),
         ui.div(
             ui.tags.table(
                 ui.tags.caption("Selected load-pull measurements (not interpolated)"),

@@ -72,6 +72,101 @@ class ConvertedParameter(NamedTuple):
     value: complex
 
 
+def transform_network_basis(
+    network: TouchstoneData,
+    mixed_mode_order: tuple[str, ...] = (),
+) -> TouchstoneData:
+    """Power-wave orthonormal basis change; physical paired references must be equal."""
+    nports = network.nports
+    references = network.reference_ohms or (network.z0,) * nports
+    target_modes = (
+        _mixed_modes(" ".join(mixed_mode_order), nports, references) if mixed_mode_order else ()
+    )
+    source_modes = (
+        _mixed_modes(" ".join(network.mixed_mode_order), nports, references)
+        if network.mixed_mode_order
+        else ()
+    )
+    if source_modes == target_modes:
+        return network
+    if network.noise:
+        raise ValueError("Noise-parameter basis transformation is not implemented; source retained")
+
+    def basis(modes: tuple[str, ...]) -> list[list[float]]:
+        if not modes:
+            return [[float(r == c) for c in range(nports)] for r in range(nports)]
+        rows = []
+        for mode in modes:
+            row = [0.0] * nports
+            if mode[0] == "S":
+                row[int(mode[1:]) - 1] = 1
+            else:
+                a, b = (int(port) - 1 for port in mode[1:].split(","))
+                row[a] = 1 / math.sqrt(2)
+                row[b] = (-1 if mode[0] == "D" else 1) / math.sqrt(2)
+            rows.append(row)
+        return rows
+
+    source, target = basis(source_modes), basis(target_modes)
+    rotation = [
+        [sum(target[r][k] * source[c][k] for k in range(nports)) for c in range(nports)]
+        for r in range(nports)
+    ]
+    if len(network.points) != len(network.freq_ghz) * nports**2:
+        raise ValueError("Basis transformation requires complete network matrices")
+    points = []
+    order = (
+        [(0, 0), (1, 0), (0, 1), (1, 1)]
+        if nports == 2
+        else [(r, c) for r in range(nports) for c in range(nports)]
+    )
+    for offset, frequency in enumerate(network.freq_ghz):
+        entries = {
+            p.param: complex(p.real, p.imag)
+            for p in network.points[offset * nports**2 : (offset + 1) * nports**2]
+        }
+        expected = {f"S{r + 1}{c + 1}" for r in range(nports) for c in range(nports)}
+        if entries.keys() != expected:
+            raise ValueError("Basis transformation requires distinct complete Sij entries")
+        intermediate = [
+            [
+                sum(rotation[r][k] * entries[f"S{k + 1}{c + 1}"] for k in range(nports))
+                for c in range(nports)
+            ]
+            for r in range(nports)
+        ]
+        for r, c in order:
+            value = sum(intermediate[r][k] * rotation[c][k] for k in range(nports))
+            magnitude = abs(value)
+            if not math.isfinite(magnitude):
+                raise ValueError(f"Basis transformation exceeds numeric range at {frequency:g} GHz")
+            points.append(
+                TouchstonePoint(
+                    freq_ghz=frequency,
+                    param=f"S{r + 1}{c + 1}",
+                    real=value.real,
+                    imag=value.imag,
+                    mag_linear=magnitude,
+                    mag_db=20 * math.log10(max(magnitude, 1e-15)),
+                    phase_deg=math.degrees(math.atan2(value.imag, value.real)),
+                    dataset_tag=network.dataset_tag,
+                )
+            )
+    return network.model_copy(
+        update={
+            "points": tuple(points),
+            "mixed_mode_order": target_modes,
+            "version": "2.0",
+            "data_format": "ri",
+            "reference_ohms": references,
+            "comments": (
+                *network.comments,
+                "! RFView explicit orthonormal power-wave basis transformation",
+            ),
+        }
+    )
+
+
 def converted_parameters(
     network: TouchstoneData, representation: str
 ) -> tuple[ConvertedParameter, ...]:
@@ -255,6 +350,8 @@ def parse_touchstone(text: str, filename: str, dataset_tag: str | None = None) -
     option_seen, data_seen = False, False
     comments: list[str] = []
     numbers: list[float] = []
+    noise_lines: list[str] = []
+    in_noise = False
     for line_number, original in enumerate(text.lstrip("\ufeff").splitlines(), 1):
         if original.lstrip().startswith("!"):
             comments.append(original)
@@ -290,7 +387,20 @@ def parse_touchstone(text: str, filename: str, dataset_tag: str | None = None) -
                     raise ValueError(f"Line {line_number}: impedance must be finite and positive")
             continue
         data_seen = True
-        for token in line.split():
+        tokens = line.split()
+        if in_noise:
+            noise_lines.append(line)
+            continue
+        if nports == 2 and numbers and len(numbers) % 9 == 0 and len(tokens) == 5:
+            try:
+                candidate = float(tokens[0].replace("D", "E").replace("d", "e"))
+            except ValueError as exc:
+                raise ValueError(f"Line {line_number}: invalid noise frequency") from exc
+            if candidate <= numbers[-9]:
+                in_noise = True
+                noise_lines.append(line)
+                continue
+        for token in tokens:
             try:
                 value = float(token.replace("D", "E").replace("d", "e"))
             except ValueError as exc:
@@ -344,6 +454,20 @@ def parse_touchstone(text: str, filename: str, dataset_tag: str | None = None) -
                     dataset_tag=tag,
                 )
             )
+    noise = _noise_points(
+        noise_lines,
+        str(len(noise_lines)) if noise_lines else None,
+        nports,
+        unit,
+        frequencies[-1],
+        bool(noise_lines),
+    )
+    normalized_noise: list[NoisePoint] = []
+    for point in noise:
+        resistance = point.resistance_ohm * z0
+        if not math.isfinite(resistance):
+            raise ValueError("Touchstone 1.x noise resistance exceeds numeric range")
+        normalized_noise.append(point.model_copy(update={"resistance_ohm": resistance}))
     return TouchstoneData(
         filename=name,
         nports=nports,
@@ -354,6 +478,8 @@ def parse_touchstone(text: str, filename: str, dataset_tag: str | None = None) -
         dataset_tag=tag,
         points=tuple(points),
         comments=tuple(comments),
+        noise=tuple(normalized_noise),
+        noise_reference_ohm=z0 if noise else None,
     )
 
 

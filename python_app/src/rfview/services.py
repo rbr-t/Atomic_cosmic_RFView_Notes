@@ -7,6 +7,7 @@ from rfview.domain.alps_mdf import MAX_ALPS_BYTES, AlpsImport, AlpsPlane, read_a
 from rfview.domain.guardrails import GuardrailCatalog
 from rfview.domain.loadpull import (
     MAX_LOADPULL_BYTES,
+    CstWaveNormalization,
     LoadPullData,
     LoadPullFormat,
     parse_loadpull,
@@ -47,7 +48,13 @@ def read_spl_plan(path: Path, filename: str, *, section_index: int = 1) -> SplPl
 
 
 def read_loadpull(
-    path: Path, filename: str, format: LoadPullFormat, *, fractional: bool = False
+    path: Path,
+    filename: str,
+    format: LoadPullFormat,
+    *,
+    fractional: bool = False,
+    cst_wave_normalization: CstWaveNormalization = "peak_voltage",
+    cst_block_index: int | None = None,
 ) -> LoadPullData:
     if path.stat().st_size > MAX_LOADPULL_BYTES:
         raise ValueError("Load-pull exceeds the 5 MiB limit")
@@ -56,6 +63,8 @@ def read_loadpull(
         filename,
         format,
         efficiency_unit="fraction" if fractional else "percent",
+        cst_wave_normalization=cst_wave_normalization,
+        cst_block_index=cst_block_index,
     )
 
 

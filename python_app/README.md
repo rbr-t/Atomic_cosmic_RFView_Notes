@@ -35,7 +35,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Supporting calculations | Transistor sizing, matching, propagation/link budget, passive loss, gain/backoff primitives and selected RF tools |
 | Canvas | Retained D3 renderer, all six component types, movement/wiring, validated calculation inputs and design metadata/pose, undo/redo, four session slots, confirmed copy/clear and simultaneous read-only comparison |
 | Documents | Single-lineup JSON preserving IDs/edges/extra fields/operating points; separate four-lineup workspace bundle |
-| RF network tools | Touchstone 1.x/2.0 for 1-9 ports; v2 full/triangular matrices, mixed-mode basis preservation, noise table/plot; S/Smith and two-port conversions/stability; source and converted-family export |
+| RF network tools | Touchstone 1.x/2.0 for 1-9 ports; full/triangular matrices, explicit mixed-mode transforms, v1/v2 noise table/plot; S/Smith and two-port conversions/stability; source/transformed and converted-family export |
 | Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
 | Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
@@ -958,20 +958,110 @@ nearest-neighbour selection must not fabricate constant-Pin contour sweeps.
 Repository CST pre-block metadata, harmonic/wave workflows and advanced
 RF-data interactions remain separate migration work.
 
+### Batch 28 - CST block metadata and explicit wave interpretations
+
+CST accepts both pre-`#BEGIN` and in-block metadata. Each block has isolated
+Gamma/frequency/reference state; metadata cannot change after measurement
+rows start. Missing load Gamma, empty/nested/unclosed blocks, duplicate
+descriptors and mismatched/harmonic frequencies fail explicitly. Missing Z0
+retains the legacy 50-ohm default only with a visible warning. Harmonic-count
+declarations other than zero remain rejected pending dialect qualification.
+
+The CST controls explicitly select peak-voltage, RMS-voltage or power-normalized
+waves. Net powers use each port's own reference:
+
+- Peak voltage: `(abs(a)^2 - abs(b)^2) / (2 * Z0)`.
+- RMS voltage: `(abs(a)^2 - abs(b)^2) / Z0`.
+- Power-normalized (sqrt W): `abs(a)^2 - abs(b)^2`.
+
+Output uses outgoing `b2` minus incident `a2`; input uses `a1` minus `b1`.
+These are user-selected interpretations, not instrument calibration claims.
+Negative net power is retained, with undefined logarithms labelled rather
+than clipped. Raw complex waves, DC measurements, frequency, block index
+and reference impedances are included in normalized JSON.
+
+Import once to discover blocks, choose a block and reimport. All source rows
+are validated; only the selected block is displayed/exported within the
+existing viewer cap. The block view includes net Pin/Pout versus source-row
+index and a scrollable raw-wave/DC/reference table, independent of exact
+Gamma/Pin/bias sweep grouping.
+
+Repository acceptance verifies **365 blocks and all 8,915 measurements**
+against direct source-wave power equations. This does not establish that the
+chosen convention matches the measurement instrument; operator confirmation
+and calibration evidence remain necessary.
+
+### Batch 29 - implicit Touchstone 1.x noise tails
+
+Two-port 1.x files now support implicit five-value noise tails following
+complete network records. The first noise frequency must not exceed the
+highest network frequency; subsequent noise frequencies are strictly increasing
+on an independent grid. Noise Gamma remains magnitude/angle even when S data
+uses RI or dB. Malformed tails fail rather than being dropped or interpreted
+as complete network records.
+
+Unlike version 2.0, version 1.x noise resistance is normalized to the option-line
+reference impedance. Import converts it to ohms for the shared noise viewer.
+For example, Rn=0.2 at R=75 ohm becomes 15 ohm. Export uses an explicit version
+2.0 noise section with Rn in ohms, preserving numerical meaning rather than
+source formatting. Tests cover wrapped network records, equal-frequency
+boundaries, independent grids, invalid tails and v1-to-v2 round trips. Rules
+follow the [IBIS Touchstone specification](https://ibis.org/touchstone_ver2.0/touchstone_ver2_0.pdf).
+
+### Batch 30 - explicit mixed-mode basis transformations
+
+The analysis-basis selector offers source, physical single-ended port order,
+or an explicit mixed-mode order (for example, `D1,2 S3 C1,2`). Source data and
+the source download remain unchanged. A separate transformed Touchstone 2.0
+download exports the requested basis.
+
+Transforms use orthonormal power-wave differential/common rows with paired
+equal real single-ended references; effective differential/common impedances
+are 2R and R/2. Physical port numbers, mode order, pair orientation and
+unpaired single-ended ports are honored. No impedance renormalization is
+inferred. Noise-parameter transformations are explicitly rejected.
+
+Independent through-network checks, complex nonreciprocal round trips,
+power-norm preservation, reversed/permuted mode orders and unequal-pair
+rejection cover 2/3/4/9 ports. Two-port conversion/stability gates still apply
+in mixed-mode basis; a successfully transformed single-ended dataset can use
+the existing eligible single-ended analyses.
+
+### Batch 31 - passive annotations and supported display controls
+
+The selected-component **Component annotations and display** panel adds
+matching bandwidth, splitter isolation/split ratio, combiner isolation/
+load-modulation annotations and termination resistance/power-rating/VSWR.
+Supported retained-renderer label/loss/topology/isolation/phase/display
+toggles are exposed per component type. Fixed symbol values and
+topology-specific renderer limitations are stated explicitly.
+
+Edits are strictly validated, preserve unknown imported display fields and
+use the existing snapshot/history protocol. Undo/redo applies to visual
+properties; these edits do not clear transistor operating-point fields or
+silently change the lineup model. Annotation values are not new unequal-split,
+load-modulation or foundry synthesis models.
+
 The browser protocol also explicitly decodes JSON at the input boundary:
 Python Shiny freezes nested JSON arrays to tuples, which are not Pydantic
 `JsonValue` lists. Restoring the JSON representation before schema validation
 preserves component display arrays/workspace extras without weakening domain
 validation or silently dropping fields.
 
-Current qualification: **924 Python tests**, Ruff, strict source mypy,
-JavaScript/dependency checks and Python compilation. Both Chromium suites
+Current qualification: **973 Python tests**, Ruff, strict source mypy,
+dependency checks and Python compilation. Both Chromium suites
 cover the established flows plus triangular/noise export, mixed-mode reference
 labels/analysis gates, comparison freshness/responsiveness, component creation,
 copy/clear confirmation/cancel/stale-target rejection, metadata/pose
 undo/redo, streamed ALPS block/backoff selection and SPL plan frequency
-selection with export/error retention. Pylance tools were unavailable during
-batch 27; runtime tests, compilation and strict mypy provided local validation
+selection with export/error retention. Batches 28-31 also pass integrated
+Chromium checks for CST block/normalization changes and raw-wave tables,
+v1 noise, transformed-versus-source downloads, invalid basis changes and
+passive annotation undo/redo/rejected edits. A final focused rerun passed
+116 tests after those browser additions. The advanced browser check waits
+for server-rendered property forms after undo/redo, not just browser-local
+component state. Pylance tools were unavailable during batch 27; runtime
+tests, compilation and strict mypy provided local validation
 instead. The legacy R sources remain unchanged. **Workstreams 1-2 are not
 fully complete**: delivered slices do not imply full legacy-editor/file parity
 or device-calibrated engineering acceptance.
@@ -1015,17 +1105,31 @@ to silence a mismatch.
 
 Each batch should deliver runnable behavior, targeted tests and a scope update:
 
-1. Complete RF-data acceptance: repository CST dialect, harmonic/wave
-   workflows, implicit 1.x noise, mixed-mode basis conversion and richer
-   overlays/interaction. Explicit TS2 noise, mixed-mode basis preservation,
-   triangular matrices, streamed ALPS MDF and SPL plan selection are delivered,
-   not universal file/viewer parity.
+Steps 1-2 are **not signed off as complete** by batches 28-31. The remaining
+software gates and external acceptance gates are distinct:
+
+| Gate | Status |
+| --- | --- |
+| Repository CST, SPL, ALPS and LPCWAVE numerical import checks | Delivered within the documented dialects/bounds |
+| Touchstone 1.x/2.0 noise and explicit mixed-mode transforms | Delivered within documented real-reference/basis limits |
+| Passive annotation/display edit history | Delivered for fields supported by the retained renderer |
+| Harmonic-specific vendor parsing/analysis and richer RF-data interactions | Remaining implementation/qualification |
+| Simultaneous editable multi-canvas layouts | Remaining implementation; comparison cards are read-only |
+| Persistent workspace save/recovery beyond manual JSON files | Remaining implementation; current slots are session-only |
+| Remaining synthesis/editor controls and interaction parity | Remaining implementation/acceptance |
+| Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
+
+1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,
+   calibration/wave-convention qualification and richer overlays/interaction.
+   The repository CST dialect, implicit 1.x/explicit 2.0 noise, mixed-mode
+   transforms, triangular matrices, streamed ALPS MDF and SPL plan selection
+   are delivered, not universal vendor or calibration parity.
 2. Complete remaining calculations, engineering-model decisions, legacy
-   property/display/synthesis controls, simultaneous editable comparison and
+   synthesis/editor controls, simultaneous editable comparison and
    persistent multi-canvas lifecycle; qualify advanced chart interactions and
    device-calibrated model assumptions separately. Four session slots,
    read-only simultaneous comparison, confirmed copy/clear, calculation/pose/
-   metadata controls and corrected generic gain/lifetime options are delivered,
+   metadata/annotation/display controls and corrected generic gain/lifetime options are delivered,
    not full parity.
 3. Add project persistence, snapshots, state recovery and role-based access.
 4. Integrate remaining AI agents/KB and the guarded Python ingestion pipeline.

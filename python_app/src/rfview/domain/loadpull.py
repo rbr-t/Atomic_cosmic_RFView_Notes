@@ -12,6 +12,12 @@ LoadPullFormat = Literal[
 ]
 MAX_LOADPULL_BYTES = 5 * 1024 * 1024
 MAX_LOADPULL_POINTS = 100_000
+CstWaveNormalization = Literal["peak_voltage", "rms_voltage", "power"]
+CST_WAVE_NORMALIZATIONS = {
+    "peak_voltage": "Peak voltage waves: power = (|a|^2 - |b|^2) / (2 Z0)",
+    "rms_voltage": "RMS voltage waves: power = (|a|^2 - |b|^2) / Z0",
+    "power": "Power-normalized waves (sqrt W): power = |a|^2 - |b|^2",
+}
 
 
 class LoadPullPoint(BaseModel):
@@ -229,6 +235,8 @@ def parse_loadpull(
     format: LoadPullFormat,
     *,
     efficiency_unit: Literal["percent", "fraction"] = "percent",
+    cst_wave_normalization: CstWaveNormalization = "peak_voltage",
+    cst_block_index: int | None = None,
 ) -> LoadPullData:
     """Parse an explicitly selected vendor adapter; never guess efficiency units."""
     if len(text.encode("utf-8")) > MAX_LOADPULL_BYTES:
@@ -238,7 +246,7 @@ def parse_loadpull(
     if efficiency_unit not in ("percent", "fraction"):
         raise ValueError("Efficiency unit must be percent or fraction")
     if format == "cst":
-        return _parse_cst(text, filename)
+        return _parse_cst(text, filename, cst_wave_normalization, cst_block_index)
     metadata: dict[str, str] = {}
     warnings: dict[str, None] = {
         "Explicit efficiency units replace the legacy <=1.01 guessing heuristic; "
@@ -390,18 +398,32 @@ def parse_loadpull(
     )
 
 
-def _parse_cst(text: str, filename: str) -> LoadPullData:
+def _parse_cst(
+    text: str,
+    filename: str,
+    wave_normalization: CstWaveNormalization,
+    block_index: int | None,
+) -> LoadPullData:
+    if wave_normalization not in CST_WAVE_NORMALIZATIONS:
+        raise ValueError("Choose an explicit supported CST wave normalization")
+    if block_index is not None and (
+        isinstance(block_index, bool) or not isinstance(block_index, int) or block_index < 1
+    ):
+        raise ValueError("CST block index must be a positive integer")
     points: list[LoadPullPoint] = []
     metadata: dict[str, str] = {}
     warnings: dict[str, None] = {
-        "CST assumes peak voltage waves: power=(|a|^2-|b|^2)/(2*Z0). "
-        "Confirm wave normalization/calibration before engineering use.": None,
+        f"CST selected normalization: {CST_WAVE_NORMALIZATIONS[wave_normalization]}. "
+        "This is a declared interpretation, not instrument/calibration qualification.": None,
         "CST uses each port's reference impedance; unlike R it does not reuse "
         "source Z0 for output power, clamp negative power, or call the broken "
         "three-argument normalizer.": None,
     }
     active = False
     state: dict[str, float] = {}
+    pending: dict[str, float] = {}
+    seen: set[str] = set()
+    block_count = block_rows = 0
     header_seen = False
     for line_number, original in enumerate(text.lstrip("\ufeff").splitlines(), 1):
         line = original.strip()
@@ -412,34 +434,53 @@ def _parse_cst(text: str, filename: str) -> LoadPullData:
             if active:
                 raise ValueError(f"Line {line_number}: nested CST block")
             active, header_seen = True, False
-            state = {"z0source": 50, "z0load": 50}
+            state, pending = pending, {}
+            block_count += 1
+            block_rows = 0
             continue
         if upper == "#END":
             if not active:
                 raise ValueError(f"Line {line_number}: unexpected CST END")
+            if not block_rows:
+                raise ValueError(f"Line {line_number}: empty CST block")
+            metadata[f"block_{block_count}"] = (
+                f"{state.get('freq_ghz', 0):.12g} GHz | {block_rows} rows | "
+                f"Gamma load {state.get('GL_R', 0):.6g},{state.get('GL_I', 0):.6g}"
+            )
             active = False
+            state, seen = {}, set()
             continue
         if line.startswith("#"):
             match = re.match(
-                r"^#(Z0SOURCE|Z0LOAD|GAMMALOAD|GAMMASOURCE|FUNDAMENTAL FREQUENCY)\s*:?\s+(.+)$",
+                r"^#(Z0SOURCE|Z0LOAD|GAMMALOAD|GAMMASOURCE|FUNDAMENTAL FREQUENCY|HARMONICS)"
+                r"\s*:?\s+(.+)$",
                 line,
                 re.I,
             )
             if match is not None:
-                if not active:
-                    raise ValueError(f"Line {line_number}: CST block metadata must follow #BEGIN")
                 key, raw = match[1].lower(), match[2]
-                if key == "fundamental frequency":
+                if block_rows and active:
+                    raise ValueError(f"Line {line_number}: CST metadata cannot change inside data")
+                if key in seen:
+                    raise ValueError(f"Line {line_number}: duplicate CST block metadata {key}")
+                seen.add(key)
+                target = state if active else pending
+                if key == "harmonics":
+                    if raw.strip() != "0":
+                        raise ValueError(
+                            "CST harmonic records require a separately qualified adapter"
+                        )
+                elif key == "fundamental frequency":
                     # Unitless legacy CST metadata is Hz when >1e6, GHz otherwise.
                     value = _frequency(raw)
                     if not re.search(r"(?:ghz|mhz|khz|hz)\s*$", raw, re.I) and value > 1e6:
                         value /= 1e9
-                    state["freq_ghz"] = value
+                    target["freq_ghz"] = value
                 elif key.startswith("z0"):
                     impedance = _number(raw, f"Line {line_number}")
                     if impedance is None or impedance <= 0:
                         raise ValueError("CST reference impedance must be positive")
-                    state[key] = impedance
+                    target[key] = impedance
                 else:
                     tokens = raw.split()
                     if len(tokens) != 2:
@@ -449,14 +490,16 @@ def _parse_cst(text: str, filename: str) -> LoadPullData:
                         raise ValueError("Missing CST Gamma descriptor")
                     real, imag = _polar(mag, angle)
                     prefix = "GL" if key == "gammaload" else "GS"
-                    state[prefix + "_R"], state[prefix + "_I"] = real, imag
+                    target[prefix + "_R"], target[prefix + "_I"] = real, imag
             metadata[f"line_{line_number}"] = line
             continue
         if not active:
             raise ValueError(f"Line {line_number}: CST data outside a block")
         if not header_seen and not re.match(r"^[+-]?(?:\d|\.)", line):
-            header_seen = True
-            continue
+            if line.lower().split() == ("freq v1 i1 v2 i2 a1r a1i b1r b1i a2r a2i b2r b2i".split()):
+                header_seen = True
+                continue
+            raise ValueError(f"Line {line_number}: invalid CST header or measurement")
         tokens = line.split()
         if len(tokens) != 13:
             raise ValueError(f"Line {line_number}: CST requires 13 numeric fields")
@@ -464,17 +507,38 @@ def _parse_cst(text: str, filename: str) -> LoadPullData:
         if any(v is None for v in numeric):
             raise ValueError(f"Line {line_number}: missing CST wave quantity")
         nums = [v for v in numeric if v is not None]
+        if not {"GL_R", "GL_I"} <= state.keys():
+            raise ValueError(f"Line {line_number}: each CST block requires its own load Gamma")
+        for key in ("z0source", "z0load"):
+            if key not in state:
+                state[key] = 50
+                warnings[f"CST block {block_count}: missing {key}; legacy default 50 ohm used."] = (
+                    None
+                )
+        source_divisor = (
+            2 * state["z0source"]
+            if wave_normalization == "peak_voltage"
+            else state["z0source"]
+            if wave_normalization == "rms_voltage"
+            else 1
+        )
+        load_divisor = (
+            2 * state["z0load"]
+            if wave_normalization == "peak_voltage"
+            else state["z0load"]
+            if wave_normalization == "rms_voltage"
+            else 1
+        )
         try:
             frequency = nums[0] / 1e9
             if "freq_ghz" in state and not math.isclose(
                 state["freq_ghz"], frequency, rel_tol=1e-9, abs_tol=1e-12
             ):
                 raise ValueError("CST harmonic/mismatched frequencies require separate selection")
-            pin = ((nums[5] ** 2 + nums[6] ** 2) - (nums[7] ** 2 + nums[8] ** 2)) / (
-                2 * state["z0source"]
-            )
+            state.setdefault("freq_ghz", frequency)
+            pin = ((nums[5] ** 2 + nums[6] ** 2) - (nums[7] ** 2 + nums[8] ** 2)) / (source_divisor)
             pout = ((nums[11] ** 2 + nums[12] ** 2) - (nums[9] ** 2 + nums[10] ** 2)) / (
-                2 * state["z0load"]
+                load_divisor
             )
             raw_values: dict[str, float | None] = {
                 "GL_R": state.get("GL_R"),
@@ -493,17 +557,63 @@ def _parse_cst(text: str, filename: str) -> LoadPullData:
                 ] = None
             if pin > 0 and pout > 0:
                 raw_values["GAIN_DB"] = 10 * (math.log10(pout) - math.log10(pin))
-            points.append(
-                normalise_loadpull_row(raw_values, frequency, "percent", warnings, len(points) + 1)
+            point = normalise_loadpull_row(
+                raw_values, frequency, "percent", warnings, len(points) + 1
             )
+            source_keys = (
+                "frequency_hz",
+                "v1_v",
+                "i1_a",
+                "v2_v",
+                "i2_a",
+                "a1_real",
+                "a1_imag",
+                "b1_real",
+                "b1_imag",
+                "a2_real",
+                "a2_imag",
+                "b2_real",
+                "b2_imag",
+            )
+            points.append(
+                point.model_copy(
+                    update={
+                        "extra": {
+                            **{
+                                f"source.{key}": value
+                                for key, value in zip(source_keys, nums, strict=True)
+                            },
+                            **{f"source.{key}": value for key, value in state.items()},
+                            "source.block_index": float(block_count),
+                        }
+                    }
+                )
+            )
+            block_rows += 1
         except OverflowError as exc:
             raise ValueError("CST calculation exceeds numeric range") from exc
         if len(points) > MAX_LOADPULL_POINTS:
             raise ValueError(f"Load-pull exceeds {MAX_LOADPULL_POINTS} points")
     if active:
         raise ValueError("Unclosed CST block")
+    if pending:
+        raise ValueError("CST metadata has no following block")
     if not points:
         raise ValueError("No CST measurement rows found")
+    metadata.update(
+        total_blocks=str(block_count),
+        total_source_rows=str(len(points)),
+        wave_normalization=wave_normalization,
+    )
+    if block_index is not None:
+        if block_index > block_count:
+            raise ValueError(f"Choose an available CST block (1-{block_count})")
+        points = [p for p in points if p.extra["source.block_index"] == block_index]
+        metadata["selected_block"] = str(block_index)
+        warnings[
+            f"Only CST block {block_index}/{block_count} is loaded/exported; "
+            "all source rows validated. No decimation."
+        ] = None
     return LoadPullData(
         filename=re.split(r"[\\/]", filename)[-1],
         format="cst",

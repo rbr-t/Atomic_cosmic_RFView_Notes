@@ -59,6 +59,89 @@ class NumericProperty(NamedTuple):
     default: float
 
 
+def visual_fields(component: Component) -> tuple[NumericProperty, ...]:
+    return {
+        "matching": (NumericProperty("bandwidth", "Bandwidth annotation (%)", 10),),
+        "splitter": (
+            NumericProperty("isolation", "Isolation annotation (dB)", 20),
+            NumericProperty(
+                "split_ratio", "Split-ratio annotation (dB; model remains equal split)", 0
+            ),
+        ),
+        "combiner": (
+            NumericProperty("isolation", "Isolation annotation (dB)", 20),
+            NumericProperty("modulation_factor", "Load-modulation annotation (ratio)", 2),
+        ),
+        "termination": (
+            NumericProperty("impedance", "Nominal resistance annotation (ohm)", 50),
+            NumericProperty("power_rating", "Power rating annotation (W)", 10),
+            NumericProperty("vswr", "VSWR annotation (ratio)", 1),
+        ),
+    }.get(component.type, ())
+
+
+def display_options(component: Component) -> dict[str, str]:
+    return {
+        "splitter": {
+            "label": "Label",
+            "loss": "Loss",
+            "type": "Topology",
+            "isolation": "Isolation",
+            "split_ratio": "Split ratio",
+        },
+        "combiner": {
+            "label": "Label",
+            "loss": "Loss",
+            "type": "Topology",
+            "isolation": "Isolation",
+            "load_modulation": "Load-modulation annotation",
+        },
+        "termination": {"label": "Label"},
+        "offset_line": {"label": "Label", "phase": "Phase", "loss": "Loss"},
+    }.get(component.type, {})
+
+
+def validated_visual_properties(
+    component: Component,
+    values: dict[str, JsonValue],
+    displays: list[str],
+) -> dict[str, JsonValue]:
+    expected = {field.key for field in visual_fields(component)}
+    if component.type == "combiner":
+        expected.add("load_modulation")
+    if values.keys() != expected:
+        raise ValueError("Visual fields do not match the selected component")
+    if (
+        len(displays) != len(set(displays))
+        or not set(displays) <= display_options(component).keys()
+    ):
+        raise ValueError("Choose distinct supported display fields for the selected component")
+    for key, value in values.items():
+        if key == "load_modulation":
+            if not isinstance(value, bool):
+                raise ValueError("Load modulation annotation must be Boolean")
+            continue
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"{key} must be a finite number")
+        finite(value, key)
+        if key in ("impedance", "power_rating", "modulation_factor") and value <= 0:
+            raise ValueError(f"{key} must be greater than zero")
+        if key in ("isolation", "bandwidth") and value < 0:
+            raise ValueError(f"{key} must not be negative")
+        if key == "bandwidth" and value > 100:
+            raise ValueError("Bandwidth annotation must not exceed 100 %")
+        if key == "vswr" and value < 1:
+            raise ValueError("VSWR must be at least one")
+    result = dict(values)
+    if display_options(component):
+        original = component.properties.get("display", [])
+        if not isinstance(original, list) or any(not isinstance(v, str) for v in original):
+            raise ValueError("Imported display fields must be a string array before editing")
+        preserved = [v for v in original if v not in display_options(component)]
+        result["display"] = [*displays, *preserved]
+    return result
+
+
 def property_fields(component: Component) -> tuple[NumericProperty, ...]:
     if component.type == "transistor":
         gain = component.number("gain", 15)

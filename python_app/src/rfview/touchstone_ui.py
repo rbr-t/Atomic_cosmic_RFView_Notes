@@ -176,7 +176,7 @@ def touchstone_panel(
     charts: list[ui.Tag]
     if representation == "Noise":
         if not network.noise:
-            raise ValueError("No explicit Touchstone 2.0 noise data is present")
+            raise ValueError("No Touchstone noise data is present")
         rows = [
             ui.tags.tr(
                 *(

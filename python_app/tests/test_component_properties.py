@@ -2,10 +2,13 @@ import pytest
 
 from rfview.domain.component_properties import (
     ComponentGeometry,
+    display_options,
     property_fields,
     text_fields,
     validated_design_properties,
     validated_properties,
+    validated_visual_properties,
+    visual_fields,
 )
 from rfview.domain.models import Component
 
@@ -127,3 +130,51 @@ def test_offset_role_metadata_rejects_unknown_behavior() -> None:
     component = Component(id=1, type="offset_line")
     with pytest.raises(ValueError, match="phase or inverter"):
         validated_design_properties(component, {"label": "Offset", "offset_role": "unknown"})
+
+
+@pytest.mark.parametrize("kind", ["matching", "splitter", "combiner", "termination", "offset_line"])
+def test_annotation_edits_are_nonmutating_and_preserve_future_displays(kind) -> None:
+    component = Component(id=1, type=kind, properties={"display": ["future_field"], "gain": 20})
+    before = component.model_dump_json()
+    values = {field.key: field.default for field in visual_fields(component)}
+    if kind == "combiner":
+        values["load_modulation"] = True
+    display = list(display_options(component))
+    result = validated_visual_properties(component, values, display)
+    assert component.model_dump_json() == before
+    assert result["display"] == display + ["future_field"] if display else result == values
+    assert "gain" not in result
+
+
+@pytest.mark.parametrize(
+    "kind,key,value",
+    [
+        ("termination", "impedance", 0),
+        ("termination", "power_rating", -1),
+        ("termination", "vswr", 0.9),
+        ("splitter", "isolation", -1),
+        ("splitter", "split_ratio", True),
+        ("combiner", "modulation_factor", 0),
+        ("combiner", "load_modulation", "yes"),
+        ("matching", "bandwidth", 101),
+        ("matching", "bandwidth", float("nan")),
+    ],
+)
+def test_invalid_annotations_rejected(kind, key, value) -> None:
+    component = Component(id=1, type=kind)
+    values = {field.key: field.default for field in visual_fields(component)}
+    if kind == "combiner":
+        values["load_modulation"] = False
+    values[key] = value
+    with pytest.raises(ValueError):
+        validated_visual_properties(component, values, [])
+
+
+def test_display_validation_rejects_injected_or_duplicate_fields() -> None:
+    component = Component(id=1, type="offset_line")
+    for display in (["label", "label"], ["unknown"]):
+        with pytest.raises(ValueError, match="display fields"):
+            validated_visual_properties(component, {}, display)
+    bad = component.model_copy(update={"properties": {"display": 1}})
+    with pytest.raises(ValueError, match="string array"):
+        validated_visual_properties(bad, {}, ["label"])

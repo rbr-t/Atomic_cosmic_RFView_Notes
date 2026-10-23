@@ -13,14 +13,22 @@ from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 from rfview.domain.alps_mdf import ALPS_PLANES, AlpsPlane
 from rfview.domain.component_properties import (
     ComponentGeometry,
+    display_options,
     property_fields,
     text_fields,
     validated_design_properties,
     validated_properties,
+    validated_visual_properties,
+    visual_fields,
 )
 from rfview.domain.guardrails import DeviceParameters, validate_device_params
 from rfview.domain.lineup import calculate_lineup
-from rfview.domain.loadpull import LoadPullData, LoadPullFormat
+from rfview.domain.loadpull import (
+    CST_WAVE_NORMALIZATIONS,
+    CstWaveNormalization,
+    LoadPullData,
+    LoadPullFormat,
+)
 from rfview.domain.loadpull_contours import METRICS, LoadPullMetric
 from rfview.domain.models import CanvasWorkspace, LineupDocument, LineupResult, OperatingPoint
 from rfview.domain.reliability import LifetimeInputs, lifetime_estimate, reliability_curve
@@ -28,6 +36,7 @@ from rfview.domain.touchstone import (
     TouchstoneData,
     serialize_converted_parameters,
     serialize_touchstone,
+    transform_network_basis,
 )
 from rfview.domain.transistor import (
     DesignTopology,
@@ -148,6 +157,10 @@ app_ui = ui.page_fluid(
                 ui.output_ui("selected_design_properties"),
             ),
             ui.tags.details(
+                ui.tags.summary("Component annotations and display"),
+                ui.output_ui("selected_visual_properties"),
+            ),
+            ui.tags.details(
                 ui.tags.summary("Technology guardrail advisory"),
                 ui.p(
                     "Checks applied component properties, not uncommitted edits. "
@@ -253,6 +266,26 @@ app_ui = ui.page_fluid(
                 False,
             ),
             ui.panel_conditional(
+                "input.loadpull_format === 'cst'",
+                ui.input_select(
+                    "loadpull_cst_normalization",
+                    "CST wave normalization (confirm instrument units)",
+                    CST_WAVE_NORMALIZATIONS,
+                ),
+                ui.input_select(
+                    "loadpull_cst_block",
+                    "CST power-sweep block",
+                    {"1": "1 (import once to discover blocks)"},
+                ),
+                ui.p(
+                    "Only the selected block is loaded/exported; all blocks are validated. "
+                    "Raw complex waves, port references and DC quantities are retained in JSON. "
+                    "No wave normalization or calibration is inferred from file extension. "
+                    "Negative net powers are preserved, not clipped. Harmonic records "
+                    "are rejected rather than mixed with fundamental power."
+                ),
+            ),
+            ui.panel_conditional(
                 "input.loadpull_format === 'spl_plan'",
                 ui.input_select(
                     "loadpull_spl_section",
@@ -331,6 +364,27 @@ app_ui = ui.page_fluid(
             ),
             ui.input_select("touchstone_parameter", "S-parameter", ["S11", "S21", "S12", "S22"]),
             ui.input_select(
+                "touchstone_basis",
+                "Analysis basis (source download stays unchanged)",
+                {
+                    "source": "As declared in source",
+                    "single_ended": "Transform to physical single-ended port order",
+                    "mixed": "Transform to explicit mixed-mode order",
+                },
+            ),
+            ui.panel_conditional(
+                "input.touchstone_basis === 'mixed'",
+                ui.input_text(
+                    "touchstone_modes", "Mode order (one descriptor per dimension)", "D1,2 C1,2"
+                ),
+                ui.p("Examples: D1,2 C1,2 or D1,2 S3 C1,2. Paired port references must be equal."),
+            ),
+            ui.p(
+                "Basis changes use orthonormal power-wave transforms with differential 2R/"
+                "common R/2 references. No impedance renormalization or noise-parameter "
+                "basis conversion. Invalid transforms reject the entire derived view/export."
+            ),
+            ui.input_select(
                 "touchstone_representation",
                 "Network view (parameter selector supplies row/column indices)",
                 {
@@ -344,7 +398,7 @@ app_ui = ui.page_fluid(
                     "Stability": "Two-port stability / legacy gain metrics",
                     "Circles": "Source / load stability circles",
                     "PowerGain": "Conventional power gain v2 (10 log)",
-                    "Noise": "Touchstone 2.0 noise parameters",
+                    "Noise": "Touchstone 1.x / 2.0 noise parameters",
                 },
             ),
             ui.panel_conditional(
@@ -523,12 +577,25 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
                     session=session,
                 )
             else:
+                normalization: CstWaveNormalization = input.loadpull_cst_normalization()
                 parsed = read_loadpull(
                     Path(files[0]["datapath"]),
                     files[0]["name"],
                     adapter,
                     fractional=input.loadpull_fractional(),
+                    cst_wave_normalization=normalization,
+                    cst_block_index=int(input.loadpull_cst_block()) if adapter == "cst" else None,
                 )
+                if adapter == "cst":
+                    ui.update_select(
+                        "loadpull_cst_block",
+                        choices={
+                            str(index): f"{index}: {parsed.metadata[f'block_{index}']}"
+                            for index in range(1, int(parsed.metadata["total_blocks"]) + 1)
+                        },
+                        selected=parsed.metadata["selected_block"],
+                        session=session,
+                    )
             if len(parsed.points) > MAX_LOADPULL_VIEW_POINTS:
                 raise ValueError(f"Viewer limit is {MAX_LOADPULL_VIEW_POINTS} load-pull points")
         except (ValueError, OSError) as exc:
@@ -556,6 +623,12 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
                 f"{len(parsed.points)} valid measurements, "
                 f"{parsed.metadata['selected_invalid_rows']} VALID=0 slots excluded. "
                 f"All {parsed.metadata['total_source_slots']} source slots checked."
+            )
+        elif adapter == "cst":
+            scope = (
+                f" Block {parsed.metadata['selected_block']}/{parsed.metadata['total_blocks']}; "
+                f"{len(parsed.points)}/{parsed.metadata['total_source_rows']} source rows. "
+                f"Wave normalization: {parsed.metadata['wave_normalization']}."
             )
         loadpull_status_state.set(
             f"Loaded {parsed.filename} using {parsed.format}.{scope} Session-only."
@@ -618,6 +691,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             ui.notification_show(message, type="error", duration=None, session=session)
             return
         network.set(parsed)
+        ui.update_select("touchstone_basis", selected="source", session=session)
         choices = list(dict.fromkeys(p.param for p in parsed.points[: parsed.nports**2]))
         ui.update_select("touchstone_parameter", choices=choices, selected="S11", session=session)
         ui.update_select(
@@ -633,16 +707,37 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         return network_status()
 
     @reactive.calc
-    def converted_csv() -> str:
+    def analysis_network() -> TouchstoneData:
         current = network()
         if current is None:
-            raise ValueError("No Touchstone dataset available for export")
-        return serialize_converted_parameters(current, input.touchstone_representation())
+            raise ValueError("No Touchstone dataset available")
+        basis = input.touchstone_basis()
+        if basis == "source":
+            return current
+        if basis == "single_ended":
+            return transform_network_basis(current)
+        if basis == "mixed":
+            return transform_network_basis(current, tuple(input.touchstone_modes().split()))
+        raise ValueError("Choose a supported analysis basis")
+
+    @reactive.calc
+    def converted_csv() -> str:
+        return serialize_converted_parameters(analysis_network(), input.touchstone_representation())
 
     @render.ui
     def touchstone_download_control() -> ui.Tag:
         if network() is None:
             return ui.p("Upload a dataset to enable source Touchstone export.")
+        basis_control: ui.Tag = ui.p("Source basis selected; no transformed dataset requested.")
+        if input.touchstone_basis() != "source":
+            try:
+                analysis_network()
+                basis_control = ui.download_button(
+                    "download_transformed_network", "Download transformed S (Touchstone 2.0)"
+                )
+            except ValueError as exc:
+                logger.warning("Basis transform rejected: %s", exc)
+                basis_control = ui.p(f"Transformed export unavailable: {exc}", role="alert")
         converted_control: ui.Tag = ui.p("Select Z/Y/h/ABCD/T to export converted parameters.")
         if input.touchstone_representation() in ("Z", "Y", "h", "ABCD", "T"):
             try:
@@ -661,6 +756,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
                 "Touchstone 2.0/per-port references are retained when present."
             ),
             converted_control,
+            basis_control,
             ui.p(
                 "Converted CSV contains all four parameters at every frequency, "
                 "real/imaginary values, units and source port references; "
@@ -685,6 +781,10 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     def download_network_csv() -> Iterator[str]:
         yield converted_csv()
 
+    @render.download(filename="rfview_transformed.ts", media_type="text/plain")
+    def download_transformed_network() -> Iterator[str]:
+        yield serialize_touchstone(analysis_network())
+
     @render.ui
     def touchstone_view() -> ui.Tag:
         current = network()
@@ -694,11 +794,18 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         if current.nports == 1 and parameter != "S11":
             return ui.p("Updating parameter selection for the one-port dataset.")
         try:
+            current = analysis_network()
             choice = input.touchstone_frequency()
             if input.touchstone_representation() == "Circles" and not choice:
                 return ui.p("Choose an available circle frequency.")
-            return touchstone_panel(
-                current, parameter, input.touchstone_representation(), int(choice) if choice else 0
+            return ui.div(
+                ui.p(f"Analysis basis: {input.touchstone_basis()}; source values are preserved."),
+                touchstone_panel(
+                    current,
+                    parameter,
+                    input.touchstone_representation(),
+                    int(choice) if choice else 0,
+                ),
             )
         except ValueError as exc:
             logger.warning("Touchstone view rejected: %s", exc)
@@ -1116,6 +1223,96 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             )
         except ValueError as exc:
             failure(f"Property edit rejected: {exc}")
+            return
+        await session.send_custom_message(
+            "pythonEditComponent", {"id": component.id, "properties": properties}
+        )
+
+    @render.ui
+    def selected_visual_properties() -> ui.Tag:
+        component = next(
+            (item for item in document().components if str(item.id) == str(selected())), None
+        )
+        if component is None:
+            return ui.p("Select a component on the canvas.")
+        options = display_options(component)
+        fields = visual_fields(component)
+        if not options and not fields:
+            return ui.p("No independently configurable visual fields for this component.")
+        original = component.properties.get(
+            "display",
+            (
+                ["label", "phase"]
+                if component.type == "offset_line"
+                else ["label"]
+                if component.type == "termination"
+                else ["label", "loss"]
+            ),
+        )
+        if not isinstance(original, list) or any(not isinstance(v, str) for v in original):
+            return ui.p(
+                "Imported display array is invalid; source is retained unchanged.", role="alert"
+            )
+        controls: list[ui.Tag] = [
+            ui.input_text("visual_component_id", "Visual form component ID", str(component.id))
+        ]
+        for field in fields:
+            controls.append(
+                ui.input_numeric(
+                    f"visual_{field.key}",
+                    field.label,
+                    component.number(field.key, field.default),
+                )
+            )
+        if component.type == "combiner":
+            controls.append(
+                ui.input_checkbox(
+                    "visual_load_modulation",
+                    "Load-modulation annotation (not a synthesis model)",
+                    component.properties.get("load_modulation") is True,
+                )
+            )
+        if options:
+            controls.append(
+                ui.input_checkbox_group(
+                    "visual_display",
+                    "Visible canvas annotations",
+                    options,
+                    selected=[v for v in original if isinstance(v, str) and v in options],
+                )
+            )
+        return ui.div(
+            *controls,
+            ui.p(
+                "Annotations do not change calculation models, instantiate matching networks "
+                "or implement unequal splitting/load modulation. Some legacy annotations "
+                "appear only for particular topology renderers. Termination resistance remains "
+                "visible inside its symbol. Unknown imported display fields are retained."
+            ),
+            ui.input_action_button("apply_visual_properties", "Apply annotations / display"),
+        )
+
+    @reactive.effect
+    @reactive.event(input.apply_visual_properties)
+    async def _apply_visual() -> None:
+        component = next(
+            (item for item in document().components if str(item.id) == str(selected())), None
+        )
+        try:
+            if component is None or str(component.id) != input.visual_component_id():
+                raise ValueError("Selection changed; wait for the current visual form")
+            values = {
+                field.key: input[f"visual_{field.key}"]() for field in visual_fields(component)
+            }
+            if component.type == "combiner":
+                values["load_modulation"] = input.visual_load_modulation()
+            properties = validated_visual_properties(
+                component,
+                values,
+                list(input.visual_display()) if display_options(component) else [],
+            )
+        except ValueError as exc:
+            failure(f"Visual edit rejected: {exc}")
             return
         await session.send_custom_message(
             "pythonEditComponent", {"id": component.id, "properties": properties}

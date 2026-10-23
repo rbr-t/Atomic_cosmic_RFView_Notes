@@ -23,6 +23,7 @@ def close_notifications(page) -> None:
 
 def main(url: str) -> None:
     errors: list[str] = []
+    expect.set_options(timeout=15_000)
     with sync_playwright() as playwright, tempfile.TemporaryDirectory() as temp:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": 1440, "height": 1000})
@@ -115,16 +116,57 @@ def main(url: str) -> None:
         page.wait_for_function(
             "window.paCanvas.components.find(c=>c.id===20).properties.label !== 'Review DUT'"
         )
+        expect(page.locator("#design_label")).not_to_have_value("Review DUT")
         page.locator("#python_redo").click()
         page.wait_for_function(
             "window.paCanvas.components.find(c=>c.id===20).properties.label === 'Review DUT'"
         )
+        expect(page.locator("#design_label")).to_have_value("Review DUT")
         page.locator("#design_x").fill("1000001")
         page.locator("#apply_design_properties").click()
         expect(page.locator("#status")).to_contain_text("Design edit rejected")
         close_notifications(page)
         assert page.evaluate("window.paCanvas.components.find(c=>c.id===20).x") == 450
         page.get_by_text("Design metadata and geometry", exact=True).click()
+
+        page.locator("#python_canvas_slot").select_option("2")
+        page.wait_for_function("window.paCanvas.components.length === 5")
+        page.locator(".component-termination").click()
+        page.get_by_text("Component annotations and display", exact=True).click()
+        expect(page.locator("#visual_impedance")).to_have_value("50.0")
+        page.locator("#visual_impedance").fill("75")
+        page.locator("#visual_power_rating").fill("20")
+        page.locator("#visual_display input[value='label']").uncheck()
+        page.locator("#apply_visual_properties").click()
+        page.wait_for_function(
+            "window.paCanvas.components.find(c=>c.type==='termination').properties.impedance === 75"
+        )
+        assert page.evaluate(
+            "window.paCanvas.components.find(c=>c.type==='termination').properties.display"
+        ) == ["impedance"]
+        page.locator("#python_undo").click()
+        page.wait_for_function(
+            "window.paCanvas.components.find(c=>c.type==='termination').properties.impedance === 50"
+        )
+        expect(page.locator("#visual_impedance")).to_have_value("50.0")
+        page.locator("#python_redo").click()
+        page.wait_for_function(
+            "window.paCanvas.components.find(c=>c.type==='termination').properties.impedance === 75"
+        )
+        expect(page.locator("#visual_impedance")).to_have_value("75.0")
+        page.locator("#visual_vswr").fill("0.5")
+        page.locator("#apply_visual_properties").click()
+        expect(page.locator("#status")).to_contain_text("VSWR must be at least one")
+        assert (
+            page.evaluate(
+                "window.paCanvas.components.find(c=>c.type==='termination').properties.vswr"
+            )
+            == 1
+        )
+        close_notifications(page)
+        page.get_by_text("Component annotations and display", exact=True).click()
+        page.locator("#python_canvas_slot").select_option("1")
+        page.wait_for_function("window.paCanvas.components.length === 4")
 
         page.get_by_text("Touchstone magnitude and phase viewer", exact=True).click()
         noise = Path(temp) / "noise.ts"
@@ -170,6 +212,41 @@ def main(url: str) -> None:
         expect(page.locator("#touchstone_view")).to_contain_text("not physical single-ended ports")
         page.locator("#touchstone_representation").select_option("Stability")
         expect(page.locator("#touchstone_view")).to_contain_text("declared basis")
+        page.locator("#touchstone_basis").select_option("single_ended")
+        page.locator("#touchstone_representation").select_option("S")
+        expect(page.locator("#touchstone_view")).to_contain_text("Analysis basis: single_ended")
+        with page.expect_download() as download:
+            page.locator("#download_transformed_network").click()
+        transformed_file = Path(temp) / "single-ended.ts"
+        download.value.save_as(transformed_file)
+        transformed = parse_touchstone(
+            transformed_file.read_text(encoding="utf-8"), "single-ended.ts"
+        )
+        assert transformed.mixed_mode_order == ()
+        assert transformed.reference_ohms == (50, 50, 75)
+        with page.expect_download() as download:
+            page.locator("#download_touchstone").click()
+        source_export = Path(temp) / "source-mixed.ts"
+        download.value.save_as(source_export)
+        assert parse_touchstone(
+            source_export.read_text(encoding="utf-8"), "source.ts"
+        ).mixed_mode_order
+        page.locator("#touchstone_basis").select_option("mixed")
+        page.locator("#touchstone_modes").fill("D1,2 S3 C1,2")
+        expect(page.locator("#touchstone_view")).to_contain_text("not physical single-ended ports")
+        page.locator("#touchstone_modes").fill("D1,3 C1,3 S2")
+        expect(page.locator("#touchstone_view")).to_contain_text("equal single-ended")
+        page.locator("#touchstone_basis").select_option("source")
+        legacy_noise = Path(temp) / "legacy-noise.s2p"
+        legacy_noise.write_text(
+            "# GHz S RI R 75\n1 .1 0 2 0 .01 0 .2 0\n.5 1 .3 -45 .2\n",
+            encoding="utf-8",
+        )
+        page.locator("#touchstone_upload").set_input_files(legacy_noise)
+        expect(page.locator("#touchstone_status")).to_contain_text("Loaded legacy-noise.s2p")
+        page.locator("#touchstone_representation").select_option("Noise")
+        expect(page.locator("#noise_parameters_table tbody tr")).to_have_count(1)
+        expect(page.locator("#noise_parameters_table")).to_contain_text("15")
 
         page.get_by_text("Load-pull measurements and contours", exact=True).click()
         page.locator("#loadpull_format").select_option("alps_mdf")
@@ -183,9 +260,27 @@ def main(url: str) -> None:
             "Upload complete", timeout=60_000
         )
         page.locator("#loadpull_import").click()
-        expect(page.locator("#loadpull_status")).to_contain_text(
-            "214/97584 source rows", timeout=60_000
-        )
+        try:
+            expect(page.locator("#loadpull_status")).to_contain_text(
+                "214/97584 source rows", timeout=60_000
+            )
+        except AssertionError:
+            print(
+                "ALPS browser failure state:",
+                page.evaluate(
+                    """() => ({
+                  socket: Shiny.shinyapp.$socket?.readyState,
+                  adapter: Shiny.shinyapp.$inputValues.loadpull_format,
+                  imported: Shiny.shinyapp.$inputValues.loadpull_import,
+                  file: Shiny.shinyapp.$inputValues.loadpull_upload,
+                  notifications: document.querySelector('#shiny-notification-panel')?.textContent
+                })"""
+                ),
+                "page errors:",
+                errors,
+                flush=True,
+            )
+            raise
         expect(page.locator("#loadpull_alps_block option")).to_have_count(456)
         page.locator("#loadpull_alps_block").select_option("2")
         page.locator("#loadpull_import").click()
@@ -278,11 +373,38 @@ def main(url: str) -> None:
         expect(page.locator("#loadpull_status")).to_contain_text("Last valid dataset retained")
         expect(page.locator("#loadpull_view")).to_contain_text("Selected section 2/8")
         close_notifications(page)
+        page.locator("#loadpull_format").select_option("cst")
+        cst_source = next(source.parent.glob("*.cst"))
+        page.locator("#loadpull_upload").set_input_files(cst_source)
+        expect(page.locator("#loadpull_upload_progress")).to_contain_text("Upload complete")
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text("Block 1/365")
+        expect(page.locator("#loadpull_status")).to_contain_text("23/8915 source rows")
+        expect(page.locator("#loadpull_cst_block option")).to_have_count(365)
+        expect(page.locator("#cst_wave_table tbody tr")).to_have_count(23)
+        with page.expect_download() as download:
+            page.locator("#download_loadpull").click()
+        cst_export = Path(temp) / "cst-selected.json"
+        download.value.save_as(cst_export)
+        peak = json.loads(cst_export.read_text(encoding="utf-8"))
+        page.locator("#loadpull_cst_normalization").select_option("rms_voltage")
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text("Wave normalization: rms_voltage")
+        with page.expect_download() as download:
+            page.locator("#download_loadpull").click()
+        download.value.save_as(cst_export)
+        rms = json.loads(cst_export.read_text(encoding="utf-8"))
+        assert abs(rms["points"][0]["pin_w"] - 2 * peak["points"][0]["pin_w"]) < 1e-12
+        assert rms["points"][0]["extra"]["source.z0load"] == 5
+        page.locator("#loadpull_cst_block").select_option("365")
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text("Block 365/365")
+        close_notifications(page)
         assert not errors, errors
         browser.close()
     print(
         "Advanced browser smoke passed: comparison, lifecycle, geometry/history, "
-        "triangles, noise, mixed-mode, streamed ALPS and SPL plan selection/export."
+        "triangles, v1/v2 noise, mixed-mode transforms, annotations, ALPS, SPL and CST workflows."
     )
 
 
