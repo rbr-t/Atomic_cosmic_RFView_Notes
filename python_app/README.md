@@ -171,6 +171,61 @@ handler to Shiny's one-argument contract. JSON restoration uses the canvas histo
 restore primitive to preserve identities and geometry. Python results do not
 overwrite saved model inputs.
 
+### Batch 5 - full-stage transistor sizing orchestration
+
+[transistor.py](src/rfview/domain/transistor.py) now exposes typed
+`StageSizingInput` and pure `transistor_design_suite`. The orchestrator reuses
+the previously qualified Ropt, gate-width, bias-current, Doherty, matching and
+combiner primitives instead of duplicating their equations.
+
+```python
+from rfview.domain.transistor import StageSizingInput, transistor_design_suite
+
+stage = StageSizingInput(pout_dbm=40, pae_pct=55, vdd_v=28)
+design = transistor_design_suite(stage, freq_ghz=3.5, topology="doherty_symmetric")
+assert design["ropt"]["Ropt_ohm"] == 33.8
+assert design["gate_width"]["gate_width_mm"] == 4
+```
+
+Supported topologies: `single_ended`, `doherty_symmetric`,
+`doherty_asymmetric_6dB`, `doherty_asymmetric_9dB`. Single-ended designs return
+`None` for Doherty sizing and the combiner. Results include all nested numeric
+and structural fields from the legacy suite, excluding formatted formula prose,
+plus a model identifier and explicit limitations.
+
+Sixteen frozen R-reference cases cover defaults, power/supply/substrate changes,
+unity and clamped input matching, and efficiency extremes. All nested outputs
+match at `rtol=1e-10`, `atol=1e-12`. Invalid parameters/topologies raise errors;
+the port does not reproduce legacy NA/default-shaped error returns.
+The suite now has **422 passing tests**.
+
+This is an API-level batch: the existing sizing UI still shows its original
+Ropt/gate-width check. The full design-suite panel and human-readable rationale
+formatter are not yet migrated.
+
+The suite intentionally retains R's hard-coded GaN assumptions: knee voltage
+2 V, power density 2.5 W/mm, maximum current density 800 mA/mm, conduction angle
+240 degrees, and gate-input resistance approximated as `max(Ropt / 5, 1 ohm)`.
+Combiner length uses bulk relative permittivity rather than effective
+microstrip permittivity. These are preliminary synthesis estimates, not
+device-model or EM-qualified designs.
+
+Calculation inventory after this batch:
+
+| Legacy calculation surface | Python status |
+|---|---|
+| Frequency planning, passive loss, link budget | Scalar APIs and R references present |
+| Lineup cascade | Qualified compatibility engine; workflow expansion remains |
+| Guardrail validation and four row builders | Qualified APIs with advisory/charts UI |
+| Transistor primitives and full-stage suite | Qualified APIs; full-suite UI/rationale pending |
+| Power, wavelength, S11, thermal tools | Qualified scalar APIs; dedicated tools UI pending |
+| Constant-hazard reliability curve | Not yet ported |
+| Arrhenius MTTF | Deferred: legacy multiplier makes lifetime increase with temperature |
+
+The MTTF issue must be resolved as an explicitly versioned engineering change,
+not silently corrected inside a legacy-parity port. The remaining runtime,
+parser, persistence, AI/KB and document migrations are still required.
+
 ## Validation
 
 From the repository root:

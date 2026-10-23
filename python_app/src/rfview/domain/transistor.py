@@ -1,8 +1,39 @@
 import math
+from typing import Literal, TypedDict
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from rfview.domain.models import finite, nonnegative, positive
+from rfview.domain.power import dbm_to_watts
 
 ScalarResult = dict[str, float | str | None]
+DesignTopology = Literal[
+    "single_ended", "doherty_symmetric", "doherty_asymmetric_6dB", "doherty_asymmetric_9dB"
+]
+
+
+class StageSizingInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    pout_dbm: float = 47
+    pae_pct: float = Field(default=45, gt=0, le=100)
+    vdd_v: float = Field(default=28, gt=2)
+
+
+class TransistorDesignSuite(TypedDict):
+    ropt: ScalarResult
+    gate_width: ScalarResult
+    idq: ScalarResult
+    doherty: ScalarResult | None
+    matching_input: ScalarResult
+    combiner: ScalarResult | None
+    pout_w: float
+    pout_dbm: float
+    freq_ghz: float
+    topology: DesignTopology
+    model_version: str
+    limitations: list[str]
+
 
 VKNEE = {
     "gan_sic": 2.0,
@@ -141,4 +172,64 @@ def doherty_combiner(
         "er": er,
         "h_mm": h_mm,
         "freq_ghz": freq_ghz,
+    }
+
+
+def transistor_design_suite(
+    stage: StageSizingInput,
+    freq_ghz: float,
+    topology: DesignTopology = "doherty_symmetric",
+    er: float = 3.55,
+    h_mm: float = 0.508,
+) -> TransistorDesignSuite:
+    if topology not in (
+        "single_ended",
+        "doherty_symmetric",
+        "doherty_asymmetric_6dB",
+        "doherty_asymmetric_9dB",
+    ):
+        raise ValueError(f"Unsupported transistor design topology: {topology}")
+    positive(freq_ghz, "frequency (GHz)")
+    positive(h_mm, "substrate thickness (mm)")
+    finite(er, "relative permittivity")
+    if er < 1:
+        raise ValueError("Relative permittivity must be at least 1")
+    power = dbm_to_watts(stage.pout_dbm)
+    positive(power, "Pout (W)")
+    resistance = ropt(stage.vdd_v, power, 2)
+    width = gate_width(power, 2.5, stage.pae_pct / 100)
+    is_doherty = topology != "single_ended"
+    return {
+        "ropt": {
+            "Ropt_ohm": resistance,
+            "Vdd_V": stage.vdd_v,
+            "Vknee_V": 2,
+            "Pout_W": power,
+        },
+        "gate_width": {
+            "gate_width_mm": width,
+            "Pout_W": power,
+            "power_density": 2.5,
+            "pae_pct": stage.pae_pct,
+        },
+        "idq": idq(800 * width, 240),
+        "doherty": (
+            doherty_sizing(resistance, topology.removeprefix("doherty_")) if is_doherty else None
+        ),
+        "matching_input": matching_lmatch(50, max(resistance / 5, 1), freq_ghz),
+        "combiner": (doherty_combiner(resistance, freq_ghz, er, h_mm) if is_doherty else None),
+        "pout_w": power,
+        "pout_dbm": stage.pout_dbm,
+        "freq_ghz": freq_ghz,
+        "topology": topology,
+        "model_version": "legacy-r-transistor-suite-v1",
+        "limitations": [
+            "Legacy GaN assumptions: Vknee=2 V, power density=2.5 W/mm, "
+            "Ids_max=800 mA/mm and conduction angle=240 deg.",
+            "Input impedance is approximated as max(Ropt/5, 1 ohm), "
+            "not derived from device S-parameters.",
+            "Gate width follows Pout/power density; entered PAE does not change periphery.",
+            "Combiner length uses bulk relative permittivity, "
+            "not effective microstrip permittivity.",
+        ],
     }

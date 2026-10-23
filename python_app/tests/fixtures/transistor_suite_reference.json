@@ -1,0 +1,926 @@
+{
+  "provenance": {
+    "runtime": "R version 4.4.1 (2024-06-14 ucrt)",
+    "source_md5": "349d445ac4d0696d9a5f3228ea98aa0b",
+    "note": "All nested numerical/structural fields; formula prose excluded."
+  },
+  "cases": [
+    {
+      "name": "single_ended defaults",
+      "stage": [],
+      "freq_ghz": 3.5,
+      "topology": "single_ended",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 6.7439866245948101,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 50.118723362727252
+        },
+        "gate_width": {
+          "gate_width_mm": 20.047489345090902,
+          "Pout_W": 50.118723362727252,
+          "power_density": 2.5,
+          "pae_pct": 45
+        },
+        "idq": {
+          "Idq_mA": 2672.9985793454539,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 16037.991476072722,
+          "class_label": "Class AB"
+        },
+        "doherty": null,
+        "matching_input": {
+          "Q": 6.0058356336834535,
+          "L_nH": 0.36835979753130599,
+          "C_pF": 5.4620481628466697,
+          "bw_pct": 16.650472323810295,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 1.348797324918962,
+          "freq_ghz": 3.5
+        },
+        "combiner": null,
+        "pout_w": 50.118723362727252,
+        "pout_dbm": 47,
+        "freq_ghz": 3.5,
+        "topology": "single_ended"
+      }
+    },
+    {
+      "name": "single_ended 10W",
+      "stage": {
+        "pout_dbm": 40,
+        "pae_pct": 55,
+        "vdd_v": 28
+      },
+      "freq_ghz": 1.8,
+      "topology": "single_ended",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 33.799999999999997,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 10
+        },
+        "gate_width": {
+          "gate_width_mm": 4,
+          "Pout_W": 10,
+          "power_density": 2.5,
+          "pae_pct": 55.000000000000007
+        },
+        "idq": {
+          "Idq_mA": 533.33333333333337,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 3200,
+          "class_label": "Class AB"
+        },
+        "doherty": null,
+        "matching_input": {
+          "Q": 2.5291203419651689,
+          "L_nH": 1.5116937487236799,
+          "C_pF": 4.4724667122002364,
+          "bw_pct": 39.539439203710778,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 6.7599999999999998,
+          "freq_ghz": 1.8
+        },
+        "combiner": null,
+        "pout_w": 10,
+        "pout_dbm": 40,
+        "freq_ghz": 1.8,
+        "topology": "single_ended"
+      }
+    },
+    {
+      "name": "single_ended 48V",
+      "stage": {
+        "pout_dbm": 50,
+        "pae_pct": 65,
+        "vdd_v": 48
+      },
+      "freq_ghz": 6,
+      "topology": "single_ended",
+      "er": 4.4000000000000004,
+      "h_mm": 0.80000000000000004,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 10.58,
+          "Vdd_V": 48,
+          "Vknee_V": 2,
+          "Pout_W": 100
+        },
+        "gate_width": {
+          "gate_width_mm": 40,
+          "Pout_W": 100,
+          "power_density": 2.5,
+          "pae_pct": 65
+        },
+        "idq": {
+          "Idq_mA": 5333.333333333333,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 32000,
+          "class_label": "Class AB"
+        },
+        "doherty": null,
+        "matching_input": {
+          "Q": 4.7570463107925045,
+          "L_nH": 0.26700655536757129,
+          "C_pF": 2.5236914495989726,
+          "bw_pct": 21.021447651902385,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 2.1160000000000001,
+          "freq_ghz": 6
+        },
+        "combiner": null,
+        "pout_w": 100,
+        "pout_dbm": 50,
+        "freq_ghz": 6,
+        "topology": "single_ended"
+      }
+    },
+    {
+      "name": "doherty_symmetric defaults",
+      "stage": [],
+      "freq_ghz": 3.5,
+      "topology": "doherty_symmetric",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 6.7439866245948101,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 50.118723362727252
+        },
+        "gate_width": {
+          "gate_width_mm": 20.047489345090902,
+          "Pout_W": 50.118723362727252,
+          "power_density": 2.5,
+          "pae_pct": 45
+        },
+        "idq": {
+          "Idq_mA": 2672.9985793454539,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 16037.991476072722,
+          "class_label": "Class AB"
+        },
+        "doherty": {
+          "Ropt_main_ohm": 6.7439866245948101,
+          "Ropt_peak_ohm": 13.48797324918962,
+          "Zt_ohm": 18.3629880800958,
+          "gate_ratio": 1,
+          "n_factor": 2,
+          "topology": "symmetric"
+        },
+        "matching_input": {
+          "Q": 6.0058356336834535,
+          "L_nH": 0.36835979753130599,
+          "C_pF": 5.4620481628466697,
+          "bw_pct": 16.650472323810295,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 1.348797324918962,
+          "freq_ghz": 3.5
+        },
+        "combiner": {
+          "Zt_ohm": 18.3629880800958,
+          "len_mm": 11.365236848129783,
+          "width_mm": 4.427152238649402,
+          "lambda_g_mm": 45.460947392519131,
+          "er": 3.5499999999999998,
+          "h_mm": 0.50800000000000001,
+          "freq_ghz": 3.5
+        },
+        "pout_w": 50.118723362727252,
+        "pout_dbm": 47,
+        "freq_ghz": 3.5,
+        "topology": "doherty_symmetric"
+      }
+    },
+    {
+      "name": "doherty_symmetric 10W",
+      "stage": {
+        "pout_dbm": 40,
+        "pae_pct": 55,
+        "vdd_v": 28
+      },
+      "freq_ghz": 1.8,
+      "topology": "doherty_symmetric",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 33.799999999999997,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 10
+        },
+        "gate_width": {
+          "gate_width_mm": 4,
+          "Pout_W": 10,
+          "power_density": 2.5,
+          "pae_pct": 55.000000000000007
+        },
+        "idq": {
+          "Idq_mA": 533.33333333333337,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 3200,
+          "class_label": "Class AB"
+        },
+        "doherty": {
+          "Ropt_main_ohm": 33.799999999999997,
+          "Ropt_peak_ohm": 67.599999999999994,
+          "Zt_ohm": 41.109609582188931,
+          "gate_ratio": 1,
+          "n_factor": 2,
+          "topology": "symmetric"
+        },
+        "matching_input": {
+          "Q": 2.5291203419651689,
+          "L_nH": 1.5116937487236799,
+          "C_pF": 4.4724667122002364,
+          "bw_pct": 39.539439203710778,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 6.7599999999999998,
+          "freq_ghz": 1.8
+        },
+        "combiner": {
+          "Zt_ohm": 41.109609582188931,
+          "len_mm": 22.099071649141244,
+          "width_mm": 1.5343553854746861,
+          "lambda_g_mm": 88.396286596564977,
+          "er": 3.5499999999999998,
+          "h_mm": 0.50800000000000001,
+          "freq_ghz": 1.8
+        },
+        "pout_w": 10,
+        "pout_dbm": 40,
+        "freq_ghz": 1.8,
+        "topology": "doherty_symmetric"
+      }
+    },
+    {
+      "name": "doherty_symmetric 48V",
+      "stage": {
+        "pout_dbm": 50,
+        "pae_pct": 65,
+        "vdd_v": 48
+      },
+      "freq_ghz": 6,
+      "topology": "doherty_symmetric",
+      "er": 4.4000000000000004,
+      "h_mm": 0.80000000000000004,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 10.58,
+          "Vdd_V": 48,
+          "Vknee_V": 2,
+          "Pout_W": 100
+        },
+        "gate_width": {
+          "gate_width_mm": 40,
+          "Pout_W": 100,
+          "power_density": 2.5,
+          "pae_pct": 65
+        },
+        "idq": {
+          "Idq_mA": 5333.333333333333,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 32000,
+          "class_label": "Class AB"
+        },
+        "doherty": {
+          "Ropt_main_ohm": 10.58,
+          "Ropt_peak_ohm": 21.16,
+          "Zt_ohm": 23,
+          "gate_ratio": 1,
+          "n_factor": 2,
+          "topology": "symmetric"
+        },
+        "matching_input": {
+          "Q": 4.7570463107925045,
+          "L_nH": 0.26700655536757129,
+          "C_pF": 2.5236914495989726,
+          "bw_pct": 21.021447651902385,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 2.1160000000000001,
+          "freq_ghz": 6
+        },
+        "combiner": {
+          "Zt_ohm": 23,
+          "len_mm": 5.9550186091870927,
+          "width_mm": 4.6593458331119555,
+          "lambda_g_mm": 23.820074436748371,
+          "er": 4.4000000000000004,
+          "h_mm": 0.80000000000000004,
+          "freq_ghz": 6
+        },
+        "pout_w": 100,
+        "pout_dbm": 50,
+        "freq_ghz": 6,
+        "topology": "doherty_symmetric"
+      }
+    },
+    {
+      "name": "doherty_asymmetric_6dB defaults",
+      "stage": [],
+      "freq_ghz": 3.5,
+      "topology": "doherty_asymmetric_6dB",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 6.7439866245948101,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 50.118723362727252
+        },
+        "gate_width": {
+          "gate_width_mm": 20.047489345090902,
+          "Pout_W": 50.118723362727252,
+          "power_density": 2.5,
+          "pae_pct": 45
+        },
+        "idq": {
+          "Idq_mA": 2672.9985793454539,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 16037.991476072722,
+          "class_label": "Class AB"
+        },
+        "doherty": {
+          "Ropt_main_ohm": 6.7439866245948101,
+          "Ropt_peak_ohm": 13.48797324918962,
+          "Zt_ohm": 18.3629880800958,
+          "gate_ratio": 2,
+          "n_factor": 2,
+          "topology": "asymmetric_6dB"
+        },
+        "matching_input": {
+          "Q": 6.0058356336834535,
+          "L_nH": 0.36835979753130599,
+          "C_pF": 5.4620481628466697,
+          "bw_pct": 16.650472323810295,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 1.348797324918962,
+          "freq_ghz": 3.5
+        },
+        "combiner": {
+          "Zt_ohm": 18.3629880800958,
+          "len_mm": 11.365236848129783,
+          "width_mm": 4.427152238649402,
+          "lambda_g_mm": 45.460947392519131,
+          "er": 3.5499999999999998,
+          "h_mm": 0.50800000000000001,
+          "freq_ghz": 3.5
+        },
+        "pout_w": 50.118723362727252,
+        "pout_dbm": 47,
+        "freq_ghz": 3.5,
+        "topology": "doherty_asymmetric_6dB"
+      }
+    },
+    {
+      "name": "doherty_asymmetric_6dB 10W",
+      "stage": {
+        "pout_dbm": 40,
+        "pae_pct": 55,
+        "vdd_v": 28
+      },
+      "freq_ghz": 1.8,
+      "topology": "doherty_asymmetric_6dB",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 33.799999999999997,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 10
+        },
+        "gate_width": {
+          "gate_width_mm": 4,
+          "Pout_W": 10,
+          "power_density": 2.5,
+          "pae_pct": 55.000000000000007
+        },
+        "idq": {
+          "Idq_mA": 533.33333333333337,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 3200,
+          "class_label": "Class AB"
+        },
+        "doherty": {
+          "Ropt_main_ohm": 33.799999999999997,
+          "Ropt_peak_ohm": 67.599999999999994,
+          "Zt_ohm": 41.109609582188931,
+          "gate_ratio": 2,
+          "n_factor": 2,
+          "topology": "asymmetric_6dB"
+        },
+        "matching_input": {
+          "Q": 2.5291203419651689,
+          "L_nH": 1.5116937487236799,
+          "C_pF": 4.4724667122002364,
+          "bw_pct": 39.539439203710778,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 6.7599999999999998,
+          "freq_ghz": 1.8
+        },
+        "combiner": {
+          "Zt_ohm": 41.109609582188931,
+          "len_mm": 22.099071649141244,
+          "width_mm": 1.5343553854746861,
+          "lambda_g_mm": 88.396286596564977,
+          "er": 3.5499999999999998,
+          "h_mm": 0.50800000000000001,
+          "freq_ghz": 1.8
+        },
+        "pout_w": 10,
+        "pout_dbm": 40,
+        "freq_ghz": 1.8,
+        "topology": "doherty_asymmetric_6dB"
+      }
+    },
+    {
+      "name": "doherty_asymmetric_6dB 48V",
+      "stage": {
+        "pout_dbm": 50,
+        "pae_pct": 65,
+        "vdd_v": 48
+      },
+      "freq_ghz": 6,
+      "topology": "doherty_asymmetric_6dB",
+      "er": 4.4000000000000004,
+      "h_mm": 0.80000000000000004,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 10.58,
+          "Vdd_V": 48,
+          "Vknee_V": 2,
+          "Pout_W": 100
+        },
+        "gate_width": {
+          "gate_width_mm": 40,
+          "Pout_W": 100,
+          "power_density": 2.5,
+          "pae_pct": 65
+        },
+        "idq": {
+          "Idq_mA": 5333.333333333333,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 32000,
+          "class_label": "Class AB"
+        },
+        "doherty": {
+          "Ropt_main_ohm": 10.58,
+          "Ropt_peak_ohm": 21.16,
+          "Zt_ohm": 23,
+          "gate_ratio": 2,
+          "n_factor": 2,
+          "topology": "asymmetric_6dB"
+        },
+        "matching_input": {
+          "Q": 4.7570463107925045,
+          "L_nH": 0.26700655536757129,
+          "C_pF": 2.5236914495989726,
+          "bw_pct": 21.021447651902385,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 2.1160000000000001,
+          "freq_ghz": 6
+        },
+        "combiner": {
+          "Zt_ohm": 23,
+          "len_mm": 5.9550186091870927,
+          "width_mm": 4.6593458331119555,
+          "lambda_g_mm": 23.820074436748371,
+          "er": 4.4000000000000004,
+          "h_mm": 0.80000000000000004,
+          "freq_ghz": 6
+        },
+        "pout_w": 100,
+        "pout_dbm": 50,
+        "freq_ghz": 6,
+        "topology": "doherty_asymmetric_6dB"
+      }
+    },
+    {
+      "name": "doherty_asymmetric_9dB defaults",
+      "stage": [],
+      "freq_ghz": 3.5,
+      "topology": "doherty_asymmetric_9dB",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 6.7439866245948101,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 50.118723362727252
+        },
+        "gate_width": {
+          "gate_width_mm": 20.047489345090902,
+          "Pout_W": 50.118723362727252,
+          "power_density": 2.5,
+          "pae_pct": 45
+        },
+        "idq": {
+          "Idq_mA": 2672.9985793454539,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 16037.991476072722,
+          "class_label": "Class AB"
+        },
+        "doherty": {
+          "Ropt_main_ohm": 6.7439866245948101,
+          "Ropt_peak_ohm": 20.23195987378443,
+          "Zt_ohm": 18.3629880800958,
+          "gate_ratio": 3,
+          "n_factor": 3,
+          "topology": "asymmetric_9dB"
+        },
+        "matching_input": {
+          "Q": 6.0058356336834535,
+          "L_nH": 0.36835979753130599,
+          "C_pF": 5.4620481628466697,
+          "bw_pct": 16.650472323810295,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 1.348797324918962,
+          "freq_ghz": 3.5
+        },
+        "combiner": {
+          "Zt_ohm": 18.3629880800958,
+          "len_mm": 11.365236848129783,
+          "width_mm": 4.427152238649402,
+          "lambda_g_mm": 45.460947392519131,
+          "er": 3.5499999999999998,
+          "h_mm": 0.50800000000000001,
+          "freq_ghz": 3.5
+        },
+        "pout_w": 50.118723362727252,
+        "pout_dbm": 47,
+        "freq_ghz": 3.5,
+        "topology": "doherty_asymmetric_9dB"
+      }
+    },
+    {
+      "name": "doherty_asymmetric_9dB 10W",
+      "stage": {
+        "pout_dbm": 40,
+        "pae_pct": 55,
+        "vdd_v": 28
+      },
+      "freq_ghz": 1.8,
+      "topology": "doherty_asymmetric_9dB",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 33.799999999999997,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 10
+        },
+        "gate_width": {
+          "gate_width_mm": 4,
+          "Pout_W": 10,
+          "power_density": 2.5,
+          "pae_pct": 55.000000000000007
+        },
+        "idq": {
+          "Idq_mA": 533.33333333333337,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 3200,
+          "class_label": "Class AB"
+        },
+        "doherty": {
+          "Ropt_main_ohm": 33.799999999999997,
+          "Ropt_peak_ohm": 101.39999999999999,
+          "Zt_ohm": 41.109609582188931,
+          "gate_ratio": 3,
+          "n_factor": 3,
+          "topology": "asymmetric_9dB"
+        },
+        "matching_input": {
+          "Q": 2.5291203419651689,
+          "L_nH": 1.5116937487236799,
+          "C_pF": 4.4724667122002364,
+          "bw_pct": 39.539439203710778,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 6.7599999999999998,
+          "freq_ghz": 1.8
+        },
+        "combiner": {
+          "Zt_ohm": 41.109609582188931,
+          "len_mm": 22.099071649141244,
+          "width_mm": 1.5343553854746861,
+          "lambda_g_mm": 88.396286596564977,
+          "er": 3.5499999999999998,
+          "h_mm": 0.50800000000000001,
+          "freq_ghz": 1.8
+        },
+        "pout_w": 10,
+        "pout_dbm": 40,
+        "freq_ghz": 1.8,
+        "topology": "doherty_asymmetric_9dB"
+      }
+    },
+    {
+      "name": "doherty_asymmetric_9dB 48V",
+      "stage": {
+        "pout_dbm": 50,
+        "pae_pct": 65,
+        "vdd_v": 48
+      },
+      "freq_ghz": 6,
+      "topology": "doherty_asymmetric_9dB",
+      "er": 4.4000000000000004,
+      "h_mm": 0.80000000000000004,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 10.58,
+          "Vdd_V": 48,
+          "Vknee_V": 2,
+          "Pout_W": 100
+        },
+        "gate_width": {
+          "gate_width_mm": 40,
+          "Pout_W": 100,
+          "power_density": 2.5,
+          "pae_pct": 65
+        },
+        "idq": {
+          "Idq_mA": 5333.333333333333,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 32000,
+          "class_label": "Class AB"
+        },
+        "doherty": {
+          "Ropt_main_ohm": 10.58,
+          "Ropt_peak_ohm": 31.740000000000002,
+          "Zt_ohm": 23,
+          "gate_ratio": 3,
+          "n_factor": 3,
+          "topology": "asymmetric_9dB"
+        },
+        "matching_input": {
+          "Q": 4.7570463107925045,
+          "L_nH": 0.26700655536757129,
+          "C_pF": 2.5236914495989726,
+          "bw_pct": 21.021447651902385,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 2.1160000000000001,
+          "freq_ghz": 6
+        },
+        "combiner": {
+          "Zt_ohm": 23,
+          "len_mm": 5.9550186091870927,
+          "width_mm": 4.6593458331119555,
+          "lambda_g_mm": 23.820074436748371,
+          "er": 4.4000000000000004,
+          "h_mm": 0.80000000000000004,
+          "freq_ghz": 6
+        },
+        "pout_w": 100,
+        "pout_dbm": 50,
+        "freq_ghz": 6,
+        "topology": "doherty_asymmetric_9dB"
+      }
+    },
+    {
+      "name": "unity-input-match",
+      "stage": {
+        "pout_dbm": 31.309766916056173,
+        "pae_pct": 50,
+        "vdd_v": 28
+      },
+      "freq_ghz": 3.5,
+      "topology": "single_ended",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 249.99999999999994,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 1.3520000000000003
+        },
+        "gate_width": {
+          "gate_width_mm": 0.54080000000000017,
+          "Pout_W": 1.3520000000000003,
+          "power_density": 2.5,
+          "pae_pct": 50
+        },
+        "idq": {
+          "Idq_mA": 72.106666666666698,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 432.64000000000016,
+          "class_label": "Class AB"
+        },
+        "doherty": null,
+        "matching_input": {
+          "Q": 0,
+          "L_nH": null,
+          "C_pF": null,
+          "bw_pct": null,
+          "topology": "none",
+          "Zs_ohm": 50,
+          "Zl_ohm": 49.999999999999986,
+          "freq_ghz": 3.5
+        },
+        "combiner": null,
+        "pout_w": 1.3520000000000003,
+        "pout_dbm": 31.309766916056173,
+        "freq_ghz": 3.5,
+        "topology": "single_ended"
+      }
+    },
+    {
+      "name": "clamped-input-match",
+      "stage": {
+        "pout_dbm": 55,
+        "pae_pct": 60,
+        "vdd_v": 28
+      },
+      "freq_ghz": 3.5,
+      "topology": "single_ended",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 1.0688498491369123,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 316.2277660168379
+        },
+        "gate_width": {
+          "gate_width_mm": 126.49110640673516,
+          "Pout_W": 316.2277660168379,
+          "power_density": 2.5,
+          "pae_pct": 60
+        },
+        "idq": {
+          "Idq_mA": 16865.480854231355,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 101192.88512538813,
+          "class_label": "Class AB"
+        },
+        "doherty": null,
+        "matching_input": {
+          "Q": 7,
+          "L_nH": 0.31830988618379069,
+          "C_pF": 6.366197723675814,
+          "bw_pct": 14.285714285714286,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 1,
+          "freq_ghz": 3.5
+        },
+        "combiner": null,
+        "pout_w": 316.2277660168379,
+        "pout_dbm": 55,
+        "freq_ghz": 3.5,
+        "topology": "single_ended"
+      }
+    },
+    {
+      "name": "low-efficiency",
+      "stage": {
+        "pout_dbm": 40,
+        "pae_pct": 1,
+        "vdd_v": 28
+      },
+      "freq_ghz": 3.5,
+      "topology": "doherty_symmetric",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 33.799999999999997,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 10
+        },
+        "gate_width": {
+          "gate_width_mm": 4,
+          "Pout_W": 10,
+          "power_density": 2.5,
+          "pae_pct": 1
+        },
+        "idq": {
+          "Idq_mA": 533.33333333333337,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 3200,
+          "class_label": "Class AB"
+        },
+        "doherty": {
+          "Ropt_main_ohm": 33.799999999999997,
+          "Ropt_peak_ohm": 67.599999999999994,
+          "Zt_ohm": 41.109609582188931,
+          "gate_ratio": 1,
+          "n_factor": 2,
+          "topology": "symmetric"
+        },
+        "matching_input": {
+          "Q": 2.5291203419651689,
+          "L_nH": 0.77744249934360687,
+          "C_pF": 2.3001257377029791,
+          "bw_pct": 39.539439203710778,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 6.7599999999999998,
+          "freq_ghz": 3.5
+        },
+        "combiner": {
+          "Zt_ohm": 41.109609582188931,
+          "len_mm": 11.365236848129783,
+          "width_mm": 1.5343553854746861,
+          "lambda_g_mm": 45.460947392519131,
+          "er": 3.5499999999999998,
+          "h_mm": 0.50800000000000001,
+          "freq_ghz": 3.5
+        },
+        "pout_w": 10,
+        "pout_dbm": 40,
+        "freq_ghz": 3.5,
+        "topology": "doherty_symmetric"
+      }
+    },
+    {
+      "name": "high-efficiency",
+      "stage": {
+        "pout_dbm": 40,
+        "pae_pct": 100,
+        "vdd_v": 28
+      },
+      "freq_ghz": 3.5,
+      "topology": "doherty_symmetric",
+      "er": 3.5499999999999998,
+      "h_mm": 0.50800000000000001,
+      "expected": {
+        "ropt": {
+          "Ropt_ohm": 33.799999999999997,
+          "Vdd_V": 28,
+          "Vknee_V": 2,
+          "Pout_W": 10
+        },
+        "gate_width": {
+          "gate_width_mm": 4,
+          "Pout_W": 10,
+          "power_density": 2.5,
+          "pae_pct": 100
+        },
+        "idq": {
+          "Idq_mA": 533.33333333333337,
+          "conduction_angle_deg": 240,
+          "Ids_max_mA": 3200,
+          "class_label": "Class AB"
+        },
+        "doherty": {
+          "Ropt_main_ohm": 33.799999999999997,
+          "Ropt_peak_ohm": 67.599999999999994,
+          "Zt_ohm": 41.109609582188931,
+          "gate_ratio": 1,
+          "n_factor": 2,
+          "topology": "symmetric"
+        },
+        "matching_input": {
+          "Q": 2.5291203419651689,
+          "L_nH": 0.77744249934360687,
+          "C_pF": 2.3001257377029791,
+          "bw_pct": 39.539439203710778,
+          "topology": "step_down_L",
+          "Zs_ohm": 50,
+          "Zl_ohm": 6.7599999999999998,
+          "freq_ghz": 3.5
+        },
+        "combiner": {
+          "Zt_ohm": 41.109609582188931,
+          "len_mm": 11.365236848129783,
+          "width_mm": 1.5343553854746861,
+          "lambda_g_mm": 45.460947392519131,
+          "er": 3.5499999999999998,
+          "h_mm": 0.50800000000000001,
+          "freq_ghz": 3.5
+        },
+        "pout_w": 10,
+        "pout_dbm": 40,
+        "freq_ghz": 3.5,
+        "topology": "doherty_symmetric"
+      }
+    }
+  ]
+}
