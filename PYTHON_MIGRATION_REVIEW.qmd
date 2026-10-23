@@ -1,0 +1,338 @@
+---
+title: "Python Workspace Migration Review"
+subtitle: "RF Engineering Platform - feasibility, effort, parity and controlled retirement"
+date: 2026-10-23
+lang: en
+format:
+  html:
+    theme:
+      light: flatly
+      dark: darkly
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    number-sections: true
+    smooth-scroll: true
+    embed-resources: true
+    link-external-newwindow: true
+    page-layout: article
+    include-in-header:
+      text: |
+        <meta name="color-scheme" content="light dark">
+        <style>
+        th, td { vertical-align: top; }
+        @media print {
+          nav, .quarto-navigation-tool, .quarto-color-scheme-toggle { display: none !important; }
+          body { background: white !important; color: black !important; }
+          h2, h3 { break-after: avoid; }
+          tr, blockquote { break-inside: avoid; }
+          a { color: inherit !important; }
+        }
+        </style>
+execute:
+  enabled: false
+---
+
+## Executive decision
+
+**The workspace can be migrated to Python without requiring R or RStudio for normal development, operation or document builds.** The safest route is a staged, side-by-side migration, not a wholesale rewrite followed by a single cutover.
+
+Recommended starting point:
+
+- **Shiny for Python Core** for the reactive application shell.
+- Retain the existing **JavaScript/Konva canvases, CSS and browser interactions** wherever practical.
+- A framework-independent Python domain package for RF calculations, schemas and application services.
+- Retain PostgreSQL, DuckDB and existing data/assets; replace their R adapters.
+- Quarto with Python/Jupyter for reproducible reports and educational documents.
+- VS Code, a locked Python environment, automated tests and reproducible builds instead of RStudio-dependent workflows.
+
+This means a **Python-based platform**, not a platform made exclusively of Python files. JavaScript, HTML, CSS, SQL, YAML, bibliography files, figures and source reference documents should remain in their appropriate formats. Rewriting functioning browser graphics in Python would add cost and risk without removing an R dependency.
+
+**Planning estimate:** 43-68 person-weeks of engineering work, or approximately **54-85 person-weeks including a 25% contingency** for the entire workspace. A small experienced team should plan roughly **6-9 calendar months**; one full-time experienced engineer should plan roughly **14-22 months**. These are initial engineering estimates, not a fixed-price quotation or a measured productivity forecast.
+
+**Reproducibility:** target every agreed existing workflow, with numerical equivalence tested to explicit tolerances. Do not claim a single "99% accurate" score: numerical results, UI behavior, file compatibility, AI output and rendered documents require different acceptance tests.
+
+::: {.callout-warning}
+**No unconditional guarantee is possible today.** Current behavior has not been comprehensively baselined, some tests are broken, source and test expectations disagree, and several advertised capabilities are partial or mocked. Preserve architecture and verified behavior, not accidental bugs or unverified completion percentages.
+:::
+
+## Scope and evidence
+
+### What was reviewed
+
+This is a source-based migration assessment with a tracked-file inventory, representative architectural reads, an actual run of the calculation test directory, and representative numerical checks. It is **not** a full interactive acceptance test, security audit, benchmark study or verification of external lab/simulation systems.
+
+The current checkout differs materially from older repository descriptions:
+
+| Measured area | Current evidence | Migration implication |
+|---|---|---|
+| R sources | 91 tracked `.R` files; approximately 36,900 lines | More than the main PA app must be addressed |
+| PA application | 55 R files under `src`; 22 server modules; seven calculation modules | Preserve module boundaries, not just screen appearance |
+| PA R material | 62 tracked R files, approximately 30,500 lines including tests/launchers | Raw size is not an estimate of unique logic |
+| JavaScript | Nine tracked files, approximately 14,400 lines across PA/CAD | Substantial reusable browser implementation |
+| Main lineup canvas | Approximately 9,300 lines | Existing canvas is larger than older status notes suggest |
+| R Markdown | 29 non-skill documents, approximately 22,900 lines | Includes document generators, templates, tests and examples |
+| R execution cells | 149 opening R chunk fences across those documents | Discovery count, not 149 unique algorithms; inline R also exists |
+| Python | 22 tracked files, including utilities and hook scripts | Keep/repackage useful code rather than translate it again |
+| Reference assets | Hundreds of PDFs, plus images, presentations, HTML and other assets | Preserve content, links and access restrictions; do not rewrite binaries |
+
+Counts are raw tracked-file counts and approximate physical line counts at review time. They include comments, duplicated/debug material and generated-content helpers. They do not imply every line must be rewritten. Untracked/local project data, databases and external files require a separate inventory before cutover.
+
+### Important source anchors
+
+- Launch and orchestration: [launcher](PA%20design%20App/run_app.R), [entry point](PA%20design%20App/src/app.R), [global setup](PA%20design%20App/src/global.R), [server orchestration](PA%20design%20App/src/server.R).
+- Separation of responsibilities: [calculation engines](PA%20design%20App/src/modules/calculations), [session state](PA%20design%20App/src/modules/server/server_state.R), [architecture specification](PA%20design%20App/docs/archive/architecture_prototype/ARCHITECTURE_SPEC.md).
+- Browser assets: [lineup canvas](PA%20design%20App/assets/js/common/pa_lineup_canvas.js), [integrated CAD canvas](PA%20design%20App/assets/js/common/rf_canvas.js), [standalone CAD canvas](RF_CAD_Tool/www/js/rf_canvas.js).
+- RF data: [load-pull parsers](PA%20design%20App/src/modules/rf_tools/lp_parsers.R), [S-parameter parsers](PA%20design%20App/src/modules/rf_tools/sp_parsers.R), [load-pull viewer](PA%20design%20App/src/modules/server/server_lp_viewer.R).
+- Data lifecycle: [data manager](PA%20design%20App/src/core/data_mgmt/data_manager.R), [configuration files](PA%20design%20App/src/modules/server/server_file_ops.R), [reporting and snapshots](PA%20design%20App/src/modules/server/server_reporting.R).
+- AI/KB: [base agent](PA%20design%20App/src/core/ai_agents/base_agent.R), [manager](PA%20design%20App/src/core/ai_agents/agent_manager.R), [KB agent](PA%20design%20App/src/plugins/rf_pa_design/agents/kb_agent.R), [KB search](PA%20design%20App/src/utils/kb_query.R).
+- Authoring and aggregation: [RF teaching source](Atomic_Cosmic_RFView_Project/Atomic_Cosmic_RFView.Rmd), [manual Chapter 1](PA_Design_Reference_Manual/Chapters/Chapter_01_Transistor_Fundamentals.Rmd), [IFX master](IFX_2022_2025/Report_generator_rmd/Master_html_myActivity_IFX.Rmd), [Web Page Knitter](Web_page_knitter/app.R).
+
+### Baseline issues that affect migration estimates
+
+| Observation | Evidence | Required treatment |
+|---|---|---|
+| Existing calculation suite is not green | Running `testthat::test_dir` on the calculation test directory under installed R 4.4.1 produced two source-loading errors and one assertion failure | Establish a trustworthy baseline before treating tests as a migration oracle |
+| Tests refer to pre-restructure paths | Lineup test line 11 and transistor test line 8 source `../../R/modules/...`; active implementations are under `src/modules/...` | Repair test wiring as a separate, reviewed prerequisite; do not mistake loading failures for RF numerical failures |
+| Source/test gate-width disagreement | [source](PA%20design%20App/src/modules/calculations/calc_transistor_sizing.R), function starting at line 97, returns 4 mm for 10 W / 2.5 W/mm; [test](PA%20design%20App/tests/testthat/test_calc_transistor_sizing.R), line 86, expects 8 mm | Source behavior was executed and confirmed; RF owner must approve the intended model and update its rationale/tests |
+| Power test expectation is rounded incorrectly | [power test](PA%20design%20App/tests/testthat/test_power_math.R), line 30, expects 50.00 dBm for two 47 dBm inputs; calculation gives 50.0103 dBm, or 50.01 rounded | Correct the reference expectation, not the physics implementation |
+| "Pure calculations" have a boundary caveat | [guardrail module](PA%20design%20App/src/modules/calculations/calc_guardrails.R), line 18, includes YAML file loading | Keep numerical functions independent; put file/config loading in an adapter |
+| Agent implementation is mixed | Nine agents are registered; KB agent has substantial logic, while base KB retrieval returns mock content and manager errors can become mock answers | Classify each capability as live, partial, mocked or disconnected; migration is not automatic completion |
+| Demo mode is determined at startup | [global setup](PA%20design%20App/src/global.R) attempts PostgreSQL and falls back on connection error | Preserve user-visible demo operation and explicitly mark non-persistence; do not invent a missing feature-flag contract |
+| Reporting has placeholders | [reporting module](PA%20design%20App/src/modules/server/server_reporting.R), lines 106 onward, writes HTML even when a PDF filename is selected; some exports contain placeholder manifests | Track intended format vs actual output; an approved fix is distinct from behavior parity |
+| Container paths are stale relative to source layout | [Dockerfile](PA%20design%20App/infra/docker/Dockerfile) copies old `core`/`plugins` roots; [Compose](PA%20design%20App/infra/docker/docker-compose.yml) assumes relative data/schema paths | Rebuild deployment manifests and prove a clean-machine install; do not assume current Docker deployment is verified |
+
+The representative source check also confirmed `calc_ropt(28, 2, 10) = 33.8 ohm`. No application source or tests were modified during this review. The theory-agent test and full browser workflows were not executed.
+
+## Proposed target architecture
+
+### Framework decision
+
+| Option | Strength | Cost/risk | Recommendation |
+|---|---|---|---|
+| Shiny for Python Core + existing JavaScript | Closest reactive/session model and browser message mechanism; Python authoring | R packages such as `shinydashboard`, `shinyjs` and DT are not drop-in Python imports; layouts, bindings and widgets still need porting | **First choice for fidelity-led migration**, subject to the vertical-slice gate |
+| FastAPI + React/TypeScript + existing Konva | Explicit API contracts; highly independent UI/backend evolution | Larger UI/state rewrite, more tooling, new event/lifecycle contracts; React/TypeScript is not Python | Prefer if independent public APIs, multiple front ends or broader product needs justify the extra scope |
+| Streamlit-style full rebuild | Rapid simple data-app prototyping | Rerun/state model and complex canvas/drawer interactions create avoidable fidelity risk here | Not the default for this workspace |
+
+The FastAPI/React alternative would provisionally add **12-22 person-weeks before contingency** to the base estimate, mainly in UI/state reconstruction and integration. This is an architectural alternative, not an additional service to build by default.
+
+Shiny for Python documents `Session.send_custom_message` and shows the browser's `Shiny.addCustomMessageHandler` working together. This supports reuse of the protocol, **not a guarantee that every existing widget, namespace, event priority or DOM selector works unchanged**. Prove those details in the pilot.
+
+### Preserve these boundaries
+
+```text
+Browser: existing Konva / JavaScript / CSS / Plotly interactions
+    |
+Python reactive UI and per-user session adapters
+    |
+Application services: projects, datasets, design workflows, reporting
+    |
+Pure domain functions + typed, versioned request/result schemas
+    |
+Adapters: PostgreSQL, DuckDB, files, vendor ingestion, AI, optional MCP
+```
+
+The same Python domain/services package must be callable from tests, notebooks, command-line utilities and future API adapters without importing the UI framework.
+
+| Existing characteristic | Preservation mechanism |
+|---|---|
+| Architectural integrity | No Shiny/Python UI objects, DB calls or filesystem reads inside numerical functions; dependency checks enforce this |
+| Flexibility and plugins | Keep the core/domain/plugin split; an explicit base-agent interface and registry replace R6 conventions |
+| Modular workflows | Keep module responsibilities and spec-to-stage-to-device handoffs; do not collapse everything into one script |
+| Session isolation | Session-owned state, canvas data and DuckDB handles; no mutable global user/project state |
+| Canvas fidelity | Keep component IDs, JSON fields, coordinates, input IDs, message names and event ordering until a versioned change is approved |
+| Reliable engineering results | Authoritative server calculations; retained JS previews use shared golden vectors and must not silently disagree |
+| Scalability | Nonblocking job boundaries, bounded worker capacity, DB pooling, persisted job state where needed, measured multi-user operation |
+| Responsiveness | Local browser drag/zoom; no backend round trip for every pointer movement |
+| Reproducibility | Locked dependencies, model/config versions, input hashes, provenance and deterministic numerical fixtures |
+| Maintainability | Typed models, pytest, static checking, linting, contract tests and documented module ownership |
+| Portability | Explicit resource roots and Windows/Linux tests; remove working-directory and RStudio/Pandoc-path assumptions |
+| Existing UX | Preserve instrument theme, unit typography, keyboard commands, drawers, tables, accessibility and day/night behavior where present |
+| Demo use | Explicit no-DB/no-key mode with visible limitations; never present mock results as verified engineering conclusions |
+
+The [design system](DESIGN.md) remains authoritative for application appearance. The migration should preserve it rather than introduce a redesign at the same time.
+
+### Data and integration choices
+
+- **Numerics:** NumPy/SciPy where appropriate, with explicit scalar/vector and complex-number semantics. Preserve units and missing-value behavior; R recycling, `NA`, `NULL`, one-based indexes and auto-unboxed JSON are not Python defaults.
+- **Models:** typed dataclasses or Pydantic at validation boundaries, with versioned schemas. Use unit-qualified fields and explicit conversions, not a new heavy units framework everywhere by default.
+- **PostgreSQL:** preserve project IDs, relationships, JSON metadata and timestamps. Introduce a migration-managed schema and Python repositories; do not redesign the database just because the application language changes.
+- **DuckDB:** preserve the load-pull viewer's per-session analytical storage and bounded plotting strategy. It already uses in-memory DuckDB and LTTB downsampling; Python should not regress to repeatedly copying full datasets into browser payloads.
+- **RF parsers:** evaluate scikit-rf for supported Touchstone functions, but prove compatibility with existing files, ordering and impedances. Keep custom adapters for Focus/SPL/LPCWAVE, Maury MDF, AMCAD, Anteverta, MDIF and CST. A library swap is not evidence of format parity.
+- **AI:** preserve task/result interfaces, prompts, references and audit logs. Separate demo mocks from provider failures. Freeze recorded provider/retrieval responses for deterministic compatibility tests.
+- **KB:** preserve JSON-based device data and existing filter/search behavior. A configured Chroma container and a mock base retrieval method are not proof of an operational vector-retrieval pipeline.
+- **External systems:** ADS/AWR entries in the current config are disabled. Preserve disabled defaults; prove real integrations only with approved tooling, licenses and representative input/output fixtures.
+- **Background work:** render documents, crawl vendors and perform heavy parsing outside blocking reactive handlers. Ordinary `async/await` alone is not sufficient for Shiny responsiveness; use supported extended-task/job mechanisms and appropriate process workers for CPU work.
+- **Dependencies:** begin by testing Python 3.13, already installed here, against the complete dependency/browser stack; choose and pin the validated version. Do not choose the newest Python solely by release date.
+
+## Whole-workspace migration map
+
+| Component | Keep | Replace or adapt | Main acceptance evidence |
+|---|---|---|---|
+| PA Design App | RF models, terminology, architecture, JS/CSS, schemas, assets, data | R server/UI, reactive wiring, R6 managers, IO adapters | Calculation fixtures, browser workflows, project round trips |
+| Integrated and standalone RF CAD | Canvas geometry and working JS features | R UI/server wrappers, save/load and substrate bindings | Both entry points, geometry/units, shortcuts, export/import |
+| Atomic-to-Cosmic education | Prose, equations, bibliography, figures, navigation intent | R plot chunks, inline R dates, knitr setup/render scripts | Rebuilt HTML, plot data, anchors, responsive navigation |
+| PA Reference Manual | Existing chapter content, references, input data | R calculations/plots, chapter assembly scripts, render setup | Every existing source builds; links/citations/figures verified |
+| IFX dashboard | Hierarchy, source attachments, rendered legacy reports | R folder scanning, HTML-generation helpers, document converters | Matching hierarchy, attachment counts, local navigation and previews |
+| Web Page Knitter | Aggregation workflows, templates, chat intent, settings | R Shiny shell, rmarkdown rendering, document conversion/copy helpers | Individual/master reports, all approved formats, saved settings, previews |
+| Crawl4AI ingestion | Existing Python, schemas, vendor configuration, review artifacts | R subprocess orchestration and UI integration | Offline fixtures, allowlist/provenance gates, deliberate apply approval |
+| Developer/runtime tooling | Git history, useful hooks, reference assets, SQL/YAML | R launch/setup/fix utilities where obsolete, container/CI/dev tasks | Clean install, Python-only build, launch, tests and document generation |
+
+Do not assume duplicate CAD implementations or Knitter debug copies are interchangeable. First identify the active entry points and contract differences; consolidate only after parity tests prove it safe.
+
+### Tagged vendor catalog
+
+The [vendor seed catalog](PA%20design%20App/tools/crawl4ai_kb_ingestion/configs/vendor_seed_catalog.yaml) is already language-neutral YAML used by Python. **It does not need an R-to-Python rewrite.**
+
+Current scope includes Ampleon, NXP, Qorvo and Guerrilla RF, with eight configured products, robots compliance enabled, concurrency 2, delay 1.5 seconds and vendor-specific selectors. Preserve those policies, vendor/part identifiers, provenance and artifact-first review behavior.
+
+One NXP entry contains a browser-extension URL in `datasheet_link_selector`. Treat that as a configuration-quality issue to review with recorded fixtures, not as a reason to weaken validation or silently substitute a URL during migration. No live crawl or catalog edit was performed for this assessment.
+
+### Document and file compatibility boundaries
+
+1. Existing HTML/PDF can remain readable as archived artifacts, but this alone does **not** constitute migration of their generation pipeline.
+2. Convert executable R chunks and inline R expressions to Python or static authoring constructs. Preserve prose, equations, citations, figures, custom JS navigation and local assets.
+3. HTML, dashboard and Reveal.js-style outputs can be rebuilt using Quarto/templates. Exact Flexdashboard, Slidy and ioslides behavior needs explicit testing; retain their compatible browser assets where practical or obtain approval for a mapped replacement.
+4. Office/PDF preview conversion may require Pandoc, a browser, LibreOffice or other non-R tools. Determine supported document types from actual fixtures; Python alone does not render every Office format faithfully.
+5. JSON/CSV/YAML/SQL assets are high-reuse candidates, but must retain types, nulls, singleton-array behavior, IDs, units and timestamps.
+6. RDS is a separate compatibility problem: nested R objects and attributes are not universally supported by Python readers. Inventory real exported files, convert them once under controlled legacy R to versioned JSON/Parquet plus metadata, and verify content.
+7. **Arbitrary user-supplied R scripts/R Markdown cannot continue executing unchanged in a genuinely R-free product.** Convert the agreed templates and owned sources. Future R inputs must be converted, displayed as source, or explicitly rejected; continued R execution is a temporary compatibility mode, not final completion.
+8. Preserve binary reference assets byte-for-byte with a manifest. Do not move/rewrite third-party or customer material merely to standardize directories.
+
+## Reproduction accuracy and acceptance criteria
+
+### Targets, not claims of current achievement
+
+| Surface | Proposed completion target | Limitation |
+|---|---|---|
+| Deterministic scalar RF calculations | All approved reference cases pass; start with `rtol=1e-10`, per-field unit-aware `atol` | Thresholds are provisional until legacy results and conditioning are measured |
+| Parsed arrays and complex S-parameters | Same dimensions, port order, units and metadata; start with `rtol=1e-8` for well-scaled normalized values | Parser/interpolation differences need per-format, per-field limits; near-zero values require explicit absolute tolerances |
+| Solver/interpolation results | Agree to RF-owner-approved engineering tolerances | Do not impose scalar arithmetic tolerances on ill-conditioned problems |
+| Project and canvas files | 100% of inventoried supported fixtures load; no loss of required fields or geometry | External/uninventoried local data cannot be guaranteed yet |
+| User workflows | 100% of agreed critical and supported workflow cases pass | Measure on a requirements register, not number of screens recreated |
+| Visual presentation | Preserve all essential controls, units and interaction states; reviewed screenshot diffs | Pixel identity is not guaranteed across fonts, browser versions and plotting engines |
+| Reports and dashboards | All approved formats genuinely render; required text, tables, citations, links and figures preserved | Pagination and widget styling can change; approve documented differences |
+| AI | Exact schema/mode/error behavior; deterministic replay tests pass; live evaluations meet an approved rubric | Identical generated prose and a "physics accuracy percentage" cannot be guaranteed |
+| Simulation/lab interfaces | All agreed recorded contracts pass; real-system acceptance when access exists | Disabled or unavailable systems remain unverified, not "100% migrated and working" |
+
+An equality test must compare approved valid behavior, not blindly copy a legacy error. Maintain a deviation register with the old output, intended output, rationale, owner and approval.
+
+Separate **behavioral equivalence** from **engineering validity**: matching an approximate RF model does not prove agreement with hardware measurements. Independent RF review and sim/measurement correlation remain necessary.
+
+### Performance and scalability gates
+
+The following are proposed gates to ratify during baseline discovery, **not measurements already achieved**:
+
+- On the same hardware and representative workloads, p95 calculation, filter and load latency no worse than 10% above the accepted legacy baseline.
+- p95 peak memory no worse than 10% above baseline unless explicitly approved for a measurable benefit.
+- Browser manipulation of an agreed realistic canvas targets at least 50 FPS and p95 input-to-visible-update below 100 ms; retain or improve the measured legacy result if stronger.
+- Benchmark small, medium and large LP/SP fixtures, plus a stress fixture near the configured 2 GB upload ceiling if that ceiling remains a supported requirement. Upload allowance is not evidence that such a file currently parses safely.
+- Exercise 1, 5, 10 and 25 simultaneous sessions, then test the agreed deployment capacity. Check p95 latency, memory, session isolation, job cancellation and idle cleanup.
+- A slow crawl/render/LLM job must not freeze unrelated sessions or canvas interactions.
+- Test worker restarts and WebSocket disconnects. Sticky routing keeps a live session on its worker but does not provide durable state recovery; save important project state explicitly.
+- Keep aggregate pool sizes below database limits. More processes multiply session memory and DB connections; horizontal scaling is not a free framework feature.
+- Repeat on supported Windows development and Linux deployment environments.
+
+Capture versions, hardware, fixture hashes and cold/warm results. Python is **not automatically faster than R**; the benefit comes from preserving browser-local operations, bounded data movement, efficient algorithms and correct concurrency.
+
+## Action plan and effort
+
+### Work breakdown
+
+A person-week means approximately 40 hours of focused engineering, including relevant tests and documentation. Ranges assume one experienced Python/web engineer's equivalent effort, active RF-owner input, access to representative data and no major redesign.
+
+| Work package | Person-weeks | Output and dependency |
+|---|---:|---|
+| Baseline, feature register, fixtures, performance capture | 3-4 | Entry-point map; correct test wiring; approved behavior and known deviations |
+| Python foundation, schemas, repositories, demo state, CI | 4-6 | Thin vertical slice and independent domain package; depends on initial contracts |
+| Seven calculation engines and JS/server parity | 3-5 | Golden vectors, independent RF checks, topology/edge-case tests |
+| PA application UI, reactive state and browser protocol | 6-9 | All agreed PA workflows, canvases, drawers, projects and settings |
+| LP/SP parsers, analytics and visualizations | 6-10 | Format fixtures, complex data checks, DuckDB/downsampling and large-data tests |
+| KB, existing ingestion, AI and current integration contracts | 4-7 | Existing behavior and explicit mocks/disabled states; no speculative tool access |
+| Integrated/standalone CAD and wrappers | 3-5 | Both CAD paths; geometry and save/load parity |
+| Education, manual and IFX document workflows | 6-10 | Rebuilt owned sources, plots, navigation and document assets |
+| Web Page Knitter workflows and format adapters | 4-6 | Individual/master reports, previews, settings and approved format mappings |
+| Integrated qualification, deployment, conversion rehearsal and retirement | 4-6 | Performance/load/restore tests, sign-off, rollback and archive |
+| **Base total** | **43-68** | Includes parity work and targeted validation |
+| **With 25% contingency** | **54-85** | Rounded; budget envelope, not a deadline |
+
+Confidence is **medium for feasibility and architecture fit; low-to-medium for effort** until the pilot and full feature inventory. Treat the present schedule as a broad planning range and re-estimate after the first gate.
+
+Budget formula: approximately **2,160-3,400 engineering hours** using the rounded contingency envelope, multiplied by the agreed blended hourly rate. Add any separately charged RF-owner review, licenses, infrastructure and specialist legal/compliance work. AI assistance may reduce translation effort but is not a substitute for qualification; no automatic speed multiplier is assumed.
+
+| Staffing | Indicative calendar plan | Caveat |
+|---|---|---|
+| One experienced full-time engineer | 14-22 months | Reviews, interruptions and integration gates affect elapsed time |
+| Two engineers with complementary skills | 8-12 months | Backend and UI/doc work can overlap once contracts stabilize |
+| Three experienced engineers plus available RF owner | 6-9 months | Not simple division by three; dependencies and integration constrain parallelism |
+
+Completing unfinished roadmap items is **excluded**: new simulation bridges, proven production vector retrieval, advanced auto-routing, new manual chapters, new topologies or a full production identity/collaboration system require separate estimates. Production-safe migration configuration and basic regression protection are included; turning an incomplete product into a fully qualified enterprise product is not.
+
+### Gate 0: baseline and pilot
+
+Start with a **two-calendar-week pilot** for the proposed team, charged against the first work packages rather than added to the total.
+
+1. Enumerate active apps, menus, exported formats, data schemas, persistent state and supported document workflows; classify live/partial/mock/disabled.
+2. Resolve test-oracle disagreements with the RF owner; capture golden outputs without silently changing application physics.
+3. Demonstrate one end-to-end Python slice: load an existing lineup JSON, edit one component on the retained canvas, calculate in Python, update results, save and reload.
+4. Include at least one branched splitter/combiner case so the pilot proves graph topology, not only a serial toy example.
+5. Parse one representative LP file and one Touchstone file; show correct units and plot interaction.
+6. Rebuild one representative document using Python and confirm bibliography/figure/local-link behavior.
+7. Compare latency and memory; verify session isolation and the browser-message contract.
+8. Record dependency/install friction and approve Shiny for Python or change direction before the wider UI port.
+
+**Exit:** demonstrated slice, reviewed parity results, inventory gaps, framework decision and revised estimate. If this fails, do not scale the port merely because the UI looks similar.
+
+### Subsequent sequence
+
+1. **Foundation and RF core:** lock models/contracts, port numerical functions and repositories; build fixture-driven tests.
+2. **PA workflow:** wire the retained canvas, all server modules and user/project state; keep JSON compatibility.
+3. **Specialist data features:** LP/SP, KB/AI and CAD. Owned document workflows can migrate in parallel once shared data/render contracts stabilize.
+4. **Whole-workspace qualification:** Knitter and IFX integration, all report formats, old project imports, Python-only CI and reproducible deployment.
+5. **Parallel acceptance and cutover:** compare old/new against identical frozen inputs, complete data conversion rehearsal and user acceptance, then switch the default.
+6. **Archive:** freeze the legacy app only after the retirement gates below pass.
+
+Maintain separate legacy and Python data copies during validation. Avoid uncontrolled dual writes. Every outstanding supported workflow must have an owner, test and disposition before cutover.
+
+## Archive and retirement contract
+
+**Do not archive or relocate the working R application yet.** Keep it available as an oracle and rollback route while Python is developed alongside it.
+
+Retirement requires:
+
+1. An agreed feature/format inventory with every supported case passed or an explicitly approved deviation; no hidden "we will port that later" items.
+2. Numerical, parser, browser, integration and report qualification completed, including independent RF review of corrected expectations.
+3. Project/file/database conversion with counts, IDs, checksums and required attributes reconciled; clean backup/restore and conversion rehearsals.
+4. A clean machine/container can install, run, test and rebuild owned documents **without R or RStudio installed**.
+5. Normal operation uses no R subprocess, R-backed notebook kernel, rpy2 bridge or legacy R rendering service.
+6. Python deployment meets the agreed responsiveness, memory, concurrent-user and recovery criteria.
+7. A proposed minimum two-week acceptance period with representative users and no unresolved critical migration defects; adjust to actual usage frequency.
+8. Explicit RF-owner and product-owner sign-off, a cutover maintenance window, verified backups and a rehearsed rollback procedure.
+
+Preserve a named Git tag/commit and an immutable legacy source/environment snapshot, dependency inventory, fixture outputs, known limitations and useful rendered artifacts. Any archived database must follow its access/retention rules. Put operational source under a clearly identified legacy archive only after reviewing relative links and build discovery; a tag plus release artifact may be safer than moving every historical file.
+
+Keep the legacy environment **offline/read-only and non-default**. It may require R for historical reproduction, but it must not be a Python production dependency.
+
+Define a rollback window and data compatibility policy. If Python introduces data the old schema cannot read, restoring an old backup loses subsequent work; do not promise lossless rollback without reverse conversion or an explicit reconciliation procedure.
+
+Update launch instructions, CI, container builds, VS Code tasks, module maps and relevant repository/agent guidance after cutover. Retain historic instructions as archive context, not active instructions for the Python application.
+
+## Final recommendation
+
+**Proceed with a fidelity-led Python migration, conditional on the pilot.** Preserve the proven browser work and modular boundaries; invest first in a trustworthy behavior baseline. Do not bundle a UI redesign, all unfinished agents and full external simulation enablement into the same migration commitment.
+
+The right acceptance promise is:
+
+> Every agreed existing capability is reproduced or has an approved, documented correction; numerical outputs, data preservation, performance and workflow behavior are verified independently; the active workspace no longer needs R or RStudio; the legacy application is archived only after successful qualification.
+
+That is stronger and more useful than an untestable claim that the application is "99% reproduced."
+
+## External technical references
+
+Only public framework documentation was requested externally; repository source/data was not uploaded.
+
+- [Shiny for Python session API](https://shiny.posit.co/py/api/core/Session.html): custom messages and session lifecycle.
+- [Shiny for Python nonblocking operations](https://shiny.posit.co/py/docs/nonblocking.html): reactive blocking and extended-task considerations.
+- [Quarto Python computations](https://quarto.org/docs/computations/python.html): Python-executed documents and rendering to HTML/PDF/DOCX.
+
+These sources support the proposed mechanisms, not blanket compatibility with the existing app. Dependency versions and exact widget behavior remain pilot acceptance items.
