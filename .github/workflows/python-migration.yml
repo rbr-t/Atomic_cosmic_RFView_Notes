@@ -7,6 +7,7 @@ on:
       - "PA design App/src/modules/calculations/**"
       - "PA design App/src/modules/rf_tools/sp_parsers.R"
       - "PA design App/src/modules/rf_tools/lp_parsers.R"
+      - "PA design App/data/sample-files/**"
       - "PA design App/config/technology_guardrails.yaml"
       - "PA design App/assets/js/common/pa_lineup_canvas.js"
       - ".github/workflows/python-migration.yml"
@@ -16,6 +17,7 @@ on:
       - "PA design App/src/modules/calculations/**"
       - "PA design App/src/modules/rf_tools/sp_parsers.R"
       - "PA design App/src/modules/rf_tools/lp_parsers.R"
+      - "PA design App/data/sample-files/**"
       - "PA design App/config/technology_guardrails.yaml"
       - "PA design App/assets/js/common/pa_lineup_canvas.js"
       - ".github/workflows/python-migration.yml"
@@ -75,3 +77,4 @@ jobs:
           done
           test "$ready" = true
           python tests/browser_smoke.py http://127.0.0.1:3840
+          python tests/browser_advanced_smoke.py http://127.0.0.1:3840

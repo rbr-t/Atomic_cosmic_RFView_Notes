@@ -1,15 +1,25 @@
-"""Bounded Touchstone 1.x/2.0 full-matrix S-parameters for one to nine ports."""
+"""Bounded Touchstone S-parameters with explicit v2 matrix, mode and noise semantics."""
 
 import math
 import re
 from typing import Literal, NamedTuple
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from rfview.domain.network_parameters import s_to_abcd, s_to_h, s_to_t, s_to_y, s_to_z
 
 MAX_TOUCHSTONE_BYTES = 5 * 1024 * 1024
 MAX_FREQUENCIES = 100_000
+
+
+class NoisePoint(BaseModel):
+    model_config = ConfigDict(frozen=True, allow_inf_nan=False)
+
+    freq_ghz: float = Field(ge=0)
+    minimum_nf_db: float
+    gamma_opt_mag: float = Field(ge=0)
+    gamma_opt_deg: float
+    resistance_ohm: float = Field(ge=0)
 
 
 class TouchstonePoint(BaseModel):
@@ -41,6 +51,18 @@ class TouchstoneData(BaseModel):
     comments: tuple[str, ...]
     version: Literal["1.0", "2.0"] = "1.0"
     reference_ohms: tuple[float, ...] = ()
+    mixed_mode_order: tuple[str, ...] = ()
+    noise: tuple[NoisePoint, ...] = ()
+    noise_reference_ohm: float | None = None
+
+    def port_references(self) -> tuple[float, ...]:
+        references = self.reference_ohms or (self.z0,) * self.nports
+        if not self.mixed_mode_order:
+            return references
+        return tuple(
+            references[int(mode[1]) - 1] * (2 if mode[0] == "D" else 0.5 if mode[0] == "C" else 1)
+            for mode in self.mixed_mode_order
+        )
 
 
 class ConvertedParameter(NamedTuple):
@@ -57,6 +79,10 @@ def converted_parameters(
         raise ValueError("Converted export/view requires Z, Y, h, ABCD or T")
     if network.nports != 2:
         raise ValueError("Parameter conversion requires a two-port dataset")
+    if network.mixed_mode_order:
+        raise ValueError(
+            "Mixed-mode data is preserved in its declared basis; no single-ended conversion"
+        )
     references = network.reference_ohms or (network.z0,) * 2
     if representation != "T" and len(set(references)) != 1:
         raise ValueError(
@@ -144,12 +170,20 @@ def serialize_touchstone(network: TouchstoneData) -> str:
     if len(references) != network.nports or any(not math.isfinite(v) or v <= 0 for v in references):
         raise ValueError("Export requires one positive finite reference impedance per port")
     lines = ["! RFView source S-parameter export; original comments/formatting not retained"]
-    export_v2 = network.version == "2.0" or len(set(references)) != 1
+    export_v2 = (
+        network.version == "2.0"
+        or len(set(references)) != 1
+        or bool(network.noise)
+        or bool(network.mixed_mode_order)
+    )
+    option_reference = network.noise_reference_ohm if network.noise else references[0]
+    if option_reference is None or not math.isfinite(option_reference) or option_reference <= 0:
+        raise ValueError("Noise data requires a positive finite option-line reference impedance")
     if export_v2:
         lines.extend(
             (
                 "[Version] 2.0",
-                f"# GHz S RI R {references[0]:.17g}",
+                f"# GHz S RI R {option_reference:.17g}",
                 f"[Number of Ports] {network.nports}",
                 f"[Number of Frequencies] {len(network.freq_ghz)}",
                 "[Reference] " + " ".join(f"{value:.17g}" for value in references),
@@ -158,6 +192,10 @@ def serialize_touchstone(network: TouchstoneData) -> str:
         )
         if network.nports == 2:
             lines.append("[Two-Port Data Order] 21_12")
+        if network.mixed_mode_order:
+            lines.append("[Mixed-Mode Order] " + " ".join(network.mixed_mode_order))
+        if network.noise:
+            lines.append(f"[Number of Noise Frequencies] {len(network.noise)}")
         lines.append("[Network Data]")
     else:
         lines.append(f"# GHz S RI R {network.z0:.17g}")
@@ -170,7 +208,31 @@ def serialize_touchstone(network: TouchstoneData) -> str:
         tokens = [f"{frequency:.17g}"]
         for point in record:
             tokens.extend((f"{point.real:.17g}", f"{point.imag:.17g}"))
-        lines.append(" ".join(tokens))
+        if not export_v2 and network.nports >= 3:
+            for row in range(network.nports):
+                row_tokens = tokens[
+                    1 + row * 2 * network.nports : 1 + (row + 1) * 2 * network.nports
+                ]
+                for start in range(0, len(row_tokens), 8):
+                    prefix = [tokens[0]] if row == start == 0 else []
+                    lines.append(" ".join(prefix + row_tokens[start : start + 8]))
+        else:
+            lines.append(" ".join(tokens))
+    if network.noise:
+        lines.append("[Noise Data]")
+        lines.extend(
+            " ".join(
+                f"{value:.17g}"
+                for value in (
+                    point.freq_ghz,
+                    point.minimum_nf_db,
+                    point.gamma_opt_mag,
+                    point.gamma_opt_deg,
+                    point.resistance_ohm,
+                )
+            )
+            for point in network.noise
+        )
     text = "\n".join(lines) + "\n"
     if export_v2:
         text += "[End]\n"
@@ -300,8 +362,10 @@ def _parse_touchstone_v2(text: str, filename: str, dataset_tag: str | None) -> T
     options: list[str] = []
     network_lines: list[str] = []
     comments: list[str] = []
+    noise_lines: list[str] = []
     in_network = ended = False
-    reference_continuation = False
+    in_noise = noise_seen = False
+    continuation: str | None = None
     for line_number, original in enumerate(text.lstrip("\ufeff").splitlines(), 1):
         if original.lstrip().startswith("!"):
             comments.append(original)
@@ -314,14 +378,20 @@ def _parse_touchstone_v2(text: str, filename: str, dataset_tag: str | None) -> T
             raise ValueError("Touchstone 2.0 must start with [Version] 2.0")
         keyword = re.fullmatch(r"\[([^]]+)\]\s*(.*)", line)
         if keyword is not None:
-            reference_continuation = False
+            continuation = None
             key, value = keyword[1].lower(), keyword[2].strip()
             if key == "end":
-                if not in_network or value:
+                if not (in_network or in_noise) or value:
                     raise ValueError("Touchstone [End] requires network data and no argument")
-                ended, in_network = True, False
+                ended, in_network, in_noise = True, False, False
                 continue
-            if in_network:
+            if key == "noise data":
+                if not in_network or in_noise or value:
+                    raise ValueError("[Noise Data] requires preceding network data and no argument")
+                in_network, in_noise = False, True
+                noise_seen = True
+                continue
+            if in_network or in_noise:
                 raise ValueError(f"Unsupported section [{key}] inside network data")
             allowed = {
                 "version",
@@ -332,6 +402,7 @@ def _parse_touchstone_v2(text: str, filename: str, dataset_tag: str | None) -> T
                 "two-port data order",
                 "network data",
                 "number of noise frequencies",
+                "mixed-mode order",
             }
             if key not in allowed:
                 raise ValueError(f"Unsupported Touchstone 2.0 keyword [{key}]")
@@ -342,16 +413,18 @@ def _parse_touchstone_v2(text: str, filename: str, dataset_tag: str | None) -> T
                 if value:
                     raise ValueError("[Network Data] takes no argument")
                 in_network = True
-            reference_continuation = key == "reference"
+            continuation = key if key in ("reference", "mixed-mode order") else None
         elif line.startswith("#"):
-            if in_network or options:
+            if in_network or in_noise or options:
                 raise ValueError("Duplicate or late Touchstone option line")
             options.append(line)
-            reference_continuation = False
+            continuation = None
         elif in_network:
             network_lines.append(line)
-        elif reference_continuation:
-            declarations["reference"] += " " + line
+        elif in_noise:
+            noise_lines.append(line)
+        elif continuation is not None:
+            declarations[continuation] += " " + line
         else:
             raise ValueError(f"Line {line_number}: data outside Touchstone network section")
     if declarations.get("version") != "2.0" or not ended:
@@ -368,16 +441,17 @@ def _parse_touchstone_v2(text: str, filename: str, dataset_tag: str | None) -> T
         extension is None and not filename.lower().endswith(".ts")
     ):
         raise ValueError("Filename port count/extension disagrees with Touchstone 2.0 declarations")
-    if declarations.get("matrix format", "full").lower() != "full":
-        raise ValueError("Touchstone 2.0 triangular matrices require separate qualification")
-    if declarations.get("number of noise frequencies", "0") != "0":
-        raise ValueError("Touchstone noise data requires separate qualification")
+    matrix_format = declarations.get("matrix format", "full").lower()
+    if matrix_format not in ("full", "lower", "upper"):
+        raise ValueError("Matrix Format must be Full, Lower or Upper")
     if nports == 2 and "two-port data order" not in declarations:
         raise ValueError("Touchstone 2.0 two-port data requires [Two-Port Data Order]")
     order = declarations.get("two-port data order", "21_12").lower()
     if order not in ("21_12", "12_21") or (nports != 2 and "two-port data order" in declarations):
         raise ValueError("Invalid two-port data order")
     option = options[0] if options else "# GHz S MA R 50"
+    if matrix_format != "full":
+        network_lines = _expand_triangular(network_lines, nports, count, matrix_format)
     # Reuse the qualified numeric parser; n>2 is serialized row-major per Touchstone.
     data = parse_touchstone(
         option + "\n" + "\n".join(network_lines),
@@ -399,6 +473,15 @@ def _parse_touchstone_v2(text: str, filename: str, dataset_tag: str | None) -> T
         not math.isfinite(value) or value <= 0 for value in references
     ):
         raise ValueError("[Reference] requires one positive finite impedance per port")
+    modes = _mixed_modes(declarations.get("mixed-mode order"), nports, references)
+    noise = _noise_points(
+        noise_lines,
+        declarations.get("number of noise frequencies"),
+        nports,
+        data.freq_unit,
+        data.freq_ghz[-1],
+        noise_seen,
+    )
     points = data.points
     if nports == 2 and order == "12_21":
         reordered: list[TouchstonePoint] = []
@@ -421,5 +504,114 @@ def _parse_touchstone_v2(text: str, filename: str, dataset_tag: str | None) -> T
             "z0": references[0],
             "points": points,
             "comments": tuple(comments),
+            "mixed_mode_order": modes,
+            "noise": noise,
+            "noise_reference_ohm": data.z0 if noise else None,
         }
     )
+
+
+def _expand_triangular(lines: list[str], nports: int, count: int, matrix_format: str) -> list[str]:
+    numbers = " ".join(lines).split()
+    indices = [
+        (r, c)
+        for r in range(nports)
+        for c in range(nports)
+        if (c <= r if matrix_format == "lower" else c >= r)
+    ]
+    width = 1 + 2 * len(indices)
+    if len(numbers) != count * width:
+        raise ValueError("Triangular matrix record count/width disagrees with declarations")
+    expanded = []
+    order = (
+        [(0, 0), (1, 0), (0, 1), (1, 1)]
+        if nports == 2
+        else [(r, c) for r in range(nports) for c in range(nports)]
+    )
+    for offset in range(0, len(numbers), width):
+        matrix: dict[tuple[int, int], list[str]] = {}
+        for index, (r, c) in enumerate(indices):
+            pair = numbers[offset + 1 + 2 * index : offset + 3 + 2 * index]
+            matrix[r, c] = matrix[c, r] = pair  # Symmetric, not conjugate symmetric.
+        expanded.append(" ".join([numbers[offset], *(v for rc in order for v in matrix[rc])]))
+    return expanded
+
+
+def _mixed_modes(raw: str | None, nports: int, references: tuple[float, ...]) -> tuple[str, ...]:
+    if raw is None:
+        return ()
+    raw = re.sub(r"\s*,\s*", ",", raw.upper())
+    modes = tuple(raw.split())
+    if len(modes) != nports or len(set(modes)) != nports:
+        raise ValueError("Mixed-Mode Order requires one distinct descriptor per matrix dimension")
+    used: set[int] = set()
+    pairs: dict[tuple[int, int], set[str]] = {}
+    for mode in modes:
+        match = re.fullmatch(r"S([1-9])|([DC])([1-9]),([1-9])", mode)
+        if match is None:
+            raise ValueError("Invalid Mixed-Mode Order descriptor")
+        if match[1] is not None:
+            port = int(match[1])
+            if port > nports or port in used:
+                raise ValueError("Mixed-Mode Order overlaps or exceeds available ports")
+            used.add(port)
+        else:
+            a, b = int(match[3]), int(match[4])
+            if a == b or max(a, b) > nports:
+                raise ValueError("Mixed-mode pairs require distinct available ports")
+            pair = (a, b)
+            if pair not in pairs:
+                if a in used or b in used:
+                    raise ValueError("Mixed-Mode Order has overlapping or reversed pairs")
+                used.update((a, b))
+                pairs[pair] = set()
+            pairs[pair].add(match[2])
+            if references[a - 1] != references[b - 1]:
+                raise ValueError(
+                    "Mixed-mode pair must have equal single-ended reference impedances"
+                )
+    if used != set(range(1, nports + 1)) or any(kinds != {"D", "C"} for kinds in pairs.values()):
+        raise ValueError("Mixed-Mode Order must cover all ports with matched D/C pairs")
+    return modes
+
+
+def _noise_points(
+    lines: list[str],
+    declared: str | None,
+    nports: int,
+    unit: str,
+    max_frequency: float,
+    section_seen: bool,
+) -> tuple[NoisePoint, ...]:
+    if declared is None:
+        if section_seen:
+            raise ValueError("Noise data requires Number of Noise Frequencies")
+        return ()
+    try:
+        count = int(declared)
+    except ValueError as exc:
+        raise ValueError("Invalid noise frequency count") from exc
+    if nports != 2 or not 1 <= count <= MAX_FREQUENCIES or not section_seen or len(lines) != count:
+        raise ValueError("Noise data requires two ports and matching positive declared row count")
+    scale = {"hz": 1e-9, "khz": 1e-6, "mhz": 1e-3, "ghz": 1}[unit]
+    result: list[NoisePoint] = []
+    for line in lines:
+        try:
+            values = [float(token.replace("D", "E").replace("d", "e")) for token in line.split()]
+        except ValueError as exc:
+            raise ValueError("Invalid numeric noise data") from exc
+        if len(values) != 5 or not all(math.isfinite(value) for value in values):
+            raise ValueError("Noise data requires five finite values per row")
+        point = NoisePoint(
+            freq_ghz=values[0] * scale,
+            minimum_nf_db=values[1],
+            gamma_opt_mag=values[2],
+            gamma_opt_deg=values[3],
+            resistance_ohm=values[4],
+        )
+        if result and point.freq_ghz <= result[-1].freq_ghz:
+            raise ValueError("Noise frequencies must be strictly increasing")
+        result.append(point)
+    if result[0].freq_ghz > max_frequency:
+        raise ValueError("First noise frequency must not exceed highest network frequency")
+    return tuple(result)

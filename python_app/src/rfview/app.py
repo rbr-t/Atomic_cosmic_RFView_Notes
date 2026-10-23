@@ -4,11 +4,18 @@ import json
 import logging
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
-from rfview.domain.component_properties import property_fields, validated_properties
+from rfview.domain.component_properties import (
+    ComponentGeometry,
+    property_fields,
+    text_fields,
+    validated_design_properties,
+    validated_properties,
+)
 from rfview.domain.guardrails import DeviceParameters, validate_device_params
 from rfview.domain.lineup import calculate_lineup
 from rfview.domain.loadpull import LoadPullData, LoadPullFormat
@@ -42,6 +49,7 @@ from rfview.services import (
 )
 from rfview.technology_ui import Trace, line_chart, technology_panel
 from rfview.touchstone_ui import MAX_VIEWER_FREQUENCIES, touchstone_panel
+from rfview.workspace_ui import workspace_comparison
 
 logger = logging.getLogger(__name__)
 PACKAGE_ROOT = Path(__file__).resolve().parent
@@ -59,6 +67,13 @@ class BrowserAction(BaseModel):
     document: LineupDocument
     request_id: int
     workspace: CanvasWorkspace | None = None
+    target_slot: Literal["1", "2", "3", "4"] | None = None
+
+
+class CanvasReplacement(BaseModel):
+    slot: Literal["1", "2", "3", "4"]
+    expected: LineupDocument
+    document: LineupDocument
 
 
 class SizingRequest(BaseModel):
@@ -125,6 +140,10 @@ app_ui = ui.page_fluid(
             ui.h2("Selected component"),
             ui.output_ui("selected_properties"),
             ui.tags.details(
+                ui.tags.summary("Design metadata and geometry"),
+                ui.output_ui("selected_design_properties"),
+            ),
+            ui.tags.details(
                 ui.tags.summary("Technology guardrail advisory"),
                 ui.p(
                     "Checks applied component properties, not uncommitted edits. "
@@ -159,8 +178,19 @@ app_ui = ui.page_fluid(
         ui.div(
             ui.input_select("python_canvas_slot", "Active session canvas", ["1", "2", "3", "4"]),
             toolbar_button("python_workspace_snapshot", "Prepare workspace download"),
+            toolbar_button("python_compare", "Compare four canvases"),
+            ui.input_select(
+                "python_copy_slot", "Copy active to slot", ["1", "2", "3", "4"], selected="2"
+            ),
+            toolbar_button("python_copy_canvas", "Copy active canvas"),
+            toolbar_button("python_clear_canvas", "Clear active canvas"),
             toolbar_button("python_calculate", "Calculate in Python"),
-            toolbar_button("python_add", "Add transistor"),
+            ui.input_select(
+                "python_component_type",
+                "Component to add",
+                ["transistor", "matching", "splitter", "combiner", "offset_line", "termination"],
+            ),
+            toolbar_button("python_add", "Add component"),
             toolbar_button("python_wire", "Wire mode"),
             toolbar_button("python_undo", "Undo"),
             toolbar_button("python_redo", "Redo"),
@@ -184,6 +214,7 @@ app_ui = ui.page_fluid(
         ui.output_text("status"),
         ui.output_ui("summary"),
         ui.output_ui("stage_table"),
+        ui.output_ui("workspace_comparison_view"),
         ui.tags.details(
             ui.tags.summary("Load-pull measurements and contours"),
             ui.p(
@@ -235,7 +266,7 @@ app_ui = ui.page_fluid(
         ui.tags.details(
             ui.tags.summary("Touchstone magnitude and phase viewer"),
             ui.p(
-                "Session-only Touchstone 1.x/2.0 full-matrix viewer (.s1p-.s9p/.ts), max 5 MiB and "
+                "Session-only Touchstone 1.x/2.0 viewer (.s1p-.s9p/.ts), max 5 MiB and "
                 "2,000 frequencies. Uploads are not saved in lineup JSON."
             ),
             ui.input_file(
@@ -258,6 +289,7 @@ app_ui = ui.page_fluid(
                     "Stability": "Two-port stability / legacy gain metrics",
                     "Circles": "Source / load stability circles",
                     "PowerGain": "Conventional power gain v2 (10 log)",
+                    "Noise": "Touchstone 2.0 noise parameters",
                 },
             ),
             ui.panel_conditional(
@@ -352,6 +384,9 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     selected: reactive.Value[int | str | None] = reactive.Value(None)
     last_serialized = reactive.Value("")
     result_input = reactive.Value("")
+    comparison: reactive.Value[CanvasWorkspace | None] = reactive.Value(None)
+    comparison_input = reactive.Value("")
+    pending_replacement: reactive.Value[CanvasReplacement | None] = reactive.Value(None)
     prepared = reactive.Value(False)
     workspace_export: reactive.Value[str | None] = reactive.Value(None)
     network: reactive.Value[TouchstoneData | None] = reactive.Value(None)
@@ -432,7 +467,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             return
         try:
             parsed = read_touchstone(Path(files[0]["datapath"]), filename=files[0]["name"])
-            if len(parsed.freq_ghz) > MAX_VIEWER_FREQUENCIES:
+            if max(len(parsed.freq_ghz), len(parsed.noise)) > MAX_VIEWER_FREQUENCIES:
                 raise ValueError(
                     f"Viewer limit is {MAX_VIEWER_FREQUENCIES} frequency records; "
                     "the parser API supports larger datasets."
@@ -544,6 +579,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         ui.notification_show(message, type="error", duration=None, session=session)
 
     async def load_canvas(new_document: LineupDocument) -> None:
+        comparison.set(None)
         document.set(new_document)
         result.set(None)
         selected.set(None)
@@ -562,6 +598,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     @reactive.effect
     @reactive.event(input.python_slot_changed)
     def _slot_changed() -> None:
+        comparison.set(None)
         result.set(None)
         selected.set(None)
         prepared.set(False)
@@ -580,6 +617,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             failure(f"Workspace load rejected: {exc}. Current canvases retained.")
             return
         document.set(workspace.canvases[workspace.active])
+        comparison.set(None)
         result.set(None)
         selected.set(None)
         prepared.set(False)
@@ -631,9 +669,10 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     @reactive.effect
     @reactive.event(input.python_snapshot)
     def _snapshot() -> None:
+        comparison.set(None)
         workspace_export.set(None)
         try:
-            snapshot = LineupDocument.model_validate(input.python_snapshot())
+            snapshot = LineupDocument.model_validate_json(json.dumps(input.python_snapshot()))
         except ValidationError as exc:
             prepared.set(False)
             result.set(None)
@@ -660,9 +699,48 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     @reactive.event(input.python_action)
     async def _action() -> None:
         try:
-            action = BrowserAction.model_validate(input.python_action())
+            action = BrowserAction.model_validate_json(json.dumps(input.python_action()))
             document.set(action.document)
             last_serialized.set(serialize_document(action.document))
+            if action.action in ("clone_slot", "clear_slot"):
+                if action.workspace is None:
+                    raise ValueError("Workspace snapshot is missing")
+                source = action.workspace.active
+                target = action.target_slot if action.action == "clone_slot" else source
+                if target is None or (action.action == "clone_slot" and target == source):
+                    raise ValueError("Copy requires a different target slot")
+                replacement = CanvasReplacement(
+                    slot=target,
+                    expected=action.workspace.canvases[target],
+                    document=action.document.model_copy(deep=True)
+                    if action.action == "clone_slot"
+                    else LineupDocument(components=[]),
+                )
+                pending_replacement.set(replacement)
+                ui.modal_show(
+                    ui.modal(
+                        ui.p(
+                            f"Replace canvas {target}? Other canvases are retained. "
+                            "The replaced slot's undo history and zoom will restart. "
+                            "Download a workspace first if you need to preserve it."
+                        ),
+                        title="Confirm canvas replacement",
+                        footer=ui.TagList(
+                            ui.modal_button("Cancel"),
+                            ui.input_action_button("confirm_canvas_replace", "Replace canvas"),
+                        ),
+                        easy_close=True,
+                    ),
+                    session=session,
+                )
+                return
+            if action.action == "compare_workspace":
+                if action.workspace is None:
+                    raise ValueError("Workspace snapshot is missing")
+                comparison.set(action.workspace)
+                comparison_input.set(_parameters())
+                status_state.set("Four-canvas comparison prepared from current documents.")
+                return
             if action.action == "workspace_snapshot":
                 workspace_export.set(None)
                 if action.workspace is None:
@@ -704,6 +782,23 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             },
         )
 
+    @reactive.effect
+    @reactive.event(input.confirm_canvas_replace)
+    async def _confirm_replace() -> None:
+        replacement = pending_replacement()
+        pending_replacement.set(None)
+        ui.modal_remove(session=session)
+        if replacement is None:
+            failure("Canvas replacement expired. Request a new replacement.")
+            return
+        comparison.set(None)
+        workspace_export.set(None)
+        prepared.set(False)
+        result.set(None)
+        await session.send_custom_message(
+            "pythonReplaceSlot", replacement.model_dump(mode="json", by_alias=True)
+        )
+
     def _parameters() -> str:
         return json.dumps(
             [
@@ -718,6 +813,21 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         if _parameters() != result_input():
             return None
         return result()
+
+    @render.ui
+    def workspace_comparison_view() -> ui.Tag:
+        current = comparison()
+        if current is None or comparison_input() != _parameters():
+            return ui.p("Compare four canvases to view a fresh simultaneous snapshot.")
+        return workspace_comparison(
+            current,
+            OperatingPoint(
+                input_power_dbm=input.input_power_dbm(),
+                backoff_db=input.backoff_db(),
+                architecture=input.architecture(),
+                use_canvas_operating_points=input.use_canvas_operating_points(),
+            ),
+        )
 
     @render.text
     def status() -> str:
@@ -870,6 +980,67 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             return
         await session.send_custom_message(
             "pythonEditComponent", {"id": component.id, "properties": properties}
+        )
+
+    @render.ui
+    def selected_design_properties() -> ui.Tag:
+        component = next(
+            (item for item in document().components if str(item.id) == str(selected())), None
+        )
+        if component is None:
+            return ui.p("Select a component on the canvas.")
+        extra = component.model_extra or {}
+        controls = []
+        for key, label in text_fields(component).items():
+            value = component.properties.get(key, "phase" if key == "offset_role" else "")
+            controls.append(
+                ui.input_text(
+                    f"design_{key}",
+                    label,
+                    "" if value is None else str(value),
+                )
+            )
+        return ui.div(
+            ui.input_text("design_component_id", "Design form component ID", str(component.id)),
+            *controls,
+            ui.input_numeric("design_x", "Canvas X (canvas units)", component.x),
+            ui.input_numeric("design_y", "Canvas Y (canvas units)", component.y),
+            ui.input_numeric("design_rotation", "Rotation (deg)", extra.get("rotation", 0)),
+            ui.input_checkbox("design_flipH", "Flip horizontally", bool(extra.get("flipH", False))),
+            ui.input_checkbox("design_flipV", "Flip vertically", bool(extra.get("flipV", False))),
+            ui.p(
+                "Metadata labels do not instantiate a foundry model "
+                "or synthesize a matching network. "
+                "Calculation inputs remain in the separate form above."
+            ),
+            ui.input_action_button("apply_design_properties", "Apply design metadata / geometry"),
+        )
+
+    @reactive.effect
+    @reactive.event(input.apply_design_properties)
+    async def _apply_design() -> None:
+        component = next(
+            (item for item in document().components if str(item.id) == str(selected())), None
+        )
+        try:
+            if component is None or str(component.id) != input.design_component_id():
+                raise ValueError("Selection changed; wait for the current design form")
+            properties = validated_design_properties(
+                component, {key: input[f"design_{key}"]() for key in text_fields(component)}
+            )
+            geometry = ComponentGeometry.model_validate(
+                {key: input[f"design_{key}"]() for key in ("x", "y", "rotation", "flipH", "flipV")}
+            )
+        except ValueError as exc:
+            failure(f"Design edit rejected: {exc}")
+            return
+        await session.send_custom_message(
+            "pythonEditComponent",
+            {
+                "id": component.id,
+                "properties": properties,
+                "geometry": geometry.model_dump(),
+            },
         )
 
     @render.code

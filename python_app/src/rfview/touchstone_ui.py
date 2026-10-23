@@ -140,7 +140,7 @@ def _power_gain_table(network: TouchstoneData) -> ui.Tag:
 def touchstone_panel(
     network: TouchstoneData, parameter: str, representation: str = "S", frequency_index: int = 0
 ) -> ui.Tag:
-    if len(network.freq_ghz) > MAX_VIEWER_FREQUENCIES:
+    if max(len(network.freq_ghz), len(network.noise)) > MAX_VIEWER_FREQUENCIES:
         raise ValueError(f"Viewer limit is {MAX_VIEWER_FREQUENCIES} frequency records")
     points = [point for point in network.points if point.param == parameter]
     if not points:
@@ -156,19 +156,88 @@ def touchstone_panel(
         "Stability",
         "Circles",
         "PowerGain",
+        "Noise",
     ):
         raise ValueError(f"Unsupported network representation: {representation}")
     if representation in ("Z", "Y", "h", "ABCD", "T") and network.nports != 2:
         raise ValueError(
             "Parameter conversion requires a two-port dataset; select S for one-port data"
         )
-    references = network.reference_ohms or (network.z0,) * network.nports
+    references = network.port_references()
+    if network.mixed_mode_order and representation not in ("S", "Smith", "Noise"):
+        raise ValueError(
+            "Mixed-mode data is preserved in its declared basis; "
+            "single-ended conversion/stability analysis is not applied"
+        )
     if representation in ("Stability", "Circles", "PowerGain") and network.nports != 2:
         raise ValueError(
             "Stability analysis requires a two-port dataset; select S for one-port data"
         )
     charts: list[ui.Tag]
-    if representation == "PowerGain":
+    if representation == "Noise":
+        if not network.noise:
+            raise ValueError("No explicit Touchstone 2.0 noise data is present")
+        rows = [
+            ui.tags.tr(
+                *(
+                    ui.tags.td(f"{value:.12g}")
+                    for value in (
+                        point.freq_ghz,
+                        point.minimum_nf_db,
+                        point.gamma_opt_mag,
+                        point.gamma_opt_deg,
+                        point.resistance_ohm,
+                    )
+                )
+            )
+            for point in network.noise
+        ]
+        charts = [
+            ui.p(
+                f"Noise Gamma uses option-line reference {network.noise_reference_ohm:g} ohm, "
+                "not per-port/modal references. Rn is in ohms (Touchstone 2.0). "
+                "Frequencies are independent of the network grid; no interpolation, "
+                "physical-limit repair or noise-circle prediction is performed."
+            ),
+            line_chart(
+                "Minimum noise figure",
+                "Frequency (GHz)",
+                "Minimum NF (dB)",
+                [
+                    Trace(
+                        "Minimum NF",
+                        [(p.freq_ghz, p.minimum_nf_db) for p in network.noise],
+                        "#ff7f11",
+                    )
+                ],
+            ),
+            ui.div(
+                ui.tags.table(
+                    ui.tags.caption("Source noise parameters (as measured)"),
+                    ui.tags.thead(
+                        ui.tags.tr(
+                            *(
+                                ui.tags.th(label, scope="col")
+                                for label in (
+                                    "Frequency (GHz)",
+                                    "Minimum NF (dB)",
+                                    "|Gamma_opt|",
+                                    "Gamma_opt phase (deg)",
+                                    "Rn (ohm)",
+                                )
+                            )
+                        )
+                    ),
+                    ui.tags.tbody(*rows),
+                    id="noise_parameters_table",
+                ),
+                class_="table-scroll",
+                tabindex="0",
+                role="region",
+                **{"aria-label": "Scrollable noise parameters"},
+            ),
+        ]
+    elif representation == "PowerGain":
         charts = [_power_gain_table(network)]
     elif representation == "Circles":
         if isinstance(frequency_index, bool) or not 0 <= frequency_index < len(network.freq_ghz):
@@ -233,6 +302,18 @@ def touchstone_panel(
             ),
         ]
     return ui.div(
+        *(
+            [
+                ui.p(
+                    "Declared mixed-mode matrix order: "
+                    + " | ".join(network.mixed_mode_order)
+                    + ". Sij indices refer to these matrix modes, not physical single-ended ports. "
+                    "Modal references below use 2R for differential and R/2 for common mode."
+                )
+            ]
+            if network.mixed_mode_order
+            else []
+        ),
         ui.p(
             f"Dataset: {network.filename} | Ports: {network.nports} | "
             + (

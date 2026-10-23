@@ -33,9 +33,9 @@ standalone deployment. No CDN is needed by the migration adapter.
 |---|---|
 | Calculations | Pure Python lineup cascade, parallel splitting/combining, full-power/backoff results, phase, efficiency and thermal summaries |
 | Supporting calculations | Transistor sizing, matching, propagation/link budget, passive loss, gain/backoff primitives and selected RF tools |
-| Canvas | Retained D3 renderer, movement, wiring, add transistor, validated transistor/passive calculation inputs, undo/redo, four independent session slots |
+| Canvas | Retained D3 renderer, all six component types, movement/wiring, validated calculation inputs and design metadata/pose, undo/redo, four session slots, confirmed copy/clear and simultaneous read-only comparison |
 | Documents | Single-lineup JSON preserving IDs/edges/extra fields/operating points; separate four-lineup workspace bundle |
-| RF network tools | Touchstone 1.x/2.0 full matrices for 1-9 ports; S/diagonal Smith views; two-port S/Z/Y/h/ABCD/T/stability/circles; source S and converted-family CSV export |
+| RF network tools | Touchstone 1.x/2.0 for 1-9 ports; v2 full/triangular matrices, mixed-mode basis preservation, noise table/plot; S/Smith and two-port conversions/stability; source and converted-family export |
 | Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
 | Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
@@ -43,9 +43,11 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Technology guardrails | Typed YAML loading, pure device validation and an explicit selected-transistor advisory |
 | Qualification | Frozen R numeric references, Python contracts, static checks and browser workflow regression |
 
-The UI offers a qualified subset of legacy property controls and four tabbed
-session canvases. Simultaneous legacy comparison layouts, complete property
-editing and persistent multi-canvas lifecycle are not yet migrated.
+The UI offers four tabbed session editors plus simultaneous read-only topology/
+result comparisons. Calculation properties, descriptive metadata and pose are
+editable. Comparison diagrams are simplified, not four simultaneous legacy
+editors. Full legacy property/display/synthesis controls and persistent
+multi-canvas lifecycle remain acceptance gaps.
 
 ### Accuracy and legacy assumptions
 
@@ -780,13 +782,132 @@ errors. A singular frequency rejects the entire export; no partial dataset
 is presented. Converted CSV is not a standard Touchstone file or an import
 format in this slice. Source S download remains independently available.
 
-Current qualification: **807 passing Python tests**, strict source mypy,
+Qualification at batch 22: **807 passing Python tests**, strict source mypy,
 Ruff, JavaScript syntax, dependency integrity and Pylance syntax checks.
 Chromium exercises lifetime/gain version selection, actual multiport upload/
 source round-trip and converted CSV download, load-pull upload/contours/
 normalized export/sweeps/error recovery, and existing calculation/canvas/
 workspace/session-isolation workflows. Responsive checks cover 375/768/1440 px.
 This remains bounded qualification, not completion of workstreams 1-2.
+
+### Batch 23 - advanced Touchstone structures
+
+The parser now accepts Touchstone 2.0 **Lower/Upper** matrices, expanding
+symmetric entries without complex conjugation. Source export emits equivalent
+full matrices. Complex-valued independent tests cover 1/2/3/4/9 ports and both
+triangular orientations. Version 1.x exports of three or more ports now wrap
+matrix rows/pairs instead of producing overlong full-record lines.
+
+**Mixed-Mode Order** is validated for descriptor count, complete port coverage,
+non-overlapping matched D/C pairs and equal single-ended reference impedances
+within each pair. The uploaded matrix remains in its **declared mode order**;
+no differential-to-single-ended transformation is inferred. Sij selectors
+refer to matrix mode indices, with the descriptor mapping displayed. Smith
+plots use effective modal references: 2R differential, R/2 common, R
+single-ended. Source exports preserve descriptors and the original
+single-ended Reference values. Single-ended conversions, gain and stability
+analysis are explicitly gated off for mixed-mode datasets, including two-mode
+datasets; these views must not mislabel differential/common modes as two
+physical single-ended ports.
+
+Explicit **Touchstone 2.0 noise sections** are parsed independently of the
+network frequency grid. The Noise view provides minimum-NF plots and a
+unit-labelled numeric table. It preserves minimum NF in dB, optimum-source
+Gamma magnitude/phase and **Rn in ohms**. The option-line impedance is retained
+separately from per-port references: noise Gamma uses the option-line
+reference, not the input port reference. Declared counts, five finite entries
+per row, nonnegative Gamma magnitude/Rn, strictly increasing noise frequencies,
+and the first-noise-frequency bound are enforced. Source download round-trips
+noise and both reference conventions. No physical-limit repair, noise-circle
+prediction or interpolation onto the network grid is performed.
+
+These semantics follow the published
+[IBIS Touchstone 2.0 specification](https://ibis.org/touchstone_ver2.0/touchstone_ver2_0.pdf),
+especially Matrix Format, Mixed-Mode Order and Noise Parameter Data. Tolerant
+whitespace around mixed-mode commas is accepted and canonicalized on export.
+Noise follows the 100,000 parser / 2,000 UI frequency limits independently of
+the network count. Version 1.x implicit noise tails, information blocks,
+complex/frequency-varying references and mixed-mode basis conversion remain
+unsupported rather than guessed.
+
+### Batch 24 - simultaneous comparison and session slot lifecycle
+
+**Compare four canvases** captures all four current lineups and calculates
+them at the shared operating point. Cards simultaneously show simplified,
+read-only topology diagrams, full/backoff output, net gain, DC, PAE/DE, model
+warnings and calculation rationale. Empty or rejected slots are labelled
+explicitly and never assigned invented numeric results. The active D3 editor
+remains authoritative; card diagrams do not reproduce component geometry/
+rotation/display styling. Diagrams are limited to 200 components per card,
+with an explicit message above that limit; complete documents still calculate.
+Editing, loading, slot changes or operating-point changes invalidate the
+comparison rather than displaying stale results as current.
+
+**Copy active canvas** uses the selected target slot. **Clear active canvas**
+replaces the active slot with an empty document. Both require confirmation;
+cancel leaves documents intact. Source/other slots retain their session
+histories/zoom. Only the replaced slot restarts its history and zoom, as stated
+in the confirmation. A target modified after the confirmation was requested
+is rejected by a document comparison rather than overwritten. Same-slot
+copies fail explicitly. Prepared workspace downloads/results/comparisons are
+invalidated after replacement. Download the workspace first when an overwrite
+must be recoverable: this is session lifecycle, not a persistent archive or a
+cross-session restore service.
+
+### Batch 25 - design controls and representative-file evidence
+
+The toolbar now adds any of the six supported component types using the
+retained D3 defaults: transistor, matching, splitter, combiner, offset line,
+termination. Wiring remains the existing canvas protocol, not a new graph
+engine or implicit topology synthesizer.
+
+**Design metadata and geometry** exposes a separate selected-component form:
+label, type-specific descriptive technology/bias/device/group/topology/
+impedance/offset-role metadata, canvas X/Y, rotation and horizontal/vertical
+flips. Both form IDs guard against stale selection. Geometry is finite and
+bounded; metadata requires bounded text without control characters, and
+offset roles must be phase/inverter. Unknown imported properties are retained.
+These labels do not instantiate foundry models or synthesize matching
+networks. Geometry/metadata changes use the existing custom-message,
+snapshot/history path and preserve saved dual operating points; only relevant
+transistor calculation-input edits invalidate those derived fields.
+
+Both existing repository LPCWAVE samples are now part of automated acceptance:
+**865 and 869 measurements**, every row's Pin/Pout/gain checked against source
+columns, frequency retained and harmonic wave columns preserved as extras.
+No source samples are copied or modified. This does not establish wave
+normalization/calibration or harmonic engineering-model validity. CI watches
+the sample directory so changes trigger the acceptance checks.
+
+Local probes also identified remaining blockers rather than assuming
+eight-adapter synthetic coverage established vendor parity:
+
+- Repository ALPS MDF samples are approximately **40-49 MB**, above the
+  deliberate 5 MiB import bound, and contain quoted string columns and
+  overlapping aliases that need an explicit dialect/measurement mapping.
+- The repository SPL has a preamble/efficiency-column dialect not accepted by
+  the bounded adapter.
+- The repository CST uses pre-block metadata, unlike the qualified adapter's
+  per-block layout; wave normalization still requires explicit confirmation.
+
+Those formats remain rejected; no measurements are silently discarded to
+force acceptance. Large-file streaming/sweep selection and dialect mapping
+are still implementation work, not just external sign-off.
+
+The browser protocol also explicitly decodes JSON at the input boundary:
+Python Shiny freezes nested JSON arrays to tuples, which are not Pydantic
+`JsonValue` lists. Restoring the JSON representation before schema validation
+preserves component display arrays/workspace extras without weakening domain
+validation or silently dropping fields.
+
+Current qualification: **862 Python tests**, Ruff, strict source mypy,
+JavaScript/dependency checks and Pylance syntax checks. Both Chromium suites
+cover the established flows plus triangular/noise export, mixed-mode reference
+labels/analysis gates, comparison freshness/responsiveness, component creation,
+copy/clear confirmation/cancel/stale-target rejection, and metadata/pose
+undo/redo. The legacy R sources remain unchanged. **Workstreams 1-2 are not
+fully complete**: delivered slices do not imply full legacy-editor/file parity
+or device-calibrated engineering acceptance.
 
 ## Validation
 
@@ -805,6 +926,7 @@ For browser checks, keep the preview running in another terminal:
 ```powershell
 .\python_app\.venv\Scripts\python.exe -m playwright install chromium
 .\python_app\.venv\Scripts\python.exe python_app\tests\browser_smoke.py http://127.0.0.1:3840
+.\python_app\.venv\Scripts\python.exe python_app\tests\browser_advanced_smoke.py http://127.0.0.1:3840
 ```
 
 Alternatively pass `--channel msedge` or `--channel chrome` to use an installed
@@ -826,16 +948,18 @@ to silence a mismatch.
 
 Each batch should deliver runnable behavior, targeted tests and a scope update:
 
-1. Complete RF-data acceptance: representative vendor/revision files, quoted/
-   string MDF variants, harmonic/wave workflows, Touchstone mixed-mode/noise/
-   triangular matrices and richer overlays/interaction. Bounded eight-adapter
-   load-pull, full-matrix 1-9-port Touchstone 1.x/2.0, source export and two-port
-   converted-family CSV are delivered, not full legacy viewer parity.
+1. Complete RF-data acceptance: large ALPS quoted/string MDF with explicit
+   measurement mapping, repository SPL/CST dialects, harmonic/wave workflows,
+   implicit 1.x noise, mixed-mode basis conversion and richer overlays/
+   interaction. Explicit TS2 noise, mixed-mode basis preservation and triangular
+   matrices are delivered, not universal file/viewer parity.
 2. Complete remaining calculations, engineering-model decisions, legacy
-   property controls and simultaneous multi-canvas comparison/lifecycle;
-   qualify advanced chart interactions and device-calibrated model assumptions
-   separately. Four session slots, calculation-property controls and explicit
-   corrected generic gain/lifetime options are delivered, not full parity.
+   property/display/synthesis controls, simultaneous editable comparison and
+   persistent multi-canvas lifecycle; qualify advanced chart interactions and
+   device-calibrated model assumptions separately. Four session slots,
+   read-only simultaneous comparison, confirmed copy/clear, calculation/pose/
+   metadata controls and corrected generic gain/lifetime options are delivered,
+   not full parity.
 3. Add project persistence, snapshots, state recovery and role-based access.
 4. Integrate remaining AI agents/KB and the guarded Python ingestion pipeline.
 5. Complete and qualify integrated and standalone RF CAD separately.

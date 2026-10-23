@@ -2,9 +2,55 @@
 
 from typing import NamedTuple
 
-from pydantic import JsonValue
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from rfview.domain.models import Component, finite
+
+
+class ComponentGeometry(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    x: float = Field(ge=-1e6, le=1e6)
+    y: float = Field(ge=-1e6, le=1e6)
+    rotation: float = Field(ge=-360, le=360)
+    flipH: bool
+    flipV: bool
+
+
+def text_fields(component: Component) -> dict[str, str]:
+    fields = {"label": "Display label"}
+    if component.type == "transistor":
+        fields.update(
+            technology="Technology label (does not select a device model)",
+            biasClass="Bias class label",
+            pa_group="PA group",
+            device="Device identifier",
+        )
+    elif component.type == "matching":
+        fields.update(
+            type="Matching topology label",
+            matchType="Matching role",
+            z_in="Input impedance label",
+            z_out="Output impedance label",
+        )
+    elif component.type in ("splitter", "combiner"):
+        fields["type"] = "Splitter/combiner topology label"
+    elif component.type == "offset_line":
+        fields["offset_role"] = "Offset role (phase or inverter)"
+    return fields
+
+
+def validated_design_properties(
+    component: Component, values: dict[str, JsonValue]
+) -> dict[str, JsonValue]:
+    if values.keys() != text_fields(component).keys():
+        raise ValueError("Design metadata fields do not match the selected component")
+    for key, value in values.items():
+        if not isinstance(value, str) or len(value) > 200 or any(ord(c) < 32 for c in value):
+            raise ValueError(f"{key} requires text up to 200 characters without control characters")
+        if key == "offset_role" and value not in ("phase", "inverter"):
+            raise ValueError("Offset role must be phase or inverter")
+    return dict(values)
 
 
 class NumericProperty(NamedTuple):

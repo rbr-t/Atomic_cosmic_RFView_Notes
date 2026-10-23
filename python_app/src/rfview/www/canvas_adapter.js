@@ -10,6 +10,14 @@
   let activeSlot = "1";
   let slots = {};
 
+  function canonical(value) {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === "object") {
+      return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]));
+    }
+    return value;
+  }
+
   function storeSlot() {
     const current = canvas();
     const zoom = d3.zoomTransform(current.svg.node());
@@ -86,7 +94,8 @@
     lastRequest = ++requestId;
     Shiny.setInputValue("python_action", {
       action: name, document: snapshot(), request_id: lastRequest,
-      workspace: name === "workspace_snapshot" ? workspaceSnapshot() : null
+      workspace: ["workspace_snapshot", "compare_workspace", "clone_slot", "clear_slot"].includes(name) ? workspaceSnapshot() : null,
+      target_slot: name === "clone_slot" ? document.getElementById("python_copy_slot").value : null
     }, { priority: "event" });
     return current;
   }
@@ -154,12 +163,37 @@
           canvas().svg.call(canvas().zoom.transform, d3.zoomIdentity);
         } catch (error) { reportError(error); }
       });
+      Shiny.addCustomMessageHandler("pythonReplaceSlot", data => {
+        try {
+          if (!["1", "2", "3", "4"].includes(data.slot)) throw new Error("Unknown canvas slot.");
+          storeSlot();
+          const existing = slots[data.slot]?.document || {
+            schema_version: "1.0", components: [], connections: [], metadata: {}
+          };
+          if (JSON.stringify(canonical(existing)) !== JSON.stringify(canonical(data.expected))) {
+            throw new Error("Target canvas changed after confirmation was requested; request replacement again.");
+          }
+          slots[data.slot] = {
+            document: data.document, history: [], historyIndex: -1, zoom: { x: 0, y: 0, k: 1 }
+          };
+          if (data.slot === activeSlot) {
+            restore(data.document);
+            canvas().svg.call(canvas().zoom.transform, d3.zoomIdentity);
+          }
+          Shiny.setInputValue("python_slot_changed", {
+            slot: activeSlot, request_id: ++requestId
+          }, { priority: "event" });
+        } catch (error) { reportError(error); }
+      });
       Shiny.addCustomMessageHandler("pythonEditComponent", data => {
         try {
           const target = canvas().components.find(c => c.id === data.id);
           if (!target) throw new Error("Selected component no longer exists.");
           target.properties = { ...target.properties, ...data.properties };
-          if (target.type === "transistor") {
+          if (data.geometry) Object.assign(target, data.geometry);
+          if (target.type === "transistor" && Object.keys(data.properties).some(
+            key => ["gain", "gain_p3db", "gain_bo", "pae", "p1db", "vdd", "rth"].includes(key)
+          )) {
             for (const key of ["pout_p3db", "pout_pavg", "pin_p3db", "pin_pavg",
               "pae_p3db", "pae_pavg"]) delete target.properties[key];
           }
@@ -189,7 +223,17 @@
         case "python_calculate": action("calculate"); break;
         case "python_snapshot": action("snapshot"); break;
         case "python_workspace_snapshot": action("workspace_snapshot"); break;
-        case "python_add": canvas().addComponent("transistor", 220, 250); break;
+        case "python_compare": action("compare_workspace"); break;
+        case "python_copy_canvas": action("clone_slot"); break;
+        case "python_clear_canvas": action("clear_slot"); break;
+        case "python_add": {
+          const type = document.getElementById("python_component_type").value;
+          if (!["transistor", "matching", "splitter", "combiner", "offset_line", "termination"].includes(type)) {
+            throw new Error("Unsupported component type.");
+          }
+          canvas().addComponent(type, 220, 250);
+          break;
+        }
         case "python_wire": canvas().toggleWireMode(); break;
         case "python_undo": canvas().undo(); emitSnapshot(); break;
         case "python_redo": canvas().redo(); emitSnapshot(); break;

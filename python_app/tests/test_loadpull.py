@@ -166,3 +166,28 @@ def test_source_revision() -> None:
         hashlib.md5(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         == REFERENCE["provenance"]["source_md5"]
     )
+
+
+def test_repository_lpcwave_samples_preserve_every_numeric_measurement_and_harmonics() -> None:
+    root = Path(__file__).resolve().parents[2] / "PA design App" / "data" / "sample-files"
+    samples = sorted(root.glob("*.lpcwave"))
+    assert len(samples) == 2
+    counts = []
+    for path in samples:
+        text = path.read_text(encoding="utf-8-sig")
+        numeric_rows = [
+            line.split()
+            for line in text.splitlines()
+            if line.strip() and line.lstrip()[0] in "-+0123456789"
+        ]
+        result = parse_loadpull(text, path.name, "lpcwave")
+        assert len(result.points) == len(numeric_rows)
+        counts.append(len(result.points))
+        for point, source in zip(result.points, numeric_rows, strict=True):
+            assert point.freq_ghz == 2.6
+            assert point.pin_dbm == float(source[1])
+            assert point.pout_dbm == float(source[2])
+            assert point.gain_db == float(source[3])
+            assert "a1ref1" in point.extra and "b2imf2" in point.extra
+        result.model_dump_json()
+    assert sorted(counts) == [865, 869]
