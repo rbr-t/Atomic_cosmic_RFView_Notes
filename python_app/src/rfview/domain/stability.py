@@ -41,6 +41,40 @@ class StabilityCircles(BaseModel):
     warnings: tuple[str, ...]
 
 
+class PowerGainEstimates(BaseModel):
+    model_config = ConfigDict(frozen=True, allow_inf_nan=False)
+
+    model_version: Literal["conventional-power-gain-v2"] = "conventional-power-gain-v2"
+    msg_db: float | None
+    mag_db: float | None
+    warnings: tuple[str, ...]
+
+
+def power_gain_estimates(s: Sequence[Sequence[complex]]) -> PowerGainEstimates:
+    """Power gains in dB, with MAG only in the unconditionally stable region."""
+    matrix = validated_matrix(s)
+    metrics = stability_metrics(matrix)
+    reverse, forward = abs(matrix[0][1]), abs(matrix[1][0])
+    warnings = [
+        "Conventional power-gain version uses 10*log10, not the legacy 20*log10 scale.",
+        "MSG is the |S21/S12| expression, not guaranteed attainable gain. "
+        "MAG is shown only for K>1 and |Delta|<1; no stability certification.",
+    ]
+    msg = mag = None
+    if reverse > SINGULARITY_THRESHOLD and forward > 0:
+        msg = 10 * (math.log10(forward) - math.log10(reverse))
+        if metrics.K is not None and metrics.K > 1 and metrics.delta_mag < 1:
+            k = metrics.K
+            factor = (1 / k) / (1 + math.sqrt(max(0, 1 - (1 / k) ** 2)))
+            if factor > 0:
+                mag = msg + 10 * math.log10(factor)
+    if msg is None:
+        warnings.append("MSG/MAG undefined for zero forward or negligible reverse transmission.")
+    elif mag is None:
+        warnings.append("MAG unavailable outside its supported stable-region/numeric conditions.")
+    return PowerGainEstimates(msg_db=msg, mag_db=mag, warnings=tuple(warnings))
+
+
 def stability_circles(s: Sequence[Sequence[complex]]) -> StabilityCircles:
     """Return load/source reflection-plane boundaries, not stable-side classifications."""
     matrix = validated_matrix(s)

@@ -17,6 +17,7 @@ mdurl==0.1.2
 mypy==1.20.2
 mypy_extensions==1.1.0
 narwhals==2.27.1
+numpy==2.5.4
 opentelemetry-api==1.45.1
 orjson==3.13.0
 packaging==26.3
@@ -34,6 +35,7 @@ python-multipart==0.0.32
 PyYAML==6.0.3
 questionary==2.1.1
 ruff==0.17.2
+scipy==1.18.1
 setuptools==84.2.1
 shiny==1.8.0
 shinychat==0.7.2

@@ -4,6 +4,12 @@ from pathlib import Path
 import yaml
 
 from rfview.domain.guardrails import GuardrailCatalog
+from rfview.domain.loadpull import (
+    MAX_LOADPULL_BYTES,
+    LoadPullData,
+    LoadPullFormat,
+    parse_loadpull,
+)
 from rfview.domain.models import CanvasWorkspace, LineupDocument, OperatingPoint
 from rfview.domain.touchstone import (
     MAX_TOUCHSTONE_BYTES,
@@ -12,6 +18,19 @@ from rfview.domain.touchstone import (
 )
 
 MAX_DOCUMENT_BYTES = 5 * 1024 * 1024
+
+
+def read_loadpull(
+    path: Path, filename: str, format: LoadPullFormat, *, fractional: bool = False
+) -> LoadPullData:
+    if path.stat().st_size > MAX_LOADPULL_BYTES:
+        raise ValueError("Load-pull exceeds the 5 MiB limit")
+    return parse_loadpull(
+        path.read_text(encoding="utf-8-sig"),
+        filename,
+        format,
+        efficiency_unit="fraction" if fractional else "percent",
+    )
 
 
 def read_touchstone(

@@ -11,8 +11,15 @@ from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 from rfview.domain.component_properties import property_fields, validated_properties
 from rfview.domain.guardrails import DeviceParameters, validate_device_params
 from rfview.domain.lineup import calculate_lineup
+from rfview.domain.loadpull import LoadPullData, LoadPullFormat
+from rfview.domain.loadpull_contours import METRICS, LoadPullMetric
 from rfview.domain.models import CanvasWorkspace, LineupDocument, LineupResult, OperatingPoint
-from rfview.domain.touchstone import TouchstoneData, serialize_touchstone
+from rfview.domain.reliability import LifetimeInputs, lifetime_estimate, reliability_curve
+from rfview.domain.touchstone import (
+    TouchstoneData,
+    serialize_converted_parameters,
+    serialize_touchstone,
+)
 from rfview.domain.transistor import (
     DesignTopology,
     StageSizingInput,
@@ -20,18 +27,20 @@ from rfview.domain.transistor import (
     ropt,
     transistor_design_suite,
 )
+from rfview.loadpull_ui import MAX_LOADPULL_VIEW_POINTS, loadpull_panel, sweep_choices
 from rfview.services import (
     example_document,
     operating_point,
     read_document,
     read_guardrails,
+    read_loadpull,
     read_touchstone,
     read_workspace,
     serialize_document,
     serialize_workspace,
     with_operating_point,
 )
-from rfview.technology_ui import technology_panel
+from rfview.technology_ui import Trace, line_chart, technology_panel
 from rfview.touchstone_ui import MAX_VIEWER_FREQUENCIES, touchstone_panel
 
 logger = logging.getLogger(__name__)
@@ -62,6 +71,13 @@ class SizingRequest(BaseModel):
     h_mm: float = Field(gt=0)
 
 
+class LifetimeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    inputs: LifetimeInputs
+    horizon_hours: float = Field(gt=0, le=1e12)
+
+
 def toolbar_button(identifier: str, label: str) -> ui.Tag:
     return ui.tags.button(label, id=identifier, type="button", class_="btn btn-default")
 
@@ -76,7 +92,7 @@ app_ui = ui.page_fluid(
         ui.h1("RF PA Design - Python"),
         ui.p(
             "Migration preview - session-only. Legacy R application remains unchanged. "
-            "Projects/DB, load-pull, advanced SP features, AI/KB, CAD and document builds "
+            "Projects/DB, advanced RF workflows, AI/KB, CAD and document builds "
             "are not ported yet.",
             class_="migration-notice",
         ),
@@ -169,12 +185,64 @@ app_ui = ui.page_fluid(
         ui.output_ui("summary"),
         ui.output_ui("stage_table"),
         ui.tags.details(
+            ui.tags.summary("Load-pull measurements and contours"),
+            ui.p(
+                "Session-only UTF-8 ASCII adapters; explicitly choose format and efficiency "
+                "units before importing. Max 5 MiB / 2,000 viewer points. "
+                "Numeric/block variants are qualified, not every vendor revision."
+            ),
+            ui.input_select(
+                "loadpull_format",
+                "Load-pull adapter",
+                {
+                    name: name.upper()
+                    for name in (
+                        "spl",
+                        "focus",
+                        "lpcwave",
+                        "mdf",
+                        "amcad",
+                        "anteverta",
+                        "mdif",
+                        "cst",
+                    )
+                },
+            ),
+            ui.input_checkbox(
+                "loadpull_fractional",
+                "Imported efficiencies are fractions (0-1), not percent",
+                False,
+            ),
+            ui.input_file(
+                "loadpull_upload",
+                "Upload load-pull ASCII",
+                accept=[".spl", ".focus", ".lpcwave", ".mdf", ".csv", ".mdif", ".cst", ".txt"],
+            ),
+            ui.input_action_button("loadpull_import", "Import / reparse with selected options"),
+            ui.output_text("loadpull_status"),
+            ui.input_select("loadpull_sweep", "Measurement sweep", {}),
+            ui.input_select(
+                "loadpull_metric",
+                "Load-pull metric",
+                {key: f"{label} ({unit})" for key, (label, unit) in METRICS.items()},
+            ),
+            ui.input_checkbox(
+                "loadpull_show_contours", "Show interpolated contour estimates", False
+            ),
+            ui.output_ui("loadpull_view"),
+            ui.output_ui("loadpull_download_control"),
+        ),
+        ui.tags.details(
             ui.tags.summary("Touchstone magnitude and phase viewer"),
             ui.p(
-                "Session-only Touchstone 1.x .s1p/.s2p viewer, max 5 MiB and "
+                "Session-only Touchstone 1.x/2.0 full-matrix viewer (.s1p-.s9p/.ts), max 5 MiB and "
                 "2,000 frequencies. Uploads are not saved in lineup JSON."
             ),
-            ui.input_file("touchstone_upload", "Upload Touchstone", accept=[".s1p", ".s2p"]),
+            ui.input_file(
+                "touchstone_upload",
+                "Upload Touchstone",
+                accept=[*(f".s{i}p" for i in range(1, 10)), ".ts"],
+            ),
             ui.input_select("touchstone_parameter", "S-parameter", ["S11", "S21", "S12", "S22"]),
             ui.input_select(
                 "touchstone_representation",
@@ -186,9 +254,10 @@ app_ui = ui.page_fluid(
                     "h": "Hybrid h real / imaginary (mixed units)",
                     "ABCD": "Chain ABCD real / imaginary (mixed units)",
                     "T": "Scattering transfer T (dimensionless)",
-                    "Smith": "Smith impedance chart (S11/S22)",
+                    "Smith": "Smith impedance chart (diagonal S)",
                     "Stability": "Two-port stability / legacy gain metrics",
                     "Circles": "Source / load stability circles",
+                    "PowerGain": "Conventional power gain v2 (10 log)",
                 },
             ),
             ui.panel_conditional(
@@ -226,6 +295,26 @@ app_ui = ui.page_fluid(
             ),
             ui.input_numeric("suite_h", "Substrate thickness (mm)", 0.508, min=0),
             ui.output_ui("full_stage_sizing"),
+        ),
+        ui.tags.details(
+            ui.tags.summary("Generic lifetime hypothesis (corrected v2)"),
+            ui.p(
+                "Opt-in analytical estimate, not a manufacturer lifetime model. "
+                "Temperature acceleration is corrected; legacy lineup calculations are unchanged. "
+                "All inputs are independent/session-only and require engineering justification."
+            ),
+            ui.input_numeric("lifetime_tj", "Assumed junction temperature (C)", 125),
+            ui.input_numeric("lifetime_reference", "Reference temperature (C)", 125),
+            ui.input_numeric("lifetime_base", "Assumed reference MTTF (hours)", 1e6, min=0),
+            ui.input_numeric("lifetime_ea", "Assumed activation energy (eV)", 0.7, min=0),
+            ui.input_numeric(
+                "lifetime_voltage", "Normalized voltage stress (dimensionless)", 1, min=0
+            ),
+            ui.input_numeric(
+                "lifetime_current", "Normalized current stress (dimensionless)", 1, min=0
+            ),
+            ui.input_numeric("lifetime_horizon", "Plot horizon (hours)", 1e6, min=0),
+            ui.output_ui("lifetime_view"),
         ),
         ui.tags.details(
             ui.tags.summary("Calculation rationale and limitations"),
@@ -267,6 +356,73 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     workspace_export: reactive.Value[str | None] = reactive.Value(None)
     network: reactive.Value[TouchstoneData | None] = reactive.Value(None)
     network_status = reactive.Value("No Touchstone dataset loaded.")
+    loadpull: reactive.Value[LoadPullData | None] = reactive.Value(None)
+    loadpull_status_state = reactive.Value("No load-pull dataset loaded.")
+
+    @reactive.effect
+    @reactive.event(input.loadpull_import)
+    def _loadpull_import() -> None:
+        files = input.loadpull_upload()
+        try:
+            if not files:
+                raise ValueError("Choose a load-pull ASCII file first")
+            adapter: LoadPullFormat = input.loadpull_format()
+            parsed = read_loadpull(
+                Path(files[0]["datapath"]),
+                files[0]["name"],
+                adapter,
+                fractional=input.loadpull_fractional(),
+            )
+            if len(parsed.points) > MAX_LOADPULL_VIEW_POINTS:
+                raise ValueError(f"Viewer limit is {MAX_LOADPULL_VIEW_POINTS} load-pull points")
+        except (ValueError, OSError) as exc:
+            message = f"Load-pull import rejected: {exc}. Last valid dataset retained."
+            logger.warning("%s", message)
+            loadpull_status_state.set(message)
+            ui.notification_show(message, type="error", duration=None, session=session)
+            return
+        loadpull.set(parsed)
+        ui.update_select(
+            "loadpull_sweep", choices=sweep_choices(parsed), selected="sweep-0", session=session
+        )
+        loadpull_status_state.set(f"Loaded {parsed.filename} using {parsed.format}. Session-only.")
+
+    @render.text
+    def loadpull_status() -> str:
+        return loadpull_status_state()
+
+    @render.ui
+    def loadpull_view() -> ui.Tag:
+        current = loadpull()
+        if current is None:
+            return ui.p("Choose an adapter and file, then import measurements.")
+        try:
+            metric: LoadPullMetric = input.loadpull_metric()
+            return loadpull_panel(
+                current, input.loadpull_sweep(), metric, input.loadpull_show_contours()
+            )
+        except ValueError as exc:
+            logger.warning("Load-pull view rejected: %s", exc)
+            return ui.p(f"Load-pull view rejected: {exc}", role="alert")
+
+    @render.ui
+    def loadpull_download_control() -> ui.Tag:
+        if loadpull() is None:
+            return ui.p("Import measurements to enable normalized JSON export.")
+        return ui.div(
+            ui.download_button("download_loadpull", "Download normalized load-pull JSON"),
+            ui.p(
+                "Contains all normalized points, metadata and warnings, "
+                "not a vendor-format round trip."
+            ),
+        )
+
+    @render.download(filename="rfview_loadpull.json", media_type="application/json")
+    def download_loadpull() -> Iterator[str]:
+        current = loadpull()
+        if current is None:
+            raise ValueError("No load-pull dataset available")
+        yield current.model_dump_json(indent=2)
 
     @reactive.effect
     @reactive.event(input.touchstone_upload)
@@ -288,7 +444,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             ui.notification_show(message, type="error", duration=None, session=session)
             return
         network.set(parsed)
-        choices = ["S11"] if parsed.nports == 1 else ["S11", "S21", "S12", "S22"]
+        choices = list(dict.fromkeys(p.param for p in parsed.points[: parsed.nports**2]))
         ui.update_select("touchstone_parameter", choices=choices, selected="S11", session=session)
         ui.update_select(
             "touchstone_frequency",
@@ -302,15 +458,39 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     def touchstone_status() -> str:
         return network_status()
 
+    @reactive.calc
+    def converted_csv() -> str:
+        current = network()
+        if current is None:
+            raise ValueError("No Touchstone dataset available for export")
+        return serialize_converted_parameters(current, input.touchstone_representation())
+
     @render.ui
     def touchstone_download_control() -> ui.Tag:
         if network() is None:
             return ui.p("Upload a dataset to enable source Touchstone export.")
+        converted_control: ui.Tag = ui.p("Select Z/Y/h/ABCD/T to export converted parameters.")
+        if input.touchstone_representation() in ("Z", "Y", "h", "ABCD", "T"):
+            try:
+                converted_csv()
+                converted_control = ui.download_button(
+                    "download_network_csv", "Download converted family CSV"
+                )
+            except ValueError as exc:
+                logger.warning("Converted network export rejected: %s", exc)
+                converted_control = ui.p(f"Converted export unavailable: {exc}", role="alert")
         return ui.div(
             ui.download_button("download_touchstone", "Download source S (GHz / RI)"),
             ui.p(
                 "Exports source S values, not the selected converted view. "
-                "Original comments, units and formatting are not retained."
+                "Original comments, units and formatting are not retained. "
+                "Touchstone 2.0/per-port references are retained when present."
+            ),
+            converted_control,
+            ui.p(
+                "Converted CSV contains all four parameters at every frequency, "
+                "real/imaginary values, units and source port references; "
+                "not just the selected trace."
             ),
         )
 
@@ -326,6 +506,10 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         if current is None:
             raise ValueError("No Touchstone dataset available for export")
         yield serialize_touchstone(current)
+
+    @render.download(filename="rfview_converted_network.csv", media_type="text/csv")
+    def download_network_csv() -> Iterator[str]:
+        yield converted_csv()
 
     @render.ui
     def touchstone_view() -> ui.Tag:
@@ -591,6 +775,44 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     def rationale() -> str:
         calculated = current_result()
         return "No current calculation." if calculated is None else calculated.rationale
+
+    @render.ui
+    def lifetime_view() -> ui.Tag:
+        try:
+            request = LifetimeRequest.model_validate(
+                {
+                    "inputs": {
+                        "tj_c": input.lifetime_tj(),
+                        "reference_c": input.lifetime_reference(),
+                        "base_hours": input.lifetime_base(),
+                        "activation_ev": input.lifetime_ea(),
+                        "voltage_stress": input.lifetime_voltage(),
+                        "current_stress": input.lifetime_current(),
+                    },
+                    "horizon_hours": input.lifetime_horizon(),
+                }
+            )
+            result = lifetime_estimate(request.inputs)
+            curve = reliability_curve(
+                [request.horizon_hours * i / 100 for i in range(101)], result.mttf_hours
+            )
+        except ValueError as exc:
+            logger.warning("Lifetime hypothesis rejected: %s", exc)
+            return ui.p(f"Lifetime hypothesis rejected: {exc}", role="alert")
+        return ui.div(
+            ui.p(
+                f"Model: {result.model_version} | MTTF: {result.mttf_hours:.6g} hours | "
+                f"{result.mttf_years:.6g} years | "
+                f"Failure rate: {result.failure_rate_per_hour:.6g} /hour"
+            ),
+            ui.tags.ul(*(ui.tags.li(message) for message in result.warnings)),
+            line_chart(
+                "Generic constant-hazard reliability estimate",
+                "Time (hours)",
+                "Reliability (%)",
+                [Trace("Generic hypothesis, not qualification", list(curve), "#ff7f11")],
+            ),
+        )
 
     @render.ui
     def selected_properties() -> ui.Tag:

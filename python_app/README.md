@@ -35,7 +35,9 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Supporting calculations | Transistor sizing, matching, propagation/link budget, passive loss, gain/backoff primitives and selected RF tools |
 | Canvas | Retained D3 renderer, movement, wiring, add transistor, validated transistor/passive calculation inputs, undo/redo, four independent session slots |
 | Documents | Single-lineup JSON preserving IDs/edges/extra fields/operating points; separate four-lineup workspace bundle |
-| RF network tools | Bounded Touchstone 1.x S/Z/Y/h/ABCD/T/Smith/stability views, selected-frequency stability circles and source S export |
+| RF network tools | Touchstone 1.x/2.0 full matrices for 1-9 ports; S/diagonal Smith views; two-port S/Z/Y/h/ABCD/T/stability/circles; source S and converted-family CSV export |
+| Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
+| Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
 | Technology guardrails | Typed YAML loading, pure device validation and an explicit selected-transistor advisory |
@@ -65,7 +67,9 @@ Results identify their model as `legacy-r-v1`. Deliberately retained assumptions
 - Gate-width sizing follows current R source, not an inconsistent older test.
 
 Unequal split ratios and unsupported branching are rejected explicitly rather
-than producing plausible-looking results. MTTF/reliability is not ported.
+than producing plausible-looking results. The separately versioned generic
+lifetime model below corrects the R temperature-acceleration direction; it
+does not establish manufacturer-calibrated reliability or alter lineup results.
 
 ### Batch 2 - technology guardrail validation
 
@@ -224,8 +228,9 @@ Calculation inventory after this batch:
 | Constant-hazard reliability curve | Not yet ported |
 | Arrhenius MTTF | Deferred: legacy multiplier makes lifetime increase with temperature |
 
-The MTTF issue must be resolved as an explicitly versioned engineering change,
-not silently corrected inside a legacy-parity port. The remaining runtime,
+The MTTF issue was subsequently addressed by the explicitly versioned generic
+model in batch 21, not silently corrected inside the legacy-parity port.
+The remaining runtime,
 parser, persistence, AI/KB and document migrations are still required.
 
 ### Batch 6 - full-stage sizing UI
@@ -634,6 +639,155 @@ independent canvas switching/undo, workspace download/re-import and session
 isolation, alongside the existing lineup/sizing workflows. RF circle/table
 views and the full page are checked at 375/768/1440 px.
 
+### Batch 20 - load-pull adapters, measured views and contours
+
+Expand **Load-pull measurements and contours**. Choose the adapter and efficiency
+units, select a file, then explicitly import/reparse it. Changing these choices
+does not reinterpret an already loaded dataset until import is requested.
+Rejected imports retain the last valid dataset with an error notification.
+Nothing is written to the legacy datasets or retained after the session.
+
+[loadpull.py](src/rfview/domain/loadpull.py) supports the following bounded
+ASCII dialects, not every historical vendor revision:
+
+| Adapter | Qualified dialect / evidence |
+|---|---|
+| SPL | Cartesian/combined Gamma headers, repeated headers, per-block frequency metadata and explicit VALID=0 exclusion |
+| Focus | CCMT-style metadata, header and numeric table |
+| LPCWAVE | Load-point Gamma descriptors and numeric measurement rows |
+| MDF | Numeric Sweep/Data blocks; string columns explicitly rejected |
+| AMCAD | Numeric CSV with supported aliases |
+| Anteverta | Numeric CSV with supported aliases |
+| MDIF | Variable/data blocks and numeric measurements |
+| CST | Peak voltage-wave adapter, independently tested; not R-parser parity |
+
+Seven synthetic vendor cases match frozen active-R output at `rtol=1e-10`,
+`atol=1e-12`, with source/fixture revision checks. These fixtures establish
+covered dialect parity, **not** acceptance of arbitrary customer files.
+Representative real files and additional revisions still need qualification.
+The optional [R exporter](tests/reference/export_loadpull.R) regenerates
+[loadpull_reference.json](tests/fixtures/loadpull_reference.json); normal tests
+do not run R.
+
+Efficiency units are explicitly **percent** or **fraction**; the parser never
+guesses from the value range. Numeric extra columns are retained. Optional
+missing values remain null; malformed/ragged/ambiguous records fail explicitly.
+Power/current/DC/efficiency derivations use available quantities. Negative or
+out-of-range measurements, PAE greater than DE, active Gamma and nonpositive DC
+power are retained with diagnostics, not clipped or silently repaired.
+Rows explicitly marked VALID=0 are excluded with a reported count.
+Per-block frequency is retained on each row instead of relabelling all rows
+with the final frequency, a documented adaptation from legacy SPL behavior.
+
+The active R CST adapter fails by calling a two-argument normalizer with three
+arguments. Its wave-power path also reuses source impedance for the output.
+The Python adapter instead uses distinct port references and independently
+tested peak voltage-wave equations:
+
+```text
+Pin  = (|a1|^2 - |b1|^2) / (2 Z0source)
+Pout = (|b2|^2 - |a2|^2) / (2 Z0load)
+```
+
+It does not clamp negative power or fabricate dBm/gain for nonpositive power.
+Fundamental-row frequency mismatch/harmonic rows are rejected, not mixed into
+fundamental results. Confirm instrument normalization and calibration before
+engineering use; this adaptation is not a universal CST interpreter.
+
+Select a frequency/input-power/source-Gamma/bias sweep and metric to inspect
+measured points and a unit-labelled numeric table. Optional contours use
+SciPy Delaunay triangulation with piecewise-linear triangle intersections.
+Analytic planar-surface tests verify contour coordinates and no extrapolation
+outside the measured convex hull. There is no smoothing or optimum-load
+certification; triangles can span unmeasured gaps. Duplicate/collinear
+coordinates, undefined metrics, omitted triangulation points and unsupported
+numeric ranges fail rather than averaging, dropping points or extrapolating.
+Measured-point view remains available when contour assumptions do not hold.
+
+Imports are limited to 5 MiB / 100,000 points; the UI accepts at most 2,000 total
+points without decimation. Contour APIs accept 1-20 levels; the UI supplies
+five interior levels. Downloads contain **normalized JSON**, including extras,
+metadata and warnings, not reconstruction of vendor-specific source syntax.
+SciPy and NumPy are included in the pinned Python dependency lock.
+
+### Batch 21 - explicitly corrected gain and lifetime hypotheses
+
+The legacy stability table and lineup engine remain unchanged. Choose
+**Conventional power gain v2 (10 log)** for `conventional-power-gain-v2`:
+
+- MSG expression: `10 log10(|S21/S12|)`, without the legacy forward-gain floor.
+- MAG is available only for `K > 1` and `|Delta| < 1`, with numerically stable
+  evaluation of the `K - sqrt(K^2-1)` factor.
+- Undefined/unsupported transmission and stability conditions are labelled,
+  not converted into finite gain or a stability certification.
+
+Expand **Generic lifetime hypothesis (corrected v2)** for the independent
+`arrhenius-lifetime-v2` analytical estimate:
+
+```text
+AF = exp(Ea/k * (1/Tref - 1/Top)) * voltage_stress^2 * current_stress^2
+MTTF = base_hours / AF
+R(t) = 100 exp(-t/MTTF)
+```
+
+Temperatures in this formula are kelvin; UI inputs are degrees C. Tests verify
+the reference condition, shorter lifetime at higher temperature, squared
+stress scaling, reliability shape and explicit rejection of invalid/numerically
+unrepresentable assumptions. R multiplies by AF instead, producing the wrong
+thermal direction; v2 deliberately does **not** claim R numerical parity.
+
+These are generic, constant-hazard/squared-stress hypotheses, **not**
+manufacturer-calibrated lifetime predictions or safety certification.
+Base lifetime, activation energy, reference conditions and stress exponents
+require device/failure-mechanism justification. Inputs are manual,
+session-only and independent of lineup calculations/canvas properties.
+No engineering-owner sign-off or device qualification is implied.
+
+### Batch 22 - multiport Touchstone and converted-family export
+
+[touchstone.py](src/rfview/domain/touchstone.py) now accepts Touchstone 1.x
+`.s1p` through `.s9p` and Touchstone **2.0 full-matrix** `.ts`/`.sNp` files.
+It supports declared port/frequency counts, positive real per-port references,
+continued reference lines, both explicit two-port data orders, RI/MA/DB and
+Hz/kHz/MHz/GHz. Two-port data uses its declared `21_12`/`12_21` order;
+three or more ports use row-major ordering. Missing required counts/order,
+inconsistent filename ports, duplicate declarations, content after End and
+invalid/nonfinite references fail explicitly.
+
+All supported ports have magnitude/phase views; diagonal S parameters have
+Smith views using the corresponding port reference. Stability, circles,
+conventional gain and parameter conversions remain **two-port** analyses.
+Z/Y/h/ABCD require equal real port references; unequal references are preserved
+in source S and rejected for these conversions, not silently renormalized.
+Wave-transfer T remains dimensionless and preserves its source port references.
+
+Source S download retains Touchstone 2.0 and per-port references where present.
+Round-trip tests preserve source complex values exactly at 17-digit precision,
+including asymmetric multiport matrices and alternate two-port ordering.
+Original comments/formatting and dataset tags are not source-text round-tripped.
+Limits remain 5 MiB / 100,000 parser frequencies / 2,000 viewer frequencies.
+Mixed-mode, noise, information blocks, triangular matrices, complex or
+frequency-varying references and vendor-specific comment normalization are
+**not qualified**. Unsupported structural keywords are rejected, not ignored.
+Files are not automatically transformed into a different wave normalization.
+
+For a valid Z/Y/h/ABCD/T view, **Download converted family CSV** exports all four
+matrix parameters at every frequency, not just the selected trace. Columns
+identify frequency in GHz, representation, parameter, units, real/imaginary
+values and both source port references. It uses the **same pure conversion
+path** as the viewer, including mixed units for h/ABCD and frequency-specific
+errors. A singular frequency rejects the entire export; no partial dataset
+is presented. Converted CSV is not a standard Touchstone file or an import
+format in this slice. Source S download remains independently available.
+
+Current qualification: **807 passing Python tests**, strict source mypy,
+Ruff, JavaScript syntax, dependency integrity and Pylance syntax checks.
+Chromium exercises lifetime/gain version selection, actual multiport upload/
+source round-trip and converted CSV download, load-pull upload/contours/
+normalized export/sweeps/error recovery, and existing calculation/canvas/
+workspace/session-isolation workflows. Responsive checks cover 375/768/1440 px.
+This remains bounded qualification, not completion of workstreams 1-2.
+
 ## Validation
 
 From the repository root:
@@ -672,15 +826,16 @@ to silence a mismatch.
 
 Each batch should deliver runnable behavior, targeted tests and a scope update:
 
-1. Complete RF data tools: qualify load-pull SPL/Focus/LPCWAVE/MDF/AMCAD/
-   Anteverta/MDIF/CST parsing and contour viewing; extend Touchstone 2.x,
-   higher-port/noise/per-port-reference support and converted-parameter export.
-   S/Z/Y/h/ABCD/T/Smith/stability/circle views and source S export are delivered
-   for the bounded one/two-port scope; this is not full legacy viewer parity.
+1. Complete RF-data acceptance: representative vendor/revision files, quoted/
+   string MDF variants, harmonic/wave workflows, Touchstone mixed-mode/noise/
+   triangular matrices and richer overlays/interaction. Bounded eight-adapter
+   load-pull, full-matrix 1-9-port Touchstone 1.x/2.0, source export and two-port
+   converted-family CSV are delivered, not full legacy viewer parity.
 2. Complete remaining calculations, engineering-model decisions, legacy
    property controls and simultaneous multi-canvas comparison/lifecycle;
-   qualify advanced chart interactions separately. Four session slots and
-   qualified calculation-property controls are delivered, not full parity.
+   qualify advanced chart interactions and device-calibrated model assumptions
+   separately. Four session slots, calculation-property controls and explicit
+   corrected generic gain/lifetime options are delivered, not full parity.
 3. Add project persistence, snapshots, state recovery and role-based access.
 4. Integrate remaining AI agents/KB and the guarded Python ingestion pipeline.
 5. Complete and qualify integrated and standalone RF CAD separately.

@@ -93,9 +93,9 @@ def test_invalid_data_never_silently_truncated(text: str) -> None:
         parse_touchstone(text, "bad.s1p")
 
 
-@pytest.mark.parametrize("filename", ["bad.s3p", "bad.s4p", "bad.ts", "bad.snp", "bad.csv"])
+@pytest.mark.parametrize("filename", ["bad.s0p", "bad.s10p", "bad.ts", "bad.snp", "bad.csv"])
 def test_unsupported_formats_are_explicit(filename: str) -> None:
-    with pytest.raises(ValueError, match="s1p/.s2p"):
+    with pytest.raises(ValueError, match="s1p through .s9p"):
         parse_touchstone("1 0.1 0", filename)
 
 

@@ -216,7 +216,17 @@ def test_numerical_validation_and_reference_points() -> None:
 
 def test_domain_has_no_ui_storage_or_network_imports() -> None:
     root = Path(__file__).resolve().parents[1] / "src" / "rfview" / "domain"
-    allowed = {"__future__", "collections", "math", "re", "typing", "pydantic", "rfview"}
+    allowed = {
+        "__future__",
+        "collections",
+        "csv",
+        "math",
+        "re",
+        "typing",
+        "pydantic",
+        "rfview",
+        "scipy",
+    }
     for path in root.glob("*.py"):
         for node in ast.walk(ast.parse(path.read_text())):
             if isinstance(node, ast.Import):

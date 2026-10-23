@@ -47,8 +47,15 @@ def stability_circle_chart(circle: StabilityCircle | None, port: str, frequency:
 
 
 def smith_chart(points: list[TouchstonePoint], parameter: str, z0: float) -> ui.Tag:
-    if parameter not in ("S11", "S22"):
-        raise ValueError("Smith view requires S11 or S22 reflection data, not transmission data")
+    if not (
+        len(parameter) == 3
+        and parameter.startswith("S")
+        and parameter[1] == parameter[2]
+        and parameter[1] in "123456789"
+    ):
+        raise ValueError(
+            "Smith view requires S11 or S22 (or another diagonal reflection), not transmission data"
+        )
     for point in points:
         if math.hypot(point.real, point.imag) > 1 + 1e-12:
             raise ValueError(

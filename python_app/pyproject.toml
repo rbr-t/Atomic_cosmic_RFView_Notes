@@ -11,6 +11,7 @@ dependencies = [
   "shiny==1.8.0",
   "pydantic==2.12.5",
   "PyYAML>=6.0.2,<7",
+  "scipy>=1.15,<2",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +41,10 @@ select = ["E", "F", "I", "UP", "B"]
 python_version = "3.13"
 strict = true
 packages = ["rfview"]
+
+[[tool.mypy.overrides]]
+module = ["scipy.spatial"]
+ignore_missing_imports = true
 
 [tool.setuptools.package-data]
 rfview = ["www/*.js", "www/*.css", "examples/*.json"]

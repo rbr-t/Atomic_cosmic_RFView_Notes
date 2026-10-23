@@ -1,7 +1,9 @@
 """Run against the preview: python tests/browser_smoke.py http://127.0.0.1:3840."""
 
 import argparse
+import csv
 import json
+import re
 import tempfile
 from pathlib import Path
 
@@ -22,6 +24,26 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#summary")).to_contain_text("35.400 dBm")
         expect(page.locator("#sizing")).to_contain_text("33.800 ohm")
         expect(page.locator("#sizing")).to_contain_text("4.000 mm")
+        page.get_by_text("Generic lifetime hypothesis (corrected v2)", exact=True).click()
+        expect(page.locator("#lifetime_view")).to_contain_text("arrhenius-lifetime-v2")
+        expect(page.locator("#lifetime_view")).to_contain_text("MTTF: 1e+06 hours")
+        page.locator("#lifetime_tj").fill("150")
+        expect(page.locator("#lifetime_view")).not_to_contain_text("MTTF: 1e+06 hours")
+        lifetime = re.search(
+            r"MTTF: ([\d.e+-]+) hours", page.locator("#lifetime_view").inner_text()
+        )
+        assert lifetime is not None and 0 < float(lifetime[1]) < 1e6
+        page.locator("#lifetime_tj").fill("-273.15")
+        expect(page.locator("#lifetime_view")).to_contain_text("Lifetime hypothesis rejected")
+        expect(page.locator("#lifetime_view svg")).to_have_count(0)
+        page.locator("#lifetime_tj").fill("125")
+        page.locator("#lifetime_voltage").fill("0")
+        expect(page.locator("#lifetime_view")).to_contain_text("Lifetime hypothesis rejected")
+        page.locator("#lifetime_voltage").fill("1")
+        expect(page.locator("#lifetime_view")).to_contain_text("MTTF: 1e+06 hours")
+        expect(page.locator("#lifetime_view svg")).to_have_count(1)
+        expect(page.locator("#summary")).to_contain_text("35.400 dBm")
+        page.get_by_text("Generic lifetime hypothesis (corrected v2)", exact=True).click()
         page.get_by_text("Touchstone magnitude and phase viewer", exact=True).click()
         fixture = Path(__file__).parent / "fixtures" / "touchstone"
         page.locator("#touchstone_upload").set_input_files(fixture / "reference_db.s2p")
@@ -38,6 +60,15 @@ def main(url: str, channel: str | None = None) -> None:
             page.locator("#touchstone_representation").select_option(representation)
             expect(page.locator("#touchstone_view")).to_contain_text(f"{label} real")
             expect(page.locator("#touchstone_view")).to_contain_text(f"Imaginary ({unit})")
+        with page.expect_download() as converted_download:
+            page.locator("#download_network_csv").click()
+        converted_file = Path(temp) / "converted.csv"
+        converted_download.value.save_as(converted_file)
+        with converted_file.open(encoding="utf-8", newline="") as handle:
+            converted_rows = list(csv.DictReader(handle))
+        assert len(converted_rows) == 8
+        assert {row["parameter"] for row in converted_rows} == {"T11", "T12", "T21", "T22"}
+        assert {row["unit"] for row in converted_rows} == {"dimensionless"}
         with page.expect_download() as source_download:
             page.locator("#download_touchstone").click()
         exported = Path(temp) / "export.s2p"
@@ -55,6 +86,11 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#stability_metrics_table tbody tr")).to_have_count(2)
         expect(page.locator("#touchstone_view")).to_contain_text("not the conventional 10*log10")
         stability_text = page.locator("#stability_metrics_table").inner_text()
+        page.locator("#touchstone_representation").select_option("PowerGain")
+        expect(page.locator("#power_gain_table tbody tr")).to_have_count(2)
+        expect(page.locator("#touchstone_view")).to_contain_text("conventional-power-gain-v2")
+        page.locator("#touchstone_representation").select_option("Stability")
+        expect(page.locator("#stability_metrics_table")).to_have_text(stability_text)
         page.locator("#touchstone_parameter").select_option("S12")
         expect(page.locator("#stability_metrics_table")).to_have_text(stability_text)
         for width in (375, 768, 1440):
@@ -101,6 +137,50 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#touchstone_view")).to_contain_text("reference_ma.s1p")
         expect(page.locator("#touchstone_parameter option")).to_have_count(1)
         expect(page.locator("#touchstone_view")).to_contain_text("S11 magnitude")
+        multiport = Path(temp) / "three_port.ts"
+        multiport.write_text(
+            "[Version] 2.0\n# GHz S RI R 50\n[Number of Ports] 3\n"
+            "[Number of Frequencies] 1\n[Reference] 50 60 70\n[Matrix Format] Full\n"
+            "[Network Data]\n1 " + " ".join(["0.1 0"] * 9) + "\n[End]\n",
+            encoding="utf-8",
+        )
+        page.locator("#touchstone_upload").set_input_files(multiport)
+        expect(page.locator("#touchstone_status")).to_contain_text("Loaded three_port.ts")
+        expect(page.locator("#touchstone_parameter option")).to_have_count(9)
+        page.locator("#touchstone_parameter").select_option("S33")
+        expect(page.locator("#touchstone_view")).to_contain_text("S33 magnitude")
+        page.locator("#touchstone_representation").select_option("Smith")
+        expect(page.locator("#touchstone_view")).to_contain_text("S33 impedance Smith chart")
+        expect(page.locator("#touchstone_view")).to_contain_text("70 ohm")
+        with page.expect_download() as multiport_download:
+            page.locator("#download_touchstone").click()
+        multiport_export = Path(temp) / "three_port_export.s3p"
+        multiport_download.value.save_as(multiport_export)
+        assert "[Reference] 50 60 70" in multiport_export.read_text(encoding="utf-8")
+        page.locator("#touchstone_upload").set_input_files(multiport_export)
+        expect(page.locator("#touchstone_status")).to_contain_text("Loaded three_port_export.s3p")
+        page.locator("#touchstone_representation").select_option("Z")
+        expect(page.locator("#touchstone_view")).to_contain_text("requires a two-port dataset")
+        expect(page.locator("#download_network_csv")).to_have_count(0)
+        unequal_ports = Path(temp) / "unequal.s2p"
+        unequal_ports.write_text(
+            "[Version] 2.0\n# GHz S RI R 50\n[Number of Ports] 2\n"
+            "[Number of Frequencies] 1\n[Reference] 50 75\n"
+            "[Two-Port Data Order] 12_21\n[Network Data]\n"
+            "1 0.1 0 0.01 0 2 0 0.2 0\n[End]\n",
+            encoding="utf-8",
+        )
+        page.locator("#touchstone_upload").set_input_files(unequal_ports)
+        expect(page.locator("#touchstone_status")).to_contain_text("Loaded unequal.s2p")
+        expect(page.locator("#touchstone_view")).to_contain_text("not silently renormalized")
+        expect(page.locator("#download_network_csv")).to_have_count(0)
+        expect(page.locator("#download_touchstone")).to_be_visible()
+        page.locator("#touchstone_representation").select_option("T")
+        expect(page.locator("#download_network_csv")).to_be_visible()
+        page.locator("#touchstone_representation").select_option("S")
+        page.locator("#touchstone_upload").set_input_files(fixture / "reference_ma.s1p")
+        expect(page.locator("#touchstone_view")).to_contain_text("reference_ma.s1p")
+        expect(page.locator("#touchstone_parameter option")).to_have_count(1)
         page.locator("#touchstone_representation").select_option("Stability")
         expect(page.locator("#touchstone_view")).to_contain_text("requires a two-port dataset")
         expect(page.locator("#stability_metrics_table")).to_have_count(0)
@@ -121,6 +201,48 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#touchstone_view")).to_contain_text("S11 magnitude")
         expect(page.locator("#summary")).to_contain_text("35.400 dBm")
         page.get_by_text("Touchstone magnitude and phase viewer", exact=True).click()
+
+        page.get_by_text("Load-pull measurements and contours", exact=True).click()
+        lp_fixture = Path(__file__).parent / "fixtures" / "loadpull"
+        page.locator("#loadpull_format").select_option("amcad")
+        page.locator("#loadpull_upload").set_input_files(lp_fixture / "contour.csv")
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text("Loaded contour.csv")
+        expect(page.locator("#loadpull_view .loadpull-point")).to_have_count(4)
+        page.locator("#loadpull_show_contours").check()
+        expect(page.locator("#loadpull_view .loadpull-contour").first).to_be_visible()
+        page.locator("#loadpull_metric").select_option("pae_pct")
+        expect(page.locator("#loadpull_view")).to_contain_text("Power-added efficiency (%)")
+        with page.expect_download() as lp_pending:
+            page.locator("#download_loadpull").click()
+        lp_export = Path(temp) / "normalized-loadpull.json"
+        lp_pending.value.save_as(lp_export)
+        lp_data = json.loads(lp_export.read_text(encoding="utf-8"))
+        assert len(lp_data["points"]) == 4
+        assert lp_data["points"][0]["pae_pct"] == 20
+        assert lp_data["warnings"]
+        for width in (375, 768, 1440):
+            page.set_viewport_size({"width": width, "height": 1000})
+            expect(page.locator("#loadpull_view svg")).to_be_visible()
+            assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
+        page.locator("#loadpull_upload").set_input_files(rejected)
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text("Last valid dataset retained")
+        expect(page.locator("#loadpull_view .loadpull-point")).to_have_count(4)
+        page.locator("#loadpull_format").select_option("mdif")
+        page.locator("#loadpull_show_contours").uncheck()
+        page.locator("#loadpull_upload").set_input_files(lp_fixture / "reference.mdif")
+        page.locator("#loadpull_import").click()
+        expect(page.locator("#loadpull_status")).to_contain_text("Loaded reference.mdif")
+        expect(page.locator("#loadpull_sweep option")).to_have_count(2)
+        page.locator("#loadpull_sweep").select_option("sweep-1")
+        expect(page.locator("#loadpull_view")).to_contain_text("3.5 GHz")
+        expect(page.locator("#loadpull_view .loadpull-point")).to_have_count(1)
+        page.locator("#loadpull_show_contours").check()
+        expect(page.locator("#loadpull_view")).to_contain_text("Contours require")
+        page.locator("#loadpull_show_contours").uncheck()
+        expect(page.locator("#loadpull_view .loadpull-point")).to_have_count(1)
+        page.get_by_text("Load-pull measurements and contours", exact=True).click()
 
         page.get_by_text("Full-stage transistor sizing", exact=True).click()
         suite = page.locator("#full_stage_sizing")
@@ -319,6 +441,7 @@ def main(url: str, channel: str | None = None) -> None:
         expect(second.locator("#suite_topology")).to_have_value("doherty_symmetric")
         expect(second.locator("#touchstone_status")).to_contain_text("No Touchstone dataset")
         expect(second.locator("#touchstone_representation")).to_have_value("S")
+        expect(second.locator("#loadpull_status")).to_contain_text("No load-pull dataset")
         second.locator("#python_canvas_slot").select_option(index=1)
         second.wait_for_function("window.paCanvas.components.length === 0")
         second.close()
@@ -347,7 +470,9 @@ def main(url: str, channel: str | None = None) -> None:
         browser.close()
     print(
         "Browser smoke passed: calculation, full-stage sizing, charts, guardrails, "
-        "Touchstone viewer, edit, undo/redo, download/upload, isolation and errors."
+        "corrected lifetime/gain, multiport Touchstone/source/converted export, "
+        "load-pull import/contours/export, canvas/workspace editing, undo/redo, "
+        "download/upload, isolation and responsive error recovery."
     )
 
 

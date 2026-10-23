@@ -1,0 +1,6 @@
+MDF_VERSION 1
+BEGIN Sweep
+% GL_R(real) GL_I(real) PIN(real) POUT(real) GAIN(real) PAE(real) DE(real) VDS(real) IDC(real) FREQ(real)
+0.2 -0.1 20 30 10 20 25 20 0.2 2.4
+-0.3 0.2 21 31 10 22 28 20 0.2 2.4
+END Sweep

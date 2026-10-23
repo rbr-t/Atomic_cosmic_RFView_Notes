@@ -1,0 +1,7 @@
+! Synthetic block data
+! Point Gamma Phase[deg] PinWaves[dBm] PoutWaves[dBm] GainWavesTrd[dB] PAE[%] DE[%] V2[V] I2[mA] FREQ[GHz]
+# 001 0.5 0
+20 30 10 20 25 20 200 2.4
+21 31 10 22 28 20 200 2.4
+# 002 0.5 90
+20 30 10 20 25 20 200 2.4

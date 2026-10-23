@@ -1,0 +1,312 @@
+{
+  "provenance": {
+    "runtime": "R version 4.4.1 (2024-06-14 ucrt)",
+    "source_md5": "81b8d06e98ff706075f28d5bdeb453f3"
+  },
+  "cases": [
+    {
+      "format": "spl",
+      "filename": "reference.spl",
+      "fixture_md5": "31bfc8ce13a023522234cf38ea7e7a59",
+      "points": [
+        {
+          "gl_r": 0.20000000000000001,
+          "gl_i": -0.10000000000000001,
+          "gs_r": 0.10000000000000001,
+          "gs_i": 0,
+          "pout_dbm": 30,
+          "pin_dbm": 20,
+          "pout_w": 1,
+          "pin_w": 0.10000000000000001,
+          "gain_db": 10,
+          "pae_pct": 20,
+          "de_pct": 25,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        },
+        {
+          "gl_r": -0.29999999999999999,
+          "gl_i": 0.20000000000000001,
+          "gs_r": 0.10000000000000001,
+          "gs_i": 0,
+          "pout_dbm": 31,
+          "pin_dbm": 21,
+          "pout_w": 1.2589254117941673,
+          "pin_w": 0.12589254117941673,
+          "gain_db": 10,
+          "pae_pct": 22,
+          "de_pct": 28,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        }
+      ]
+    },
+    {
+      "format": "focus",
+      "filename": "reference.focus",
+      "fixture_md5": "f1b323c0665b7cbc8fbb1b9605c07b00",
+      "points": [
+        {
+          "gl_r": 0.20000000000000001,
+          "gl_i": -0.10000000000000001,
+          "gs_r": 0.10000000000000001,
+          "gs_i": 0,
+          "pout_dbm": 30,
+          "pin_dbm": 20,
+          "pout_w": 1,
+          "pin_w": 0.10000000000000001,
+          "gain_db": 10,
+          "pae_pct": 20,
+          "de_pct": 25,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        },
+        {
+          "gl_r": -0.29999999999999999,
+          "gl_i": 0.20000000000000001,
+          "gs_r": 0.10000000000000001,
+          "gs_i": 0,
+          "pout_dbm": 31,
+          "pin_dbm": 21,
+          "pout_w": 1.2589254117941673,
+          "pin_w": 0.12589254117941673,
+          "gain_db": 10,
+          "pae_pct": 22,
+          "de_pct": 28,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        }
+      ]
+    },
+    {
+      "format": "lpcwave",
+      "filename": "reference.lpcwave",
+      "fixture_md5": "7c947489238dbb1194c85c05254053a6",
+      "points": [
+        {
+          "gl_r": 0.5,
+          "gl_i": 0,
+          "gs_r": null,
+          "gs_i": null,
+          "pout_dbm": 30,
+          "pin_dbm": 20,
+          "pout_w": 1,
+          "pin_w": 0.10000000000000001,
+          "gain_db": 10,
+          "pae_pct": 20,
+          "de_pct": 25,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        },
+        {
+          "gl_r": 0.5,
+          "gl_i": 0,
+          "gs_r": null,
+          "gs_i": null,
+          "pout_dbm": 31,
+          "pin_dbm": 21,
+          "pout_w": 1.2589254117941673,
+          "pin_w": 0.12589254117941673,
+          "gain_db": 10,
+          "pae_pct": 22,
+          "de_pct": 28,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        },
+        {
+          "gl_r": 3.0615158845559431e-17,
+          "gl_i": 0.5,
+          "gs_r": null,
+          "gs_i": null,
+          "pout_dbm": 30,
+          "pin_dbm": 20,
+          "pout_w": 1,
+          "pin_w": 0.10000000000000001,
+          "gain_db": 10,
+          "pae_pct": 20,
+          "de_pct": 25,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        }
+      ]
+    },
+    {
+      "format": "mdf",
+      "filename": "reference.mdf",
+      "fixture_md5": "d4fd759b82d28244646b3cd0489c8ac8",
+      "points": [
+        {
+          "gl_r": 0.20000000000000001,
+          "gl_i": -0.10000000000000001,
+          "gs_r": null,
+          "gs_i": null,
+          "pout_dbm": 30,
+          "pin_dbm": 20,
+          "pout_w": 1,
+          "pin_w": 0.10000000000000001,
+          "gain_db": 10,
+          "pae_pct": 20,
+          "de_pct": 25,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        },
+        {
+          "gl_r": -0.29999999999999999,
+          "gl_i": 0.20000000000000001,
+          "gs_r": null,
+          "gs_i": null,
+          "pout_dbm": 31,
+          "pin_dbm": 21,
+          "pout_w": 1.2589254117941673,
+          "pin_w": 0.12589254117941673,
+          "gain_db": 10,
+          "pae_pct": 22,
+          "de_pct": 28,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        }
+      ]
+    },
+    {
+      "format": "amcad",
+      "filename": "reference.amcad.csv",
+      "fixture_md5": "5e6d11bccf6a54dc14073ee19e4481c6",
+      "points": [
+        {
+          "gl_r": 0.20000000000000001,
+          "gl_i": -0.10000000000000001,
+          "gs_r": null,
+          "gs_i": null,
+          "pout_dbm": 30,
+          "pin_dbm": 20,
+          "pout_w": 1,
+          "pin_w": 0.10000000000000001,
+          "gain_db": 10,
+          "pae_pct": 20,
+          "de_pct": 25,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        },
+        {
+          "gl_r": -0.29999999999999999,
+          "gl_i": 0.20000000000000001,
+          "gs_r": null,
+          "gs_i": null,
+          "pout_dbm": 31,
+          "pin_dbm": 21,
+          "pout_w": 1.2589254117941673,
+          "pin_w": 0.12589254117941673,
+          "gain_db": 10,
+          "pae_pct": 22,
+          "de_pct": 28,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        }
+      ]
+    },
+    {
+      "format": "anteverta",
+      "filename": "reference.anteverta.csv",
+      "fixture_md5": "1441bd8c230d0fd27a7c0434a4f8082b",
+      "points": [
+        {
+          "gl_r": 0.20000000000000001,
+          "gl_i": -0.10000000000000001,
+          "gs_r": null,
+          "gs_i": null,
+          "pout_dbm": 30,
+          "pin_dbm": 20,
+          "pout_w": 1,
+          "pin_w": 0.10000000000000001,
+          "gain_db": 10,
+          "pae_pct": 20,
+          "de_pct": 25,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        },
+        {
+          "gl_r": -0.29999999999999999,
+          "gl_i": 0.20000000000000001,
+          "gs_r": null,
+          "gs_i": null,
+          "pout_dbm": 31,
+          "pin_dbm": 21,
+          "pout_w": 1.2589254117941673,
+          "pin_w": 0.12589254117941673,
+          "gain_db": 10,
+          "pae_pct": 22,
+          "de_pct": 28,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        }
+      ]
+    },
+    {
+      "format": "mdif",
+      "filename": "reference.mdif",
+      "fixture_md5": "06f01b1e01e99ea61e0d2e75980cf6ba",
+      "points": [
+        {
+          "gl_r": 0.20000000000000001,
+          "gl_i": -0.10000000000000001,
+          "gs_r": null,
+          "gs_i": null,
+          "pout_dbm": 30,
+          "pin_dbm": 20,
+          "pout_w": 1,
+          "pin_w": 0.10000000000000001,
+          "gain_db": 10,
+          "pae_pct": 20,
+          "de_pct": 25,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 2.3999999999999999
+        },
+        {
+          "gl_r": -0.29999999999999999,
+          "gl_i": 0.20000000000000001,
+          "gs_r": null,
+          "gs_i": null,
+          "pout_dbm": 31,
+          "pin_dbm": 21,
+          "pout_w": 1.2589254117941673,
+          "pin_w": 0.12589254117941673,
+          "gain_db": 10,
+          "pae_pct": 22,
+          "de_pct": 28,
+          "idc_a": 0.20000000000000001,
+          "vdc_v": 20,
+          "pdc_w": 4,
+          "freq_ghz": 3.5
+        }
+      ]
+    }
+  ]
+}

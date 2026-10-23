@@ -1,8 +1,8 @@
 from shiny import ui
 
-from rfview.domain.network_parameters import Matrix2, s_to_abcd, s_to_h, s_to_t, s_to_y, s_to_z
-from rfview.domain.stability import stability_circles, stability_metrics
-from rfview.domain.touchstone import TouchstoneData
+from rfview.domain.network_parameters import Matrix2
+from rfview.domain.stability import power_gain_estimates, stability_circles, stability_metrics
+from rfview.domain.touchstone import TouchstoneData, converted_parameters
 from rfview.smith_ui import smith_chart, stability_circle_chart
 from rfview.technology_ui import Trace, line_chart
 
@@ -90,6 +90,53 @@ def _stability_table(network: TouchstoneData) -> ui.Tag:
     )
 
 
+def _power_gain_table(network: TouchstoneData) -> ui.Tag:
+    rows: list[ui.Tag] = []
+    warnings: dict[str, None] = {}
+    for offset, freq in enumerate(network.freq_ghz):
+        try:
+            result = power_gain_estimates(_two_port_matrix(network, offset))
+        except ValueError as exc:
+            raise ValueError(f"Power-gain calculation failed at {freq:g} GHz: {exc}") from exc
+        warnings.update(dict.fromkeys(result.warnings))
+        rows.append(
+            ui.tags.tr(
+                ui.tags.th(f"{freq:.12g}", scope="row"),
+                *(
+                    ui.tags.td("Undefined" if value is None else f"{value:.12g}")
+                    for value in (result.msg_db, result.mag_db)
+                ),
+            )
+        )
+    return ui.div(
+        ui.h3("Conventional power gain - conventional-power-gain-v2"),
+        ui.tags.ul(*(ui.tags.li(message) for message in warnings)),
+        ui.div(
+            ui.tags.table(
+                ui.tags.caption("Conventional power gain at every uploaded frequency"),
+                ui.tags.thead(
+                    ui.tags.tr(
+                        *(
+                            ui.tags.th(label, scope="col")
+                            for label in (
+                                "Frequency (GHz)",
+                                "MSG expression (dB)",
+                                "MAG (dB)",
+                            )
+                        )
+                    )
+                ),
+                ui.tags.tbody(*rows),
+                id="power_gain_table",
+            ),
+            class_="table-scroll",
+            tabindex="0",
+            role="region",
+            **{"aria-label": "Scrollable conventional power gain"},
+        ),
+    )
+
+
 def touchstone_panel(
     network: TouchstoneData, parameter: str, representation: str = "S", frequency_index: int = 0
 ) -> ui.Tag:
@@ -98,18 +145,32 @@ def touchstone_panel(
     points = [point for point in network.points if point.param == parameter]
     if not points:
         raise ValueError(f"Parameter {parameter} is not present in {network.filename}")
-    if representation not in ("S", "Z", "Y", "h", "ABCD", "T", "Smith", "Stability", "Circles"):
+    if representation not in (
+        "S",
+        "Z",
+        "Y",
+        "h",
+        "ABCD",
+        "T",
+        "Smith",
+        "Stability",
+        "Circles",
+        "PowerGain",
+    ):
         raise ValueError(f"Unsupported network representation: {representation}")
     if representation in ("Z", "Y", "h", "ABCD", "T") and network.nports != 2:
         raise ValueError(
             "Parameter conversion requires a two-port dataset; select S for one-port data"
         )
-    if representation in ("Stability", "Circles") and network.nports != 2:
+    references = network.reference_ohms or (network.z0,) * network.nports
+    if representation in ("Stability", "Circles", "PowerGain") and network.nports != 2:
         raise ValueError(
             "Stability analysis requires a two-port dataset; select S for one-port data"
         )
     charts: list[ui.Tag]
-    if representation == "Circles":
+    if representation == "PowerGain":
+        charts = [_power_gain_table(network)]
+    elif representation == "Circles":
         if isinstance(frequency_index, bool) or not 0 <= frequency_index < len(network.freq_ghz):
             raise ValueError("Choose an available circle frequency")
         freq = network.freq_ghz[frequency_index]
@@ -129,7 +190,7 @@ def touchstone_panel(
     elif representation == "Stability":
         charts = [_stability_table(network)]
     elif representation == "Smith":
-        charts = [smith_chart(points, parameter, network.z0)]
+        charts = [smith_chart(points, parameter, references[int(parameter[1]) - 1])]
     elif representation == "S":
         charts = [
             line_chart(
@@ -146,36 +207,17 @@ def touchstone_panel(
             ),
         ]
     else:
-        converted: list[tuple[float, complex]] = []
         row, col = int(parameter[1]) - 1, int(parameter[2]) - 1
-        for offset, freq in enumerate(network.freq_ghz):
-            matrix = _two_port_matrix(network, offset)
-            try:
-                if representation == "T":
-                    result = s_to_t(matrix)
-                else:
-                    convert = {"Z": s_to_z, "Y": s_to_y, "h": s_to_h, "ABCD": s_to_abcd}[
-                        representation
-                    ]
-                    result = convert(matrix, network.z0)
-            except ValueError as exc:
-                raise ValueError(
-                    f"{representation} conversion failed at {freq:g} GHz: {exc}. "
-                    "No partial curve is displayed; select S to view the source data."
-                ) from exc
-            converted.append((freq, result[row][col]))
         label = (
             "ABCD"[row * 2 + col] if representation == "ABCD" else representation + parameter[1:]
         )
-        unit = {"Z": "ohm", "Y": "S", "T": "dimensionless"}.get(representation, "dimensionless")
-        if representation == "h":
-            unit = (
-                "ohm" if (row, col) == (0, 0) else "S" if (row, col) == (1, 1) else "dimensionless"
-            )
-        elif representation == "ABCD":
-            unit = (
-                "ohm" if (row, col) == (0, 1) else "S" if (row, col) == (1, 0) else "dimensionless"
-            )
+        selected = [
+            point
+            for point in converted_parameters(network, representation)
+            if point.parameter == label
+        ]
+        unit = selected[0].unit
+        converted = [(point.freq_ghz, point.value) for point in selected]
         charts = [
             line_chart(
                 f"{label} real",
@@ -193,10 +235,16 @@ def touchstone_panel(
     return ui.div(
         ui.p(
             f"Dataset: {network.filename} | Ports: {network.nports} | "
-            f"Reference impedance: {network.z0:g} ohm | "
-            f"Records: {len(network.freq_ghz)} | "
+            + (
+                f"Reference impedance: {network.z0:g} ohm | "
+                if len(set(references)) == 1
+                else "Per-port reference impedances (ohm): "
+                + ", ".join(f"{v:g}" for v in references)
+                + " | "
+            )
+            + f"Records: {len(network.freq_ghz)} | "
             f"Range: {network.freq_ghz[0]:g}-{network.freq_ghz[-1]:g} GHz | "
-            f"Format: {network.data_format.upper()}"
+            f"Format: {network.data_format.upper()} | Touchstone version: {network.version}"
         ),
         *charts,
         ui.p(
