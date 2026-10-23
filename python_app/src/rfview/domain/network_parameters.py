@@ -10,18 +10,26 @@ Matrix2 = tuple[tuple[complex, complex], tuple[complex, complex]]
 SINGULARITY_THRESHOLD = 1e-15
 
 
-def _convert(s: Sequence[Sequence[complex]], z0: float, target: Literal["Z", "Y"]) -> Matrix2:
-    if isinstance(z0, bool):
-        raise ValueError("Reference impedance must be a positive real number")
-    positive(z0, "reference impedance (ohm)")
+def validated_matrix(s: Sequence[Sequence[complex]]) -> Matrix2:
     if len(s) != 2 or any(len(row) != 2 for row in s):
-        raise ValueError("Conversion requires a 2x2 S-matrix in row/column order")
+        raise ValueError("Requires a 2x2 S-matrix in row/column order")
     for row in s:
         for value in row:
             if isinstance(value, bool) or not isinstance(value, (complex, int, float)):
                 raise ValueError("S-matrix entries must be finite numeric values")
             if not math.isfinite(value.real) or not math.isfinite(value.imag):
                 raise ValueError("S-matrix entries must be finite numeric values")
+    return (
+        (complex(s[0][0]), complex(s[0][1])),
+        (complex(s[1][0]), complex(s[1][1])),
+    )
+
+
+def _convert(s: Sequence[Sequence[complex]], z0: float, target: Literal["Z", "Y"]) -> Matrix2:
+    if isinstance(z0, bool):
+        raise ValueError("Reference impedance must be a positive real number")
+    positive(z0, "reference impedance (ohm)")
+    s = validated_matrix(s)
     a, b = complex(s[0][0]), complex(s[0][1])
     c, d = complex(s[1][0]), complex(s[1][1])
     sign = -1 if target == "Z" else 1

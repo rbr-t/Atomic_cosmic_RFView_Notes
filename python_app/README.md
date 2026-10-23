@@ -425,6 +425,46 @@ unsupported parameters and out-of-circle errors. Browser workflows verify
 one-/two-port Smith views, error recovery and responsive layouts while retaining
 the existing S/Z/Y and lineup behavior.
 
+### Batch 12 - legacy two-port stability/gain metrics API
+
+[stability.py](src/rfview/domain/stability.py) exposes pure
+`stability_metrics(s)` for a row-major 2-by-2 S-matrix. Its typed, JSON-safe
+result includes determinant magnitude, Rollett K, input/output mu, B1, legacy
+MSG/MAG estimates, the legacy stable flag, a model identifier and warnings.
+Shared matrix validation is reused by the S-to-Z/Y APIs.
+
+```python
+from rfview.domain.stability import stability_metrics
+
+metrics = stability_metrics(((0, 0.1), (2, 0)))
+assert metrics.K == 2.6
+print(metrics.model_version, metrics.warnings)
+```
+
+**Engineering caveat:** the active R implementation uses `20*log10` for
+MSG/MAG power-gain expressions rather than conventional `10*log10`. This API
+is explicitly `legacy-r-stability-v1`; it reproduces that scale and attaches a
+warning to every result. Do not interpret these fields as corrected power gain.
+MAG uses an algebraically equivalent reciprocal expression to avoid
+cancellation at large K. Correcting the gain convention requires a separately
+versioned change with engineering acceptance.
+
+The legacy `stable` flag is reproduced as K > 1 and mu_in > 1, including R's
+infinite-K behavior when coupling is negligible. It is not a complete
+measurement/stability certification. Undefined/unbounded K and undefined mu or
+gain fields are `None` with explicit diagnostics, rather than JSON Infinity/NA.
+The legacy denominator threshold of `1e-15` is retained. Bad matrix shapes,
+nonfinite values and numeric overflow raise errors.
+
+Eight R-reference cases cover matched, unilateral, asymmetric, unstable,
+boundary, active-reflection, zero-forward and negligible-reverse networks.
+Independent checks verify known metrics, undefined cases and cancellation-safe
+large-K behavior. The full suite now has **566 passing tests**.
+
+This batch is API-only: no stability plot, stable/unstable UI badge or stability
+circles are yet added. Normal Python runtime/tests do not require R; the
+[reference exporter](tests/reference/export_stability.R) is optional.
+
 ## Validation
 
 From the repository root:

@@ -1,0 +1,296 @@
+{
+  "provenance": {
+    "runtime": "R version 4.4.1 (2024-06-14 ucrt)",
+    "source_md5": "456e27ff0fbc4e5193629a4011a4a163"
+  },
+  "cases": [
+    {
+      "name": "matched",
+      "s": [
+        [
+          {
+            "real": 0,
+            "imag": 0
+          },
+          {
+            "real": 0,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 0,
+            "imag": 0
+          },
+          {
+            "real": 0,
+            "imag": 0
+          }
+        ]
+      ],
+      "k_infinite": true,
+      "expected": {
+        "delta_mag": 0,
+        "K": null,
+        "mu_in": null,
+        "mu_out": null,
+        "B1": 1,
+        "msg_db": null,
+        "mag_db": null,
+        "stable": false
+      }
+    },
+    {
+      "name": "unilateral",
+      "s": [
+        [
+          {
+            "real": 0.10000000000000001,
+            "imag": 0
+          },
+          {
+            "real": 0,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 2,
+            "imag": 0
+          },
+          {
+            "real": 0.20000000000000001,
+            "imag": 0
+          }
+        ]
+      ],
+      "k_infinite": true,
+      "expected": {
+        "delta_mag": 0.020000000000000004,
+        "K": null,
+        "mu_in": 5,
+        "mu_out": 10,
+        "B1": 0.96960000000000002,
+        "msg_db": null,
+        "mag_db": null,
+        "stable": true
+      }
+    },
+    {
+      "name": "asymmetric",
+      "s": [
+        [
+          {
+            "real": 0.10000000000000001,
+            "imag": 0.20000000000000001
+          },
+          {
+            "real": 0.029999999999999999,
+            "imag": 0.040000000000000001
+          }
+        ],
+        [
+          {
+            "real": 2,
+            "imag": -0.5
+          },
+          {
+            "real": -0.20000000000000001,
+            "imag": 0.10000000000000001
+          }
+        ]
+      ],
+      "k_infinite": false,
+      "expected": {
+        "delta_mag": 0.15305227865013968,
+        "K": 4.4792691909835147,
+        "mu_in": 3.2481440839382798,
+        "mu_out": 3.2481440839382798,
+        "B1": 0.97657499999999997,
+        "msg_db": 32.304489213782738,
+        "mag_db": 13.370054857699316,
+        "stable": true
+      }
+    },
+    {
+      "name": "unstable",
+      "s": [
+        [
+          {
+            "real": 0.80000000000000004,
+            "imag": 0
+          },
+          {
+            "real": 0.5,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 3,
+            "imag": 0
+          },
+          {
+            "real": 0.80000000000000004,
+            "imag": 0
+          }
+        ]
+      ],
+      "k_infinite": false,
+      "expected": {
+        "delta_mag": 0.85999999999999988,
+        "K": 0.15319999999999986,
+        "mu_in": 0.12048192771084333,
+        "mu_out": 0.12048192771084333,
+        "B1": 0.26040000000000019,
+        "msg_db": 15.563025007672874,
+        "mag_db": null,
+        "stable": false
+      }
+    },
+    {
+      "name": "boundary",
+      "s": [
+        [
+          {
+            "real": 0,
+            "imag": 0
+          },
+          {
+            "real": 1,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 1,
+            "imag": 0
+          },
+          {
+            "real": 0,
+            "imag": 0
+          }
+        ]
+      ],
+      "k_infinite": false,
+      "expected": {
+        "delta_mag": 1,
+        "K": 1,
+        "mu_in": 1,
+        "mu_out": 1,
+        "B1": 0,
+        "msg_db": 0,
+        "mag_db": 0,
+        "stable": false
+      }
+    },
+    {
+      "name": "active",
+      "s": [
+        [
+          {
+            "real": 1.1000000000000001,
+            "imag": 0
+          },
+          {
+            "real": 0.10000000000000001,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 2,
+            "imag": 0
+          },
+          {
+            "real": 0.29999999999999999,
+            "imag": 0
+          }
+        ]
+      ],
+      "k_infinite": false,
+      "expected": {
+        "delta_mag": 0.13,
+        "K": -0.70775000000000032,
+        "mu_in": -0.58823529411764763,
+        "mu_out": 0.72164948453608246,
+        "B1": 2.1031,
+        "msg_db": 26.020599913279625,
+        "mag_db": null,
+        "stable": false
+      }
+    },
+    {
+      "name": "no_forward",
+      "s": [
+        [
+          {
+            "real": 0.10000000000000001,
+            "imag": 0
+          },
+          {
+            "real": 0.10000000000000001,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 0,
+            "imag": 0
+          },
+          {
+            "real": 0.20000000000000001,
+            "imag": 0
+          }
+        ]
+      ],
+      "k_infinite": true,
+      "expected": {
+        "delta_mag": 0.020000000000000004,
+        "K": null,
+        "mu_in": 5,
+        "mu_out": 10,
+        "B1": 0.96960000000000002,
+        "msg_db": -280,
+        "mag_db": null,
+        "stable": true
+      }
+    },
+    {
+      "name": "tiny_reverse",
+      "s": [
+        [
+          {
+            "real": 0.20000000000000001,
+            "imag": 0
+          },
+          {
+            "real": 9.9999999999999998e-17,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 2,
+            "imag": 0
+          },
+          {
+            "real": 0.29999999999999999,
+            "imag": 0
+          }
+        ]
+      ],
+      "k_infinite": true,
+      "expected": {
+        "delta_mag": 0.059999999999999797,
+        "K": null,
+        "mu_in": 3.3333333333333304,
+        "mu_out": 4.9999999999999929,
+        "B1": 0.94640000000000013,
+        "msg_db": null,
+        "mag_db": null,
+        "stable": true
+      }
+    }
+  ]
+}
