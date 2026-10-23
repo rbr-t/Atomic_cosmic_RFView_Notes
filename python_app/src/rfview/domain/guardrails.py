@@ -105,9 +105,7 @@ class DeviceValidation(BaseModel):
     pae_max_practical: float
 
 
-def validate_device_params(
-    device: DeviceParameters, catalog: GuardrailCatalog
-) -> DeviceValidation:
+def validate_device_params(device: DeviceParameters, catalog: GuardrailCatalog) -> DeviceValidation:
     if device.tech_key not in catalog.technologies:
         raise ValueError(f"Unknown technology: {device.tech_key}")
     tech = catalog.technologies[device.tech_key]
@@ -153,8 +151,7 @@ def validate_device_params(
     max_voltage = tech.vdd.max_abs if tech.vdd.max_abs is not None else tech.vdd.typical * 2
     if device.vdd > max_voltage:
         errors.append(
-            f"Vdd {device.vdd:.1f} V exceeds absolute maximum {max_voltage:.1f} V "
-            f"for {tech.label}"
+            f"Vdd {device.vdd:.1f} V exceeds absolute maximum {max_voltage:.1f} V for {tech.label}"
         )
     if device.pout_density is not None:
         maximum = tech.pout_density_w_per_mm.max

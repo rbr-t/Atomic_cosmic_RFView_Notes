@@ -37,6 +37,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Documents | JSON load/save preserving IDs, edges, transforms, extra fields and saved operating-point settings |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
+| Technology guardrails | Typed YAML loading, pure device validation and an explicit selected-transistor advisory |
 | Qualification | Frozen R numeric references, Python contracts, static checks and browser workflow regression |
 
 The UI offers a subset of legacy property controls and a single canvas. Full
@@ -62,8 +63,48 @@ Results identify their model as `legacy-r-v1`. Deliberately retained assumptions
 - Gate-width sizing follows current R source, not an inconsistent older test.
 
 Unequal split ratios and unsupported branching are rejected explicitly rather
-than producing plausible-looking results. MTTF/reliability and full YAML
-technology-guardrail validation are not ported.
+than producing plausible-looking results. MTTF/reliability and the guardrail
+plot-data builders are not ported.
+
+### Batch 2 - technology guardrail validation
+
+The application loads the existing
+[technology catalog](../PA%20design%20App/config/technology_guardrails.yaml)
+without modifying it. Missing, unsafe or malformed YAML fails explicitly; there
+is no embedded fallback catalog. Domain calculations do not read files or import
+Shiny/YAML; the service boundary handles loading.
+
+Select a transistor, expand **Technology guardrail advisory**, and explicitly
+choose a technology. The panel checks applied component properties at the
+advisory frequency and optional power density. Technology/frequency/density
+choices are session-only advisory inputs, not saved design properties; they do
+not change lineup results or block edits.
+
+The port reproduces the active R checks for operating range/sweet spot,
+frequency-dependent available gain, practical PAE, absolute supply voltage and
+optional power density. It preserves strict `>` thresholds: density exactly at
+the maximum warns rather than errors, matching the executable R code despite
+the YAML comment saying "at or above".
+
+The reference fixture covers **132 R cases** across all six technologies,
+including exact boundaries, just-over-boundary values and combined errors.
+The full Python suite currently has **374 passing tests**. The browser test
+also verifies OK/error advisories and unchanged lineup results.
+
+This is a legacy-model advisory, not a safety certification or a general
+Class-B physical-limit assertion. The existing R validator does **not** evaluate
+output power, thermal limits, compression, minimum supply voltage or the YAML
+breakdown/reliability derating factors. The Python port does not silently invent
+those checks. Invalid/nonfinite parameters and unknown technologies are rejected.
+Malformed catalog ranges/margins are rejected before calculations.
+
+Public entry points:
+
+- [read_guardrails](src/rfview/services.py): safe YAML loading into a typed catalog.
+- [DeviceParameters / validate_device_params](src/rfview/domain/guardrails.py):
+  pure validation with explicit status, diagnostics, available gain and PAE limit.
+- [export_guardrails.R](tests/reference/export_guardrails.R): optional offline
+  regeneration of the additional R oracle. Normal Python tests do not require R.
 
 ### Adapter boundary
 
@@ -94,7 +135,7 @@ For browser checks, keep the preview running in another terminal:
 ```
 
 Alternatively pass `--channel msedge` or `--channel chrome` to use an installed
-browser. The smoke test checks calculation, editing, undo/redo, actual JSON
+browser. The smoke test checks calculation, guardrail advisories, editing, undo/redo, actual JSON
 download/upload, settings restoration, independent sessions, rejected uploads
 and horizontal overflow at widths 375, 768 and 1440 pixels.
 
@@ -112,7 +153,7 @@ to silence a mismatch.
 
 Each batch should deliver runnable behavior, targeted tests and a scope update:
 
-1. Complete remaining calculation/guardrail surfaces and legacy property controls.
+1. Complete guardrail plot-data builders, remaining calculations and legacy property controls.
 2. Migrate load-pull and Touchstone parsers with frozen file fixtures and viewers.
 3. Add project persistence, snapshots and multi-canvas lifecycle.
 4. Integrate AI/KB and the existing guarded Python ingestion pipeline.

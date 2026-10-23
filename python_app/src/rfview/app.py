@@ -8,6 +8,7 @@ from pathlib import Path
 from pydantic import BaseModel, JsonValue, ValidationError
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
+from rfview.domain.guardrails import DeviceParameters, validate_device_params
 from rfview.domain.lineup import calculate_lineup
 from rfview.domain.models import LineupDocument, LineupResult, OperatingPoint
 from rfview.domain.transistor import gate_width, ropt
@@ -15,6 +16,7 @@ from rfview.services import (
     example_document,
     operating_point,
     read_document,
+    read_guardrails,
     serialize_document,
     with_operating_point,
 )
@@ -25,6 +27,9 @@ PYTHON_ROOT = PACKAGE_ROOT.parents[1]
 REPOSITORY_ROOT = PYTHON_ROOT.parent
 CANVAS_ROOT = REPOSITORY_ROOT / "PA design App" / "assets" / "js" / "common"
 D3_ROOT = PYTHON_ROOT / "node_modules" / "d3" / "dist"
+GUARDRAILS = read_guardrails(
+    REPOSITORY_ROOT / "PA design App" / "config" / "technology_guardrails.yaml"
+)
 
 
 class BrowserAction(BaseModel):
@@ -75,6 +80,30 @@ app_ui = ui.page_fluid(
             ui.output_ui("download_control"),
             ui.h2("Selected transistor"),
             ui.output_ui("selected_properties"),
+            ui.tags.details(
+                ui.tags.summary("Technology guardrail advisory"),
+                ui.p(
+                    "Checks applied component properties, not uncommitted edits. "
+                    "Technology/frequency below are advisory only and are not saved "
+                    "or used by the lineup calculation."
+                ),
+                ui.input_select(
+                    "guardrail_technology",
+                    "Technology for advisory",
+                    {
+                        "": "Choose technology",
+                        **{key: tech.label for key, tech in GUARDRAILS.technologies.items()},
+                    },
+                ),
+                ui.input_numeric("guardrail_frequency", "Advisory frequency (GHz)", 3.5, min=0),
+                ui.input_checkbox("guardrail_check_density", "Check power density", False),
+                ui.input_numeric("guardrail_density", "Advisory power density (W/mm)", 5, min=0),
+                ui.output_code("guardrail_advisory"),
+                ui.p(
+                    "Legacy rule subset, not a safety certification. No thermal, "
+                    "Pout, breakdown derating or compression validation is performed here."
+                ),
+            ),
             ui.h2("Sizing check"),
             ui.input_numeric("sizing_vdd", "Supply voltage (V)", 28, min=0),
             ui.input_numeric("sizing_vknee", "Knee voltage (V)", 2, min=0),
@@ -371,6 +400,43 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         }
         await session.send_custom_message(
             "pythonEditComponent", {"id": identifier, "properties": properties}
+        )
+
+    @render.code
+    def guardrail_advisory() -> str:
+        component = next(
+            (item for item in document().components if str(item.id) == str(selected())), None
+        )
+        if component is None or component.type != "transistor":
+            return "Select a transistor on the canvas."
+        if not input.guardrail_technology():
+            return "Choose a technology explicitly; no technology is inferred."
+        try:
+            device = DeviceParameters(
+                tech_key=input.guardrail_technology(),
+                freq_ghz=input.guardrail_frequency(),
+                gain_db=component.number("gain", 15),
+                pae_pct=component.number("pae", 50),
+                pout_dbm=component.number("p1db", 43),
+                vdd=component.number("vdd", 28),
+                pout_density=(
+                    input.guardrail_density() if input.guardrail_check_density() else None
+                ),
+            )
+            validation = validate_device_params(device, GUARDRAILS)
+        except ValueError as exc:
+            logger.warning("Guardrail advisory rejected: %s", exc)
+            return f"Advisory rejected: {exc}"
+        return "\n".join(
+            [
+                f"Status: {validation.status.upper()} | {validation.model_version}",
+                f"Technology: {validation.tech}",
+                f"Component ID: {component.id} | Vdd: {device.vdd:.1f} V",
+                f"Available gain: {validation.max_gain_available:.1f} dB",
+                f"Practical PAE limit: {validation.pae_max_practical:.1f} %",
+                *(f"ERROR: {message}" for message in validation.errors),
+                *(f"WARNING: {message}" for message in validation.warnings),
+            ]
         )
 
     @render.code

@@ -31,12 +31,14 @@ pyee==14.0.0
 Pygments==2.21.0
 pytest==8.4.2
 python-multipart==0.0.32
+PyYAML==6.0.3
 questionary==2.1.1
 ruff==0.17.2
 setuptools==84.2.1
 shiny==1.8.0
 shinychat==0.7.2
 starlette==1.9.0
+types-PyYAML==6.0.12.20260906
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 uvicorn==0.54.0

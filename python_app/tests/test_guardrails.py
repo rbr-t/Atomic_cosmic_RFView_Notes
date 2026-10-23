@@ -26,9 +26,7 @@ def catalog() -> GuardrailCatalog:
 
 
 @pytest.mark.parametrize("case", REFERENCE["cases"], ids=lambda case: case["name"])
-def test_validation_matches_recorded_r(
-    case: dict[str, Any], catalog: GuardrailCatalog
-) -> None:
+def test_validation_matches_recorded_r(case: dict[str, Any], catalog: GuardrailCatalog) -> None:
     result = validate_device_params(DeviceParameters.model_validate(case["inputs"]), catalog)
     expected = case["expected"]
     assert result.status == expected["status"]

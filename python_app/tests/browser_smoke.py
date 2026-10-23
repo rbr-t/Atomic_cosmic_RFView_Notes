@@ -25,6 +25,18 @@ def main(url: str, channel: str | None = None) -> None:
 
         # Exercise the real selection event and Python-to-browser edit.
         page.locator('.component[data-id="20"] polygon').click(position={"x": 5, "y": 20})
+        page.get_by_text("Technology guardrail advisory", exact=True).click()
+        expect(page.locator("#guardrail_advisory")).to_contain_text("Choose a technology")
+        page.locator("#guardrail_technology").select_option("GaN_SiC")
+        expect(page.locator("#guardrail_advisory")).to_contain_text("Status: OK")
+        page.locator("#guardrail_frequency").fill("41")
+        page.locator("#guardrail_frequency").press("Tab")
+        expect(page.locator("#guardrail_advisory")).to_contain_text("Status: ERROR")
+        expect(page.locator("#guardrail_advisory")).to_contain_text("outside")
+        expect(page.locator("#summary")).to_contain_text("35.400 dBm")
+        page.locator("#guardrail_frequency").fill("3.5")
+        page.locator("#guardrail_frequency").press("Tab")
+        expect(page.locator("#guardrail_advisory")).to_contain_text("Status: OK")
         page.locator("#edit_gain_p3db").fill("18")
         page.locator("#edit_gain_p3db").press("Tab")
         page.locator("#apply_properties").click()
@@ -95,7 +107,8 @@ def main(url: str, channel: str | None = None) -> None:
         assert not errors, errors
         browser.close()
     print(
-        "Browser smoke passed: calculation, edit, undo/redo, download/upload, isolation and errors."
+        "Browser smoke passed: calculation, guardrails, edit, undo/redo, "
+        "download/upload, isolation and errors."
     )
 
 
