@@ -334,6 +334,41 @@ limits. Chromium workflows cover actual uploads, parameter selection, rejected
 upload retention, two-port-to-one-port switching, session isolation, responsive
 widths and preserved lineup/sizing behavior.
 
+### Batch 9 - two-port S-to-Z/Y conversion APIs
+
+[network_parameters.py](src/rfview/domain/network_parameters.py) exposes pure
+`s_to_z(s, z0=50)` and `s_to_y(s, z0=50)` functions with no new dependencies.
+Supply a 2-by-2 **row-major** sequence of complex values:
+
+```python
+from rfview.domain.network_parameters import s_to_z, s_to_y
+
+s = ((0.1 + 0.2j, 0.03 + 0.04j), (2 - 0.5j, -0.2 + 0.1j))
+z = s_to_z(s, z0=75)  # ohms
+y = s_to_y(s, z0=75)  # siemens
+```
+
+Rows are `(S11, S12)` and `(S21, S22)`, which differs from Touchstone's serialized
+S11/S21/S12/S22 order. Results are immutable nested tuples in the same
+row/column order. Inputs are not mutated. Only a common, real, finite positive
+reference impedance is supported; no per-port or complex reference impedance,
+renormalization, multiport conversion or automatic network-wide conversion is
+implied.
+
+Eighteen R-reference cases cover matched, diagonal, reciprocal, asymmetric and
+near-singular networks at 25/50/75 ohms. Both output matrices match at
+`rtol=1e-10`, `atol=1e-12`. Additional tests verify the Z/Y inverse identity,
+Touchstone orientation, finite numeric/shape checks and overflow rejection.
+Determinant magnitude below `1e-15` raises an explicit conversion error,
+replacing legacy NA matrices while preserving the legacy threshold.
+This absolute threshold is not a full numerical condition-number assessment.
+
+The full suite now has **536 passing tests**. This batch is API-only: the
+Touchstone viewer still displays S magnitude/phase, not Z/Y plots. Complex
+results require explicit real/imaginary serialization if exported as JSON.
+The optional [R exporter](tests/reference/export_network_parameters.R) generates
+the frozen comparison matrices; Python runtime/tests do not require R.
+
 ## Validation
 
 From the repository root:
