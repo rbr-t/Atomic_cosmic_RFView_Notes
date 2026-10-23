@@ -169,3 +169,79 @@ def test_stability_rejects_one_port_and_reports_numeric_failure_frequency() -> N
     with pytest.raises(ValueError, match="failed at 2 GHz.*No partial table"):
         touchstone_panel(network, "S11", "Stability")
     assert "S11 magnitude" in str(touchstone_panel(network, "S11"))
+
+
+def test_circle_view_frequency_selection_geometry_and_undefined_cases() -> None:
+    network = parse_touchstone(
+        "# GHz S RI R 50\n1 0 0 2 0 0.1 0 0 0\n2 0 0 0 0 0 0 0 0", "circles.s2p"
+    )
+    html = str(touchstone_panel(network, "S21", "Circles", 0))
+    assert html == str(touchstone_panel(network, "S12", "Circles", 0))
+    svgs = [ElementTree.fromstring(s) for s in re.findall(r"<svg.*?</svg>", html, re.S)]
+    assert len(svgs) == 2
+    for svg in svgs:
+        circle = svg.find("s:circle[@class='smith-trace stability-circle']", NS)
+        assert float(circle.attrib["r"]) == pytest.approx(240)
+        assert float(circle.attrib["cx"]) == pytest.approx(300)
+        assert float(circle.attrib["cy"]) == pytest.approx(290)
+        passive = svg.find("s:circle[@class='chart-grid passive-boundary']", NS)
+        assert float(passive.attrib["r"]) == pytest.approx(48)
+    assert "Axis limits: +/-5" in html
+    assert "No stable side is inferred" in html
+    undefined = str(touchstone_panel(network, "S11", "Circles", 1))
+    assert "Undefined finite circle" in undefined
+    assert "<svg" not in undefined
+    with pytest.raises(ValueError, match="available circle frequency"):
+        touchstone_panel(network, "S11", "Circles", 2)
+    with pytest.raises(ValueError, match="two-port"):
+        touchstone_panel(parse_touchstone("1 0 0", "one.s1p"), "S11", "Circles")
+
+
+def test_circle_view_asymmetric_center_orientation_matches_metrics() -> None:
+    from rfview.domain.stability import stability_circles
+    from rfview.smith_ui import stability_circle_chart
+
+    circles = stability_circles(((0.1 + 0.2j, 0.3 + 0.4j), (2 - 0.5j, -0.2 + 0.1j)))
+    for port, circle in (("Load", circles.load), ("Source", circles.source)):
+        assert circle is not None
+        html = str(stability_circle_chart(circle, port, 2))
+        svg = ElementTree.fromstring(re.search(r"<svg.*?</svg>", html, re.S)[0])
+        shape = svg.find("s:circle[@class='smith-trace stability-circle']", NS)
+        extent = max(1, abs(circle.center_r) + circle.radius, abs(circle.center_i) + circle.radius)
+        assert float(shape.attrib["cx"]) == pytest.approx(300 + 240 * circle.center_r / extent)
+        assert float(shape.attrib["cy"]) == pytest.approx(290 - 240 * circle.center_i / extent)
+        assert float(shape.attrib["r"]) == pytest.approx(240 * circle.radius / extent)
+
+
+@pytest.mark.parametrize(
+    "representation,param,label,unit",
+    [
+        ("h", "S11", "h11", "ohm"),
+        ("h", "S22", "h22", "S"),
+        ("h", "S21", "h21", "dimensionless"),
+        ("ABCD", "S11", "A", "dimensionless"),
+        ("ABCD", "S12", "B", "ohm"),
+        ("ABCD", "S21", "C", "S"),
+        ("ABCD", "S22", "D", "dimensionless"),
+        ("T", "S21", "T21", "dimensionless"),
+    ],
+)
+def test_transfer_view_labels_and_units(
+    representation: str, param: str, label: str, unit: str
+) -> None:
+    html = str(touchstone_panel(read_touchstone(FIXTURE), param, representation))
+    assert f"{label} real" in html
+    assert f"Imaginary ({unit})" in html
+    assert html.count("<svg") == 2
+
+
+@pytest.mark.parametrize("representation", ["h", "ABCD", "T"])
+def test_transfer_singular_frequency_and_one_port_rejection(representation: str) -> None:
+    diagonal = -1 if representation == "h" else 0
+    network = parse_touchstone(
+        f"# GHz S RI R 50\n1 0.1 0 2 0 0.1 0 0.2 0\n2 0 0 0 0 0 0 {diagonal} 0", "singular.s2p"
+    )
+    with pytest.raises(ValueError, match="failed at 2 GHz"):
+        touchstone_panel(network, "S11", representation)
+    with pytest.raises(ValueError, match="two-port"):
+        touchstone_panel(parse_touchstone("1 0 0", "one.s1p"), "S11", representation)

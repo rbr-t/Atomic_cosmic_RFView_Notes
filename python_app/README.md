@@ -1,6 +1,6 @@
 # RF Engineering Platform - Python migration
 
-This is the first runnable migration slice, not a complete replacement of the
+This is a runnable, incrementally qualified migration, not a complete replacement of the
 workspace. The legacy R sources remain unchanged and are **not archived yet**.
 The application and its normal tests run without R or RStudio.
 
@@ -33,15 +33,17 @@ standalone deployment. No CDN is needed by the migration adapter.
 |---|---|
 | Calculations | Pure Python lineup cascade, parallel splitting/combining, full-power/backoff results, phase, efficiency and thermal summaries |
 | Supporting calculations | Transistor sizing, matching, propagation/link budget, passive loss, gain/backoff primitives and selected RF tools |
-| Canvas | Retained D3 renderer, movement, wiring, add transistor, selection, basic transistor editing, undo/redo |
-| Documents | JSON load/save preserving IDs, edges, transforms, extra fields and saved operating-point settings |
+| Canvas | Retained D3 renderer, movement, wiring, add transistor, validated transistor/passive calculation inputs, undo/redo, four independent session slots |
+| Documents | Single-lineup JSON preserving IDs/edges/extra fields/operating points; separate four-lineup workspace bundle |
+| RF network tools | Bounded Touchstone 1.x S/Z/Y/h/ABCD/T/Smith/stability views, selected-frequency stability circles and source S export |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
 | Technology guardrails | Typed YAML loading, pure device validation and an explicit selected-transistor advisory |
 | Qualification | Frozen R numeric references, Python contracts, static checks and browser workflow regression |
 
-The UI offers a subset of legacy property controls and a single canvas. Full
-multi-canvas lifecycle and full property editing remain to be migrated.
+The UI offers a qualified subset of legacy property controls and four tabbed
+session canvases. Simultaneous legacy comparison layouts, complete property
+editing and persistent multi-canvas lifecycle are not yet migrated.
 
 ### Accuracy and legacy assumptions
 
@@ -535,6 +537,103 @@ This slice is API-only; viewer circles and frequency selection remain separate.
 The optional [R exporter](tests/reference/export_stability_circles.R) reuses the
 qualified stability input matrices; normal Python tests do not require R.
 
+### Batches 15-19 - RF views, source export and canvas workflows
+
+These independently tested slices advance both the RF-data and canvas
+workstreams; they do **not** complete either workstream.
+
+#### 15. Selected-frequency stability-circle viewer
+
+Choose **Source / load stability circles**, then an uploaded frequency. The
+complete two-port matrix supplies separate load/source boundaries, regardless
+of the S-parameter selector. Undefined finite circles show the API warnings.
+Each plot scales independently to show the **entire** circle, including
+regions outside the passive unit disk. The dashed unit circle and a center
+marker supply context; they do not classify either side as stable. This is a
+complex-Gamma plane, not a Smith impedance grid. No clipping, region shading,
+stable-side inference or stability certification is performed.
+
+#### 16. Remaining legacy two-port conversion families
+
+[network_parameters.py](src/rfview/domain/network_parameters.py) now supplies
+`s_to_h`, `s_to_abcd` and `s_to_t`, using the active R conventions and
+singularity thresholds. Corresponding views plot real/imaginary values:
+
+| View | Selector mapping | Units |
+|---|---|---|
+| h | S11/S12/S21/S22 -> h11/h12/h21/h22 | ohm / dimensionless / dimensionless / S |
+| ABCD | S11/S12/S21/S22 -> A/B/C/D | dimensionless / ohm / S / dimensionless |
+| T | S11/S12/S21/S22 -> T11/T12/T21/T22 | dimensionless |
+
+ABCD uses `[V1,I1] = ABCD [V2,-I2]`. Scattering transfer T uses
+`[b1,a1] = T [a2,b2]`; these are **different** matrices. Hybrid conversion
+intentionally follows R via Z and rejects a singular Z intermediate, even
+where another formulation might yield finite hybrid parameters. No partial
+frequency curves are rendered on conversion failure. One-port conversion is
+still unsupported. The 18 existing input matrices/reference-impedance cases
+are independently exported for each new family, with null R results requiring
+explicit Python errors. Independent voltage/current and wave equations,
+through-network identities and threshold tests supplement the R comparisons.
+
+#### 17. Source Touchstone export
+
+After upload, **Download source S (GHz / RI)** exports one/two-port Touchstone
+1.x using the source complex S values and scalar reference impedance. Export
+uses 17-digit precision and standard S11/S21/S12/S22 serialization for two
+ports. It does **not** export the selected converted view, nor preserve
+original comments, formatting, frequency units, dataset tags or RI/MA/DB text.
+Round-trip tests preserve every source frequency and complex value. Malformed
+records or output exceeding the existing 5 MiB limit fail explicitly.
+
+#### 18. Validated canvas calculation-property controls
+
+Selecting matching, splitter or combiner components exposes insertion loss.
+Offset lines also expose phase (degrees) and characteristic impedance (ohms).
+Transistors retain the original gain/efficiency/P1dB controls and additionally
+expose supply voltage and thermal resistance. Terminations explicitly have
+no editable calculation inputs in this model.
+
+Edits use the existing Shiny custom-message/snapshot/history protocol.
+Unrelated legacy properties are retained. Negative losses/thermal resistance,
+nonpositive supply/impedance, efficiency outside `(0,100]`, blanks and
+nonfinite values are rejected **before** changing the canvas. The component-ID
+form guard rejects a stale selection. This deliberately tightens validation
+of UI edits; it does not silently change imported legacy data or model formulas.
+Splitter/combiner branch counts remain graph-derived, not editable counts.
+Unequal splitting, complete topology/device/geometry editors and automatic
+engineering-model corrections remain out of scope.
+
+#### 19. Four independent session canvas slots
+
+**Active session canvas** switches between four tabbed lineups without
+discarding the others. Each slot retains its own components, connections,
+metadata, undo/redo history, ID counter and viewport zoom during the session.
+Switching clears selection and invalidates calculated results/prepared
+downloads. Loading a single-lineup JSON or the example replaces only the
+active slot. Slots are isolated between browser sessions.
+
+Use **Prepare workspace download**, then **Download four-canvas workspace**,
+to preserve all four lineups in a validated `rfview-workspace-v1` bundle.
+**Load four-canvas workspace JSON** restores all slots and the active slot;
+invalid uploads retain the current workspace. The bundle is distinct from
+legacy single-lineup JSON, which remains supported and exports only the active
+lineup. The workspace limit is 5 MiB total, with the existing graph/schema
+limits applied to each slot.
+
+Operating-point controls are **shared** between slots in this slice. Workspace
+bundles preserve existing per-lineup metadata but do not capture the current
+shared controls, undo history, viewport zoom, RF uploads or calculated results.
+Imported workspaces restart histories and zoom; ongoing session switching
+retains them. There is no server persistence, cross-session recovery,
+simultaneous comparison layout, cross-canvas wiring or canvas deletion.
+
+Qualification: **710 passing Python tests**, strict source typing, Ruff and
+JavaScript syntax checks. Chromium workflows exercise the RF views, frequency
+selection, actual source download/re-import, validated passive edits,
+independent canvas switching/undo, workspace download/re-import and session
+isolation, alongside the existing lineup/sizing workflows. RF circle/table
+views and the full page are checked at 375/768/1440 px.
+
 ## Validation
 
 From the repository root:
@@ -573,13 +672,15 @@ to silence a mismatch.
 
 Each batch should deliver runnable behavior, targeted tests and a scope update:
 
-1. Complete RF data tools: stability-circle viewing, remaining parameter
-   conversions, load-pull parsing/viewing, broader Touchstone support and
-   qualified import/export. The bounded Touchstone S/Z/Y/Smith/stability-table
-   viewer is already implemented; it is not full legacy viewer parity.
+1. Complete RF data tools: qualify load-pull SPL/Focus/LPCWAVE/MDF/AMCAD/
+   Anteverta/MDIF/CST parsing and contour viewing; extend Touchstone 2.x,
+   higher-port/noise/per-port-reference support and converted-parameter export.
+   S/Z/Y/h/ABCD/T/Smith/stability/circle views and source S export are delivered
+   for the bounded one/two-port scope; this is not full legacy viewer parity.
 2. Complete remaining calculations, engineering-model decisions, legacy
-   property controls and multi-canvas workflows; qualify advanced chart
-   interactions separately.
+   property controls and simultaneous multi-canvas comparison/lifecycle;
+   qualify advanced chart interactions separately. Four session slots and
+   qualified calculation-property controls are delivered, not full parity.
 3. Add project persistence, snapshots, state recovery and role-based access.
 4. Integrate remaining AI agents/KB and the guarded Python ingestion pipeline.
 5. Complete and qualify integrated and standalone RF CAD separately.

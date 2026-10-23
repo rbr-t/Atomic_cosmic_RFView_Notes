@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 
 from rfview.domain.guardrails import GuardrailCatalog
-from rfview.domain.models import LineupDocument, OperatingPoint
+from rfview.domain.models import CanvasWorkspace, LineupDocument, OperatingPoint
 from rfview.domain.touchstone import (
     MAX_TOUCHSTONE_BYTES,
     TouchstoneData,
@@ -42,6 +42,19 @@ def read_document(path: Path) -> LineupDocument:
     if path.stat().st_size > MAX_DOCUMENT_BYTES:
         raise ValueError("Lineup JSON exceeds the 5 MiB migration limit")
     return parse_document(path.read_text(encoding="utf-8-sig"))
+
+
+def read_workspace(path: Path) -> CanvasWorkspace:
+    if path.stat().st_size > MAX_DOCUMENT_BYTES:
+        raise ValueError("Workspace JSON exceeds the 5 MiB migration limit")
+    return CanvasWorkspace.model_validate_json(path.read_text(encoding="utf-8-sig"))
+
+
+def serialize_workspace(workspace: CanvasWorkspace) -> str:
+    text = json.dumps(workspace.model_dump(mode="json", by_alias=True), indent=2, allow_nan=False)
+    if len(text.encode("utf-8")) > MAX_DOCUMENT_BYTES:
+        raise ValueError("Workspace JSON exceeds the 5 MiB migration limit")
+    return text
 
 
 def serialize_document(document: LineupDocument) -> str:

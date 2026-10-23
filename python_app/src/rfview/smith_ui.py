@@ -2,7 +2,48 @@ import math
 
 from shiny import ui
 
+from rfview.domain.stability import StabilityCircle
 from rfview.domain.touchstone import TouchstonePoint
+
+
+def stability_circle_chart(circle: StabilityCircle | None, port: str, frequency: float) -> ui.Tag:
+    if port not in ("Load", "Source"):
+        raise ValueError("Circle port must be Load or Source")
+    if circle is None:
+        return ui.div(ui.h3(f"{port} circle"), ui.p("Undefined finite circle; see model warnings."))
+    extent = max(1.0, abs(circle.center_r) + circle.radius, abs(circle.center_i) + circle.radius)
+    if not math.isfinite(extent):
+        raise ValueError("Circle display extent exceeds numeric range")
+    x = 300 + 240 * (circle.center_r / extent)
+    y = 290 - 240 * (circle.center_i / extent)
+    radius = 240 * (circle.radius / extent)
+    return ui.tags.figure(
+        ui.tags.figcaption(f"{port} stability circle at {frequency:g} GHz"),
+        ui.HTML(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" '
+            f'role="img" aria-label="{port} stability circle">'
+            f"<title>{port} reflection-coefficient boundary</title>"
+            "<desc>Full circle in the complex Gamma plane, not a Smith impedance grid. "
+            "Positive imaginary values point upward. No stable side is inferred.</desc>"
+            '<path class="chart-axis" d="M60 290H540M300 50V530"/>'
+            f'<circle class="chart-grid passive-boundary" cx="300" cy="290" '
+            f'r="{240 / extent:.12g}" fill="none"/>'
+            f'<circle class="smith-trace stability-circle" cx="{x:.12g}" cy="{y:.12g}" '
+            f'r="{radius:.12g}" fill="none"/>'
+            f'<circle class="smith-point" cx="{x:.12g}" cy="{y:.12g}" r="3"/>'
+            '<text x="300" y="555" text-anchor="middle">Real Gamma (horizontal)</text>'
+            f'<text x="300" y="585" text-anchor="middle">Axis limits: +/-{extent:.6g}</text>'
+            "</svg>"
+        ),
+        ui.p(
+            f"Center: {circle.center_r:.12g}{circle.center_i:+.12g}j | "
+            f"Radius: {circle.radius:.12g} (dimensionless). "
+            "Dashed circle: |Gamma| = 1. Each plot is scaled independently to show "
+            "the entire boundary, including regions outside the passive unit disk. "
+            "The center marker is not a stable-side indicator."
+        ),
+        class_="technology-chart smith-chart",
+    )
 
 
 def smith_chart(points: list[TouchstonePoint], parameter: str, z0: float) -> ui.Tag:

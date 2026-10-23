@@ -39,6 +39,34 @@ class TouchstoneData(BaseModel):
     comments: tuple[str, ...]
 
 
+def serialize_touchstone(network: TouchstoneData) -> str:
+    """Export source S values as Touchstone 1.x GHz/RI; not the original text."""
+    if network.nports not in (1, 2):
+        raise ValueError("Touchstone export supports one or two ports only")
+    parameters = ["S11"] if network.nports == 1 else ["S11", "S21", "S12", "S22"]
+    width = len(parameters)
+    if len(network.points) != len(network.freq_ghz) * width:
+        raise ValueError("Export requires a complete record at every frequency")
+    lines = [
+        "! RFView source S-parameter export; original comments/formatting not retained",
+        f"# GHz S RI R {network.z0:.17g}",
+    ]
+    for index, frequency in enumerate(network.freq_ghz):
+        record = network.points[index * width : (index + 1) * width]
+        if [point.param for point in record] != parameters or any(
+            point.freq_ghz != frequency for point in record
+        ):
+            raise ValueError("Export requires Touchstone-ordered parameters at each frequency")
+        tokens = [f"{frequency:.17g}"]
+        for point in record:
+            tokens.extend((f"{point.real:.17g}", f"{point.imag:.17g}"))
+        lines.append(" ".join(tokens))
+    text = "\n".join(lines) + "\n"
+    # Apply the same size, finite-value and frequency rules as imported files.
+    parse_touchstone(text, f"export.s{network.nports}p")
+    return text
+
+
 def parse_touchstone(text: str, filename: str, dataset_tag: str | None = None) -> TouchstoneData:
     if len(text.encode("utf-8")) > MAX_TOUCHSTONE_BYTES:
         raise ValueError("Touchstone exceeds the 5 MiB migration limit")

@@ -1,9 +1,9 @@
 from shiny import ui
 
-from rfview.domain.network_parameters import Matrix2, s_to_y, s_to_z
-from rfview.domain.stability import stability_metrics
+from rfview.domain.network_parameters import Matrix2, s_to_abcd, s_to_h, s_to_t, s_to_y, s_to_z
+from rfview.domain.stability import stability_circles, stability_metrics
 from rfview.domain.touchstone import TouchstoneData
-from rfview.smith_ui import smith_chart
+from rfview.smith_ui import smith_chart, stability_circle_chart
 from rfview.technology_ui import Trace, line_chart
 
 MAX_VIEWER_FREQUENCIES = 2000
@@ -90,22 +90,43 @@ def _stability_table(network: TouchstoneData) -> ui.Tag:
     )
 
 
-def touchstone_panel(network: TouchstoneData, parameter: str, representation: str = "S") -> ui.Tag:
+def touchstone_panel(
+    network: TouchstoneData, parameter: str, representation: str = "S", frequency_index: int = 0
+) -> ui.Tag:
     if len(network.freq_ghz) > MAX_VIEWER_FREQUENCIES:
         raise ValueError(f"Viewer limit is {MAX_VIEWER_FREQUENCIES} frequency records")
     points = [point for point in network.points if point.param == parameter]
     if not points:
         raise ValueError(f"Parameter {parameter} is not present in {network.filename}")
-    if representation not in ("S", "Z", "Y", "Smith", "Stability"):
+    if representation not in ("S", "Z", "Y", "h", "ABCD", "T", "Smith", "Stability", "Circles"):
         raise ValueError(f"Unsupported network representation: {representation}")
-    if representation in ("Z", "Y") and network.nports != 2:
-        raise ValueError("Z/Y conversion requires a two-port dataset; select S for one-port data")
-    if representation == "Stability" and network.nports != 2:
+    if representation in ("Z", "Y", "h", "ABCD", "T") and network.nports != 2:
+        raise ValueError(
+            "Parameter conversion requires a two-port dataset; select S for one-port data"
+        )
+    if representation in ("Stability", "Circles") and network.nports != 2:
         raise ValueError(
             "Stability analysis requires a two-port dataset; select S for one-port data"
         )
     charts: list[ui.Tag]
-    if representation == "Stability":
+    if representation == "Circles":
+        if isinstance(frequency_index, bool) or not 0 <= frequency_index < len(network.freq_ghz):
+            raise ValueError("Choose an available circle frequency")
+        freq = network.freq_ghz[frequency_index]
+        try:
+            circles = stability_circles(_two_port_matrix(network, frequency_index))
+            charts = [
+                ui.h3(circles.model_version),
+                ui.p(
+                    "Uses the complete two-port network, independent of the S-parameter selector."
+                ),
+                ui.tags.ul(*(ui.tags.li(message) for message in circles.warnings)),
+                stability_circle_chart(circles.load, "Load", freq),
+                stability_circle_chart(circles.source, "Source", freq),
+            ]
+        except ValueError as exc:
+            raise ValueError(f"Stability circles failed at {freq:g} GHz: {exc}") from exc
+    elif representation == "Stability":
         charts = [_stability_table(network)]
     elif representation == "Smith":
         charts = [smith_chart(points, parameter, network.z0)]
@@ -125,21 +146,36 @@ def touchstone_panel(network: TouchstoneData, parameter: str, representation: st
             ),
         ]
     else:
-        convert = s_to_z if representation == "Z" else s_to_y
         converted: list[tuple[float, complex]] = []
         row, col = int(parameter[1]) - 1, int(parameter[2]) - 1
         for offset, freq in enumerate(network.freq_ghz):
             matrix = _two_port_matrix(network, offset)
             try:
-                result = convert(matrix, network.z0)
+                if representation == "T":
+                    result = s_to_t(matrix)
+                else:
+                    convert = {"Z": s_to_z, "Y": s_to_y, "h": s_to_h, "ABCD": s_to_abcd}[
+                        representation
+                    ]
+                    result = convert(matrix, network.z0)
             except ValueError as exc:
                 raise ValueError(
                     f"{representation} conversion failed at {freq:g} GHz: {exc}. "
                     "No partial curve is displayed; select S to view the source data."
                 ) from exc
             converted.append((freq, result[row][col]))
-        label = representation + parameter[1:]
-        unit = "ohm" if representation == "Z" else "S"
+        label = (
+            "ABCD"[row * 2 + col] if representation == "ABCD" else representation + parameter[1:]
+        )
+        unit = {"Z": "ohm", "Y": "S", "T": "dimensionless"}.get(representation, "dimensionless")
+        if representation == "h":
+            unit = (
+                "ohm" if (row, col) == (0, 0) else "S" if (row, col) == (1, 1) else "dimensionless"
+            )
+        elif representation == "ABCD":
+            unit = (
+                "ohm" if (row, col) == (0, 1) else "S" if (row, col) == (1, 0) else "dimensionless"
+            )
         charts = [
             line_chart(
                 f"{label} real",
@@ -168,8 +204,9 @@ def touchstone_panel(network: TouchstoneData, parameter: str, representation: st
             "No passivity, calibration or measurement-integrity certification is performed."
         ),
         ui.p(
-            "Z/Y views use a common real reference impedance and the legacy 1e-15 "
-            "determinant threshold. Y is displayed in siemens (S); "
-            "this unit is distinct from dimensionless scattering parameters."
+            "Conversions use the legacy 1e-15 singularity threshold. Z/Y/h/ABCD use a "
+            "common real reference impedance. ABCD: [V1,I1] = ABCD [V2,-I2]. "
+            "Scattering transfer T: [b1,a1] = T [a2,b2]; it is not ABCD. "
+            "Siemens (S) is distinct from dimensionless scattering parameters."
         ),
     )

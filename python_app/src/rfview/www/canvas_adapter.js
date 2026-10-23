@@ -7,6 +7,48 @@
   let suppressSnapshots = false;
   let lastSnapshot = "";
   let lastRequest = 0;
+  let activeSlot = "1";
+  let slots = {};
+
+  function storeSlot() {
+    const current = canvas();
+    const zoom = d3.zoomTransform(current.svg.node());
+    slots[activeSlot] = {
+      document: snapshot(),
+      history: JSON.parse(JSON.stringify(current.history)),
+      historyIndex: current.historyIndex,
+      nextId: current.nextId,
+      zoom: { x: zoom.x, y: zoom.y, k: zoom.k }
+    };
+  }
+
+  function workspaceSnapshot() {
+    storeSlot();
+    const canvases = {};
+    for (const id of ["1", "2", "3", "4"]) {
+      canvases[id] = slots[id]?.document || { schema_version: "1.0", components: [], connections: [], metadata: {} };
+    }
+    return { format: "rfview-workspace-v1", active: activeSlot, canvases };
+  }
+
+  function switchSlot(id) {
+    if (!["1", "2", "3", "4"].includes(id)) throw new Error("Unknown canvas slot.");
+    if (id === activeSlot) return;
+    storeSlot();
+    activeSlot = id;
+    const saved = slots[id];
+    restore(saved?.document || { schema_version: "1.0", components: [], connections: [], metadata: {} });
+    const current = canvas();
+    if (saved && saved.history.length) {
+      current.history = JSON.parse(JSON.stringify(saved.history));
+      current.historyIndex = saved.historyIndex;
+      current.nextId = saved.nextId;
+    }
+    const zoom = saved?.zoom || { x: 0, y: 0, k: 1 };
+    current.svg.call(current.zoom.transform, d3.zoomIdentity.translate(zoom.x, zoom.y).scale(zoom.k));
+    Shiny.setInputValue("lineup_selected_component", null, { priority: "event" });
+    Shiny.setInputValue("python_slot_changed", { slot: id, request_id: ++requestId }, { priority: "event" });
+  }
 
   function reportError(error) {
     console.error("Python canvas adapter:", error);
@@ -43,7 +85,8 @@
     emitSnapshot();
     lastRequest = ++requestId;
     Shiny.setInputValue("python_action", {
-      action: name, document: snapshot(), request_id: lastRequest
+      action: name, document: snapshot(), request_id: lastRequest,
+      workspace: name === "workspace_snapshot" ? workspaceSnapshot() : null
     }, { priority: "event" });
     return current;
   }
@@ -98,13 +141,28 @@
       Shiny.addCustomMessageHandler("pythonLoadConfiguration", data => {
         try { restore(data); } catch (error) { reportError(error); }
       });
+      Shiny.addCustomMessageHandler("pythonLoadWorkspace", data => {
+        try {
+          slots = {};
+          for (const [id, documentState] of Object.entries(data.canvases)) {
+            slots[id] = { document: documentState, history: [], historyIndex: -1, zoom: { x: 0, y: 0, k: 1 } };
+          }
+          activeSlot = data.active;
+          document.getElementById("python_canvas_slot").value = activeSlot;
+          document.getElementById("python_canvas_slot").dispatchEvent(new Event("change", { bubbles: true }));
+          restore(slots[activeSlot].document);
+          canvas().svg.call(canvas().zoom.transform, d3.zoomIdentity);
+        } catch (error) { reportError(error); }
+      });
       Shiny.addCustomMessageHandler("pythonEditComponent", data => {
         try {
           const target = canvas().components.find(c => c.id === data.id);
           if (!target) throw new Error("Selected component no longer exists.");
           target.properties = { ...target.properties, ...data.properties };
-          for (const key of ["pout_p3db", "pout_pavg", "pin_p3db", "pin_pavg",
-            "pae_p3db", "pae_pavg"]) delete target.properties[key];
+          if (target.type === "transistor") {
+            for (const key of ["pout_p3db", "pout_pavg", "pin_p3db", "pin_pavg",
+              "pae_p3db", "pae_pavg"]) delete target.properties[key];
+          }
           canvas().restoreState({
             components: canvas().components, connections: canvas().connections,
             nextId: canvas().nextId
@@ -130,12 +188,18 @@
       switch (button.id) {
         case "python_calculate": action("calculate"); break;
         case "python_snapshot": action("snapshot"); break;
+        case "python_workspace_snapshot": action("workspace_snapshot"); break;
         case "python_add": canvas().addComponent("transistor", 220, 250); break;
         case "python_wire": canvas().toggleWireMode(); break;
         case "python_undo": canvas().undo(); emitSnapshot(); break;
         case "python_redo": canvas().redo(); emitSnapshot(); break;
       }
     } catch (error) { reportError(error); }
+  });
+
+  document.addEventListener("change", event => {
+    if (event.target.id !== "python_canvas_slot") return;
+    try { switchSlot(event.target.value); } catch (error) { reportError(error); }
   });
 
   // The R canvas emits inputs while initializing. Python requires the session

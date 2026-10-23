@@ -30,6 +30,27 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#touchstone_view svg").first).to_be_visible()
         page.locator("#touchstone_parameter").select_option("S21")
         expect(page.locator("#touchstone_view")).to_contain_text("S21 magnitude")
+        for representation, label, unit in (
+            ("h", "h21", "dimensionless"),
+            ("ABCD", "C", "S"),
+            ("T", "T21", "dimensionless"),
+        ):
+            page.locator("#touchstone_representation").select_option(representation)
+            expect(page.locator("#touchstone_view")).to_contain_text(f"{label} real")
+            expect(page.locator("#touchstone_view")).to_contain_text(f"Imaginary ({unit})")
+        with page.expect_download() as source_download:
+            page.locator("#download_touchstone").click()
+        exported = Path(temp) / "export.s2p"
+        source_download.value.save_as(exported)
+        assert "# GHz S RI R 50" in exported.read_text(encoding="utf-8")
+        page.locator("#touchstone_representation").select_option("Circles")
+        expect(page.locator("#touchstone_view .stability-circle")).to_have_count(2)
+        page.locator("#touchstone_frequency").select_option(index=1)
+        expect(page.locator("#touchstone_view")).to_contain_text("at 2 GHz")
+        for width in (375, 768, 1440):
+            page.set_viewport_size({"width": width, "height": 1000})
+            expect(page.locator("#touchstone_view svg").first).to_be_visible()
+            assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
         page.locator("#touchstone_representation").select_option("Stability")
         expect(page.locator("#stability_metrics_table tbody tr")).to_have_count(2)
         expect(page.locator("#touchstone_view")).to_contain_text("not the conventional 10*log10")
@@ -40,6 +61,13 @@ def main(url: str, channel: str | None = None) -> None:
             page.set_viewport_size({"width": width, "height": 1000})
             expect(page.locator("#stability_metrics_table")).to_be_visible()
             assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
+        page.locator("#touchstone_parameter").select_option("S21")
+        page.locator("#touchstone_representation").select_option("S")
+        page.locator("#touchstone_upload").set_input_files(exported)
+        expect(page.locator("#touchstone_status")).to_contain_text("Loaded export.s2p")
+        expect(page.locator("#touchstone_frequency option")).to_have_count(2)
+        page.locator("#touchstone_upload").set_input_files(fixture / "reference_db.s2p")
+        expect(page.locator("#touchstone_status")).to_contain_text("Loaded reference_db.s2p")
         page.locator("#touchstone_parameter").select_option("S21")
         page.locator("#touchstone_representation").select_option("Smith")
         expect(page.locator("#touchstone_view")).to_contain_text("requires S11 or S22")
@@ -143,6 +171,30 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#technology_summary_table tbody tr")).to_have_count(6)
         page.get_by_text("Technology charts and summary", exact=True).click()
 
+        page.locator('.component[data-id="10"]').click()
+        expect(page.locator("#edit_loss")).to_have_value("0.3")
+        page.locator("#edit_loss").fill("-1")
+        page.locator("#edit_loss").press("Tab")
+        page.locator("#apply_properties").click()
+        expect(page.locator("#status")).to_contain_text("Property edit rejected")
+        assert (
+            page.evaluate("window.paCanvas.components.find(c => c.id === 10).properties.loss")
+            == 0.3
+        )
+        page.locator("#edit_loss").fill("1")
+        page.locator("#edit_loss").press("Tab")
+        page.locator("#apply_properties").click()
+        page.wait_for_function(
+            "window.paCanvas.components.find(c => c.id === 10).properties.loss === 1"
+        )
+        expect(page.locator("#summary")).to_contain_text("No current result")
+        page.locator("#python_undo").click()
+        page.wait_for_function(
+            "window.paCanvas.components.find(c => c.id === 10).properties.loss === 0.3"
+        )
+        page.locator("#python_calculate").click()
+        expect(page.locator("#summary")).to_contain_text("35.400 dBm")
+
         # Exercise the real selection event and Python-to-browser edit.
         page.locator('.component[data-id="20"] polygon').click(position={"x": 5, "y": 20})
         page.get_by_text("Technology guardrail advisory", exact=True).click()
@@ -174,6 +226,59 @@ def main(url: str, channel: str | None = None) -> None:
         page.wait_for_function(
             "window.paCanvas.components.find(c => c.id === 20).properties.gain_p3db === 18"
         )
+
+        page.evaluate(
+            "window.paCanvas.svg.call(window.paCanvas.zoom.transform, "
+            "d3.zoomIdentity.translate(31,17).scale(1.2))"
+        )
+        page.locator("#python_canvas_slot").select_option(index=1)
+        page.wait_for_function("window.paCanvas.components.length === 0")
+        assert page.evaluate("d3.zoomTransform(window.paCanvas.svg.node()).k") == 1
+        page.locator("#python_add").click()
+        page.wait_for_function("window.paCanvas.components.length === 1")
+        page.locator("#python_canvas_slot").select_option(index=0)
+        page.wait_for_function("window.paCanvas.components.length === 4")
+        assert page.evaluate("d3.zoomTransform(window.paCanvas.svg.node()).k") == 1.2
+        page.locator("#python_undo").click()
+        page.wait_for_function(
+            "window.paCanvas.components.find(c => c.id === 20).properties.gain_p3db === 16"
+        )
+        page.locator("#python_redo").click()
+        page.wait_for_function(
+            "window.paCanvas.components.find(c => c.id === 20).properties.gain_p3db === 18"
+        )
+        page.locator("#python_workspace_snapshot").click()
+        with page.expect_download() as workspace_download:
+            page.locator("#download_workspace").click()
+        workspace_path = Path(temp) / "workspace.json"
+        workspace_download.value.save_as(workspace_path)
+        workspace = json.loads(workspace_path.read_text(encoding="utf-8"))
+        assert workspace["active"] == "1"
+        assert len(workspace["canvases"]["1"]["components"]) == 4
+        assert len(workspace["canvases"]["2"]["components"]) == 1
+        page.locator("#example").click()
+        page.wait_for_function(
+            "window.paCanvas.components.find(c => c.id === 20).properties.gain_p3db === 16"
+        )
+        page.locator("#load_workspace").set_input_files(workspace_path)
+        page.wait_for_function(
+            "window.paCanvas.components.find(c => c.id === 20).properties.gain_p3db === 18"
+        )
+        assert page.evaluate("d3.zoomTransform(window.paCanvas.svg.node()).k") == 1
+        invalid_workspace = Path(temp) / "invalid-workspace.json"
+        invalid_workspace.write_text('{"active":"5","canvases":{}}', encoding="utf-8")
+        page.locator("#load_workspace").set_input_files(invalid_workspace)
+        expect(page.locator("#status")).to_contain_text("Workspace load rejected")
+        assert page.evaluate("window.paCanvas.components.length") == 4
+        page.locator("#python_canvas_slot").select_option(index=1)
+        page.wait_for_function("window.paCanvas.components.length === 1")
+        page.wait_for_function(
+            "window.paCanvas.historyIndex === 0 && window.paCanvas.history.length === 1"
+        )
+        page.locator("#python_undo").click()
+        assert page.evaluate("window.paCanvas.components.length") == 1
+        page.locator("#python_canvas_slot").select_option(index=0)
+        page.wait_for_function("window.paCanvas.components.length === 4")
 
         # Actual download and upload, including non-sequential IDs and graph edges.
         page.locator("#input_power_dbm").fill("21")
@@ -214,6 +319,8 @@ def main(url: str, channel: str | None = None) -> None:
         expect(second.locator("#suite_topology")).to_have_value("doherty_symmetric")
         expect(second.locator("#touchstone_status")).to_contain_text("No Touchstone dataset")
         expect(second.locator("#touchstone_representation")).to_have_value("S")
+        second.locator("#python_canvas_slot").select_option(index=1)
+        second.wait_for_function("window.paCanvas.components.length === 0")
         second.close()
 
         malformed = Path(temp) / "invalid.json"

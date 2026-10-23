@@ -5,13 +5,14 @@ import logging
 from collections.abc import Iterator
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
+from rfview.domain.component_properties import property_fields, validated_properties
 from rfview.domain.guardrails import DeviceParameters, validate_device_params
 from rfview.domain.lineup import calculate_lineup
-from rfview.domain.models import LineupDocument, LineupResult, OperatingPoint
-from rfview.domain.touchstone import TouchstoneData
+from rfview.domain.models import CanvasWorkspace, LineupDocument, LineupResult, OperatingPoint
+from rfview.domain.touchstone import TouchstoneData, serialize_touchstone
 from rfview.domain.transistor import (
     DesignTopology,
     StageSizingInput,
@@ -25,7 +26,9 @@ from rfview.services import (
     read_document,
     read_guardrails,
     read_touchstone,
+    read_workspace,
     serialize_document,
+    serialize_workspace,
     with_operating_point,
 )
 from rfview.technology_ui import technology_panel
@@ -46,6 +49,7 @@ class BrowserAction(BaseModel):
     action: str
     document: LineupDocument
     request_id: int
+    workspace: CanvasWorkspace | None = None
 
 
 class SizingRequest(BaseModel):
@@ -98,7 +102,11 @@ app_ui = ui.page_fluid(
             ui.input_action_button("example", "Load branched example"),
             ui.input_file("load_document", "Load lineup JSON (max 5 MiB)", accept=[".json"]),
             ui.output_ui("download_control"),
-            ui.h2("Selected transistor"),
+            ui.input_file(
+                "load_workspace", "Load four-canvas workspace JSON (max 5 MiB)", accept=[".json"]
+            ),
+            ui.output_ui("workspace_download_control"),
+            ui.h2("Selected component"),
             ui.output_ui("selected_properties"),
             ui.tags.details(
                 ui.tags.summary("Technology guardrail advisory"),
@@ -133,6 +141,8 @@ app_ui = ui.page_fluid(
             width=310,
         ),
         ui.div(
+            ui.input_select("python_canvas_slot", "Active session canvas", ["1", "2", "3", "4"]),
+            toolbar_button("python_workspace_snapshot", "Prepare workspace download"),
             toolbar_button("python_calculate", "Calculate in Python"),
             toolbar_button("python_add", "Add transistor"),
             toolbar_button("python_wire", "Wire mode"),
@@ -145,7 +155,10 @@ app_ui = ui.page_fluid(
         ),
         ui.p(
             "Select a component to edit. Drag to move; scroll to zoom. "
-            "Wire mode connects component ports. Prepare a fresh download after editing."
+            "Wire mode connects component ports. Prepare a fresh download after editing. "
+            "Four tabbed session canvases retain separate geometry, undo histories and zoom. "
+            "Operating-point controls are shared. Workspace JSON stores all four lineups, "
+            "not histories, viewport zoom or uploaded RF datasets."
         ),
         ui.div(
             id="pa_lineup_canvas_container",
@@ -165,16 +178,25 @@ app_ui = ui.page_fluid(
             ui.input_select("touchstone_parameter", "S-parameter", ["S11", "S21", "S12", "S22"]),
             ui.input_select(
                 "touchstone_representation",
-                "Network view (S/Z/Y share row/column indices)",
+                "Network view (parameter selector supplies row/column indices)",
                 {
                     "S": "S magnitude / phase",
                     "Z": "Z real / imaginary (ohm)",
                     "Y": "Y real / imaginary (siemens)",
+                    "h": "Hybrid h real / imaginary (mixed units)",
+                    "ABCD": "Chain ABCD real / imaginary (mixed units)",
+                    "T": "Scattering transfer T (dimensionless)",
                     "Smith": "Smith impedance chart (S11/S22)",
                     "Stability": "Two-port stability / legacy gain metrics",
+                    "Circles": "Source / load stability circles",
                 },
             ),
+            ui.panel_conditional(
+                "input.touchstone_representation === 'Circles'",
+                ui.input_select("touchstone_frequency", "Circle frequency (GHz)", {}),
+            ),
             ui.output_text("touchstone_status"),
+            ui.output_ui("touchstone_download_control"),
             ui.output_ui("touchstone_view"),
         ),
         ui.tags.details(
@@ -242,6 +264,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     last_serialized = reactive.Value("")
     result_input = reactive.Value("")
     prepared = reactive.Value(False)
+    workspace_export: reactive.Value[str | None] = reactive.Value(None)
     network: reactive.Value[TouchstoneData | None] = reactive.Value(None)
     network_status = reactive.Value("No Touchstone dataset loaded.")
 
@@ -267,11 +290,42 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         network.set(parsed)
         choices = ["S11"] if parsed.nports == 1 else ["S11", "S21", "S12", "S22"]
         ui.update_select("touchstone_parameter", choices=choices, selected="S11", session=session)
+        ui.update_select(
+            "touchstone_frequency",
+            choices={str(i): f"{freq:.12g}" for i, freq in enumerate(parsed.freq_ghz)},
+            selected="0",
+            session=session,
+        )
         network_status.set(f"Loaded {parsed.filename}. Session-only; no dataset saved.")
 
     @render.text
     def touchstone_status() -> str:
         return network_status()
+
+    @render.ui
+    def touchstone_download_control() -> ui.Tag:
+        if network() is None:
+            return ui.p("Upload a dataset to enable source Touchstone export.")
+        return ui.div(
+            ui.download_button("download_touchstone", "Download source S (GHz / RI)"),
+            ui.p(
+                "Exports source S values, not the selected converted view. "
+                "Original comments, units and formatting are not retained."
+            ),
+        )
+
+    def touchstone_filename() -> str:
+        current = network()
+        if current is None:
+            raise ValueError("No Touchstone dataset available for export")
+        return f"rfview_source.s{current.nports}p"
+
+    @render.download(filename=touchstone_filename, media_type="text/plain")
+    def download_touchstone() -> Iterator[str]:
+        current = network()
+        if current is None:
+            raise ValueError("No Touchstone dataset available for export")
+        yield serialize_touchstone(current)
 
     @render.ui
     def touchstone_view() -> ui.Tag:
@@ -282,7 +336,12 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         if current.nports == 1 and parameter != "S11":
             return ui.p("Updating parameter selection for the one-port dataset.")
         try:
-            return touchstone_panel(current, parameter, input.touchstone_representation())
+            choice = input.touchstone_frequency()
+            if input.touchstone_representation() == "Circles" and not choice:
+                return ui.p("Choose an available circle frequency.")
+            return touchstone_panel(
+                current, parameter, input.touchstone_representation(), int(choice) if choice else 0
+            )
         except ValueError as exc:
             logger.warning("Touchstone view rejected: %s", exc)
             return ui.p(f"Touchstone view rejected: {exc}", role="alert")
@@ -305,6 +364,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         result.set(None)
         selected.set(None)
         prepared.set(False)
+        workspace_export.set(None)
         await session.send_custom_message(
             "pythonLoadConfiguration", new_document.model_dump(mode="json", by_alias=True)
         )
@@ -314,6 +374,36 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     async def _ready() -> None:
         await load_canvas(document())
         status_state.set("Python canvas ready. Load/edit a lineup and calculate; R is not used.")
+
+    @reactive.effect
+    @reactive.event(input.python_slot_changed)
+    def _slot_changed() -> None:
+        result.set(None)
+        selected.set(None)
+        prepared.set(False)
+        workspace_export.set(None)
+        status_state.set("Active canvas changed. Operating-point controls are shared; recalculate.")
+
+    @reactive.effect
+    @reactive.event(input.load_workspace)
+    async def _load_workspace() -> None:
+        files = input.load_workspace()
+        if not files:
+            return
+        try:
+            workspace = read_workspace(Path(files[0]["datapath"]))
+        except (ValueError, OSError) as exc:
+            failure(f"Workspace load rejected: {exc}. Current canvases retained.")
+            return
+        document.set(workspace.canvases[workspace.active])
+        result.set(None)
+        selected.set(None)
+        prepared.set(False)
+        workspace_export.set(None)
+        await session.send_custom_message(
+            "pythonLoadWorkspace", workspace.model_dump(mode="json", by_alias=True)
+        )
+        status_state.set("Workspace loaded. Four lineups restored; undo histories restart.")
 
     @reactive.effect
     @reactive.event(input.example)
@@ -357,6 +447,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     @reactive.effect
     @reactive.event(input.python_snapshot)
     def _snapshot() -> None:
+        workspace_export.set(None)
         try:
             snapshot = LineupDocument.model_validate(input.python_snapshot())
         except ValidationError as exc:
@@ -388,6 +479,15 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             action = BrowserAction.model_validate(input.python_action())
             document.set(action.document)
             last_serialized.set(serialize_document(action.document))
+            if action.action == "workspace_snapshot":
+                workspace_export.set(None)
+                if action.workspace is None:
+                    raise ValueError("Workspace snapshot is missing")
+                workspace_export.set(serialize_workspace(action.workspace))
+                status_state.set(
+                    "Workspace snapshot prepared. Download all four lineups from the sidebar."
+                )
+                return
             if action.action == "snapshot":
                 prepared.set(True)
                 status_state.set("JSON snapshot prepared. Download it using the sidebar button.")
@@ -497,49 +597,57 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         component = next(
             (item for item in document().components if str(item.id) == str(selected())), None
         )
-        if component is None or component.type != "transistor":
-            return ui.p("Select a transistor on the canvas.")
+        if component is None:
+            return ui.p("Select a component on the canvas.")
+        try:
+            fields = property_fields(component)
+            controls = [
+                ui.input_numeric(
+                    f"edit_{field.key}", field.label, component.number(field.key, field.default)
+                )
+                for field in fields
+            ]
+        except ValueError as exc:
+            logger.warning("Component properties rejected: %s", exc)
+            return ui.p(f"Component properties rejected: {exc}", role="alert")
+        if component.type == "termination":
+            return ui.p("Termination: no editable calculation inputs in the legacy model.")
         return ui.div(
-            ui.p(f"Component ID: {component.id}"),
-            ui.input_numeric("edit_gain", "Small-signal gain (dB)", component.number("gain", 15)),
-            ui.input_numeric(
-                "edit_gain_p3db",
-                "Full-power gain (dB)",
-                component.number("gain_p3db", component.number("gain", 15) - 2),
+            ui.p(f"Type: {component.type}. Only calculation inputs listed below are edited."),
+            ui.input_text(
+                "edit_component_id",
+                "Editing component ID (must match selection)",
+                str(component.id),
             ),
-            ui.input_numeric(
-                "edit_gain_bo",
-                "Backoff gain (dB)",
-                component.number(
-                    "gain_bo",
-                    (
-                        component.number("gain", 15)
-                        + component.number("gain_p3db", component.number("gain", 15) - 2)
-                    )
-                    / 2,
-                ),
+            *controls,
+            ui.p(
+                "Splitter/combiner branch counts come from graph connections. "
+                "Unequal splitting is not implemented; topology, technology, labels and "
+                "other legacy properties are retained unchanged."
             ),
-            ui.input_numeric("edit_pae", "Entered efficiency (%)", component.number("pae", 50)),
-            ui.input_numeric("edit_p1db", "P1dB limit (dBm)", component.number("p1db", 43)),
-            ui.input_action_button("apply_properties", "Apply transistor properties"),
+            ui.input_action_button("apply_properties", "Apply component properties"),
         )
 
     @reactive.effect
     @reactive.event(input.apply_properties)
     async def _apply() -> None:
-        identifier = selected()
-        if identifier is None:
-            failure("Select a transistor before editing.")
+        component = next(
+            (item for item in document().components if str(item.id) == str(selected())), None
+        )
+        try:
+            if component is None or str(component.id) != input.edit_component_id():
+                raise ValueError("Selection changed; wait for its property form before applying")
+            if component.type == "termination":
+                raise ValueError("Termination has no editable calculation inputs")
+            properties = validated_properties(
+                component,
+                {field.key: input[f"edit_{field.key}"]() for field in property_fields(component)},
+            )
+        except ValueError as exc:
+            failure(f"Property edit rejected: {exc}")
             return
-        properties: dict[str, JsonValue] = {
-            "gain": input.edit_gain(),
-            "gain_p3db": input.edit_gain_p3db(),
-            "gain_bo": input.edit_gain_bo(),
-            "pae": input.edit_pae(),
-            "p1db": input.edit_p1db(),
-        }
         await session.send_custom_message(
-            "pythonEditComponent", {"id": identifier, "properties": properties}
+            "pythonEditComponent", {"id": component.id, "properties": properties}
         )
 
     @render.code
@@ -691,6 +799,19 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         if prepared():
             return ui.download_button("download_document", "Download lineup JSON")
         return ui.tags.button("Prepare a JSON download first", disabled=True, class_="btn")
+
+    @render.ui
+    def workspace_download_control() -> ui.Tag:
+        if workspace_export() is not None:
+            return ui.download_button("download_workspace", "Download four-canvas workspace")
+        return ui.p("Prepare a workspace download from the canvas toolbar.")
+
+    @render.download(filename="rfview_workspace.json", media_type="application/json")
+    def download_workspace() -> Iterator[str]:
+        text = workspace_export()
+        if text is None:
+            raise ValueError("Prepare a fresh workspace snapshot first")
+        yield text
 
     @render.download_button(filename="pa_lineup_python.json", media_type="application/json")
     def download_document() -> Iterator[str]:

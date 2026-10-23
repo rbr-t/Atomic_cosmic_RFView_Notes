@@ -158,6 +158,20 @@ class LineupDocument(BaseModel):
         return predecessors, successors
 
 
+class CanvasWorkspace(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    format: Literal["rfview-workspace-v1"] = "rfview-workspace-v1"
+    active: Literal["1", "2", "3", "4"]
+    canvases: dict[str, LineupDocument] = Field(min_length=4, max_length=4)
+
+    @model_validator(mode="after")
+    def validate_slots(self) -> CanvasWorkspace:
+        if set(self.canvases) != {"1", "2", "3", "4"}:
+            raise ValueError("Workspace must contain canvas slots 1, 2, 3 and 4")
+        return self
+
+
 class StageResult(BaseModel):
     id: str
     stage: str
