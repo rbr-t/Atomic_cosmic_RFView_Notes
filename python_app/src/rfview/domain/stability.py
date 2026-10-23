@@ -24,6 +24,71 @@ class StabilityMetrics(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class StabilityCircle(BaseModel):
+    model_config = ConfigDict(frozen=True, allow_inf_nan=False)
+
+    center_r: float
+    center_i: float
+    radius: float = Field(ge=0)
+
+
+class StabilityCircles(BaseModel):
+    model_config = ConfigDict(frozen=True, allow_inf_nan=False)
+
+    model_version: Literal["legacy-r-stability-circles-v1"] = "legacy-r-stability-circles-v1"
+    load: StabilityCircle | None
+    source: StabilityCircle | None
+    warnings: tuple[str, ...]
+
+
+def stability_circles(s: Sequence[Sequence[complex]]) -> StabilityCircles:
+    """Return load/source reflection-plane boundaries, not stable-side classifications."""
+    matrix = validated_matrix(s)
+    s11, s12 = matrix[0]
+    s21, s22 = matrix[1]
+    try:
+        delta = s11 * s22 - s12 * s21
+        delta_squared = abs(delta) ** 2
+        product = abs(s12 * s21)
+        warnings = [
+            "Circle boundaries alone do not identify the stable side or certify stability.",
+            "A zero-radius circle can be a degenerate boundary, not a stability guarantee.",
+        ]
+
+        def circle(
+            port: Literal["Load", "Source"], reflection: complex, opposite: complex
+        ) -> StabilityCircle | None:
+            denominator = abs(reflection) ** 2 - delta_squared
+            numerator = (reflection - delta * opposite.conjugate()).conjugate()
+            if not all(
+                math.isfinite(value)
+                for value in (
+                    denominator,
+                    numerator.real,
+                    numerator.imag,
+                    product,
+                )
+            ):
+                raise ValueError("Stability circle calculation exceeds numeric range")
+            if abs(denominator) <= SINGULARITY_THRESHOLD:
+                warnings.append(
+                    f"{port} circle is undefined at |denominator| <= 1e-15; "
+                    "a line/degenerate boundary is not represented as a finite circle."
+                )
+                return None
+            center = numerator / denominator
+            radius = product / abs(denominator)
+            if not all(math.isfinite(value) for value in (center.real, center.imag, radius)):
+                raise ValueError("Stability circle calculation exceeds numeric range")
+            return StabilityCircle(center_r=center.real, center_i=center.imag, radius=radius)
+
+        load = circle("Load", s22, s11)
+        source = circle("Source", s11, s22)
+        return StabilityCircles(load=load, source=source, warnings=tuple(warnings))
+    except OverflowError as exc:
+        raise ValueError("Stability circle calculation exceeds numeric range") from exc
+
+
 def stability_metrics(s: Sequence[Sequence[complex]]) -> StabilityMetrics:
     matrix = validated_matrix(s)
     s11, s12 = matrix[0]

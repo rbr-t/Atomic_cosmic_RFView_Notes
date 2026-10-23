@@ -1,0 +1,296 @@
+{
+  "provenance": {
+    "runtime": "R version 4.4.1 (2024-06-14 ucrt)",
+    "source_md5": "456e27ff0fbc4e5193629a4011a4a163"
+  },
+  "cases": [
+    {
+      "name": "matched",
+      "s": [
+        [
+          {
+            "real": 0,
+            "imag": 0
+          },
+          {
+            "real": 0,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 0,
+            "imag": 0
+          },
+          {
+            "real": 0,
+            "imag": 0
+          }
+        ]
+      ],
+      "expected": {
+        "load": null,
+        "source": null
+      }
+    },
+    {
+      "name": "unilateral",
+      "s": [
+        [
+          {
+            "real": 0.10000000000000001,
+            "imag": 0
+          },
+          {
+            "real": 0,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 2,
+            "imag": 0
+          },
+          {
+            "real": 0.20000000000000001,
+            "imag": 0
+          }
+        ]
+      ],
+      "expected": {
+        "load": {
+          "center_r": 4.9999999999999991,
+          "center_i": -0,
+          "radius": 0
+        },
+        "source": {
+          "center_r": 10,
+          "center_i": -0,
+          "radius": 0
+        }
+      }
+    },
+    {
+      "name": "asymmetric",
+      "s": [
+        [
+          {
+            "real": 0.10000000000000001,
+            "imag": 0.20000000000000001
+          },
+          {
+            "real": 0.029999999999999999,
+            "imag": 0.040000000000000001
+          }
+        ],
+        [
+          {
+            "real": 2,
+            "imag": -0.5
+          },
+          {
+            "real": -0.20000000000000001,
+            "imag": 0.10000000000000001
+          }
+        ]
+      ],
+      "expected": {
+        "load": {
+          "center_r": -6.3593603010348057,
+          "center_i": -3.2173095014110999,
+          "radius": 3.8787447089535836
+        },
+        "source": {
+          "center_r": 3.2173095014110999,
+          "center_i": -6.3593603010348057,
+          "radius": 3.8787447089535836
+        }
+      }
+    },
+    {
+      "name": "unstable",
+      "s": [
+        [
+          {
+            "real": 0.80000000000000004,
+            "imag": 0
+          },
+          {
+            "real": 0.5,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 3,
+            "imag": 0
+          },
+          {
+            "real": 0.80000000000000004,
+            "imag": 0
+          }
+        ]
+      ],
+      "expected": {
+        "load": {
+          "center_r": -14.939759036144626,
+          "center_i": -0,
+          "radius": 15.060240963855469
+        },
+        "source": {
+          "center_r": -14.939759036144626,
+          "center_i": -0,
+          "radius": 15.060240963855469
+        }
+      }
+    },
+    {
+      "name": "boundary",
+      "s": [
+        [
+          {
+            "real": 0,
+            "imag": 0
+          },
+          {
+            "real": 1,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 1,
+            "imag": 0
+          },
+          {
+            "real": 0,
+            "imag": 0
+          }
+        ]
+      ],
+      "expected": {
+        "load": {
+          "center_r": -0,
+          "center_i": -0,
+          "radius": 1
+        },
+        "source": {
+          "center_r": -0,
+          "center_i": -0,
+          "radius": 1
+        }
+      }
+    },
+    {
+      "name": "active",
+      "s": [
+        [
+          {
+            "real": 1.1000000000000001,
+            "imag": 0
+          },
+          {
+            "real": 0.10000000000000001,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 2,
+            "imag": 0
+          },
+          {
+            "real": 0.29999999999999999,
+            "imag": 0
+          }
+        ]
+      ],
+      "expected": {
+        "load": {
+          "center_r": 2.1477428180574551,
+          "center_i": -0,
+          "radius": 2.7359781121751028
+        },
+        "source": {
+          "center_r": 0.88928002682088669,
+          "center_i": -0,
+          "radius": 0.16763054228480426
+        }
+      }
+    },
+    {
+      "name": "no_forward",
+      "s": [
+        [
+          {
+            "real": 0.10000000000000001,
+            "imag": 0
+          },
+          {
+            "real": 0.10000000000000001,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 0,
+            "imag": 0
+          },
+          {
+            "real": 0.20000000000000001,
+            "imag": 0
+          }
+        ]
+      ],
+      "expected": {
+        "load": {
+          "center_r": 4.9999999999999991,
+          "center_i": -0,
+          "radius": 0
+        },
+        "source": {
+          "center_r": 10,
+          "center_i": -0,
+          "radius": 0
+        }
+      }
+    },
+    {
+      "name": "tiny_reverse",
+      "s": [
+        [
+          {
+            "real": 0.20000000000000001,
+            "imag": 0
+          },
+          {
+            "real": 9.9999999999999998e-17,
+            "imag": 0
+          }
+        ],
+        [
+          {
+            "real": 2,
+            "imag": 0
+          },
+          {
+            "real": 0.29999999999999999,
+            "imag": 0
+          }
+        ]
+      ],
+      "expected": {
+        "load": {
+          "center_r": 3.333333333333333,
+          "center_i": -0,
+          "radius": 2.3148148148148143e-15
+        },
+        "source": {
+          "center_r": 4.9999999999999982,
+          "center_i": -0,
+          "radius": 5.4945054945054902e-15
+        }
+      }
+    }
+  ]
+}

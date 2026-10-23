@@ -494,6 +494,47 @@ switching, parameter independence, one-port rejection and table containment at
 No stability circles, corrected
 power-gain model, dataset overlays or export are delivered in this slice.
 
+### Batch 14 - pure two-port stability-circle API
+
+`stability_circles(s)` in [stability.py](src/rfview/domain/stability.py) returns
+typed load/output and source/input circle centers and radii in their respective
+complex reflection-coefficient planes. Supply row-major `(S11, S12), (S21, S22)`
+values, as for the other two-port APIs:
+
+```python
+from rfview.domain.stability import stability_circles
+
+circles = stability_circles(((0, 0.1), (2, 0)))
+assert circles.load is not None
+assert abs(circles.load.radius - 5) < 1e-12
+print(circles.model_version, circles.warnings)
+```
+
+The version is `legacy-r-stability-circles-v1`. Each defined circle has finite
+`center_r`, `center_i` and nonnegative `radius`, all dimensionless. Centers and
+radii match the active R `sp_stab_circles` formulas. Input matrices are not
+mutated. Each port is evaluated independently: a denominator magnitude at or
+below `1e-15` yields `None` for that circle with a port-specific warning,
+not a fabricated zero-radius circle. Line/degenerate boundaries at that
+threshold are not represented by this finite-circle API. Actual zero-radius
+results are retained, with an explicit degeneracy caveat.
+
+Circle geometry alone does **not** identify the stable side or certify network
+stability. No clipping to the passive unit disk or automatic stable-region
+classification is performed. Invalid/nonfinite matrices and numerical overflow
+raise errors rather than produce partial results.
+
+Eight frozen R-reference cases cover matched, unilateral, asymmetric, unstable,
+boundary, active-reflection, zero-forward and negligible-reverse networks.
+Independent tests verify known centers/radii, unit-reflection identities at
+16 points on each source/load boundary, separately undefined ports, threshold
+behavior, input preservation and JSON-finite output.
+The full Python regression suite now has **589 passing tests**; lint,
+formatting, strict source typing and Python syntax checks pass.
+This slice is API-only; viewer circles and frequency selection remain separate.
+The optional [R exporter](tests/reference/export_stability_circles.R) reuses the
+qualified stability input matrices; normal Python tests do not require R.
+
 ## Validation
 
 From the repository root:
@@ -532,11 +573,16 @@ to silence a mismatch.
 
 Each batch should deliver runnable behavior, targeted tests and a scope update:
 
-1. Complete remaining calculations and legacy property controls; qualify advanced chart interactions separately.
-2. Migrate load-pull and Touchstone parsers with frozen file fixtures and viewers.
-3. Add project persistence, snapshots and multi-canvas lifecycle.
-4. Integrate AI/KB and the existing guarded Python ingestion pipeline.
-5. Qualify integrated and standalone RF CAD separately.
+1. Complete RF data tools: stability-circle viewing, remaining parameter
+   conversions, load-pull parsing/viewing, broader Touchstone support and
+   qualified import/export. The bounded Touchstone S/Z/Y/Smith/stability-table
+   viewer is already implemented; it is not full legacy viewer parity.
+2. Complete remaining calculations, engineering-model decisions, legacy
+   property controls and multi-canvas workflows; qualify advanced chart
+   interactions separately.
+3. Add project persistence, snapshots, state recovery and role-based access.
+4. Integrate remaining AI agents/KB and the guarded Python ingestion pipeline.
+5. Complete and qualify integrated and standalone RF CAD separately.
 6. Convert education/manual/IFX documents and Web Page Knitter to Python-executed
    builds, retaining their interactive assets.
 7. Package deployment; measure performance/capacity; qualify data conversion and
