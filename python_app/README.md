@@ -363,11 +363,37 @@ Determinant magnitude below `1e-15` raises an explicit conversion error,
 replacing legacy NA matrices while preserving the legacy threshold.
 This absolute threshold is not a full numerical condition-number assessment.
 
-The full suite now has **536 passing tests**. This batch is API-only: the
-Touchstone viewer still displays S magnitude/phase, not Z/Y plots. Complex
+The full suite now has **536 passing tests**. This API batch is followed by the Z/Y viewer slice below. Complex
 results require explicit real/imaginary serialization if exported as JSON.
 The optional [R exporter](tests/reference/export_network_parameters.R) generates
 the frozen comparison matrices; Python runtime/tests do not require R.
+
+### Batch 10 - Z/Y viewer controls
+
+In the Touchstone viewer, choose **Network representation**:
+
+- **S** retains magnitude (dB) and wrapped phase (degrees).
+- **Z** shows real/imaginary impedance in **ohms**.
+- **Y** shows real/imaginary admittance in **siemens (S)**.
+
+The S-parameter selector retains row/column indices: choosing S21 with the Z
+representation displays Z21, not Z12. Conversion uses the uploaded scalar
+reference impedance and the qualified two-port APIs. Dataset values, upload
+state and lineup calculations are not changed. Representation is session-local.
+
+Only two-port datasets support conversion in this slice. For a one-port
+dataset, Z/Y shows an explicit error and offers recovery by selecting S.
+If any frequency is singular or numerically invalid, the entire converted view
+is replaced by an error naming that frequency in GHz; no points are dropped and
+no misleading partial curve is rendered. The original S dataset remains
+available. The viewer retains its 2,000-record limit and does not certify
+conditioning, passivity or calibration integrity.
+
+The full suite now has **543 passing tests**. Converted-coordinate tests compare
+SVG points to the qualified numerical results, and cover units, unsupported
+views and singular-frequency reporting. Browser workflows verify Z/Y switching,
+singularity recovery, one-port rejection, session defaults and preserved
+upload/lineup/sizing behavior.
 
 ## Validation
 

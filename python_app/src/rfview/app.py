@@ -163,6 +163,15 @@ app_ui = ui.page_fluid(
             ),
             ui.input_file("touchstone_upload", "Upload Touchstone", accept=[".s1p", ".s2p"]),
             ui.input_select("touchstone_parameter", "S-parameter", ["S11", "S21", "S12", "S22"]),
+            ui.input_select(
+                "touchstone_representation",
+                "Network representation (same row/column indices)",
+                {
+                    "S": "S magnitude / phase",
+                    "Z": "Z real / imaginary (ohm)",
+                    "Y": "Y real / imaginary (siemens)",
+                },
+            ),
             ui.output_text("touchstone_status"),
             ui.output_ui("touchstone_view"),
         ),
@@ -271,7 +280,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         if current.nports == 1 and parameter != "S11":
             return ui.p("Updating parameter selection for the one-port dataset.")
         try:
-            return touchstone_panel(current, parameter)
+            return touchstone_panel(current, parameter, input.touchstone_representation())
         except ValueError as exc:
             logger.warning("Touchstone view rejected: %s", exc)
             return ui.p(f"Touchstone view rejected: {exc}", role="alert")

@@ -48,3 +48,61 @@ def test_viewer_record_limit_is_explicit() -> None:
     network = parse_touchstone("\n".join(f"{i} 0.1 0" for i in range(2001)), "large.s1p")
     with pytest.raises(ValueError, match="2000"):
         touchstone_panel(network, "S11")
+
+
+@pytest.mark.parametrize("representation,unit", [("Z", "ohm"), ("Y", "S")])
+def test_conversion_plot_coordinates_and_units(representation: str, unit: str) -> None:
+    from rfview.domain.network_parameters import s_to_y, s_to_z
+
+    network = read_touchstone(FIXTURE)
+    html = str(touchstone_panel(network, "S21", representation))
+    assert f"{representation}21 real" in html
+    assert f"Imaginary ({unit})" in html
+    record = {p.param: complex(p.real, p.imag) for p in network.points[:4]}
+    matrix = ((record["S11"], record["S12"]), (record["S21"], record["S22"]))
+    value = (s_to_z if representation == "Z" else s_to_y)(matrix, network.z0)[1][0]
+    svgs = [ElementTree.fromstring(s) for s in re.findall(r"<svg.*?</svg>", html, re.S)]
+    for svg, component in zip(svgs, (value.real, value.imag), strict=True):
+        line = svg.find("s:polyline", NS)
+        assert line is not None
+        x, y = map(float, line.attrib["points"].split()[0].split(","))
+        assert x == 75
+        assert 40 <= y <= 290
+        assert component != 0
+    expected_values = []
+    for index in range(len(network.freq_ghz)):
+        record = {
+            p.param: complex(p.real, p.imag) for p in network.points[index * 4 : index * 4 + 4]
+        }
+        matrix = ((record["S11"], record["S12"]), (record["S21"], record["S22"]))
+        expected_values.append(
+            (s_to_z if representation == "Z" else s_to_y)(matrix, network.z0)[1][0]
+        )
+    for svg, component_name in zip(svgs, ("real", "imag"), strict=True):
+        values = [getattr(value, component_name) for value in expected_values]
+        low, high = min(min(values) * 1.08, 0), max(max(values) * 1.08, 1)
+        line = svg.find("s:polyline", NS)
+        assert line is not None
+        coordinates = [tuple(map(float, p.split(","))) for p in line.attrib["points"].split()]
+        for (_, y), value in zip(coordinates, values, strict=True):
+            assert y == pytest.approx(290 - (value - low) / (high - low) * 250, abs=0.00051)
+
+
+@pytest.mark.parametrize("representation,diagonal", [("Z", 1), ("Y", -1)])
+def test_singular_frequency_is_reported_without_partial_curve(
+    representation: str, diagonal: int
+) -> None:
+    network = parse_touchstone(
+        f"# GHz S RI R 50\n1 0 0 0 0 0 0 0 0\n2 {diagonal} 0 0 0 0 0 0 0",
+        "singular.s2p",
+    )
+    with pytest.raises(ValueError, match="failed at 2 GHz"):
+        touchstone_panel(network, "S21", representation)
+    assert "S21 magnitude" in str(touchstone_panel(network, "S21"))
+
+
+@pytest.mark.parametrize("representation", ["Z", "Y", "invalid"])
+def test_unsupported_views_fail_explicitly(representation: str) -> None:
+    network = parse_touchstone("1 0.1 0", "one.s1p")
+    with pytest.raises(ValueError):
+        touchstone_panel(network, "S11", representation)

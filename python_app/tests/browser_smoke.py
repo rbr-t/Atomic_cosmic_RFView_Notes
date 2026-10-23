@@ -30,6 +30,22 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#touchstone_view svg").first).to_be_visible()
         page.locator("#touchstone_parameter").select_option("S21")
         expect(page.locator("#touchstone_view")).to_contain_text("S21 magnitude")
+        page.locator("#touchstone_representation").select_option("Z")
+        expect(page.locator("#touchstone_view")).to_contain_text("Z21 real")
+        expect(page.locator("#touchstone_view")).to_contain_text("Imaginary (ohm)")
+        page.locator("#touchstone_representation").select_option("Y")
+        expect(page.locator("#touchstone_view")).to_contain_text("Y21 real")
+        singular = Path(temp) / "singular.s2p"
+        singular.write_text(
+            "# GHz S RI R 50\n1 0 0 0 0 0 0 0 0\n2 -1 0 0 0 0 0 0 0", encoding="utf-8"
+        )
+        page.locator("#touchstone_upload").set_input_files(singular)
+        expect(page.locator("#touchstone_view")).to_contain_text("failed at 2 GHz")
+        expect(page.locator("#touchstone_view svg")).to_have_count(0)
+        page.locator("#touchstone_representation").select_option("S")
+        expect(page.locator("#touchstone_view svg")).to_have_count(2)
+        page.locator("#touchstone_upload").set_input_files(fixture / "reference_db.s2p")
+        expect(page.locator("#touchstone_status")).to_contain_text("Loaded reference_db.s2p")
         rejected = Path(temp) / "invalid.s2p"
         rejected.write_text("1 BAD", encoding="utf-8")
         page.locator("#touchstone_upload").set_input_files(rejected)
@@ -38,6 +54,11 @@ def main(url: str, channel: str | None = None) -> None:
         page.locator("#touchstone_upload").set_input_files(fixture / "reference_ma.s1p")
         expect(page.locator("#touchstone_view")).to_contain_text("reference_ma.s1p")
         expect(page.locator("#touchstone_parameter option")).to_have_count(1)
+        expect(page.locator("#touchstone_view")).to_contain_text("S11 magnitude")
+        page.locator("#touchstone_representation").select_option("Z")
+        expect(page.locator("#touchstone_view")).to_contain_text("requires a two-port dataset")
+        expect(page.locator("#touchstone_view svg")).to_have_count(0)
+        page.locator("#touchstone_representation").select_option("S")
         expect(page.locator("#touchstone_view")).to_contain_text("S11 magnitude")
         expect(page.locator("#summary")).to_contain_text("35.400 dBm")
         page.get_by_text("Touchstone magnitude and phase viewer", exact=True).click()
@@ -161,6 +182,7 @@ def main(url: str, channel: str | None = None) -> None:
         expect(second.locator("#input_power_dbm")).to_have_value("20")
         expect(second.locator("#suite_topology")).to_have_value("doherty_symmetric")
         expect(second.locator("#touchstone_status")).to_contain_text("No Touchstone dataset")
+        expect(second.locator("#touchstone_representation")).to_have_value("S")
         second.close()
 
         malformed = Path(temp) / "invalid.json"
