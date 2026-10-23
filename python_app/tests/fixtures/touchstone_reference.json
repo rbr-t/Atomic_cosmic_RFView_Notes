@@ -1,0 +1,243 @@
+{
+  "provenance": {
+    "runtime": "R version 4.4.1 (2024-06-14 ucrt)",
+    "source_md5": "456e27ff0fbc4e5193629a4011a4a163"
+  },
+  "cases": [
+    {
+      "filename": "reference_db.s2p",
+      "md5": "8d72716d52b2ad816542cc2238e62d11",
+      "expected": {
+        "nports": 2,
+        "freq_ghz": [1, 2],
+        "freq_unit": "khz",
+        "data_format": "db",
+        "param_type": "s",
+        "z0": 50,
+        "dataset_tag": "reference_db",
+        "points": [
+          {
+            "freq_ghz": 1,
+            "param": "S11",
+            "real": 0.086602540378443879,
+            "imag": 0.049999999999999996,
+            "mag_linear": 0.10000000000000001,
+            "mag_db": -20,
+            "phase_deg": 29.999999999999996,
+            "dataset_tag": "reference_db"
+          },
+          {
+            "freq_ghz": 1,
+            "param": "S21",
+            "real": 2.2360679774997898,
+            "imag": -2.2360679774997898,
+            "mag_linear": 3.1622776601683795,
+            "mag_db": 10,
+            "phase_deg": -45,
+            "dataset_tag": "reference_db"
+          },
+          {
+            "freq_ghz": 1,
+            "param": "S12",
+            "real": 1.9362726575963785e-18,
+            "imag": 0.031622776601683791,
+            "mag_linear": 0.031622776601683791,
+            "mag_db": -30,
+            "phase_deg": 90,
+            "dataset_tag": "reference_db"
+          },
+          {
+            "freq_ghz": 1,
+            "param": "S22",
+            "real": 0.31622776601683794,
+            "imag": 0,
+            "mag_linear": 0.31622776601683794,
+            "mag_db": -10,
+            "phase_deg": 0,
+            "dataset_tag": "reference_db"
+          },
+          {
+            "freq_ghz": 2,
+            "param": "S11",
+            "real": 1.9362726575963789e-17,
+            "imag": -0.31622776601683794,
+            "mag_linear": 0.31622776601683794,
+            "mag_db": -10,
+            "phase_deg": -90,
+            "dataset_tag": "reference_db"
+          },
+          {
+            "freq_ghz": 2,
+            "param": "S21",
+            "real": 0.99763115748443998,
+            "imag": 1.7279478519767977,
+            "mag_linear": 1.9952623149688797,
+            "mag_db": 6.0000000000000009,
+            "phase_deg": 59.999999999999993,
+            "dataset_tag": "reference_db"
+          },
+          {
+            "freq_ghz": 2,
+            "param": "S12",
+            "real": 0.0086602540378443865,
+            "imag": -0.0049999999999999992,
+            "mag_linear": 0.01,
+            "mag_db": -40,
+            "phase_deg": -29.999999999999996,
+            "dataset_tag": "reference_db"
+          },
+          {
+            "freq_ghz": 2,
+            "param": "S22",
+            "real": -0.17782794100389229,
+            "imag": 2.1776922644051735e-17,
+            "mag_linear": 0.17782794100389229,
+            "mag_db": -15,
+            "phase_deg": 180,
+            "dataset_tag": "reference_db"
+          }
+        ]
+      }
+    },
+    {
+      "filename": "reference_ma.s1p",
+      "md5": "f1f43c5c82751c8631861683958ac069",
+      "expected": {
+        "nports": 1,
+        "freq_ghz": [0, 1, 2],
+        "freq_unit": "ghz",
+        "data_format": "ma",
+        "param_type": "s",
+        "z0": 50,
+        "dataset_tag": "reference_ma",
+        "points": [
+          {
+            "freq_ghz": 0,
+            "param": "S11",
+            "real": 0,
+            "imag": 0,
+            "mag_linear": 0,
+            "mag_db": -300,
+            "phase_deg": 0,
+            "dataset_tag": "reference_ma"
+          },
+          {
+            "freq_ghz": 1,
+            "param": "S11",
+            "real": 3.0615158845559431e-17,
+            "imag": 0.5,
+            "mag_linear": 0.5,
+            "mag_db": -6.0205999132796242,
+            "phase_deg": 90,
+            "dataset_tag": "reference_ma"
+          },
+          {
+            "freq_ghz": 2,
+            "param": "S11",
+            "real": 0.70710678118654757,
+            "imag": -0.70710678118654746,
+            "mag_linear": 1,
+            "mag_db": 0,
+            "phase_deg": -45,
+            "dataset_tag": "reference_ma"
+          }
+        ]
+      }
+    },
+    {
+      "filename": "reference_ri.s2p",
+      "md5": "d8f3f4a65091a2785a3c3cc82542b2a6",
+      "expected": {
+        "nports": 2,
+        "freq_ghz": [1, 2],
+        "freq_unit": "mhz",
+        "data_format": "ri",
+        "param_type": "s",
+        "z0": 75,
+        "dataset_tag": "reference_ri",
+        "points": [
+          {
+            "freq_ghz": 1,
+            "param": "S11",
+            "real": 0.10000000000000001,
+            "imag": 0.20000000000000001,
+            "mag_linear": 0.22360679774997899,
+            "mag_db": -13.010299956639811,
+            "phase_deg": 63.43494882292201,
+            "dataset_tag": "reference_ri"
+          },
+          {
+            "freq_ghz": 1,
+            "param": "S21",
+            "real": 2,
+            "imag": -0.5,
+            "mag_linear": 2.0615528128088303,
+            "mag_db": 6.283889300503116,
+            "phase_deg": -14.036243467926477,
+            "dataset_tag": "reference_ri"
+          },
+          {
+            "freq_ghz": 1,
+            "param": "S12",
+            "real": 0.029999999999999999,
+            "imag": 0.040000000000000001,
+            "mag_linear": 0.050000000000000003,
+            "mag_db": -26.020599913279625,
+            "phase_deg": 53.13010235415598,
+            "dataset_tag": "reference_ri"
+          },
+          {
+            "freq_ghz": 1,
+            "param": "S22",
+            "real": -0.20000000000000001,
+            "imag": 0.10000000000000001,
+            "mag_linear": 0.22360679774997899,
+            "mag_db": -13.010299956639811,
+            "phase_deg": 153.43494882292202,
+            "dataset_tag": "reference_ri"
+          },
+          {
+            "freq_ghz": 2,
+            "param": "S11",
+            "real": 0,
+            "imag": 0,
+            "mag_linear": 0,
+            "mag_db": -300,
+            "phase_deg": 0,
+            "dataset_tag": "reference_ri"
+          },
+          {
+            "freq_ghz": 2,
+            "param": "S21",
+            "real": 1,
+            "imag": 1,
+            "mag_linear": 1.4142135623730951,
+            "mag_db": 3.0102999566398125,
+            "phase_deg": 45,
+            "dataset_tag": "reference_ri"
+          },
+          {
+            "freq_ghz": 2,
+            "param": "S12",
+            "real": -0.01,
+            "imag": 0.02,
+            "mag_linear": 0.022360679774997897,
+            "mag_db": -33.010299956639813,
+            "phase_deg": 116.56505117707799,
+            "dataset_tag": "reference_ri"
+          },
+          {
+            "freq_ghz": 2,
+            "param": "S22",
+            "real": 0.29999999999999999,
+            "imag": -0.40000000000000002,
+            "mag_linear": 0.5,
+            "mag_db": -6.0205999132796242,
+            "phase_deg": -53.13010235415598,
+            "dataset_tag": "reference_ri"
+          }
+        ]
+      }
+    }
+  ]
+}

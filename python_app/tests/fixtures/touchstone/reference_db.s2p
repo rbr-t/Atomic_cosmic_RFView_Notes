@@ -1,0 +1,4 @@
+! Synthetic two-port log-magnitude data
+# kHz S DB R 50
+1000000 -20 30 10 -45 -30 90 -10 0
+2000000 -10 -90 6 60 -40 -30 -15 180

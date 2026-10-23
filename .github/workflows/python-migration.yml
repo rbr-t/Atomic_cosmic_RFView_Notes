@@ -5,6 +5,7 @@ on:
     paths:
       - "python_app/**"
       - "PA design App/src/modules/calculations/**"
+      - "PA design App/src/modules/rf_tools/sp_parsers.R"
       - "PA design App/config/technology_guardrails.yaml"
       - "PA design App/assets/js/common/pa_lineup_canvas.js"
       - ".github/workflows/python-migration.yml"
@@ -12,6 +13,7 @@ on:
     paths:
       - "python_app/**"
       - "PA design App/src/modules/calculations/**"
+      - "PA design App/src/modules/rf_tools/sp_parsers.R"
       - "PA design App/config/technology_guardrails.yaml"
       - "PA design App/assets/js/common/pa_lineup_canvas.js"
       - ".github/workflows/python-migration.yml"

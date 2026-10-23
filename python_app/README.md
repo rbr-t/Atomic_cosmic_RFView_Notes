@@ -254,6 +254,57 @@ Doherty behavior, zero frequency, blank power, invalid supply voltage, recovery,
 session isolation, narrow layouts and unchanged lineup results. The full suite
 continues to pass **422 tests**, with lint and strict type checks.
 
+### Batch 7 - bounded Touchstone parser
+
+[touchstone.py](src/rfview/domain/touchstone.py) provides a pure
+`parse_touchstone(text, filename, dataset_tag=None)` API. The filesystem boundary
+is `read_touchstone(path, dataset_tag=None)` in
+[services.py](src/rfview/services.py). Both raise explicit errors; no Shiny, R,
+database or network is needed.
+
+```python
+from pathlib import Path
+from rfview.services import read_touchstone
+
+network = read_touchstone(Path("measurement.s2p"))
+print(network.freq_ghz, network.z0)
+print(network.points[1].param)  # S21, not S12
+```
+
+Current scope:
+
+- Touchstone 1.x `.s1p`/`.s2p`, RI/MA/DB, Hz/kHz/MHz/GHz and scalar positive
+  reference impedance.
+- Full-line/inline comments, wrapped records, BOM and scientific notation.
+- Typed immutable results with GHz frequencies and long-form parameter points:
+  real/imaginary, linear/dB magnitude, phase in degrees and dataset tag.
+- Legacy-compatible GHz/MA/50-ohm defaults when no option line is supplied;
+  zero magnitudes use the legacy -300 dB display floor.
+- Explicit 5 MiB and 100,000-frequency limits.
+
+Three synthetic file fixtures are compared against the active R parser,
+including an asymmetric two-port case that verifies S11/S21/S12/S22 ordering.
+Forty focused tests cover conversion, record wrapping, units, defaults, limits
+and malformed input. The full Python suite now has **462 passing tests**.
+The optional [R exporter](tests/reference/export_touchstone.R) freezes numeric
+references and source/fixture fingerprints; normal tests do not require R.
+
+Intentional validation improvements: bad numeric tokens, nonfinite values,
+incomplete tails, duplicate/late options, nonpositive reference impedance,
+negative MA magnitudes and nonincreasing frequencies fail rather than being
+silently discarded or producing partially parsed success.
+
+**Not delivered:** upload/viewer UI, Touchstone 2.x keyword sections, three or
+more ports, noise blocks, per-port reference impedances, non-S parameters,
+S-to-Z/Y/H conversion and export. Unsupported keyword sections and formats are
+rejected. The legacy parser labels all multiport values column-major and
+ignores 2.x keywords; the new parser deliberately does not reproduce those
+claims until separately qualified.
+
+This API preserves short fixture-style filename tags; it does not reproduce
+the legacy automatic shortening of filenames longer than 32 characters.
+No existing application upload limit is changed by this bounded API.
+
 ## Validation
 
 From the repository root:

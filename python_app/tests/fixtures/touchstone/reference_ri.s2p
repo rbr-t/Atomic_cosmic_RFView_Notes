@@ -1,0 +1,7 @@
+! Synthetic asymmetric two-port fixture, not customer data
+# MHz S RI R 75
+1000 0.1 0.2 2 -0.5 0.03 0.04 -0.2 0.1 ! first record
+2000 0 0
+1 1
+-0.01 0.02
+0.3 -0.4
