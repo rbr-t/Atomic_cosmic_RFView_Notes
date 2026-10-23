@@ -165,12 +165,13 @@ app_ui = ui.page_fluid(
             ui.input_select("touchstone_parameter", "S-parameter", ["S11", "S21", "S12", "S22"]),
             ui.input_select(
                 "touchstone_representation",
-                "Network representation (same row/column indices)",
+                "Network view (S/Z/Y share row/column indices)",
                 {
                     "S": "S magnitude / phase",
                     "Z": "Z real / imaginary (ohm)",
                     "Y": "Y real / imaginary (siemens)",
                     "Smith": "Smith impedance chart (S11/S22)",
+                    "Stability": "Two-port stability / legacy gain metrics",
                 },
             ),
             ui.output_text("touchstone_status"),

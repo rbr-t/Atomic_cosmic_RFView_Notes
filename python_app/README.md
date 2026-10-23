@@ -461,9 +461,38 @@ boundary, active-reflection, zero-forward and negligible-reverse networks.
 Independent checks verify known metrics, undefined cases and cancellation-safe
 large-K behavior. The full suite now has **566 passing tests**.
 
-This batch is API-only: no stability plot, stable/unstable UI badge or stability
-circles are yet added. Normal Python runtime/tests do not require R; the
+This batch is API-only; Batch 13 adds a numeric viewer. Stability plots and
+circles are not included. Normal Python runtime/tests do not require R; the
 [reference exporter](tests/reference/export_stability.R) is optional.
+
+### Batch 13 - Touchstone stability table
+
+In the Touchstone viewer, choose **Two-port stability / legacy gain metrics**.
+The frequency-indexed table displays determinant magnitude, K, input/output mu,
+B1, legacy MSG/MAG (dB) and the legacy stable flag. It uses the complete network,
+independent of the S-parameter selector; no uploaded values or lineup settings
+are changed. The existing 2,000-frequency viewer limit remains in force.
+
+The model identifier and gain-scale/stability-certification warnings remain
+visible above the table. Undefined metrics are explicitly labelled, including
+the legacy infinite-K case, rather than omitted or rendered as zero. Warnings
+explain the undefined cases. A false legacy flag is not labelled as proof of
+instability, and a true flag is not labelled as safety certification.
+
+One-port data is explicitly rejected for this view; choose S to recover.
+Numerical failures replace the whole table with a frequency-specific error,
+leaving the source network available. No partial table or silent decimation is
+used. The table has labelled row/column headers and a keyboard-focusable
+horizontal scroll region, reusing the existing responsive table styling.
+
+The full Python suite now has **569 passing tests**. Renderer tests compare all
+displayed metrics with the qualified API, verify frequency/matrix orientation,
+parameter independence, undefined values, unchanged source data, one-port
+rejection and numeric-failure recovery. Chromium regression verifies view
+switching, parameter independence, one-port rejection and table containment at
+375/768/1440 px, alongside the existing lineup/upload/sizing/session workflows.
+No stability circles, corrected
+power-gain model, dataset overlays or export are delivered in this slice.
 
 ## Validation
 

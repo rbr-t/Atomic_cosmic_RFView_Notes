@@ -106,3 +106,66 @@ def test_unsupported_views_fail_explicitly(representation: str) -> None:
     network = parse_touchstone("1 0.1 0", "one.s1p")
     with pytest.raises(ValueError):
         touchstone_panel(network, "S11", representation)
+
+
+def test_stability_table_uses_complete_network_and_qualified_metrics() -> None:
+    from rfview.domain.stability import stability_metrics
+
+    network = read_touchstone(FIXTURE)
+    before = network.model_dump()
+    html = str(touchstone_panel(network, "S21", "Stability"))
+    assert html == str(touchstone_panel(network, "S12", "Stability"))
+    table = ElementTree.fromstring(re.search(r"<table.*?</table>", html, re.S)[0])
+    rows = table.findall("tbody/tr")
+    assert len(rows) == len(network.freq_ghz)
+    for index, row in enumerate(rows):
+        record = {
+            p.param: complex(p.real, p.imag) for p in network.points[index * 4 : index * 4 + 4]
+        }
+        metrics = stability_metrics(
+            ((record["S11"], record["S12"]), (record["S21"], record["S22"]))
+        )
+        assert float(row.find("th").text) == network.freq_ghz[index]
+        expected = [
+            metrics.delta_mag,
+            metrics.K,
+            metrics.mu_in,
+            metrics.mu_out,
+            metrics.B1,
+            metrics.msg_db,
+            metrics.mag_db,
+        ]
+        cells = row.findall("td")
+        for cell, value in zip(cells[:7], expected, strict=True):
+            if value is None:
+                assert cell.text == "Undefined"
+            else:
+                assert float(cell.text) == pytest.approx(value, rel=1e-10, abs=1e-12)
+        assert cells[7].text == str(metrics.stable)
+    assert "20*log10" in html and "not the conventional 10*log10" in html
+    assert "not a full stability certification" in html
+    assert "legacy-r-stability-v1" in html
+    assert 'tabindex="0"' in html
+    assert network.model_dump() == before
+
+
+def test_stability_undefined_values_are_not_silently_omitted() -> None:
+    network = parse_touchstone("# GHz S RI R 50\n1 0 0 0 0 0 0 0 0", "matched.s2p")
+    html = str(touchstone_panel(network, "S11", "Stability"))
+    assert html.count("<tr>") == 2
+    assert html.count("<td>Undefined</td>") == 5
+    assert "<td>False</td>" in html
+    assert "legacy infinite-K case" in html
+    assert "mu denominator is negligible" in html
+
+
+def test_stability_rejects_one_port_and_reports_numeric_failure_frequency() -> None:
+    one_port = parse_touchstone("1 0.1 0", "one.s1p")
+    with pytest.raises(ValueError, match="requires a two-port dataset"):
+        touchstone_panel(one_port, "S11", "Stability")
+    network = parse_touchstone(
+        "# GHz S RI R 50\n1 0 0 0 0 0 0 0 0\n2 1e200 0 0 0 0 0 0 0", "overflow.s2p"
+    )
+    with pytest.raises(ValueError, match="failed at 2 GHz.*No partial table"):
+        touchstone_panel(network, "S11", "Stability")
+    assert "S11 magnitude" in str(touchstone_panel(network, "S11"))

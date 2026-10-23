@@ -1,11 +1,93 @@
 from shiny import ui
 
-from rfview.domain.network_parameters import s_to_y, s_to_z
+from rfview.domain.network_parameters import Matrix2, s_to_y, s_to_z
+from rfview.domain.stability import stability_metrics
 from rfview.domain.touchstone import TouchstoneData
 from rfview.smith_ui import smith_chart
 from rfview.technology_ui import Trace, line_chart
 
 MAX_VIEWER_FREQUENCIES = 2000
+
+
+def _two_port_matrix(network: TouchstoneData, offset: int) -> Matrix2:
+    record = network.points[offset * 4 : offset * 4 + 4]
+    values = {p.param: complex(p.real, p.imag) for p in record}
+    return ((values["S11"], values["S12"]), (values["S21"], values["S22"]))
+
+
+def _stability_table(network: TouchstoneData) -> ui.Tag:
+    rows: list[ui.Tag] = []
+    warnings: dict[str, None] = {}
+    for offset, freq in enumerate(network.freq_ghz):
+        try:
+            metrics = stability_metrics(_two_port_matrix(network, offset))
+        except ValueError as exc:
+            raise ValueError(
+                f"Stability calculation failed at {freq:g} GHz: {exc}. "
+                "No partial table is displayed; select S to view the source data."
+            ) from exc
+        warnings.update(dict.fromkeys(metrics.warnings))
+        values = [
+            metrics.delta_mag,
+            metrics.K,
+            metrics.mu_in,
+            metrics.mu_out,
+            metrics.B1,
+            metrics.msg_db,
+            metrics.mag_db,
+        ]
+        rows.append(
+            ui.tags.tr(
+                ui.tags.th(f"{freq:.12g}", scope="row"),
+                *(
+                    ui.tags.td("Undefined" if value is None else f"{value:.12g}")
+                    for value in values
+                ),
+                ui.tags.td("True" if metrics.stable else "False"),
+            )
+        )
+    return ui.div(
+        ui.h3("Two-port stability - legacy-r-stability-v1"),
+        ui.p(
+            "Uses the complete two-port network, independent of the S-parameter selector. "
+            "All metrics except frequency and gain are dimensionless. "
+            "Undefined K includes the legacy infinite-K case; no rows are dropped."
+        ),
+        ui.div(
+            ui.h4("Model warnings"),
+            ui.tags.ul(*(ui.tags.li(message) for message in warnings)),
+            class_="migration-notice",
+        ),
+        ui.div(
+            ui.tags.table(
+                ui.tags.caption("Legacy stability and gain metrics at every uploaded frequency"),
+                ui.tags.thead(
+                    ui.tags.tr(
+                        *(
+                            ui.tags.th(label, scope="col")
+                            for label in (
+                                "Frequency (GHz)",
+                                "|Delta|",
+                                "K",
+                                "mu_in",
+                                "mu_out",
+                                "B1",
+                                "Legacy MSG (dB)",
+                                "Legacy MAG (dB)",
+                                "Legacy stable flag",
+                            )
+                        )
+                    )
+                ),
+                ui.tags.tbody(*rows),
+                id="stability_metrics_table",
+            ),
+            class_="table-scroll",
+            tabindex="0",
+            role="region",
+            **{"aria-label": "Scrollable two-port stability metrics"},
+        ),
+    )
 
 
 def touchstone_panel(network: TouchstoneData, parameter: str, representation: str = "S") -> ui.Tag:
@@ -14,12 +96,18 @@ def touchstone_panel(network: TouchstoneData, parameter: str, representation: st
     points = [point for point in network.points if point.param == parameter]
     if not points:
         raise ValueError(f"Parameter {parameter} is not present in {network.filename}")
-    if representation not in ("S", "Z", "Y", "Smith"):
+    if representation not in ("S", "Z", "Y", "Smith", "Stability"):
         raise ValueError(f"Unsupported network representation: {representation}")
     if representation in ("Z", "Y") and network.nports != 2:
         raise ValueError("Z/Y conversion requires a two-port dataset; select S for one-port data")
+    if representation == "Stability" and network.nports != 2:
+        raise ValueError(
+            "Stability analysis requires a two-port dataset; select S for one-port data"
+        )
     charts: list[ui.Tag]
-    if representation == "Smith":
+    if representation == "Stability":
+        charts = [_stability_table(network)]
+    elif representation == "Smith":
         charts = [smith_chart(points, parameter, network.z0)]
     elif representation == "S":
         charts = [
@@ -41,9 +129,7 @@ def touchstone_panel(network: TouchstoneData, parameter: str, representation: st
         converted: list[tuple[float, complex]] = []
         row, col = int(parameter[1]) - 1, int(parameter[2]) - 1
         for offset, freq in enumerate(network.freq_ghz):
-            record = network.points[offset * 4 : offset * 4 + 4]
-            values = {p.param: complex(p.real, p.imag) for p in record}
-            matrix = ((values["S11"], values["S12"]), (values["S21"], values["S22"]))
+            matrix = _two_port_matrix(network, offset)
             try:
                 result = convert(matrix, network.z0)
             except ValueError as exc:
