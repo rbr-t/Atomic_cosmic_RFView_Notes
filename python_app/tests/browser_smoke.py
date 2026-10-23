@@ -22,6 +22,25 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#summary")).to_contain_text("35.400 dBm")
         expect(page.locator("#sizing")).to_contain_text("33.800 ohm")
         expect(page.locator("#sizing")).to_contain_text("4.000 mm")
+        page.get_by_text("Touchstone magnitude and phase viewer", exact=True).click()
+        fixture = Path(__file__).parent / "fixtures" / "touchstone"
+        page.locator("#touchstone_upload").set_input_files(fixture / "reference_db.s2p")
+        expect(page.locator("#touchstone_status")).to_contain_text("Loaded reference_db.s2p")
+        expect(page.locator("#touchstone_view svg")).to_have_count(2)
+        expect(page.locator("#touchstone_view svg").first).to_be_visible()
+        page.locator("#touchstone_parameter").select_option("S21")
+        expect(page.locator("#touchstone_view")).to_contain_text("S21 magnitude")
+        rejected = Path(temp) / "invalid.s2p"
+        rejected.write_text("1 BAD", encoding="utf-8")
+        page.locator("#touchstone_upload").set_input_files(rejected)
+        expect(page.locator("#touchstone_status")).to_contain_text("Last valid dataset retained")
+        expect(page.locator("#touchstone_view")).to_contain_text("reference_db.s2p")
+        page.locator("#touchstone_upload").set_input_files(fixture / "reference_ma.s1p")
+        expect(page.locator("#touchstone_view")).to_contain_text("reference_ma.s1p")
+        expect(page.locator("#touchstone_parameter option")).to_have_count(1)
+        expect(page.locator("#touchstone_view")).to_contain_text("S11 magnitude")
+        expect(page.locator("#summary")).to_contain_text("35.400 dBm")
+        page.get_by_text("Touchstone magnitude and phase viewer", exact=True).click()
 
         page.get_by_text("Full-stage transistor sizing", exact=True).click()
         suite = page.locator("#full_stage_sizing")
@@ -141,6 +160,7 @@ def main(url: str, channel: str | None = None) -> None:
         )
         expect(second.locator("#input_power_dbm")).to_have_value("20")
         expect(second.locator("#suite_topology")).to_have_value("doherty_symmetric")
+        expect(second.locator("#touchstone_status")).to_contain_text("No Touchstone dataset")
         second.close()
 
         malformed = Path(temp) / "invalid.json"
@@ -153,9 +173,11 @@ def main(url: str, channel: str | None = None) -> None:
             if width == 375:
                 page.get_by_text("Technology charts and summary", exact=True).click()
                 page.get_by_text("Full-stage transistor sizing", exact=True).click()
+                page.get_by_text("Touchstone magnitude and phase viewer", exact=True).click()
             page.set_viewport_size({"width": width, "height": 1000})
             expect(page.locator("#technology_charts svg").first).to_be_visible()
             expect(page.locator("#full_stage_sizing table")).to_be_visible()
+            expect(page.locator("#touchstone_view svg").first).to_be_visible()
             assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"), (
                 f"Page overflows at width {width}"
             )
@@ -163,7 +185,7 @@ def main(url: str, channel: str | None = None) -> None:
         browser.close()
     print(
         "Browser smoke passed: calculation, full-stage sizing, charts, guardrails, "
-        "edit, undo/redo, download/upload, isolation and errors."
+        "Touchstone viewer, edit, undo/redo, download/upload, isolation and errors."
     )
 
 

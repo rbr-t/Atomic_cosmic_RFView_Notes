@@ -23,7 +23,7 @@ class Trace:
     dashed: bool = False
 
 
-def _chart(
+def line_chart(
     title: str,
     x_label: str,
     y_label: str,
@@ -37,7 +37,7 @@ def _chart(
     xs = [math.log10(x) if log_x else x for x, _ in points]
     ys = [y for _, y in points]
     xmin, xmax = min(xs), max(xs)
-    ymin, ymax = 0.0, max(max(ys) * 1.08, 1)
+    ymin, ymax = min(min(ys) * 1.08, 0), max(max(ys) * 1.08, 1)
     if xmax == xmin:
         xmax = xmin + 1
 
@@ -52,15 +52,15 @@ def _chart(
         f'role="img" aria-label="{escape(title, quote=True)}">',
         f"<title>{escape(title)}</title>",
         f"<desc>{escape(x_label)} versus {escape(y_label)}. "
-        "Each trace is labelled in the legend. Dashed lines denote maximum gain. "
-        "Choose one technology to inspect its curves without overlap.</desc>",
+        "Each trace is labelled in the legend. "
+        "Dashed lines, when present, denote maximum gain.</desc>",
         '<path class="chart-axis" d="M75 40V290H725"/>',
     ]
     for index in range(6):
         xv = xmin + (xmax - xmin) * index / 5
         x, y = 75 + 650 * index / 5, 290 - 250 * index / 5
         xvalue = 10**xv if log_x else xv
-        yvalue = ymax * index / 5
+        yvalue = ymin + (ymax - ymin) * index / 5
         svg.extend(
             [
                 f'<path class="chart-grid" d="M75 {y:.3f}H725"/>',
@@ -70,6 +70,12 @@ def _chart(
         )
     for trace in traces:
         coordinates = " ".join(f"{px(x):.3f},{py(y):.3f}" for x, y in trace.points)
+        if len(trace.points) == 1:
+            x, y = trace.points[0]
+            svg.append(
+                f'<circle cx="{px(x):.3f}" cy="{py(y):.3f}" r="4" '
+                f'fill="{escape(trace.color)}"><title>{escape(trace.label)}</title></circle>'
+            )
         svg.append(
             f'<polyline class="chart-trace" style="--trace-color:{escape(trace.color)}" '
             f'points="{coordinates}" fill="none" stroke-width="2" '
@@ -171,21 +177,23 @@ def technology_panel(catalog: GuardrailCatalog, technology: str, pa_class: str) 
             "Frequency axes are logarithmic; power-density lines show typical values. "
             "Technology filters do not change the lineup or advisory."
         ),
-        _chart(
+        line_chart(
             "Technology design space",
             "Frequency (GHz, log scale)",
             "Typical power density (W/mm)",
             density_traces,
             log_x=True,
         ),
-        _chart(
+        line_chart(
             "Gain-bandwidth envelope",
             "Frequency (GHz, log scale)",
             "Available gain (dB)",
             gain_traces,
             log_x=True,
         ),
-        _chart(f"PAE-backoff curves - {pa_class}", "Output backoff (dB)", "PAE (%)", pae_traces),
+        line_chart(
+            f"PAE-backoff curves - {pa_class}", "Output backoff (dB)", "PAE (%)", pae_traces
+        ),
         ui.div(
             ui.tags.table(
                 ui.tags.caption("Technology guardrail summary"),

@@ -11,6 +11,7 @@ from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 from rfview.domain.guardrails import DeviceParameters, validate_device_params
 from rfview.domain.lineup import calculate_lineup
 from rfview.domain.models import LineupDocument, LineupResult, OperatingPoint
+from rfview.domain.touchstone import TouchstoneData
 from rfview.domain.transistor import (
     DesignTopology,
     StageSizingInput,
@@ -23,10 +24,12 @@ from rfview.services import (
     operating_point,
     read_document,
     read_guardrails,
+    read_touchstone,
     serialize_document,
     with_operating_point,
 )
 from rfview.technology_ui import technology_panel
+from rfview.touchstone_ui import MAX_VIEWER_FREQUENCIES, touchstone_panel
 
 logger = logging.getLogger(__name__)
 PACKAGE_ROOT = Path(__file__).resolve().parent
@@ -69,7 +72,7 @@ app_ui = ui.page_fluid(
         ui.h1("RF PA Design - Python"),
         ui.p(
             "Migration preview - session-only. Legacy R application remains unchanged. "
-            "Projects/DB, LP/SP viewers, AI/KB, CAD and workspace document builds "
+            "Projects/DB, load-pull, advanced SP features, AI/KB, CAD and document builds "
             "are not ported yet.",
             class_="migration-notice",
         ),
@@ -153,6 +156,17 @@ app_ui = ui.page_fluid(
         ui.output_ui("summary"),
         ui.output_ui("stage_table"),
         ui.tags.details(
+            ui.tags.summary("Touchstone magnitude and phase viewer"),
+            ui.p(
+                "Session-only Touchstone 1.x .s1p/.s2p viewer, max 5 MiB and "
+                "2,000 frequencies. Uploads are not saved in lineup JSON."
+            ),
+            ui.input_file("touchstone_upload", "Upload Touchstone", accept=[".s1p", ".s2p"]),
+            ui.input_select("touchstone_parameter", "S-parameter", ["S11", "S21", "S12", "S22"]),
+            ui.output_text("touchstone_status"),
+            ui.output_ui("touchstone_view"),
+        ),
+        ui.tags.details(
             ui.tags.summary("Full-stage transistor sizing"),
             ui.p(
                 "Independent preliminary GaN synthesis. Inputs are session-only, "
@@ -217,6 +231,50 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     last_serialized = reactive.Value("")
     result_input = reactive.Value("")
     prepared = reactive.Value(False)
+    network: reactive.Value[TouchstoneData | None] = reactive.Value(None)
+    network_status = reactive.Value("No Touchstone dataset loaded.")
+
+    @reactive.effect
+    @reactive.event(input.touchstone_upload)
+    def _touchstone_upload() -> None:
+        files = input.touchstone_upload()
+        if not files:
+            return
+        try:
+            parsed = read_touchstone(Path(files[0]["datapath"]), filename=files[0]["name"])
+            if len(parsed.freq_ghz) > MAX_VIEWER_FREQUENCIES:
+                raise ValueError(
+                    f"Viewer limit is {MAX_VIEWER_FREQUENCIES} frequency records; "
+                    "the parser API supports larger datasets."
+                )
+        except (ValueError, OSError) as exc:
+            message = f"Touchstone upload rejected: {exc}. Last valid dataset retained."
+            logger.warning("%s", message)
+            network_status.set(message)
+            ui.notification_show(message, type="error", duration=None, session=session)
+            return
+        network.set(parsed)
+        choices = ["S11"] if parsed.nports == 1 else ["S11", "S21", "S12", "S22"]
+        ui.update_select("touchstone_parameter", choices=choices, selected="S11", session=session)
+        network_status.set(f"Loaded {parsed.filename}. Session-only; no dataset saved.")
+
+    @render.text
+    def touchstone_status() -> str:
+        return network_status()
+
+    @render.ui
+    def touchstone_view() -> ui.Tag:
+        current = network()
+        if current is None:
+            return ui.p("Upload a supported Touchstone file to view its magnitude and phase.")
+        parameter = input.touchstone_parameter()
+        if current.nports == 1 and parameter != "S11":
+            return ui.p("Updating parameter selection for the one-port dataset.")
+        try:
+            return touchstone_panel(current, parameter)
+        except ValueError as exc:
+            logger.warning("Touchstone view rejected: %s", exc)
+            return ui.p(f"Touchstone view rejected: {exc}", role="alert")
 
     @render.ui
     def technology_charts() -> ui.Tag:

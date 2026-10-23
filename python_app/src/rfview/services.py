@@ -14,10 +14,14 @@ from rfview.domain.touchstone import (
 MAX_DOCUMENT_BYTES = 5 * 1024 * 1024
 
 
-def read_touchstone(path: Path, dataset_tag: str | None = None) -> TouchstoneData:
+def read_touchstone(
+    path: Path, dataset_tag: str | None = None, *, filename: str | None = None
+) -> TouchstoneData:
     if path.stat().st_size > MAX_TOUCHSTONE_BYTES:
         raise ValueError("Touchstone exceeds the 5 MiB migration limit")
-    return parse_touchstone(path.read_text(encoding="utf-8-sig"), path.name, dataset_tag)
+    return parse_touchstone(
+        path.read_text(encoding="utf-8-sig"), filename or path.name, dataset_tag
+    )
 
 
 def read_guardrails(path: Path) -> GuardrailCatalog:

@@ -294,7 +294,8 @@ incomplete tails, duplicate/late options, nonpositive reference impedance,
 negative MA magnitudes and nonincreasing frequencies fail rather than being
 silently discarded or producing partially parsed success.
 
-**Not delivered:** upload/viewer UI, Touchstone 2.x keyword sections, three or
+**Not delivered in the parser batch:** upload/viewer UI (added in Batch 8),
+Touchstone 2.x keyword sections, three or
 more ports, noise blocks, per-port reference impedances, non-S parameters,
 S-to-Z/Y/H conversion and export. Unsupported keyword sections and formats are
 rejected. The legacy parser labels all multiport values column-major and
@@ -304,6 +305,34 @@ claims until separately qualified.
 This API preserves short fixture-style filename tags; it does not reproduce
 the legacy automatic shortening of filenames longer than 32 characters.
 No existing application upload limit is changed by this bounded API.
+
+### Batch 8 - Touchstone upload and magnitude/phase viewer
+
+Expand **Touchstone magnitude and phase viewer** below the lineup results.
+Upload a supported `.s1p`/`.s2p` file, then select an available S-parameter.
+The panel shows filename, port count, reference impedance, record count,
+frequency range and data representation, plus magnitude (dB) and wrapped phase
+(degrees) on linear frequency axes (GHz). Single-record datasets render a
+visible marker; negative dB and phase values remain within chart bounds.
+
+The viewer is deliberately capped at **2,000 frequency records** and 5 MiB.
+This keeps rendering bounded without hidden decimation; the parser API retains
+its separate 100,000-record limit. Unsupported/oversized uploads are rejected
+explicitly and leave the last valid dataset visible with a retention notice.
+The original upload filename, not the server's temporary filename, determines
+the port count.
+
+Datasets and parameter choices are session-local, independent of the lineup,
+and not saved in lineup JSON. One-port uploads expose only S11. New sessions
+start without an uploaded network. This does not yet include Smith charts,
+dataset overlays, phase unwrapping, zoom/pan, numeric hover, parameter conversion
+or export, calibration checks, noise data, Touchstone 2.x or multiport support.
+
+The full suite now has **466 passing tests**. New renderer tests cover signed
+axis bounds, single-record markers, escaping, upload filenames and viewer
+limits. Chromium workflows cover actual uploads, parameter selection, rejected
+upload retention, two-port-to-one-port switching, session isolation, responsive
+widths and preserved lineup/sizing behavior.
 
 ## Validation
 
