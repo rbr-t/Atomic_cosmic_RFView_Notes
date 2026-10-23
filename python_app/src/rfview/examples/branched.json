@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "components": [
+    {"id": 10, "type": "splitter", "x": 100, "y": 250, "properties": {"label": "Input splitter", "loss": 0.3}},
+    {"id": 20, "type": "transistor", "x": 350, "y": 150, "properties": {"label": "Main PA", "gain": 18, "gain_p3db": 16, "gain_bo": 17, "pae": 55, "p1db": 50, "vdd": 28, "rth": 2.5}},
+    {"id": 30, "type": "transistor", "x": 350, "y": 350, "properties": {"label": "Peak PA", "gain": 18, "gain_p3db": 16, "gain_bo": 17, "pae": 55, "p1db": 50, "vdd": 28, "rth": 2.5}},
+    {"id": 40, "type": "combiner", "x": 650, "y": 250, "properties": {"label": "Output combiner", "loss": 0.3}}
+  ],
+  "connections": [
+    {"from": 10, "to": 20},
+    {"from": 10, "to": 30},
+    {"from": 20, "to": 40},
+    {"from": 30, "to": 40}
+  ],
+  "metadata": {
+    "name": "Migration branched reference",
+    "version": "1.0",
+    "input_power_dbm": 20,
+    "backoff_db": 6,
+    "architecture": "doherty"
+  }
+}

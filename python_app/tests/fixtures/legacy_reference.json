@@ -1,0 +1,3060 @@
+{
+  "provenance": {
+    "runtime": "R version 4.4.1 (2024-06-14 ucrt)",
+    "source_md5": {
+      "calc_freq_planning.R": "b17266bb30d5cde705663065c320513a",
+      "calc_guardrails.R": "d828281727a4cff0acb2cddc9e7ec825",
+      "calc_link_budget.R": "3d7730bb3eca5080076486f14ede3007",
+      "calc_loss_curves.R": "5ed690cc6071bb7bed23cc47db078ca9",
+      "calc_pa_lineup.R": "05dba2bcae179746ba2ee56249592a33",
+      "calc_rf_tools.R": "c3196dbee2f9b145710543091bc995d1",
+      "calc_transistor_sizing.R": "349d445ac4d0696d9a5f3228ea98aa0b"
+    },
+    "note": "Generated from current source; known defects are documented, not corrected here."
+  },
+  "lineups": [
+    {
+      "name": "linear",
+      "document": {
+        "components": [
+          {
+            "id": 10,
+            "type": "transistor",
+            "x": 100,
+            "y": 200,
+            "properties": {
+              "label": "Driver",
+              "gain": 15,
+              "p1db": 50,
+              "pae": 40
+            }
+          },
+          {
+            "id": 20,
+            "type": "matching",
+            "x": 200,
+            "y": 200,
+            "properties": {
+              "loss": 0.5
+            }
+          },
+          {
+            "id": 30,
+            "type": "transistor",
+            "x": 300,
+            "y": 200,
+            "properties": {
+              "label": "PA",
+              "gain": 14,
+              "p1db": 60,
+              "pae": 55
+            }
+          }
+        ],
+        "connections": [],
+        "metadata": {
+          "version": "1.0"
+        }
+      },
+      "input_power_dbm": 20,
+      "backoff_db": 6,
+      "architecture": "conventional",
+      "expected": {
+        "success": true,
+        "backoff_db": 6,
+        "input_power_dbm": 20,
+        "final_pout_dbm": 44.5,
+        "final_pout_w": 28.183829312644551,
+        "total_gain": 24.5,
+        "total_pdc": 56.231481810412284,
+        "system_pae": 49.943249596962104,
+        "system_de": 50.121085920637789,
+        "total_pdiss": 28.047652497767732,
+        "final_pout_bo_dbm": 40.5,
+        "final_pout_bo_w": 11.220184543019631,
+        "total_pdc_bo": 46.584575077878625,
+        "system_pae_bo": 24.031700750707667,
+        "system_de_bo": 24.085621741235332,
+        "total_pdiss_bo": 35.364390534858998,
+        "stage_results": [
+          {
+            "stage": "Driver",
+            "type": "transistor",
+            "id": "10",
+            "pin_dbm": 20,
+            "pout_dbm": 33,
+            "gain_db": 15,
+            "pae_pct": 40,
+            "de_pct": 40,
+            "gain_full_db": 13,
+            "gain_bo_db": 14,
+            "pdc_w": 4.9881557874221967,
+            "pdiss_w": 2.9928934724533178,
+            "idc_a": 0.17814842097936417,
+            "tj_c": 32.482233681133295,
+            "compressed": false,
+            "technology": "GaN",
+            "pin_bo_dbm": 14,
+            "pout_bo_dbm": 28,
+            "pae_bo_pct": 15.924286822139891,
+            "de_bo_pct": 15.924286822139891,
+            "pdc_bo_w": 3.9622329811527819,
+            "pdiss_bo_w": 3.3312756366725891,
+            "tj_bo_c": 33.328189091681473,
+            "compressed_bo": false
+          },
+          {
+            "stage": "Stage_2",
+            "type": "matching",
+            "id": "20",
+            "pin_dbm": 33,
+            "pout_dbm": 32.5,
+            "loss_db": 0.5,
+            "gain_full_db": -0.5,
+            "gain_bo_db": -0.5,
+            "pin_bo_dbm": 28,
+            "pout_bo_dbm": 27.5
+          },
+          {
+            "stage": "PA",
+            "type": "transistor",
+            "id": "30",
+            "pin_dbm": 32.5,
+            "pout_dbm": 44.5,
+            "gain_db": 14,
+            "pae_pct": 55.000000000000007,
+            "de_pct": 55.000000000000007,
+            "gain_full_db": 12,
+            "gain_bo_db": 13,
+            "pdc_w": 51.24332602299009,
+            "pdiss_w": 23.059496710345538,
+            "idc_a": 1.8301187865353603,
+            "tj_c": 82.64874177586384,
+            "compressed": false,
+            "technology": "GaN",
+            "pin_bo_dbm": 27.5,
+            "pout_bo_dbm": 40.5,
+            "pae_bo_pct": 26.324655077745106,
+            "de_bo_pct": 26.324655077745106,
+            "pdc_bo_w": 42.622342096725845,
+            "pdiss_bo_w": 31.402157553706214,
+            "tj_bo_c": 103.50539388426553,
+            "compressed_bo": false
+          }
+        ],
+        "phase_results": [
+          {
+            "stage": "Driver",
+            "type": "transistor",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "Stage_2",
+            "type": "matching",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "PA",
+            "type": "transistor",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          }
+        ],
+        "warnings": null,
+        "rationale": "═══════════════════════════════════════\n  PA LINEUP CALCULATION RATIONALE\n═══════════════════════════════════════\n\nAssumption: port matching (50 Ω) at all interfaces.\n  Gain = transducer gain; no mismatch-loss correction applied.\n\nInput Power: 20.00 dBm (0.1000 W)\nBackoff Analysis: 6.0 dB below full power\n\nTopology: Using x-coordinate sort (no connection graph)\n\n─── Stage-by-Stage Analysis ───\n(Full Power | Backoff)\n\n[1] Driver (transistor)\n    Input: 20.00 dBm (full) | 14.00 dBm (backoff)\n    [Cascade fallback — no JS dual_op values]\n    Full: Pin=20.00 + Gain=13.0 → Pout=33.00 dBm\n    Backoff: Pin=14.00 + Gain=13.0 → Pout=28.00 dBm\n    Full: Pout=33.00 dBm, PAE=40.0%, PDC=4.988W, PDiss=2.993W, Tj=32.5°C\n    Backoff: Pout=28.00 dBm, PAE=15.9%, PDC=3.962W, PDiss=3.331W\n\n[2] Stage_2 (matching)\n    Input: 33.00 dBm (full) | 28.00 dBm (backoff)\n    Loss: 0.50 dB → Full: 32.50 dBm | Backoff: 27.50 dBm\n    Z: 50 Ω → 50 Ω\n\n[3] PA (transistor)\n    Input: 32.50 dBm (full) | 27.50 dBm (backoff)\n    [Cascade fallback — no JS dual_op values]\n    Full: Pin=32.50 + Gain=12.0 → Pout=44.50 dBm\n    Backoff: Pin=27.50 + Gain=12.0 → Pout=40.50 dBm\n    Full: Pout=44.50 dBm, PAE=55.0%, PDC=51.243W, PDiss=23.059W, Tj=82.6°C\n    Backoff: Pout=40.50 dBm, PAE=26.3%, PDC=42.622W, PDiss=31.402W\n\n─── System Summary ───\nTotal Gain: 24.50 dB\n\n[FULL POWER]\n  Output Power: 44.50 dBm (28.184 W)\n  Total DC Power: 56.231 W\n  System PAE: 49.9%\n  System DE:  50.1%\n  Heat Dissipation: 28.048 W\n\n[BACKOFF (6.0 dB)]\n  Output Power: 40.50 dBm (11.220 W)\n  Total DC Power: 46.585 W\n  System PAE: 24.0%\n  System DE:  24.1%\n  Heat Dissipation: 35.364 W\n\n✓ All stages operating within specifications\n\n═══════════════════════════════════════"
+      }
+    },
+    {
+      "name": "branched_doherty",
+      "document": {
+        "components": [
+          {
+            "id": 10,
+            "type": "splitter",
+            "x": 100,
+            "y": 250,
+            "properties": {
+              "label": "Input splitter",
+              "loss": 0.29999999999999999
+            }
+          },
+          {
+            "id": 20,
+            "type": "transistor",
+            "x": 350,
+            "y": 150,
+            "properties": {
+              "label": "Main PA",
+              "gain": 18,
+              "gain_p3db": 16,
+              "gain_bo": 17,
+              "pae": 55,
+              "p1db": 50,
+              "vdd": 28,
+              "rth": 2.5
+            }
+          },
+          {
+            "id": 30,
+            "type": "transistor",
+            "x": 350,
+            "y": 350,
+            "properties": {
+              "label": "Peak PA",
+              "gain": 18,
+              "gain_p3db": 16,
+              "gain_bo": 17,
+              "pae": 55,
+              "p1db": 50,
+              "vdd": 28,
+              "rth": 2.5
+            }
+          },
+          {
+            "id": 40,
+            "type": "combiner",
+            "x": 650,
+            "y": 250,
+            "properties": {
+              "label": "Output combiner",
+              "loss": 0.29999999999999999
+            }
+          }
+        ],
+        "connections": [
+          {
+            "from": 10,
+            "to": 20
+          },
+          {
+            "from": 10,
+            "to": 30
+          },
+          {
+            "from": 20,
+            "to": 40
+          },
+          {
+            "from": 30,
+            "to": 40
+          }
+        ],
+        "metadata": {
+          "version": "1.0"
+        }
+      },
+      "input_power_dbm": 20,
+      "backoff_db": 6,
+      "architecture": "doherty",
+      "expected": {
+        "success": true,
+        "backoff_db": 6,
+        "input_power_dbm": 20,
+        "final_pout_dbm": 35.400000000000006,
+        "final_pout_w": 3.4673685045253202,
+        "total_gain": 31.400000000000002,
+        "total_pdc": 6.7551859835849575,
+        "system_pae": 49.848642401674745,
+        "system_de": 51.328986543834546,
+        "total_pdiss": 3.2878174790596373,
+        "final_pout_bo_dbm": 30.399999999999999,
+        "final_pout_bo_w": 1.0964781961431851,
+        "total_pdc_bo": 2.136177372617325,
+        "system_pae_bo": 50.15310739460832,
+        "system_de_bo": 51.328986543834546,
+        "total_pdiss_bo": 1.0396991764741399,
+        "stage_results": [
+          {
+            "stage": "Input splitter",
+            "type": "splitter",
+            "id": "10",
+            "pin_dbm": 20,
+            "pout_dbm": 16.689700043360187,
+            "loss_db": 0.29999999999999999,
+            "split_loss_db": 3.0102999566398121,
+            "gain_full_db": -3.3102999566398119,
+            "gain_bo_db": -3.3102999566398119,
+            "n_outputs": 2,
+            "split_ratio": 0,
+            "pin_bo_dbm": 14,
+            "pout_bo_dbm": 10.689700043360187
+          },
+          {
+            "stage": "Main PA",
+            "type": "transistor",
+            "id": "20",
+            "pin_dbm": 16.689700043360187,
+            "pout_dbm": 32.68970004336019,
+            "gain_db": 18,
+            "pae_pct": 55.000000000000007,
+            "de_pct": 55.000000000000007,
+            "gain_full_db": 16.000000000000004,
+            "gain_bo_db": 17,
+            "pdc_w": 3.3775929917924787,
+            "pdiss_w": 1.5199168463066153,
+            "idc_a": 0.12062832113544567,
+            "tj_c": 28.79979211576654,
+            "compressed": false,
+            "technology": "GaN",
+            "pin_bo_dbm": 10.689700043360187,
+            "pout_bo_dbm": 27.689700043360187,
+            "pae_bo_pct": 55.000000000000007,
+            "de_bo_pct": 55.000000000000007,
+            "pdc_bo_w": 1.0680886863086625,
+            "pdiss_bo_w": 0.48063990883889807,
+            "tj_bo_c": 26.201599772097246,
+            "compressed_bo": false
+          },
+          {
+            "stage": "Peak PA",
+            "type": "transistor",
+            "id": "30",
+            "pin_dbm": 16.689700043360187,
+            "pout_dbm": 32.68970004336019,
+            "gain_db": 18,
+            "pae_pct": 55.000000000000007,
+            "de_pct": 55.000000000000007,
+            "gain_full_db": 16.000000000000004,
+            "gain_bo_db": 17,
+            "pdc_w": 3.3775929917924787,
+            "pdiss_w": 1.5199168463066153,
+            "idc_a": 0.12062832113544567,
+            "tj_c": 28.79979211576654,
+            "compressed": false,
+            "technology": "GaN",
+            "pin_bo_dbm": 10.689700043360187,
+            "pout_bo_dbm": 27.689700043360187,
+            "pae_bo_pct": 55.000000000000007,
+            "de_bo_pct": 55.000000000000007,
+            "pdc_bo_w": 1.0680886863086625,
+            "pdiss_bo_w": 0.48063990883889807,
+            "tj_bo_c": 26.201599772097246,
+            "compressed_bo": false
+          },
+          {
+            "stage": "Output combiner",
+            "type": "combiner",
+            "id": "40",
+            "pin_dbm": 35.700000000000003,
+            "pout_dbm": 35.400000000000006,
+            "loss_db": 0.29999999999999999,
+            "n_inputs": 2,
+            "gain_full_db": -0.29999999999999716,
+            "gain_bo_db": -0.30000000000000071,
+            "pin_bo_dbm": 30.699999999999999,
+            "pout_bo_dbm": 30.399999999999999
+          }
+        ],
+        "phase_results": [
+          {
+            "stage": "Input splitter",
+            "type": "splitter",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "Main PA",
+            "type": "transistor",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "Peak PA",
+            "type": "transistor",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "Output combiner",
+            "type": "combiner",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          }
+        ],
+        "warnings": null,
+        "rationale": "═══════════════════════════════════════\n  PA LINEUP CALCULATION RATIONALE\n═══════════════════════════════════════\n\nAssumption: port matching (50 Ω) at all interfaces.\n  Gain = transducer gain; no mismatch-loss correction applied.\n\nInput Power: 20.00 dBm (0.1000 W)\nBackoff Analysis: 6.0 dB below full power\n\nTopology: 4 connections, traversing 4 nodes in topological order\n\n─── Stage-by-Stage Analysis ───\n(Full Power | Backoff)\n\n[1] Input splitter (splitter)\n    Input: 20.00 dBm (full) | 14.00 dBm (backoff)\n    2-way split (3.01 dB) + ins. loss 0.30 dB\n    Per-path output: Full 16.69 dBm | Backoff 10.69 dBm\n\n[2] Main PA (transistor)\n    Input: 16.69 dBm (full) | 10.69 dBm (backoff)\n    [Cascade fallback — no JS dual_op values]\n    Full: Pin=16.69 + Gain=16.0 → Pout=32.69 dBm\n    Backoff: Pin=10.69 + Gain=16.0 → Pout=27.69 dBm\n    Full: Pout=32.69 dBm, PAE=55.0%, PDC=3.378W, PDiss=1.520W, Tj=28.8°C\n    Backoff: Pout=27.69 dBm, PAE=55.0%, PDC=1.068W, PDiss=0.481W\n\n[3] Peak PA (transistor)\n    Input: 16.69 dBm (full) | 10.69 dBm (backoff)\n    [Cascade fallback — no JS dual_op values]\n    Full: Pin=16.69 + Gain=16.0 → Pout=32.69 dBm\n    Backoff: Pin=10.69 + Gain=16.0 → Pout=27.69 dBm\n    Full: Pout=32.69 dBm, PAE=55.0%, PDC=3.378W, PDiss=1.520W, Tj=28.8°C\n    Backoff: Pout=27.69 dBm, PAE=55.0%, PDC=1.068W, PDiss=0.481W\n\n[4] Output combiner (combiner)\n    Input: 35.70 dBm (full) | 30.70 dBm (backoff)\n    Wilkinson combiner, 2 inputs summed at 35.70 dBm\n    After combiner loss 0.30 dB: Full 35.40 dBm | Backoff 30.40 dBm\n\n─── System Summary ───\nTotal Gain: 31.40 dB\n\n[FULL POWER]\n  Output Power: 35.40 dBm (3.467 W)\n  Total DC Power: 6.755 W\n  System PAE: 49.8%\n  System DE:  51.3%\n  Heat Dissipation: 3.288 W\n\n[BACKOFF (6.0 dB)]\n  Output Power: 30.40 dBm (1.096 W)\n  Total DC Power: 2.136 W\n  System PAE: 50.2%\n  System DE:  51.3%\n  Heat Dissipation: 1.040 W\n\n✓ All stages operating within specifications\n\n═══════════════════════════════════════"
+      }
+    },
+    {
+      "name": "branched_conventional",
+      "document": {
+        "components": [
+          {
+            "id": 10,
+            "type": "splitter",
+            "x": 100,
+            "y": 250,
+            "properties": {
+              "label": "Input splitter",
+              "loss": 0.29999999999999999
+            }
+          },
+          {
+            "id": 20,
+            "type": "transistor",
+            "x": 350,
+            "y": 150,
+            "properties": {
+              "label": "Main PA",
+              "gain": 18,
+              "gain_p3db": 16,
+              "gain_bo": 17,
+              "pae": 55,
+              "p1db": 50,
+              "vdd": 28,
+              "rth": 2.5
+            }
+          },
+          {
+            "id": 30,
+            "type": "transistor",
+            "x": 350,
+            "y": 350,
+            "properties": {
+              "label": "Peak PA",
+              "gain": 18,
+              "gain_p3db": 16,
+              "gain_bo": 17,
+              "pae": 55,
+              "p1db": 50,
+              "vdd": 28,
+              "rth": 2.5
+            }
+          },
+          {
+            "id": 40,
+            "type": "combiner",
+            "x": 650,
+            "y": 250,
+            "properties": {
+              "label": "Output combiner",
+              "loss": 0.29999999999999999
+            }
+          }
+        ],
+        "connections": [
+          {
+            "from": 10,
+            "to": 20
+          },
+          {
+            "from": 10,
+            "to": 30
+          },
+          {
+            "from": 20,
+            "to": 40
+          },
+          {
+            "from": 30,
+            "to": 40
+          }
+        ],
+        "metadata": {
+          "version": "1.0"
+        }
+      },
+      "input_power_dbm": 20,
+      "backoff_db": 10,
+      "architecture": "conventional",
+      "expected": {
+        "success": true,
+        "backoff_db": 10,
+        "input_power_dbm": 20,
+        "final_pout_dbm": 35.400000000000006,
+        "final_pout_w": 3.4673685045253202,
+        "total_gain": 31.400000000000002,
+        "total_pdc": 6.7551859835849575,
+        "system_pae": 49.848642401674745,
+        "system_de": 51.328986543834546,
+        "total_pdiss": 3.2878174790596373,
+        "final_pout_bo_dbm": 26.399999999999999,
+        "final_pout_bo_w": 0.43651583224016566,
+        "total_pdc_bo": 1.2012608145592654,
+        "system_pae_bo": 35.505680953777841,
+        "system_de_bo": 36.338139640417758,
+        "total_pdiss_bo": 0.76474498231909971,
+        "stage_results": [
+          {
+            "stage": "Input splitter",
+            "type": "splitter",
+            "id": "10",
+            "pin_dbm": 20,
+            "pout_dbm": 16.689700043360187,
+            "loss_db": 0.29999999999999999,
+            "split_loss_db": 3.0102999566398121,
+            "gain_full_db": -3.3102999566398119,
+            "gain_bo_db": -3.3102999566398119,
+            "n_outputs": 2,
+            "split_ratio": 0,
+            "pin_bo_dbm": 10,
+            "pout_bo_dbm": 6.6897000433601876
+          },
+          {
+            "stage": "Main PA",
+            "type": "transistor",
+            "id": "20",
+            "pin_dbm": 16.689700043360187,
+            "pout_dbm": 32.68970004336019,
+            "gain_db": 18,
+            "pae_pct": 55.000000000000007,
+            "de_pct": 55.000000000000007,
+            "gain_full_db": 16.000000000000004,
+            "gain_bo_db": 17,
+            "pdc_w": 3.3775929917924787,
+            "pdiss_w": 1.5199168463066153,
+            "idc_a": 0.12062832113544567,
+            "tj_c": 28.79979211576654,
+            "compressed": false,
+            "technology": "GaN",
+            "pin_bo_dbm": 6.6897000433601876,
+            "pout_bo_dbm": 23.689700043360187,
+            "pae_bo_pct": 38.937018141127581,
+            "de_bo_pct": 38.937018141127581,
+            "pdc_bo_w": 0.60063040727963268,
+            "pdiss_bo_w": 0.36676283663603365,
+            "tj_bo_c": 25.916907091590083,
+            "compressed_bo": false
+          },
+          {
+            "stage": "Peak PA",
+            "type": "transistor",
+            "id": "30",
+            "pin_dbm": 16.689700043360187,
+            "pout_dbm": 32.68970004336019,
+            "gain_db": 18,
+            "pae_pct": 55.000000000000007,
+            "de_pct": 55.000000000000007,
+            "gain_full_db": 16.000000000000004,
+            "gain_bo_db": 17,
+            "pdc_w": 3.3775929917924787,
+            "pdiss_w": 1.5199168463066153,
+            "idc_a": 0.12062832113544567,
+            "tj_c": 28.79979211576654,
+            "compressed": false,
+            "technology": "GaN",
+            "pin_bo_dbm": 6.6897000433601876,
+            "pout_bo_dbm": 23.689700043360187,
+            "pae_bo_pct": 38.937018141127581,
+            "de_bo_pct": 38.937018141127581,
+            "pdc_bo_w": 0.60063040727963268,
+            "pdiss_bo_w": 0.36676283663603365,
+            "tj_bo_c": 25.916907091590083,
+            "compressed_bo": false
+          },
+          {
+            "stage": "Output combiner",
+            "type": "combiner",
+            "id": "40",
+            "pin_dbm": 35.700000000000003,
+            "pout_dbm": 35.400000000000006,
+            "loss_db": 0.29999999999999999,
+            "n_inputs": 2,
+            "gain_full_db": -0.29999999999999716,
+            "gain_bo_db": -0.30000000000000071,
+            "pin_bo_dbm": 26.699999999999999,
+            "pout_bo_dbm": 26.399999999999999
+          }
+        ],
+        "phase_results": [
+          {
+            "stage": "Input splitter",
+            "type": "splitter",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "Main PA",
+            "type": "transistor",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "Peak PA",
+            "type": "transistor",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "Output combiner",
+            "type": "combiner",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          }
+        ],
+        "warnings": null,
+        "rationale": "═══════════════════════════════════════\n  PA LINEUP CALCULATION RATIONALE\n═══════════════════════════════════════\n\nAssumption: port matching (50 Ω) at all interfaces.\n  Gain = transducer gain; no mismatch-loss correction applied.\n\nInput Power: 20.00 dBm (0.1000 W)\nBackoff Analysis: 10.0 dB below full power\n\nTopology: 4 connections, traversing 4 nodes in topological order\n\n─── Stage-by-Stage Analysis ───\n(Full Power | Backoff)\n\n[1] Input splitter (splitter)\n    Input: 20.00 dBm (full) | 10.00 dBm (backoff)\n    2-way split (3.01 dB) + ins. loss 0.30 dB\n    Per-path output: Full 16.69 dBm | Backoff 6.69 dBm\n\n[2] Main PA (transistor)\n    Input: 16.69 dBm (full) | 6.69 dBm (backoff)\n    [Cascade fallback — no JS dual_op values]\n    Full: Pin=16.69 + Gain=16.0 → Pout=32.69 dBm\n    Backoff: Pin=6.69 + Gain=16.0 → Pout=23.69 dBm\n    Full: Pout=32.69 dBm, PAE=55.0%, PDC=3.378W, PDiss=1.520W, Tj=28.8°C\n    Backoff: Pout=23.69 dBm, PAE=38.9%, PDC=0.601W, PDiss=0.367W\n\n[3] Peak PA (transistor)\n    Input: 16.69 dBm (full) | 6.69 dBm (backoff)\n    [Cascade fallback — no JS dual_op values]\n    Full: Pin=16.69 + Gain=16.0 → Pout=32.69 dBm\n    Backoff: Pin=6.69 + Gain=16.0 → Pout=23.69 dBm\n    Full: Pout=32.69 dBm, PAE=55.0%, PDC=3.378W, PDiss=1.520W, Tj=28.8°C\n    Backoff: Pout=23.69 dBm, PAE=38.9%, PDC=0.601W, PDiss=0.367W\n\n[4] Output combiner (combiner)\n    Input: 35.70 dBm (full) | 26.70 dBm (backoff)\n    Wilkinson combiner, 2 inputs summed at 35.70 dBm\n    After combiner loss 0.30 dB: Full 35.40 dBm | Backoff 26.40 dBm\n\n─── System Summary ───\nTotal Gain: 31.40 dB\n\n[FULL POWER]\n  Output Power: 35.40 dBm (3.467 W)\n  Total DC Power: 6.755 W\n  System PAE: 49.8%\n  System DE:  51.3%\n  Heat Dissipation: 3.288 W\n\n[BACKOFF (10.0 dB)]\n  Output Power: 26.40 dBm (0.437 W)\n  Total DC Power: 1.201 W\n  System PAE: 35.5%\n  System DE:  36.3%\n  Heat Dissipation: 0.765 W\n\n✓ All stages operating within specifications\n\n═══════════════════════════════════════"
+      }
+    },
+    {
+      "name": "compression",
+      "document": {
+        "components": [
+          {
+            "id": 1,
+            "type": "transistor",
+            "x": 100,
+            "y": 200,
+            "properties": {
+              "gain": 25,
+              "p1db": 30,
+              "pae": 50
+            }
+          }
+        ],
+        "connections": [],
+        "metadata": {
+          "version": "1.0"
+        }
+      },
+      "input_power_dbm": 20,
+      "backoff_db": 1,
+      "architecture": "conventional",
+      "expected": {
+        "success": true,
+        "backoff_db": 1,
+        "input_power_dbm": 20,
+        "final_pout_dbm": 30,
+        "final_pout_w": 1,
+        "total_gain": 23,
+        "total_pdc": 2,
+        "system_pae": 45,
+        "system_de": 50,
+        "total_pdiss": 1,
+        "final_pout_bo_dbm": 30,
+        "final_pout_bo_w": 1,
+        "total_pdc_bo": 2,
+        "system_pae_bo": 46.028358826378593,
+        "system_de_bo": 50,
+        "total_pdiss_bo": 1,
+        "stage_results": [
+          {
+            "stage": "Stage_1",
+            "type": "transistor",
+            "id": "1",
+            "pin_dbm": 20,
+            "pout_dbm": 30,
+            "gain_db": 25,
+            "pae_pct": 50,
+            "de_pct": 50,
+            "gain_full_db": 10,
+            "gain_bo_db": 11,
+            "pdc_w": 2,
+            "pdiss_w": 1,
+            "idc_a": 0.071428571428571425,
+            "tj_c": 27.5,
+            "compressed": true,
+            "technology": "GaN",
+            "pin_bo_dbm": 19,
+            "pout_bo_dbm": 30,
+            "pae_bo_pct": 50,
+            "de_bo_pct": 50,
+            "pdc_bo_w": 2,
+            "pdiss_bo_w": 1,
+            "tj_bo_c": 27.5,
+            "compressed_bo": true
+          }
+        ],
+        "phase_results": [
+          {
+            "stage": "Stage_1",
+            "type": "transistor",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          }
+        ],
+        "warnings": ["Stage_1: Compressed by 13.0 dB", "Stage_1: Compressed at backoff"],
+        "rationale": "═══════════════════════════════════════\n  PA LINEUP CALCULATION RATIONALE\n═══════════════════════════════════════\n\nAssumption: port matching (50 Ω) at all interfaces.\n  Gain = transducer gain; no mismatch-loss correction applied.\n\nInput Power: 20.00 dBm (0.1000 W)\nBackoff Analysis: 1.0 dB below full power\n\nTopology: Using x-coordinate sort (no connection graph)\n\n─── Stage-by-Stage Analysis ───\n(Full Power | Backoff)\n\n[1] Stage_1 (transistor)\n    Input: 20.00 dBm (full) | 19.00 dBm (backoff)\n    [Cascade fallback — no JS dual_op values]\n    Full: Pin=20.00 + Gain=23.0 → Pout=43.00 dBm\n    Backoff: Pin=19.00 + Gain=23.0 → Pout=43.00 dBm\n    ⚠ Compressed: 43.00 dBm > P1dB 30.00 dBm\n    ⚠ Compressed at backoff: 43.00 dBm > P1dB 30.00 dBm\n    Full: Pout=30.00 dBm, PAE=50.0%, PDC=2.000W, PDiss=1.000W, Tj=27.5°C\n    Backoff: Pout=30.00 dBm, PAE=50.0%, PDC=2.000W, PDiss=1.000W\n\n─── System Summary ───\nTotal Gain: 23.00 dB\n\n[FULL POWER]\n  Output Power: 30.00 dBm (1.000 W)\n  Total DC Power: 2.000 W\n  System PAE: 45.0%\n  System DE:  50.0%\n  Heat Dissipation: 1.000 W\n\n[BACKOFF (1.0 dB)]\n  Output Power: 30.00 dBm (1.000 W)\n  Total DC Power: 2.000 W\n  System PAE: 46.0%\n  System DE:  50.0%\n  Heat Dissipation: 1.000 W\n\n─── Warnings ───\n⚠ Stage_1: Compressed by 13.0 dB\n⚠ Stage_1: Compressed at backoff\n\n═══════════════════════════════════════"
+      }
+    },
+    {
+      "name": "dual_operating_points",
+      "document": {
+        "components": [
+          {
+            "id": 1,
+            "type": "transistor",
+            "x": 100,
+            "y": 200,
+            "properties": {
+              "gain": 20,
+              "p1db": 50,
+              "pout_p3db": 40,
+              "pout_pavg": 32,
+              "pin_p3db": 20,
+              "pin_pavg": 14,
+              "pae_p3db": 60,
+              "pae_pavg": 45
+            }
+          }
+        ],
+        "connections": [],
+        "metadata": {
+          "version": "1.0"
+        }
+      },
+      "input_power_dbm": 20,
+      "backoff_db": 6,
+      "architecture": "conventional",
+      "expected": {
+        "success": true,
+        "backoff_db": 6,
+        "input_power_dbm": 20,
+        "final_pout_dbm": 40,
+        "final_pout_w": 10,
+        "total_gain": 18,
+        "total_pdc": 16.666666666666668,
+        "system_pae": 59.399999999999999,
+        "system_de": 60,
+        "total_pdiss": 6.6666666666666679,
+        "final_pout_bo_dbm": 32,
+        "final_pout_bo_w": 1.584893192461114,
+        "total_pdc_bo": 3.5219848721358087,
+        "system_pae_bo": 44.28679806339251,
+        "system_de_bo": 45,
+        "total_pdiss_bo": 1.9370916796746946,
+        "stage_results": [
+          {
+            "stage": "Stage_1",
+            "type": "transistor",
+            "id": "1",
+            "pin_dbm": 20,
+            "pout_dbm": 40,
+            "gain_db": 20,
+            "pae_pct": 60,
+            "de_pct": 60,
+            "gain_full_db": 20,
+            "gain_bo_db": 18,
+            "pdc_w": 16.666666666666668,
+            "pdiss_w": 6.6666666666666679,
+            "idc_a": 0.59523809523809523,
+            "tj_c": 41.666666666666671,
+            "compressed": false,
+            "technology": "GaN",
+            "pin_bo_dbm": 14,
+            "pout_bo_dbm": 32,
+            "pae_bo_pct": 45,
+            "de_bo_pct": 45,
+            "pdc_bo_w": 3.5219848721358087,
+            "pdiss_bo_w": 1.9370916796746946,
+            "tj_bo_c": 29.842729199186735,
+            "compressed_bo": false
+          }
+        ],
+        "phase_results": [
+          {
+            "stage": "Stage_1",
+            "type": "transistor",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          }
+        ],
+        "warnings": null,
+        "rationale": "═══════════════════════════════════════\n  PA LINEUP CALCULATION RATIONALE\n═══════════════════════════════════════\n\nAssumption: port matching (50 Ω) at all interfaces.\n  Gain = transducer gain; no mismatch-loss correction applied.\n\nInput Power: 20.00 dBm (0.1000 W)\nBackoff Analysis: 6.0 dB below full power\n\nTopology: Using x-coordinate sort (no connection graph)\n\n─── Stage-by-Stage Analysis ───\n(Full Power | Backoff)\n\n[1] Stage_1 (transistor)\n    Input: 20.00 dBm (full) | 14.00 dBm (backoff)\n    ✓ Using JavaScript dual operating points\n    Full (P3dB): Pin=20.00, Pout=40.00 dBm, PAE=60.0%\n    Backoff (Pavg): Pin=14.00, Pout=32.00 dBm, PAE=45.0%\n    Full: Pout=40.00 dBm, PAE=60.0%, PDC=16.667W, PDiss=6.667W, Tj=41.7°C\n    Backoff: Pout=32.00 dBm, PAE=45.0%, PDC=3.522W, PDiss=1.937W\n\n─── System Summary ───\nTotal Gain: 18.00 dB\n\n[FULL POWER]\n  Output Power: 40.00 dBm (10.000 W)\n  Total DC Power: 16.667 W\n  System PAE: 59.4%\n  System DE:  60.0%\n  Heat Dissipation: 6.667 W\n\n[BACKOFF (6.0 dB)]\n  Output Power: 32.00 dBm (1.585 W)\n  Total DC Power: 3.522 W\n  System PAE: 44.3%\n  System DE:  45.0%\n  Heat Dissipation: 1.937 W\n\n✓ All stages operating within specifications\n\n═══════════════════════════════════════"
+      }
+    },
+    {
+      "name": "offset_and_termination",
+      "document": {
+        "components": [
+          {
+            "id": 100,
+            "type": "termination",
+            "x": 0,
+            "y": 200,
+            "properties": {
+              "label": "termination"
+            }
+          },
+          {
+            "id": 200,
+            "type": "offset_line",
+            "x": 100,
+            "y": 200,
+            "properties": {
+              "loss": 0.20000000000000001,
+              "phase_shift_deg": 90,
+              "impedance": 35
+            }
+          },
+          {
+            "id": 300,
+            "type": "matching",
+            "x": 200,
+            "y": 200,
+            "properties": {
+              "loss": 0.29999999999999999
+            }
+          },
+          {
+            "id": 400,
+            "type": "termination",
+            "x": 300,
+            "y": 200,
+            "properties": {
+              "label": "termination"
+            }
+          }
+        ],
+        "connections": [
+          {
+            "from": 100,
+            "to": 200
+          },
+          {
+            "from": 200,
+            "to": 300
+          },
+          {
+            "from": 300,
+            "to": 400
+          }
+        ],
+        "metadata": {
+          "version": "1.0"
+        }
+      },
+      "input_power_dbm": 20,
+      "backoff_db": 6,
+      "architecture": "conventional",
+      "expected": {
+        "success": true,
+        "backoff_db": 6,
+        "input_power_dbm": 20,
+        "final_pout_dbm": 19.5,
+        "final_pout_w": 0.089125093813374551,
+        "total_gain": -0.5,
+        "total_pdc": 0,
+        "system_pae": 0,
+        "system_de": 0,
+        "total_pdiss": -0.089125093813374551,
+        "final_pout_bo_dbm": 13.5,
+        "final_pout_bo_w": 0.022387211385683399,
+        "total_pdc_bo": 0,
+        "system_pae_bo": 0,
+        "system_de_bo": 0,
+        "total_pdiss_bo": -0.022387211385683399,
+        "stage_results": [
+          {
+            "stage": "λ/4 Line",
+            "type": "offset_line",
+            "id": "200",
+            "pin_dbm": 20,
+            "pout_dbm": 19.800000000000001,
+            "phase_shift_deg": 90,
+            "impedance": 35,
+            "offset_role": "phase",
+            "loss_db": 0.20000000000000001,
+            "gain_full_db": -0.20000000000000001,
+            "gain_bo_db": -0.20000000000000001,
+            "pin_bo_dbm": 14,
+            "pout_bo_dbm": 13.800000000000001
+          },
+          {
+            "stage": "Stage_3",
+            "type": "matching",
+            "id": "300",
+            "pin_dbm": 19.800000000000001,
+            "pout_dbm": 19.5,
+            "loss_db": 0.29999999999999999,
+            "gain_full_db": -0.29999999999999999,
+            "gain_bo_db": -0.29999999999999999,
+            "pin_bo_dbm": 13.800000000000001,
+            "pout_bo_dbm": 13.5
+          }
+        ],
+        "phase_results": [
+          {
+            "stage": "termination",
+            "type": "termination",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "λ/4 Line",
+            "type": "offset_line",
+            "phase_contrib": 90,
+            "cumulative_phase": 90,
+            "notes": "phase λ/4 (Z₀=35Ω)"
+          },
+          {
+            "stage": "Stage_3",
+            "type": "matching",
+            "phase_contrib": 0,
+            "cumulative_phase": 90,
+            "notes": ""
+          },
+          {
+            "stage": "termination",
+            "type": "termination",
+            "phase_contrib": 0,
+            "cumulative_phase": 90,
+            "notes": ""
+          }
+        ],
+        "warnings": null,
+        "rationale": "═══════════════════════════════════════\n  PA LINEUP CALCULATION RATIONALE\n═══════════════════════════════════════\n\nAssumption: port matching (50 Ω) at all interfaces.\n  Gain = transducer gain; no mismatch-loss correction applied.\n\nInput Power: 20.00 dBm (0.1000 W)\nBackoff Analysis: 6.0 dB below full power\n\nTopology: 3 connections, traversing 4 nodes in topological order\n\n─── Stage-by-Stage Analysis ───\n(Full Power | Backoff)\n\n[1] termination (termination)\n    Input: 20.00 dBm (full) | 14.00 dBm (backoff)\n\n[2] Stage_2 (offset_line)\n    Input: 20.00 dBm (full) | 14.00 dBm (backoff)\n  λ/4 Line (phase): Z₀=35.0Ω, loss=0.20 dB, φ=90°\n    Pout=19.80 dBm (full) | 13.80 dBm (backoff)\n\n[3] Stage_3 (matching)\n    Input: 19.80 dBm (full) | 13.80 dBm (backoff)\n    Loss: 0.30 dB → Full: 19.50 dBm | Backoff: 13.50 dBm\n    Z: 50 Ω → 50 Ω\n\n[4] termination (termination)\n    Input: 19.50 dBm (full) | 13.50 dBm (backoff)\n\n─── System Summary ───\nTotal Gain: -0.50 dB\n\n[FULL POWER]\n  Output Power: 19.50 dBm (0.089 W)\n  Total DC Power: 0.000 W\n  System PAE: 0.0%\n  System DE:  0.0%\n  Heat Dissipation: -0.089 W\n\n[BACKOFF (6.0 dB)]\n  Output Power: 13.50 dBm (0.022 W)\n  Total DC Power: 0.000 W\n  System PAE: 0.0%\n  System DE:  0.0%\n  Heat Dissipation: -0.022 W\n\n✓ All stages operating within specifications\n\n═══════════════════════════════════════"
+      }
+    },
+    {
+      "name": "split_terminals",
+      "document": {
+        "components": [
+          {
+            "id": 1,
+            "type": "splitter",
+            "x": 100,
+            "y": 200,
+            "properties": {
+              "label": "splitter"
+            }
+          },
+          {
+            "id": 2,
+            "type": "matching",
+            "x": 200,
+            "y": 200,
+            "properties": {
+              "loss": 0.20000000000000001
+            }
+          },
+          {
+            "id": 3,
+            "type": "matching",
+            "x": 200,
+            "y": 200,
+            "properties": {
+              "loss": 0.40000000000000002
+            }
+          }
+        ],
+        "connections": [
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 1,
+            "to": 3
+          }
+        ],
+        "metadata": {
+          "version": "1.0"
+        }
+      },
+      "input_power_dbm": 20,
+      "backoff_db": 6,
+      "architecture": "conventional",
+      "expected": {
+        "success": true,
+        "backoff_db": 6,
+        "input_power_dbm": 20,
+        "final_pout_dbm": 19.401151190826948,
+        "final_pout_w": 0.087119448816806097,
+        "total_gain": -3.910299956639812,
+        "total_pdc": 0,
+        "system_pae": 0,
+        "system_de": 0,
+        "total_pdiss": -0.087119448816806097,
+        "final_pout_bo_dbm": 13.401151190826948,
+        "final_pout_bo_w": 0.021883416140352854,
+        "total_pdc_bo": 0,
+        "system_pae_bo": 0,
+        "system_de_bo": 0,
+        "total_pdiss_bo": -0.021883416140352854,
+        "stage_results": [
+          {
+            "stage": "splitter",
+            "type": "splitter",
+            "id": "1",
+            "pin_dbm": 20,
+            "pout_dbm": 16.689700043360187,
+            "loss_db": 0.29999999999999999,
+            "split_loss_db": 3.0102999566398121,
+            "gain_full_db": -3.3102999566398119,
+            "gain_bo_db": -3.3102999566398119,
+            "n_outputs": 2,
+            "split_ratio": 0,
+            "pin_bo_dbm": 14,
+            "pout_bo_dbm": 10.689700043360187
+          },
+          {
+            "stage": "Stage_2",
+            "type": "matching",
+            "id": "2",
+            "pin_dbm": 16.689700043360187,
+            "pout_dbm": 16.489700043360187,
+            "loss_db": 0.20000000000000001,
+            "gain_full_db": -0.20000000000000001,
+            "gain_bo_db": -0.20000000000000001,
+            "pin_bo_dbm": 10.689700043360187,
+            "pout_bo_dbm": 10.489700043360187
+          },
+          {
+            "stage": "Stage_3",
+            "type": "matching",
+            "id": "3",
+            "pin_dbm": 16.689700043360187,
+            "pout_dbm": 16.289700043360188,
+            "loss_db": 0.40000000000000002,
+            "gain_full_db": -0.40000000000000002,
+            "gain_bo_db": -0.40000000000000002,
+            "pin_bo_dbm": 10.689700043360187,
+            "pout_bo_dbm": 10.289700043360186
+          }
+        ],
+        "phase_results": [
+          {
+            "stage": "splitter",
+            "type": "splitter",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "Stage_2",
+            "type": "matching",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "Stage_3",
+            "type": "matching",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          }
+        ],
+        "warnings": null,
+        "rationale": "═══════════════════════════════════════\n  PA LINEUP CALCULATION RATIONALE\n═══════════════════════════════════════\n\nAssumption: port matching (50 Ω) at all interfaces.\n  Gain = transducer gain; no mismatch-loss correction applied.\n\nInput Power: 20.00 dBm (0.1000 W)\nBackoff Analysis: 6.0 dB below full power\n\nTopology: 2 connections, traversing 3 nodes in topological order\n\n─── Stage-by-Stage Analysis ───\n(Full Power | Backoff)\n\n[1] splitter (splitter)\n    Input: 20.00 dBm (full) | 14.00 dBm (backoff)\n    2-way split (3.01 dB) + ins. loss 0.30 dB\n    Per-path output: Full 16.69 dBm | Backoff 10.69 dBm\n\n[2] Stage_2 (matching)\n    Input: 16.69 dBm (full) | 10.69 dBm (backoff)\n    Loss: 0.20 dB → Full: 16.49 dBm | Backoff: 10.49 dBm\n    Z: 50 Ω → 50 Ω\n\n[3] Stage_3 (matching)\n    Input: 16.69 dBm (full) | 10.69 dBm (backoff)\n    Loss: 0.40 dB → Full: 16.29 dBm | Backoff: 10.29 dBm\n    Z: 50 Ω → 50 Ω\n\n─── System Summary ───\nTotal Gain: -3.91 dB\n\n[FULL POWER]\n  Output Power: 19.40 dBm (0.087 W)\n  Total DC Power: 0.000 W\n  System PAE: 0.0%\n  System DE:  0.0%\n  Heat Dissipation: -0.087 W\n\n[BACKOFF (6.0 dB)]\n  Output Power: 13.40 dBm (0.022 W)\n  Total DC Power: 0.000 W\n  System PAE: 0.0%\n  System DE:  0.0%\n  Heat Dissipation: -0.022 W\n\n✓ All stages operating within specifications\n\n═══════════════════════════════════════"
+      }
+    },
+    {
+      "name": "passive_only",
+      "document": {
+        "components": [
+          {
+            "id": 1,
+            "type": "matching",
+            "x": 100,
+            "y": 200,
+            "properties": {
+              "loss": 0.69999999999999996
+            }
+          }
+        ],
+        "connections": [],
+        "metadata": {
+          "version": "1.0"
+        }
+      },
+      "input_power_dbm": 20,
+      "backoff_db": 6,
+      "architecture": "conventional",
+      "expected": {
+        "success": true,
+        "backoff_db": 6,
+        "input_power_dbm": 20,
+        "final_pout_dbm": 19.300000000000001,
+        "final_pout_w": 0.085113803820237671,
+        "total_gain": -0.69999999999999996,
+        "total_pdc": 0,
+        "system_pae": 0,
+        "system_de": 0,
+        "total_pdiss": -0.085113803820237671,
+        "final_pout_bo_dbm": 13.300000000000001,
+        "final_pout_bo_w": 0.021379620895022326,
+        "total_pdc_bo": 0,
+        "system_pae_bo": 0,
+        "system_de_bo": 0,
+        "total_pdiss_bo": -0.021379620895022326,
+        "stage_results": [
+          {
+            "stage": "Stage_1",
+            "type": "matching",
+            "id": "1",
+            "pin_dbm": 20,
+            "pout_dbm": 19.300000000000001,
+            "loss_db": 0.69999999999999996,
+            "gain_full_db": -0.69999999999999996,
+            "gain_bo_db": -0.69999999999999996,
+            "pin_bo_dbm": 14,
+            "pout_bo_dbm": 13.300000000000001
+          }
+        ],
+        "phase_results": [
+          {
+            "stage": "Stage_1",
+            "type": "matching",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          }
+        ],
+        "warnings": null,
+        "rationale": "═══════════════════════════════════════\n  PA LINEUP CALCULATION RATIONALE\n═══════════════════════════════════════\n\nAssumption: port matching (50 Ω) at all interfaces.\n  Gain = transducer gain; no mismatch-loss correction applied.\n\nInput Power: 20.00 dBm (0.1000 W)\nBackoff Analysis: 6.0 dB below full power\n\nTopology: Using x-coordinate sort (no connection graph)\n\n─── Stage-by-Stage Analysis ───\n(Full Power | Backoff)\n\n[1] Stage_1 (matching)\n    Input: 20.00 dBm (full) | 14.00 dBm (backoff)\n    Loss: 0.70 dB → Full: 19.30 dBm | Backoff: 13.30 dBm\n    Z: 50 Ω → 50 Ω\n\n─── System Summary ───\nTotal Gain: -0.70 dB\n\n[FULL POWER]\n  Output Power: 19.30 dBm (0.085 W)\n  Total DC Power: 0.000 W\n  System PAE: 0.0%\n  System DE:  0.0%\n  Heat Dissipation: -0.085 W\n\n[BACKOFF (6.0 dB)]\n  Output Power: 13.30 dBm (0.021 W)\n  Total DC Power: 0.000 W\n  System PAE: 0.0%\n  System DE:  0.0%\n  Heat Dissipation: -0.021 W\n\n✓ All stages operating within specifications\n\n═══════════════════════════════════════"
+      }
+    },
+    {
+      "name": "cw",
+      "document": {
+        "components": [
+          {
+            "id": 1,
+            "type": "transistor",
+            "x": 100,
+            "y": 200,
+            "properties": {
+              "p1db": 50
+            }
+          }
+        ],
+        "connections": [],
+        "metadata": {
+          "version": "1.0"
+        }
+      },
+      "input_power_dbm": 20,
+      "backoff_db": 0,
+      "architecture": "conventional",
+      "expected": {
+        "success": true,
+        "backoff_db": 0,
+        "input_power_dbm": 20,
+        "final_pout_dbm": 33,
+        "final_pout_w": 1.9952623149688788,
+        "total_gain": 13,
+        "total_pdc": 3.9905246299377577,
+        "system_pae": 47.494063831863635,
+        "system_de": 50,
+        "total_pdiss": 1.9952623149688788,
+        "final_pout_bo_dbm": 34,
+        "final_pout_bo_w": 2.5118864315095797,
+        "total_pdc_bo": 4.1785922617080784,
+        "system_pae_bo": 57.720071269257446,
+        "system_de_bo": 60.113221730870649,
+        "total_pdiss_bo": 1.6667058301984987,
+        "stage_results": [
+          {
+            "stage": "Stage_1",
+            "type": "transistor",
+            "id": "1",
+            "pin_dbm": 20,
+            "pout_dbm": 33,
+            "gain_db": 15,
+            "pae_pct": 50,
+            "de_pct": 50,
+            "gain_full_db": 13,
+            "gain_bo_db": 14,
+            "pdc_w": 3.9905246299377577,
+            "pdiss_w": 1.9952623149688788,
+            "idc_a": 0.14251873678349133,
+            "tj_c": 29.988155787422198,
+            "compressed": false,
+            "technology": "GaN",
+            "pin_bo_dbm": 20,
+            "pout_bo_dbm": 34,
+            "pae_bo_pct": 60.113221730870649,
+            "de_bo_pct": 60.113221730870649,
+            "pdc_bo_w": 4.1785922617080784,
+            "pdiss_bo_w": 1.6667058301984987,
+            "tj_bo_c": 29.166764575496245,
+            "compressed_bo": false
+          }
+        ],
+        "phase_results": [
+          {
+            "stage": "Stage_1",
+            "type": "transistor",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          }
+        ],
+        "warnings": null,
+        "rationale": "═══════════════════════════════════════\n  PA LINEUP CALCULATION RATIONALE\n═══════════════════════════════════════\n\nAssumption: port matching (50 Ω) at all interfaces.\n  Gain = transducer gain; no mismatch-loss correction applied.\n\nInput Power: 20.00 dBm (0.1000 W)\nBackoff Analysis: 0.0 dB below full power\n\nTopology: Using x-coordinate sort (no connection graph)\n\n─── Stage-by-Stage Analysis ───\n(Full Power | Backoff)\n\n[1] Stage_1 (transistor)\n    Input: 20.00 dBm (full) | 20.00 dBm (backoff)\n    [Cascade fallback — no JS dual_op values]\n    Full: Pin=20.00 + Gain=13.0 → Pout=33.00 dBm\n    Backoff: Pin=20.00 + Gain=13.0 → Pout=34.00 dBm\n    Full: Pout=33.00 dBm, PAE=50.0%, PDC=3.991W, PDiss=1.995W, Tj=30.0°C\n    Backoff: Pout=34.00 dBm, PAE=60.1%, PDC=4.179W, PDiss=1.667W\n\n─── System Summary ───\nTotal Gain: 13.00 dB\n\n[FULL POWER]\n  Output Power: 33.00 dBm (1.995 W)\n  Total DC Power: 3.991 W\n  System PAE: 47.5%\n  System DE:  50.0%\n  Heat Dissipation: 1.995 W\n\n[BACKOFF (0.0 dB)]\n  Output Power: 34.00 dBm (2.512 W)\n  Total DC Power: 4.179 W\n  System PAE: 57.7%\n  System DE:  60.1%\n  Heat Dissipation: 1.667 W\n\n✓ All stages operating within specifications\n\n═══════════════════════════════════════"
+      }
+    },
+    {
+      "name": "doherty_deep_backoff",
+      "document": {
+        "components": [
+          {
+            "id": 1,
+            "type": "transistor",
+            "x": 100,
+            "y": 200,
+            "properties": {
+              "label": "Main PA",
+              "p1db": 50
+            }
+          }
+        ],
+        "connections": [],
+        "metadata": {
+          "version": "1.0"
+        }
+      },
+      "input_power_dbm": 20,
+      "backoff_db": 12,
+      "architecture": "doherty",
+      "expected": {
+        "success": true,
+        "backoff_db": 12,
+        "input_power_dbm": 20,
+        "final_pout_dbm": 33,
+        "final_pout_w": 1.9952623149688788,
+        "total_gain": 13,
+        "total_pdc": 3.9905246299377577,
+        "system_pae": 47.494063831863635,
+        "system_de": 50,
+        "total_pdiss": 1.9952623149688788,
+        "final_pout_bo_dbm": 22,
+        "final_pout_bo_w": 0.15848931924611143,
+        "total_pdc_bo": 0.56367658625289108,
+        "system_pae_bo": 26.997705690233282,
+        "system_de_bo": 28.117066259517454,
+        "total_pdiss_bo": 0.40518726700677965,
+        "stage_results": [
+          {
+            "stage": "Main PA",
+            "type": "transistor",
+            "id": "1",
+            "pin_dbm": 20,
+            "pout_dbm": 33,
+            "gain_db": 15,
+            "pae_pct": 50,
+            "de_pct": 50,
+            "gain_full_db": 13,
+            "gain_bo_db": 14,
+            "pdc_w": 3.9905246299377577,
+            "pdiss_w": 1.9952623149688788,
+            "idc_a": 0.14251873678349133,
+            "tj_c": 29.988155787422198,
+            "compressed": false,
+            "technology": "GaN",
+            "pin_bo_dbm": 8,
+            "pout_bo_dbm": 22,
+            "pae_bo_pct": 28.117066259517454,
+            "de_bo_pct": 28.117066259517454,
+            "pdc_bo_w": 0.56367658625289108,
+            "pdiss_bo_w": 0.40518726700677965,
+            "tj_bo_c": 26.012968167516949,
+            "compressed_bo": false
+          }
+        ],
+        "phase_results": [
+          {
+            "stage": "Main PA",
+            "type": "transistor",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          }
+        ],
+        "warnings": null,
+        "rationale": "═══════════════════════════════════════\n  PA LINEUP CALCULATION RATIONALE\n═══════════════════════════════════════\n\nAssumption: port matching (50 Ω) at all interfaces.\n  Gain = transducer gain; no mismatch-loss correction applied.\n\nInput Power: 20.00 dBm (0.1000 W)\nBackoff Analysis: 12.0 dB below full power\n\nTopology: Using x-coordinate sort (no connection graph)\n\n─── Stage-by-Stage Analysis ───\n(Full Power | Backoff)\n\n[1] Main PA (transistor)\n    Input: 20.00 dBm (full) | 8.00 dBm (backoff)\n    [Cascade fallback — no JS dual_op values]\n    Full: Pin=20.00 + Gain=13.0 → Pout=33.00 dBm\n    Backoff: Pin=8.00 + Gain=13.0 → Pout=22.00 dBm\n    Full: Pout=33.00 dBm, PAE=50.0%, PDC=3.991W, PDiss=1.995W, Tj=30.0°C\n    Backoff: Pout=22.00 dBm, PAE=28.1%, PDC=0.564W, PDiss=0.405W\n\n─── System Summary ───\nTotal Gain: 13.00 dB\n\n[FULL POWER]\n  Output Power: 33.00 dBm (1.995 W)\n  Total DC Power: 3.991 W\n  System PAE: 47.5%\n  System DE:  50.0%\n  Heat Dissipation: 1.995 W\n\n[BACKOFF (12.0 dB)]\n  Output Power: 22.00 dBm (0.158 W)\n  Total DC Power: 0.564 W\n  System PAE: 27.0%\n  System DE:  28.1%\n  Heat Dissipation: 0.405 W\n\n✓ All stages operating within specifications\n\n═══════════════════════════════════════"
+      }
+    },
+    {
+      "name": "x_sorted",
+      "document": {
+        "components": [
+          {
+            "id": 2,
+            "type": "matching",
+            "x": 200,
+            "y": 200,
+            "properties": {
+              "loss": 0.69999999999999996
+            }
+          },
+          {
+            "id": 1,
+            "type": "transistor",
+            "x": 100,
+            "y": 200,
+            "properties": {
+              "p1db": 50
+            }
+          }
+        ],
+        "connections": [],
+        "metadata": {
+          "version": "1.0"
+        }
+      },
+      "input_power_dbm": 20,
+      "backoff_db": 6,
+      "architecture": "conventional",
+      "expected": {
+        "success": true,
+        "backoff_db": 6,
+        "input_power_dbm": 20,
+        "final_pout_dbm": 32.299999999999997,
+        "final_pout_w": 1.6982436524617426,
+        "total_gain": 12.300000000000001,
+        "total_pdc": 3.9905246299377577,
+        "system_pae": 40.050965741982431,
+        "system_de": 42.556901910118796,
+        "total_pdiss": 2.2922809774760151,
+        "final_pout_bo_dbm": 27.300000000000001,
+        "final_pout_bo_w": 0.53703179637025267,
+        "total_pdc_bo": 3.1697863849222259,
+        "system_pae_bo": 16.149761210729572,
+        "system_de_bo": 16.942207806960131,
+        "total_pdiss_bo": 2.6327545885519732,
+        "stage_results": [
+          {
+            "stage": "Stage_1",
+            "type": "transistor",
+            "id": "1",
+            "pin_dbm": 20,
+            "pout_dbm": 33,
+            "gain_db": 15,
+            "pae_pct": 50,
+            "de_pct": 50,
+            "gain_full_db": 13,
+            "gain_bo_db": 14,
+            "pdc_w": 3.9905246299377577,
+            "pdiss_w": 1.9952623149688788,
+            "idc_a": 0.14251873678349133,
+            "tj_c": 29.988155787422198,
+            "compressed": false,
+            "technology": "GaN",
+            "pin_bo_dbm": 14,
+            "pout_bo_dbm": 28,
+            "pae_bo_pct": 19.905358527674863,
+            "de_bo_pct": 19.905358527674863,
+            "pdc_bo_w": 3.1697863849222259,
+            "pdiss_bo_w": 2.5388290404420326,
+            "tj_bo_c": 31.347072601105083,
+            "compressed_bo": false
+          },
+          {
+            "stage": "Stage_2",
+            "type": "matching",
+            "id": "2",
+            "pin_dbm": 33,
+            "pout_dbm": 32.299999999999997,
+            "loss_db": 0.69999999999999996,
+            "gain_full_db": -0.69999999999999996,
+            "gain_bo_db": -0.69999999999999996,
+            "pin_bo_dbm": 28,
+            "pout_bo_dbm": 27.300000000000001
+          }
+        ],
+        "phase_results": [
+          {
+            "stage": "Stage_1",
+            "type": "transistor",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          },
+          {
+            "stage": "Stage_2",
+            "type": "matching",
+            "phase_contrib": 0,
+            "cumulative_phase": 0,
+            "notes": ""
+          }
+        ],
+        "warnings": null,
+        "rationale": "═══════════════════════════════════════\n  PA LINEUP CALCULATION RATIONALE\n═══════════════════════════════════════\n\nAssumption: port matching (50 Ω) at all interfaces.\n  Gain = transducer gain; no mismatch-loss correction applied.\n\nInput Power: 20.00 dBm (0.1000 W)\nBackoff Analysis: 6.0 dB below full power\n\nTopology: Using x-coordinate sort (no connection graph)\n\n─── Stage-by-Stage Analysis ───\n(Full Power | Backoff)\n\n[1] Stage_1 (transistor)\n    Input: 20.00 dBm (full) | 14.00 dBm (backoff)\n    [Cascade fallback — no JS dual_op values]\n    Full: Pin=20.00 + Gain=13.0 → Pout=33.00 dBm\n    Backoff: Pin=14.00 + Gain=13.0 → Pout=28.00 dBm\n    Full: Pout=33.00 dBm, PAE=50.0%, PDC=3.991W, PDiss=1.995W, Tj=30.0°C\n    Backoff: Pout=28.00 dBm, PAE=19.9%, PDC=3.170W, PDiss=2.539W\n\n[2] Stage_2 (matching)\n    Input: 33.00 dBm (full) | 28.00 dBm (backoff)\n    Loss: 0.70 dB → Full: 32.30 dBm | Backoff: 27.30 dBm\n    Z: 50 Ω → 50 Ω\n\n─── System Summary ───\nTotal Gain: 12.30 dB\n\n[FULL POWER]\n  Output Power: 32.30 dBm (1.698 W)\n  Total DC Power: 3.991 W\n  System PAE: 40.1%\n  System DE:  42.6%\n  Heat Dissipation: 2.292 W\n\n[BACKOFF (6.0 dB)]\n  Output Power: 27.30 dBm (0.537 W)\n  Total DC Power: 3.170 W\n  System PAE: 16.1%\n  System DE:  16.9%\n  Heat Dissipation: 2.633 W\n\n✓ All stages operating within specifications\n\n═══════════════════════════════════════"
+      }
+    }
+  ],
+  "scalars": [
+    {
+      "name": "atmospheric_loss",
+      "arguments": [
+        0.10000000000000001
+      ],
+      "expected": 0.001000000021444381
+    },
+    {
+      "name": "recommend_technology",
+      "arguments": [
+        0.10000000000000001
+      ],
+      "expected": {
+        "tech": "LDMOS",
+        "fT_range": "20-40 GHz",
+        "expected_gain": "15-18 dB",
+        "color": "primary"
+      }
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        0.10000000000000001,
+        "LDMOS"
+      ],
+      "expected": 64.920000000000002
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        0.10000000000000001,
+        "GaN"
+      ],
+      "expected": 69.969999999999999
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        0.10000000000000001,
+        "SiGe"
+      ],
+      "expected": 49.984999999999999
+    },
+    {
+      "name": "available_gain",
+      "arguments": [
+        0.10000000000000001,
+        70
+      ],
+      "expected": 33
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transmission_line",
+        0.10000000000000001
+      ],
+      "expected": 0.099434164902525685
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_splitter",
+        0.10000000000000001
+      ],
+      "expected": 3.105
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_combiner",
+        0.10000000000000001
+      ],
+      "expected": 3.105
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "quadrature_hybrid",
+        0.10000000000000001
+      ],
+      "expected": 0.30863245553203367
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "t_junction",
+        0.10000000000000001
+      ],
+      "expected": 0.053000000000000005
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "doherty_combiner",
+        0.10000000000000001
+      ],
+      "expected": 0.20250118723362728
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transformer",
+        0.10000000000000001
+      ],
+      "expected": 0.30499999999999999
+    },
+    {
+      "name": "atmospheric_loss",
+      "arguments": [
+        0.5
+      ],
+      "expected": 0.0050000000562556851
+    },
+    {
+      "name": "recommend_technology",
+      "arguments": [
+        0.5
+      ],
+      "expected": {
+        "tech": "LDMOS",
+        "fT_range": "20-40 GHz",
+        "expected_gain": "15-18 dB",
+        "color": "primary"
+      }
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        0.5,
+        "LDMOS"
+      ],
+      "expected": 64.599999999999994
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        0.5,
+        "GaN"
+      ],
+      "expected": 69.849999999999994
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        0.5,
+        "SiGe"
+      ],
+      "expected": 49.924999999999997
+    },
+    {
+      "name": "available_gain",
+      "arguments": [
+        0.5,
+        70
+      ],
+      "expected": 33
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transmission_line",
+        0.5
+      ],
+      "expected": 0.16606601717798214
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_splitter",
+        0.5
+      ],
+      "expected": 3.125
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_combiner",
+        0.5
+      ],
+      "expected": 3.125
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "quadrature_hybrid",
+        0.5
+      ],
+      "expected": 0.34707106781186542
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "t_junction",
+        0.5
+      ],
+      "expected": 0.065000000000000002
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "doherty_combiner",
+        0.5
+      ],
+      "expected": 0.21406126198178119
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transformer",
+        0.5
+      ],
+      "expected": 0.20000000000000001
+    },
+    {
+      "name": "atmospheric_loss",
+      "arguments": [
+        3
+      ],
+      "expected": 0.030000015598142287
+    },
+    {
+      "name": "recommend_technology",
+      "arguments": [
+        3
+      ],
+      "expected": {
+        "tech": "LDMOS",
+        "fT_range": "20-40 GHz",
+        "expected_gain": "15-18 dB",
+        "color": "primary"
+      }
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        3,
+        "LDMOS"
+      ],
+      "expected": 62.600000000000001
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        3,
+        "GaN"
+      ],
+      "expected": 69.099999999999994
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        3,
+        "SiGe"
+      ],
+      "expected": 49.549999999999997
+    },
+    {
+      "name": "available_gain",
+      "arguments": [
+        3,
+        70
+      ],
+      "expected": 31.207989322336012
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transmission_line",
+        3
+      ],
+      "expected": 0.36980762113533155
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_splitter",
+        3
+      ],
+      "expected": 3.25
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_combiner",
+        3
+      ],
+      "expected": 3.25
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "quadrature_hybrid",
+        3
+      ],
+      "expected": 0.64392304845413273
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "t_junction",
+        3
+      ],
+      "expected": 0.14000000000000001
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "doherty_combiner",
+        3
+      ],
+      "expected": 0.30171167510947727
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transformer",
+        3
+      ],
+      "expected": 0.40000000000000002
+    },
+    {
+      "name": "atmospheric_loss",
+      "arguments": [
+        4
+      ],
+      "expected": 0.040000121839837956
+    },
+    {
+      "name": "recommend_technology",
+      "arguments": [
+        4
+      ],
+      "expected": {
+        "tech": "GaN_SiC",
+        "fT_range": "30-100 GHz",
+        "expected_gain": "12-15 dB",
+        "color": "success"
+      }
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        4,
+        "LDMOS"
+      ],
+      "expected": 61.799999999999997
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        4,
+        "GaN"
+      ],
+      "expected": 68.799999999999997
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        4,
+        "SiGe"
+      ],
+      "expected": 49.399999999999999
+    },
+    {
+      "name": "available_gain",
+      "arguments": [
+        4,
+        70
+      ],
+      "expected": 28.709214590170014
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transmission_line",
+        4
+      ],
+      "expected": 0.42999999999999999
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_splitter",
+        4
+      ],
+      "expected": 3.3000000000000003
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_combiner",
+        4
+      ],
+      "expected": 3.3000000000000003
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "quadrature_hybrid",
+        4
+      ],
+      "expected": 0.78000000000000003
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "t_junction",
+        4
+      ],
+      "expected": 0.16999999999999998
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "doherty_combiner",
+        4
+      ],
+      "expected": 0.34062866266041597
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transformer",
+        4
+      ],
+      "expected": 0.5
+    },
+    {
+      "name": "atmospheric_loss",
+      "arguments": [
+        12
+      ],
+      "expected": 0.15092736111578245
+    },
+    {
+      "name": "recommend_technology",
+      "arguments": [
+        12
+      ],
+      "expected": {
+        "tech": "GaN_SiC",
+        "fT_range": "50-100 GHz",
+        "expected_gain": "10-12 dB",
+        "color": "success"
+      }
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        12,
+        "LDMOS"
+      ],
+      "expected": 55.399999999999999
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        12,
+        "GaN"
+      ],
+      "expected": 66.400000000000006
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        12,
+        "SiGe"
+      ],
+      "expected": 48.200000000000003
+    },
+    {
+      "name": "available_gain",
+      "arguments": [
+        12,
+        70
+      ],
+      "expected": 19.166789495776765
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transmission_line",
+        12
+      ],
+      "expected": 0.80961524227066317
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_splitter",
+        12
+      ],
+      "expected": 3.7000000000000002
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_combiner",
+        12
+      ],
+      "expected": 3.7000000000000002
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "quadrature_hybrid",
+        12
+      ],
+      "expected": 2.0913843876330613
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "t_junction",
+        12
+      ],
+      "expected": 0.40999999999999998
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "doherty_combiner",
+        12
+      ],
+      "expected": 0.6928923079213366
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transformer",
+        12
+      ],
+      "expected": 1.3
+    },
+    {
+      "name": "atmospheric_loss",
+      "arguments": [
+        22
+      ],
+      "expected": 8.2200000000043012
+    },
+    {
+      "name": "recommend_technology",
+      "arguments": [
+        22
+      ],
+      "expected": {
+        "tech": "GaN_SiC",
+        "fT_range": "50-100 GHz",
+        "expected_gain": "10-12 dB",
+        "color": "success"
+      }
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        22,
+        "LDMOS"
+      ],
+      "expected": 47.399999999999999
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        22,
+        "GaN"
+      ],
+      "expected": 63.399999999999999
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        22,
+        "SiGe"
+      ],
+      "expected": 46.700000000000003
+    },
+    {
+      "name": "available_gain",
+      "arguments": [
+        22,
+        70
+      ],
+      "expected": 13.901960800285135
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transmission_line",
+        22
+      ],
+      "expected": 1.1935623639735145
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_splitter",
+        22
+      ],
+      "expected": 4.2000000000000002
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_combiner",
+        22
+      ],
+      "expected": 4.2000000000000002
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "quadrature_hybrid",
+        22
+      ],
+      "expected": 4.1237829343223087
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "t_junction",
+        22
+      ],
+      "expected": 0.70999999999999996
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "doherty_combiner",
+        22
+      ],
+      "expected": 1.1960956336124426
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transformer",
+        22
+      ],
+      "expected": 2.3000000000000003
+    },
+    {
+      "name": "atmospheric_loss",
+      "arguments": [
+        40
+      ],
+      "expected": 0.40503206125837565
+    },
+    {
+      "name": "recommend_technology",
+      "arguments": [
+        40
+      ],
+      "expected": {
+        "tech": "SiGe",
+        "fT_range": "200-300 GHz",
+        "expected_gain": "8-10 dB",
+        "color": "warning"
+      }
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        40,
+        "LDMOS"
+      ],
+      "expected": 33
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        40,
+        "GaN"
+      ],
+      "expected": 58
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        40,
+        "SiGe"
+      ],
+      "expected": 44
+    },
+    {
+      "name": "available_gain",
+      "arguments": [
+        40,
+        70
+      ],
+      "expected": 1.8607609737258892
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transmission_line",
+        40
+      ],
+      "expected": 1.7986832980505139
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_splitter",
+        40
+      ],
+      "expected": 5.0999999999999996
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_combiner",
+        40
+      ],
+      "expected": 5.0999999999999996
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "quadrature_hybrid",
+        40
+      ],
+      "expected": 8.5596442562694079
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "t_junction",
+        40
+      ],
+      "expected": 1.25
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "doherty_combiner",
+        40
+      ],
+      "expected": 2.2097008581328876
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transformer",
+        40
+      ],
+      "expected": 4.1000000000000005
+    },
+    {
+      "name": "atmospheric_loss",
+      "arguments": [
+        60
+      ],
+      "expected": 15.6
+    },
+    {
+      "name": "recommend_technology",
+      "arguments": [
+        60
+      ],
+      "expected": {
+        "tech": "SiGe",
+        "fT_range": "200-300 GHz",
+        "expected_gain": "8-10 dB",
+        "color": "warning"
+      }
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        60,
+        "LDMOS"
+      ],
+      "expected": 17
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        60,
+        "GaN"
+      ],
+      "expected": 52
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        60,
+        "SiGe"
+      ],
+      "expected": 41
+    },
+    {
+      "name": "available_gain",
+      "arguments": [
+        60,
+        70
+      ],
+      "expected": 0
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transmission_line",
+        60
+      ],
+      "expected": 2.4118950038622251
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_splitter",
+        60
+      ],
+      "expected": 6.0999999999999996
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_combiner",
+        60
+      ],
+      "expected": 6.0999999999999996
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "quadrature_hybrid",
+        60
+      ],
+      "expected": 14.3951600308978
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "t_junction",
+        60
+      ],
+      "expected": 1.8499999999999999
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "doherty_combiner",
+        60
+      ],
+      "expected": 3.4492579354278576
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transformer",
+        60
+      ],
+      "expected": 6.1000000000000005
+    },
+    {
+      "name": "atmospheric_loss",
+      "arguments": [
+        100
+      ],
+      "expected": 1.0000000000001901
+    },
+    {
+      "name": "recommend_technology",
+      "arguments": [
+        100
+      ],
+      "expected": {
+        "tech": "InP",
+        "fT_range": "300-600 GHz",
+        "expected_gain": "6-8 dB",
+        "color": "danger"
+      }
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        100,
+        "LDMOS"
+      ],
+      "expected": 5
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        100,
+        "GaN"
+      ],
+      "expected": 40
+    },
+    {
+      "name": "efficiency",
+      "arguments": [
+        100,
+        "SiGe"
+      ],
+      "expected": 35
+    },
+    {
+      "name": "available_gain",
+      "arguments": [
+        100,
+        70
+      ],
+      "expected": 0
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transmission_line",
+        100
+      ],
+      "expected": 3.5499999999999998
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_splitter",
+        100
+      ],
+      "expected": 8.0999999999999996
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "wilkinson_combiner",
+        100
+      ],
+      "expected": 8.0999999999999996
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "quadrature_hybrid",
+        100
+      ],
+      "expected": 28.300000000000001
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "t_junction",
+        100
+      ],
+      "expected": 3.0499999999999998
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "doherty_combiner",
+        100
+      ],
+      "expected": 6.1810717055349738
+    },
+    {
+      "name": "passive_loss",
+      "arguments": [
+        "transformer",
+        100
+      ],
+      "expected": 10.100000000000001
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        0,
+        "A"
+      ],
+      "expected": 60
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        4,
+        "A"
+      ],
+      "expected": 23.886430233209833
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        6,
+        "A"
+      ],
+      "expected": 15.07131858905748
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        8,
+        "A"
+      ],
+      "expected": 9.5093591547666811
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        12,
+        "A"
+      ],
+      "expected": 3.7857440668811595
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        30,
+        "A"
+      ],
+      "expected": 1
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        0,
+        "AB"
+      ],
+      "expected": 60
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        4,
+        "AB"
+      ],
+      "expected": 34.52639624022941
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        6,
+        "AB"
+      ],
+      "expected": 26.190949934409957
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        8,
+        "AB"
+      ],
+      "expected": 19.867867288955466
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        12,
+        "AB"
+      ],
+      "expected": 11.432764307779482
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        30,
+        "AB"
+      ],
+      "expected": 1
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        0,
+        "B"
+      ],
+      "expected": 60
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        4,
+        "B"
+      ],
+      "expected": 37.857440668811591
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        6,
+        "B"
+      ],
+      "expected": 30.071234017636332
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        8,
+        "B"
+      ],
+      "expected": 23.886430233209836
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        12,
+        "B"
+      ],
+      "expected": 15.07131858905748
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        30,
+        "B"
+      ],
+      "expected": 1.8973665961010275
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        0,
+        "E"
+      ],
+      "expected": 60
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        4,
+        "E"
+      ],
+      "expected": 45.514654501751025
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        6,
+        "E"
+      ],
+      "expected": 28.064108477231891
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        8,
+        "E"
+      ],
+      "expected": 21.784683286206079
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        12,
+        "E"
+      ],
+      "expected": 13.126569743697313
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        30,
+        "E"
+      ],
+      "expected": 1.3432326831410033
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        0,
+        "F"
+      ],
+      "expected": 60
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        4,
+        "F"
+      ],
+      "expected": 47.659694083456891
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        6,
+        "F"
+      ],
+      "expected": 30.071234017636332
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        8,
+        "F"
+      ],
+      "expected": 23.886430233209836
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        12,
+        "F"
+      ],
+      "expected": 15.07131858905748
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        30,
+        "F"
+      ],
+      "expected": 1.8973665961010275
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        0,
+        "Doherty"
+      ],
+      "expected": 60
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        4,
+        "Doherty"
+      ],
+      "expected": 60
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        6,
+        "Doherty"
+      ],
+      "expected": 60
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        8,
+        "Doherty"
+      ],
+      "expected": 47.659694083456891
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        12,
+        "Doherty"
+      ],
+      "expected": 30.071234017636332
+    },
+    {
+      "name": "pae_backoff",
+      "arguments": [
+        60,
+        30,
+        "Doherty"
+      ],
+      "expected": 3.7857440668811595
+    },
+    {
+      "name": "power_from_dbm",
+      "arguments": [
+        -30
+      ],
+      "expected": {
+        "dbm": -30,
+        "watt": 9.9999999999999995e-07,
+        "dbw": -60
+      }
+    },
+    {
+      "name": "power_from_watts",
+      "arguments": [
+        9.9999999999999995e-07
+      ],
+      "expected": {
+        "watt": 9.9999999999999995e-07,
+        "dbm": -30,
+        "dbw": -60
+      }
+    },
+    {
+      "name": "power_from_dbm",
+      "arguments": [
+        0
+      ],
+      "expected": {
+        "dbm": 0,
+        "watt": 0.001,
+        "dbw": -30
+      }
+    },
+    {
+      "name": "power_from_watts",
+      "arguments": [
+        0.001
+      ],
+      "expected": {
+        "watt": 0.001,
+        "dbm": 0,
+        "dbw": -30
+      }
+    },
+    {
+      "name": "power_from_dbm",
+      "arguments": [
+        30
+      ],
+      "expected": {
+        "dbm": 30,
+        "watt": 1,
+        "dbw": 0
+      }
+    },
+    {
+      "name": "power_from_watts",
+      "arguments": [
+        1
+      ],
+      "expected": {
+        "watt": 1,
+        "dbm": 30,
+        "dbw": 0
+      }
+    },
+    {
+      "name": "power_from_dbm",
+      "arguments": [
+        47
+      ],
+      "expected": {
+        "dbm": 47,
+        "watt": 50.118723362727252,
+        "dbw": 17
+      }
+    },
+    {
+      "name": "power_from_watts",
+      "arguments": [
+        50.118723362727252
+      ],
+      "expected": {
+        "watt": 50.118723362727252,
+        "dbm": 47,
+        "dbw": 17
+      }
+    },
+    {
+      "name": "power_from_dbm",
+      "arguments": [
+        55
+      ],
+      "expected": {
+        "dbm": 55,
+        "watt": 316.2277660168379,
+        "dbw": 25
+      }
+    },
+    {
+      "name": "power_from_watts",
+      "arguments": [
+        316.2277660168379
+      ],
+      "expected": {
+        "watt": 316.2277660168379,
+        "dbm": 55,
+        "dbw": 25
+      }
+    },
+    {
+      "name": "link_budget",
+      "arguments": [
+        43,
+        15,
+        15,
+        10,
+        3.5,
+        20,
+        5,
+        10
+      ],
+      "expected": {
+        "fspl": 123.33136088700552,
+        "p_rx": -50.331360887005516,
+        "noise_power": -95.989700043360187,
+        "snr": 45.658339156354671,
+        "margin": 35.658339156354671,
+        "status": "PASS"
+      }
+    },
+    {
+      "name": "power_from_voltage",
+      "arguments": [
+        5,
+        50
+      ],
+      "expected": {
+        "voltage_v": 5,
+        "impedance_ohm": 50,
+        "power_w": 0.5,
+        "power_dbm": 26.989700043360187,
+        "current_a": 0.10000000000000001
+      }
+    },
+    {
+      "name": "wavelengths",
+      "arguments": [
+        3.5,
+        3.5499999999999998
+      ],
+      "expected": {
+        "freq_ghz": 3.5,
+        "freq_mhz": 3500,
+        "er": 3.5499999999999998,
+        "lambda_mm": 85.714285714285708,
+        "lambda_eff_mm": 45.492419351509305,
+        "quarter_wave_mm": 11.373104837877326,
+        "half_wave_mm": 22.746209675754653
+      }
+    },
+    {
+      "name": "sparams",
+      "arguments": [
+        0.20000000000000001,
+        45
+      ],
+      "expected": {
+        "s11_mag": 0.20000000000000001,
+        "s11_phase_deg": 45,
+        "gamma_real": 0.14142135623730953,
+        "gamma_imag": 0.1414213562373095,
+        "return_loss_db": 13.979400086720375,
+        "vswr": 1.4999999999999998
+      }
+    },
+    {
+      "name": "thermal",
+      "arguments": [
+        10,
+        50
+      ],
+      "expected": {
+        "pout_w": 10,
+        "pae_pct": 50,
+        "pdc_w": 20,
+        "pdiss_w": 10,
+        "rth_jc": 1.5,
+        "rth_cs": 0.5,
+        "rth_sa": 2,
+        "rth_total": 4,
+        "ta_c": 25,
+        "ts_c": 45,
+        "tc_c": 50,
+        "tj_c": 65,
+        "tj_max_c": 200,
+        "margin_c": 135,
+        "status": "SAFE"
+      }
+    },
+    {
+      "name": "ropt",
+      "arguments": [
+        28,
+        10,
+        2
+      ],
+      "expected": 33.799999999999997
+    },
+    {
+      "name": "gate_width",
+      "arguments": [
+        10,
+        2.5,
+        0.5
+      ],
+      "expected": 4
+    },
+    {
+      "name": "idq",
+      "arguments": [
+        800,
+        180
+      ],
+      "expected": {
+        "Idq_mA": 0,
+        "conduction_angle_deg": 180,
+        "Ids_max_mA": 800,
+        "class_label": "Class B"
+      }
+    },
+    {
+      "name": "idq",
+      "arguments": [
+        800,
+        240
+      ],
+      "expected": {
+        "Idq_mA": 133.33333333333334,
+        "conduction_angle_deg": 240,
+        "Ids_max_mA": 800,
+        "class_label": "Class AB"
+      }
+    },
+    {
+      "name": "idq",
+      "arguments": [
+        800,
+        360
+      ],
+      "expected": {
+        "Idq_mA": 400,
+        "conduction_angle_deg": 360,
+        "Ids_max_mA": 800,
+        "class_label": "Class A"
+      }
+    },
+    {
+      "name": "doherty_sizing",
+      "arguments": [
+        10,
+        "symmetric"
+      ],
+      "expected": {
+        "Ropt_main_ohm": 10,
+        "Ropt_peak_ohm": 20,
+        "Zt_ohm": 22.360679774997898,
+        "gate_ratio": 1,
+        "n_factor": 2,
+        "topology": "symmetric"
+      }
+    },
+    {
+      "name": "doherty_sizing",
+      "arguments": [
+        10,
+        "asymmetric_6dB"
+      ],
+      "expected": {
+        "Ropt_main_ohm": 10,
+        "Ropt_peak_ohm": 20,
+        "Zt_ohm": 22.360679774997898,
+        "gate_ratio": 2,
+        "n_factor": 2,
+        "topology": "asymmetric_6dB"
+      }
+    },
+    {
+      "name": "doherty_sizing",
+      "arguments": [
+        10,
+        "asymmetric_9dB"
+      ],
+      "expected": {
+        "Ropt_main_ohm": 10,
+        "Ropt_peak_ohm": 30,
+        "Zt_ohm": 22.360679774997898,
+        "gate_ratio": 3,
+        "n_factor": 3,
+        "topology": "asymmetric_9dB"
+      }
+    },
+    {
+      "name": "matching_lmatch",
+      "arguments": [
+        50,
+        12.5,
+        3.5
+      ],
+      "expected": {
+        "Q": 1.7320508075688772,
+        "L_nH": 0.98451588468177165,
+        "C_pF": 1.5752254154908345,
+        "bw_pct": 57.735026918962582,
+        "topology": "step_down_L",
+        "Zs_ohm": 50,
+        "Zl_ohm": 12.5,
+        "freq_ghz": 3.5
+      }
+    },
+    {
+      "name": "matching_lmatch",
+      "arguments": [
+        50,
+        100,
+        3.5
+      ],
+      "expected": {
+        "Q": 1,
+        "L_nH": 4.5472840883398673,
+        "C_pF": 0.90945681766797348,
+        "bw_pct": 100,
+        "topology": "step_up_C",
+        "Zs_ohm": 50,
+        "Zl_ohm": 100,
+        "freq_ghz": 3.5
+      }
+    },
+    {
+      "name": "doherty_combiner",
+      "arguments": [
+        3.3799999999999999,
+        3.5
+      ],
+      "expected": {
+        "Zt_ohm": 13,
+        "len_mm": 11.365236848129783,
+        "width_mm": 6.6383791034349349,
+        "lambda_g_mm": 45.460947392519131,
+        "er": 3.5499999999999998,
+        "h_mm": 0.50800000000000001,
+        "freq_ghz": 3.5
+      }
+    },
+    {
+      "name": "doherty_combiner",
+      "arguments": [
+        10,
+        3.5
+      ],
+      "expected": {
+        "Zt_ohm": 22.360679774997898,
+        "len_mm": 11.365236848129783,
+        "width_mm": 3.4788920394337586,
+        "lambda_g_mm": 45.460947392519131,
+        "er": 3.5499999999999998,
+        "h_mm": 0.50800000000000001,
+        "freq_ghz": 3.5
+      }
+    },
+    {
+      "name": "doherty_combiner",
+      "arguments": [
+        50,
+        3.5
+      ],
+      "expected": {
+        "Zt_ohm": 50,
+        "len_mm": 11.365236848129783,
+        "width_mm": 1.1363786832280378,
+        "lambda_g_mm": 45.460947392519131,
+        "er": 3.5499999999999998,
+        "h_mm": 0.50800000000000001,
+        "freq_ghz": 3.5
+      }
+    }
+  ]
+}

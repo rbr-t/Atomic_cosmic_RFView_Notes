@@ -2,6 +2,15 @@
 
 This repository contains an interactive R Markdown document that presents RF engineering concepts from an atomic to cosmic perspective.
 
+## Python migration in progress
+
+The workspace is being migrated side-by-side to Python. The first runnable
+PA lineup/canvas slice, setup instructions, tests and remaining migration
+batches are documented in [python_app/README.md](python_app/README.md).
+See the [migration assessment](PYTHON_MIGRATION_REVIEW.html) for scope and
+acceptance gates. The legacy R applications remain available and are not yet
+archived; the instructions below still describe the legacy teaching notes.
+
 ## Overview
 
 The teaching notes are organized into six main topics, each accessible as a tab in the rendered document:

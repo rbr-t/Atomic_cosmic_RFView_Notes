@@ -1,0 +1,2680 @@
+{
+  "provenance": {
+    "runtime": "R version 4.4.1 (2024-06-14 ucrt)",
+    "source_md5": "d828281727a4cff0acb2cddc9e7ec825",
+    "config_md5": "1c290d17e0b7b4b231a1512aea135749",
+    "note": "Statuses, counts and numeric outputs; diagnostic prose deliberately not frozen."
+  },
+  "cases": [
+    {
+      "name": "LDMOS nominal",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS freq 0.09",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 0.090000000000000011,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 0.090000000000000011,
+        "max_gain_available": 33,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS freq 0.1",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 0.10000000000000001,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "Si LDMOS",
+        "freq_ghz": 0.10000000000000001,
+        "max_gain_available": 33,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS freq 0.7",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 0.69999999999999996,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 0.69999999999999996,
+        "max_gain_available": 33,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS freq 3.8",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 3.7999999999999998,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 3.7999999999999998,
+        "max_gain_available": 20.199999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS freq 4",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 4,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "Si LDMOS",
+        "freq_ghz": 4,
+        "max_gain_available": 19.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS freq 4.01",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 4.0099999999999998,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 4.0099999999999998,
+        "max_gain_available": 19.699999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS gain margin 3",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 27.763603427657628,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS gain margin 3.0001",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 27.763703427657628,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS gain margin 6",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 30.763603427657628,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS gain margin 6.0001",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 30.763703427657628,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS pae 55",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 0,
+        "pae_pct": 55,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS pae 55.0001",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 0,
+        "pae_pct": 55.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS pae 80",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 0,
+        "pae_pct": 80,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS pae 80.0001",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 0,
+        "pae_pct": 80.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS voltage 65",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 65
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS voltage 65.0001",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 65.000100000000003
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS density 1.35",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28,
+        "pout_density": 1.3500000000000001
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS density 1.3501",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28,
+        "pout_density": 1.3501000000000001
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS density 1.5",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28,
+        "pout_density": 1.5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS density 1.5001",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 2.25,
+        "gain_db": 0,
+        "pae_pct": 45,
+        "pout_dbm": 30,
+        "vdd": 28,
+        "pout_density": 1.5001
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 2.25,
+        "max_gain_available": 24.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "LDMOS combined errors",
+      "inputs": {
+        "tech_key": "LDMOS",
+        "freq_ghz": 5,
+        "gain_db": 100,
+        "pae_pct": 99,
+        "pout_dbm": 30,
+        "vdd": 66,
+        "pout_density": 2.5
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 5,
+        "warning_count": 0,
+        "tech": "Si LDMOS",
+        "freq_ghz": 5,
+        "max_gain_available": 17.800000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaN_SiC nominal",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC freq 0.49",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 0.48999999999999999,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 0.48999999999999999,
+        "max_gain_available": 33,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC freq 0.5",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 0.5,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 0.5,
+        "max_gain_available": 33,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC freq 1",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 1,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 1,
+        "max_gain_available": 33,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC freq 18",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 18,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 18,
+        "max_gain_available": 17,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC freq 40",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 40,
+        "max_gain_available": 1.8999999999999999,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC freq 40.01",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 40.009999999999998,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 40.009999999999998,
+        "max_gain_available": 1.8999999999999999,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC gain margin 3",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 25.550977996289163,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC gain margin 3.0001",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 25.551077996289163,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC gain margin 6",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 28.550977996289163,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC gain margin 6.0001",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 28.551077996289163,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC pae 72",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 0,
+        "pae_pct": 72,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC pae 72.0001",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 0,
+        "pae_pct": 72.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC pae 80",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 0,
+        "pae_pct": 80,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC pae 80.0001",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 0,
+        "pae_pct": 80.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 28
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC voltage 84",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 84
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC voltage 84.0001",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 84.000100000000003
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC density 10.8",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28,
+        "pout_density": 10.800000000000001
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC density 10.8001",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28,
+        "pout_density": 10.8001
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC density 12",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28,
+        "pout_density": 12
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC density 12.0001",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 9.5,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 28,
+        "pout_density": 12.0001
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 9.5,
+        "max_gain_available": 22.600000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_SiC combined errors",
+      "inputs": {
+        "tech_key": "GaN_SiC",
+        "freq_ghz": 41,
+        "gain_db": 100,
+        "pae_pct": 99,
+        "pout_dbm": 30,
+        "vdd": 85,
+        "pout_density": 13
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 5,
+        "warning_count": 0,
+        "tech": "GaN HEMT (SiC)",
+        "freq_ghz": 41,
+        "max_gain_available": 1.6000000000000001,
+        "pae_max_practical": 72
+      }
+    },
+    {
+      "name": "GaN_Si nominal",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si freq 0.49",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 0.48999999999999999,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 0.48999999999999999,
+        "max_gain_available": 33,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si freq 0.5",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 0.5,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 0.5,
+        "max_gain_available": 33,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si freq 0.7",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 0.69999999999999996,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 0.69999999999999996,
+        "max_gain_available": 33,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si freq 6",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 6,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 6,
+        "max_gain_available": 23.699999999999999,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si freq 10",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 10,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 10,
+        "max_gain_available": 19.300000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si freq 10.01",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 10.01,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 10.01,
+        "max_gain_available": 19.300000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si gain margin 3",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 31.77797090539983,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si gain margin 3.0001",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 31.778070905399829,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si gain margin 6",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 34.777970905399826,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si gain margin 6.0001",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 34.778070905399829,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si pae 60",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 0,
+        "pae_pct": 60,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si pae 60.0001",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 0,
+        "pae_pct": 60.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si pae 80",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 0,
+        "pae_pct": 80,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si pae 80.0001",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 0,
+        "pae_pct": 80.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 20
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si voltage 50",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 50
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si voltage 50.0001",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 50.000100000000003
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si density 5.4",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20,
+        "pout_density": 5.4000000000000004
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si density 5.4001",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20,
+        "pout_density": 5.4001000000000001
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si density 6",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20,
+        "pout_density": 6
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si density 6.0001",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 3.3500000000000001,
+        "gain_db": 0,
+        "pae_pct": 50,
+        "pout_dbm": 30,
+        "vdd": 20,
+        "pout_density": 6.0000999999999998
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 3.3500000000000001,
+        "max_gain_available": 28.800000000000001,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaN_Si combined errors",
+      "inputs": {
+        "tech_key": "GaN_Si",
+        "freq_ghz": 11,
+        "gain_db": 100,
+        "pae_pct": 99,
+        "pout_dbm": 30,
+        "vdd": 51,
+        "pout_density": 7
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 5,
+        "warning_count": 0,
+        "tech": "GaN HEMT (Si)",
+        "freq_ghz": 11,
+        "max_gain_available": 18.5,
+        "pae_max_practical": 60
+      }
+    },
+    {
+      "name": "GaAs_pHEMT nominal",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT freq 0.99",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 0.98999999999999999,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 0.98999999999999999,
+        "max_gain_available": 33,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT freq 1",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 1,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 1,
+        "max_gain_available": 33,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT freq 4",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 4,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 4,
+        "max_gain_available": 32.899999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT freq 20",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 20,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 20,
+        "max_gain_available": 18.899999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT freq 50",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 50,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 50,
+        "max_gain_available": 1.1000000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT freq 50.01",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 50.009999999999998,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 50.009999999999998,
+        "max_gain_available": 1.1000000000000001,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT gain margin 3",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 26.375175252488255,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT gain margin 3.0001",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 26.375275252488255,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT gain margin 6",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 29.375175252488255,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT gain margin 6.0001",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 29.375275252488255,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT pae 55",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 0,
+        "pae_pct": 55,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT pae 55.0001",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 0,
+        "pae_pct": 55.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT pae 80",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 0,
+        "pae_pct": 80,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT pae 80.0001",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 0,
+        "pae_pct": 80.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 5
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT voltage 12",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 12
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT voltage 12.0001",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 12.0001
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT density 1.35",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5,
+        "pout_density": 1.3500000000000001
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT density 1.3501",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5,
+        "pout_density": 1.3501000000000001
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT density 1.5",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5,
+        "pout_density": 1.5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT density 1.5001",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 12,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 5,
+        "pout_density": 1.5001
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 12,
+        "max_gain_available": 23.399999999999999,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "GaAs_pHEMT combined errors",
+      "inputs": {
+        "tech_key": "GaAs_pHEMT",
+        "freq_ghz": 51,
+        "gain_db": 100,
+        "pae_pct": 99,
+        "pout_dbm": 30,
+        "vdd": 13,
+        "pout_density": 2.5
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 5,
+        "warning_count": 0,
+        "tech": "GaAs pHEMT",
+        "freq_ghz": 51,
+        "max_gain_available": 0.90000000000000002,
+        "pae_max_practical": 55
+      }
+    },
+    {
+      "name": "SiGe_HBT nominal",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT freq 4.99",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 4.9900000000000002,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 4.9900000000000002,
+        "max_gain_available": 33,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT freq 5",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 5,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "SiGe HBT",
+        "freq_ghz": 5,
+        "max_gain_available": 33,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT freq 20",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 20,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 20,
+        "max_gain_available": 23,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT freq 60",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 60,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 60,
+        "max_gain_available": 13.5,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT freq 100",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 100,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "SiGe HBT",
+        "freq_ghz": 100,
+        "max_gain_available": 6.5,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT freq 100.01",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 100.01000000000001,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 100.01000000000001,
+        "max_gain_available": 6.5,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT gain margin 3",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 20,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT gain margin 3.0001",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 20.0001,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT gain margin 6",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 23,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT gain margin 6.0001",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 23.0001,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT pae 40",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 40,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT pae 40.0001",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 40.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT pae 80",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 80,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT pae 80.0001",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 80.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 1.8
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT voltage 4",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 4
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT voltage 4.0001",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 4.0000999999999998
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT density 0.27",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8,
+        "pout_density": 0.27000000000000002
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT density 0.2701",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8,
+        "pout_density": 0.27010000000000001
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT density 0.3",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8,
+        "pout_density": 0.29999999999999999
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT density 0.3001",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 40,
+        "gain_db": 0,
+        "pae_pct": 25,
+        "pout_dbm": 30,
+        "vdd": 1.8,
+        "pout_density": 0.30009999999999998
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 40,
+        "max_gain_available": 17,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "SiGe_HBT combined errors",
+      "inputs": {
+        "tech_key": "SiGe_HBT",
+        "freq_ghz": 101,
+        "gain_db": 100,
+        "pae_pct": 99,
+        "pout_dbm": 30,
+        "vdd": 5,
+        "pout_density": 1.3
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 5,
+        "warning_count": 0,
+        "tech": "SiGe HBT",
+        "freq_ghz": 101,
+        "max_gain_available": 6.5,
+        "pae_max_practical": 40
+      }
+    },
+    {
+      "name": "InP_HEMT nominal",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT freq 29.99",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 29.989999999999998,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 29.989999999999998,
+        "max_gain_available": 25.5,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT freq 30",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 30,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "InP HEMT",
+        "freq_ghz": 30,
+        "max_gain_available": 25.5,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT freq 60",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 60,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 60,
+        "max_gain_available": 19.5,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT freq 200",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 200,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 200,
+        "max_gain_available": 5,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT freq 300",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 300,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "InP HEMT",
+        "freq_ghz": 300,
+        "max_gain_available": 1.3999999999999999,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT freq 300.01",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 300.00999999999999,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 300.00999999999999,
+        "max_gain_available": 1.3999999999999999,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT gain margin 3",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 15.782932693702136,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT gain margin 3.0001",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 15.783032693702136,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT gain margin 6",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 18.782932693702136,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT gain margin 6.0001",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 18.783032693702136,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT pae 35",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 0,
+        "pae_pct": 35,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT pae 35.0001",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 0,
+        "pae_pct": 35.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT pae 80",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 0,
+        "pae_pct": 80,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT pae 80.0001",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 0,
+        "pae_pct": 80.000100000000003,
+        "pout_dbm": 30,
+        "vdd": 1.5
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT voltage 3",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 3
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT voltage 3.0001",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 3.0001000000000002
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT density 0.9",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5,
+        "pout_density": 0.90000000000000002
+      },
+      "expected": {
+        "status": "ok",
+        "error_count": 0,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT density 0.9001",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5,
+        "pout_density": 0.90010000000000001
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT density 1",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5,
+        "pout_density": 1
+      },
+      "expected": {
+        "status": "warning",
+        "error_count": 0,
+        "warning_count": 1,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT density 1.0001",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 130,
+        "gain_db": 0,
+        "pae_pct": 20,
+        "pout_dbm": 30,
+        "vdd": 1.5,
+        "pout_density": 1.0001
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 1,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 130,
+        "max_gain_available": 12.800000000000001,
+        "pae_max_practical": 35
+      }
+    },
+    {
+      "name": "InP_HEMT combined errors",
+      "inputs": {
+        "tech_key": "InP_HEMT",
+        "freq_ghz": 301,
+        "gain_db": 100,
+        "pae_pct": 99,
+        "pout_dbm": 30,
+        "vdd": 4,
+        "pout_density": 2
+      },
+      "expected": {
+        "status": "error",
+        "error_count": 5,
+        "warning_count": 0,
+        "tech": "InP HEMT",
+        "freq_ghz": 301,
+        "max_gain_available": 1.3999999999999999,
+        "pae_max_practical": 35
+      }
+    }
+  ]
+}
