@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Literal
+from typing import Literal, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -28,10 +28,13 @@ class FrequencyRange(GuardrailModel):
 class GainLimits(GuardrailModel):
     ft_ghz_typical: float = Field(gt=0)
     fmax_ghz_typical: float | None = Field(default=None, gt=0)
+    ft_ghz_max: float | None = Field(default=None, gt=0)
+    fmax_ghz_max: float | None = Field(default=None, gt=0)
 
 
 class PaeLimits(GuardrailModel):
     max_practical_p3db: float = Field(default=78.5, ge=0, le=100)
+    typical_p3db: float | None = Field(default=None, ge=0, le=100)
 
 
 class VoltageLimits(GuardrailModel):
@@ -41,15 +44,23 @@ class VoltageLimits(GuardrailModel):
 
 class DensityLimits(GuardrailModel):
     max: float = Field(default=999, gt=0)
+    min: float | None = Field(default=None, ge=0)
+    typical: float | None = Field(default=None, gt=0)
+
+
+class ThermalLimits(GuardrailModel):
+    max_tj_c: float | None = Field(default=None, gt=-273.15)
 
 
 class TechnologyGuardrail(GuardrailModel):
     label: str = Field(min_length=1)
+    color: str = Field(default="#888888", pattern=r"^#[0-9a-fA-F]{6}$")
     freq_range_ghz: FrequencyRange
     gain_db: GainLimits
     pae_pct: PaeLimits
     vdd: VoltageLimits
     pout_density_w_per_mm: DensityLimits
+    thermal: ThermalLimits = Field(default_factory=ThermalLimits)
 
 
 class GainRule(GuardrailModel):
@@ -206,3 +217,177 @@ def pae_backoff(pae_p3db_pct: float, backoff_db: float, pa_class: str = "AB") ->
             raise ValueError(f"Unsupported PA class: {pa_class}")
         scale = ratio ** exponent[pa_class]
     return max(pae_p3db_pct * scale, 1)
+
+
+class DesignSpaceRow(TypedDict):
+    tech: str
+    label: str
+    color: str
+    freq_ghz: float
+    gain_db: float
+    pout_density_typ: float
+    pout_density_max: float
+    pae_typ_pct: float
+    pae_max_pct: float
+    vdd_typ: float
+    in_sweet_spot: bool
+
+
+class GainBandwidthRow(TypedDict):
+    tech: str
+    label: str
+    color: str
+    freq_ghz: float
+    gain_typ: float
+    gain_max: float
+    in_range: bool
+
+
+class PaeBackoffRow(TypedDict):
+    tech: str
+    label: str
+    tech_label: str
+    color: str
+    pa_class: str
+    backoff_db: float
+    pae_pct: float
+
+
+GuardrailSummaryRow = TypedDict(
+    "GuardrailSummaryRow",
+    {
+        "Technology": str,
+        "Freq Range (GHz)": str,
+        "Sweet Spot (GHz)": str,
+        "fT typ (GHz)": float,
+        "fmax typ (GHz)": float | None,
+        "Vdd typ (V)": float,
+        "Vdd max (V)": float | None,
+        "Pout density W/mm": str,
+        "PAE P3dB typ (%)": float | None,
+        "PAE P3dB max (%)": float | None,
+        "Max Tj (\u00b0C)": float | None,
+    },
+)
+
+
+def _logspace(start: float, stop: float, count: int) -> list[float]:
+    first, last = math.log(start), math.log(stop)
+    return [math.exp(first + (last - first) * index / (count - 1)) for index in range(count)]
+
+
+def build_design_space_data(
+    catalog: GuardrailCatalog, freq_points: int = 60
+) -> list[DesignSpaceRow]:
+    if isinstance(freq_points, bool) or not isinstance(freq_points, int) or freq_points < 1:
+        raise ValueError("freq_points must be a positive integer")
+    rows: list[DesignSpaceRow] = []
+    for key, tech in catalog.technologies.items():
+        fr, gd, pd, pae = (
+            tech.freq_range_ghz,
+            tech.gain_db,
+            tech.pout_density_w_per_mm,
+            tech.pae_pct,
+        )
+        freqs = (
+            [math.exp(math.log(fr.min))]
+            if freq_points == 1
+            else _logspace(fr.min, fr.max, freq_points)
+        )
+        for freq in freqs:
+            scale = min((gd.ft_ghz_typical / freq) ** 0.08, 1)
+            rows.append(
+                DesignSpaceRow(
+                    tech=key,
+                    label=tech.label,
+                    color=tech.color,
+                    freq_ghz=freq,
+                    gain_db=available_gain(freq, gd.ft_ghz_typical, gd.fmax_ghz_typical),
+                    pout_density_typ=pd.typical if pd.typical is not None else 1,
+                    pout_density_max=pd.max if "max" in pd.model_fields_set else 2,
+                    pae_typ_pct=(pae.typical_p3db if pae.typical_p3db is not None else 45) * scale,
+                    pae_max_pct=(
+                        pae.max_practical_p3db
+                        if "max_practical_p3db" in pae.model_fields_set
+                        else 65
+                    )
+                    * scale,
+                    vdd_typ=tech.vdd.typical,
+                    in_sweet_spot=fr.sweet_spot_min <= freq <= fr.sweet_spot_max,
+                )
+            )
+    return rows
+
+
+def build_gain_bandwidth_data(catalog: GuardrailCatalog) -> list[GainBandwidthRow]:
+    rows: list[GainBandwidthRow] = []
+    freqs = _logspace(0.1, 300, 200)
+    for key, tech in catalog.technologies.items():
+        fr, gd = tech.freq_range_ghz, tech.gain_db
+        ft = gd.ft_ghz_typical
+        fmax = gd.fmax_ghz_typical if gd.fmax_ghz_typical is not None else ft * 2.2
+        ftx = gd.ft_ghz_max if gd.ft_ghz_max is not None else ft * 1.3
+        fmxx = gd.fmax_ghz_max if gd.fmax_ghz_max is not None else fmax * 1.3
+        for freq in freqs:
+            if not fr.min * 0.5 <= freq <= fr.max * 2:
+                continue
+            rows.append(
+                GainBandwidthRow(
+                    tech=key,
+                    label=tech.label,
+                    color=tech.color,
+                    freq_ghz=freq,
+                    gain_typ=available_gain(freq, ft, fmax),
+                    gain_max=available_gain(freq, ftx, fmxx),
+                    in_range=fr.min <= freq <= fr.max,
+                )
+            )
+    return rows
+
+
+def build_pae_backoff_data(catalog: GuardrailCatalog) -> list[PaeBackoffRow]:
+    rows: list[PaeBackoffRow] = []
+    for key, tech in catalog.technologies.items():
+        pae = tech.pae_pct.typical_p3db
+        for pa_class in ("A", "AB", "B", "Doherty", "F"):
+            for index in range(65):
+                backoff = index / 4
+                rows.append(
+                    PaeBackoffRow(
+                        tech=key,
+                        label=f"{tech.label} - {pa_class}",
+                        tech_label=tech.label,
+                        color=tech.color,
+                        pa_class=pa_class,
+                        backoff_db=backoff,
+                        pae_pct=pae_backoff(pae if pae is not None else 45, backoff, pa_class),
+                    )
+                )
+    return rows
+
+
+def build_guardrail_summary_table(catalog: GuardrailCatalog) -> list[GuardrailSummaryRow]:
+    rows: list[GuardrailSummaryRow] = []
+    for tech in catalog.technologies.values():
+        fr, pd, pae = tech.freq_range_ghz, tech.pout_density_w_per_mm, tech.pae_pct
+        rows.append(
+            {
+                "Technology": tech.label,
+                "Freq Range (GHz)": f"{fr.min:.1f} \u2013 {fr.max:.1f}",
+                "Sweet Spot (GHz)": f"{fr.sweet_spot_min:.1f} \u2013 {fr.sweet_spot_max:.1f}",
+                "fT typ (GHz)": tech.gain_db.ft_ghz_typical,
+                "fmax typ (GHz)": tech.gain_db.fmax_ghz_typical,
+                "Vdd typ (V)": tech.vdd.typical,
+                "Vdd max (V)": tech.vdd.max_abs,
+                "Pout density W/mm": (
+                    f"{pd.min if pd.min is not None else 0:.2f} \u2013 "
+                    f"{pd.max if 'max' in pd.model_fields_set else 0:.2f}"
+                ),
+                "PAE P3dB typ (%)": pae.typical_p3db,
+                "PAE P3dB max (%)": (
+                    pae.max_practical_p3db if "max_practical_p3db" in pae.model_fields_set else None
+                ),
+                "Max Tj (\u00b0C)": tech.thermal.max_tj_c,
+            }
+        )
+    return rows

@@ -63,8 +63,7 @@ Results identify their model as `legacy-r-v1`. Deliberately retained assumptions
 - Gate-width sizing follows current R source, not an inconsistent older test.
 
 Unequal split ratios and unsupported branching are rejected explicitly rather
-than producing plausible-looking results. MTTF/reliability and the guardrail
-plot-data builders are not ported.
+than producing plausible-looking results. MTTF/reliability is not ported.
 
 ### Batch 2 - technology guardrail validation
 
@@ -88,7 +87,7 @@ the YAML comment saying "at or above".
 
 The reference fixture covers **132 R cases** across all six technologies,
 including exact boundaries, just-over-boundary values and combined errors.
-The full Python suite currently has **374 passing tests**. The browser test
+The guardrail-validation batch reached **374 passing tests**. The browser test
 also verifies OK/error advisories and unchanged lineup results.
 
 This is a legacy-model advisory, not a safety certification or a general
@@ -105,6 +104,38 @@ Public entry points:
   pure validation with explicit status, diagnostics, available gain and PAE limit.
 - [export_guardrails.R](tests/reference/export_guardrails.R): optional offline
   regeneration of the additional R oracle. Normal Python tests do not require R.
+
+### Batch 3 - guardrail plot and summary data
+
+Four pure, typed row builders are available in
+[guardrails.py](src/rfview/domain/guardrails.py), without pandas, UI, storage or
+network dependencies:
+
+| Function | Default output across six technologies |
+|---|---|
+| `build_design_space_data` | 360 rows; 60 log-spaced frequencies per technology |
+| `build_gain_bandwidth_data` | 676 rows; typical/maximum gain and operating-range flags |
+| `build_pae_backoff_data` | 1,950 rows; classes A/AB/B/Doherty/F, 0-16 dB in 0.25 dB steps |
+| `build_guardrail_summary_table` | Six rows with legacy column labels and engineering units |
+
+Technology ordering, color metadata, row fields, Boolean flags and numerical
+values are compared against complete R-generated output in
+[guardrail_builders_reference.json](tests/fixtures/guardrail_builders_reference.json).
+Single-point and three-point design-space sampling are also qualified. Numeric
+tolerances remain `rtol=1e-10`, `atol=1e-12`. Sample counts must be positive
+integers; malformed inputs raise errors rather than returning empty success.
+Optional legacy fields retain builder-specific defaults; absent summary values
+are `None` (JSON `null`).
+
+Intentional presentation adaptation: summary power-density ranges use **two**
+decimal places rather than R's one. This preserves the SiGe minimum of
+**0.05 W/mm**, which the R summary displays as `0.0`. The oracle stores both the
+original summary and separately calculated two-decimal density labels.
+Underlying numerical data is unchanged.
+
+The full suite now has **388 passing tests**. These builders are ready for
+consumption by charts, but chart UI and visual parity are **not** delivered by
+this batch.
 
 ### Adapter boundary
 
@@ -153,7 +184,7 @@ to silence a mismatch.
 
 Each batch should deliver runnable behavior, targeted tests and a scope update:
 
-1. Complete guardrail plot-data builders, remaining calculations and legacy property controls.
+1. Wire guardrail charts/summary UI, then complete remaining calculations and legacy property controls.
 2. Migrate load-pull and Touchstone parsers with frozen file fixtures and viewers.
 3. Add project persistence, snapshots and multi-canvas lifecycle.
 4. Integrate AI/KB and the existing guarded Python ingestion pipeline.

@@ -91,3 +91,27 @@ jsonlite::write_json(list(
   cases = cases
 ), destination, auto_unbox = TRUE, pretty = TRUE, digits = 16, null = "null")
 cat("Exported", length(cases), "guardrail cases\n")
+builders <- list(
+  design_space = buildDesignSpaceData(catalog),
+  design_space_single = buildDesignSpaceData(catalog, freq_points = 1),
+  design_space_three = buildDesignSpaceData(catalog, freq_points = 3),
+  gain_bandwidth = buildGainBandwidthData(catalog),
+  pae_backoff = buildPAEBackoffData(catalog),
+  summary = buildGuardrailSummaryTable(catalog)
+)
+# Deliberate Python presentation change: preserve the SiGe 0.05 W/mm lower limit.
+summary_density_two_decimals <- vapply(catalog$technologies, function(tech) {
+  sprintf("%.2f \u2013 %.2f", tech$pout_density_w_per_mm$min %||% 0,
+          tech$pout_density_w_per_mm$max %||% 0)
+}, character(1))
+jsonlite::write_json(list(
+  provenance = list(
+    runtime = R.version.string,
+    source_md5 = canonical_md5(source_path),
+    config_md5 = canonical_md5(yaml_path)
+  ),
+  builders = builders,
+  summary_density_two_decimals = unname(summary_density_two_decimals)
+), file.path(root, "python_app/tests/fixtures/guardrail_builders_reference.json"),
+   auto_unbox = TRUE, pretty = TRUE, digits = 16, null = "null", na = "null")
+cat("Exported guardrail builders:", paste(names(builders), collapse = ", "), "\n")
