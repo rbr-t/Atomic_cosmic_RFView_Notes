@@ -129,6 +129,7 @@ app_ui = ui.page_fluid(
         ui.tags.link(rel="stylesheet", href="migration/migration.css"),
         ui.tags.script(src="vendor/d3.min.js"),
         ui.tags.script(src="migration/canvas_adapter.js"),
+        ui.tags.script(src="migration/cad_preview.js"),
     ),
     ui.tags.header(
         ui.h1("RF PA Design - Python"),
@@ -270,9 +271,8 @@ app_ui = ui.page_fluid(
         ui.tags.details(
             ui.tags.summary("Standalone RF-CAD JSON import / export"),
             ui.p(
-                "Imports and validates the standalone RF-CAD document format, then offers "
-                "normalized JSON export. This is separate from the PA lineup canvas; "
-                "geometry is not rendered or transferred."
+                "Import, inspect and export standalone RF-CAD JSON. This read-only view is "
+                "separate from the PA lineup canvas and does not edit or transfer geometry."
             ),
             ui.input_file("cad_upload", "Upload RF-CAD JSON (max 5 MiB)", accept=[".json"]),
             ui.output_ui("cad_status"),
@@ -281,9 +281,9 @@ app_ui = ui.page_fluid(
             ui.output_code("cad_component_detail"),
             ui.h3("Position overview (mm)"),
             ui.p(
-                "Markers show component origin positions and identifiers only. Footprint "
-                "dimensions, layer stacking, connectivity and fabrication clearances are "
-                "not represented; this is not a DRC view."
+                "Geometry-shaped glyphs follow supported legacy drawing parameters. "
+                "Select or activate a glyph to inspect it. This is an overview only: "
+                "not DRC, EM or fabrication validation."
             ),
             ui.output_ui("cad_preview"),
             ui.output_ui("cad_download_control"),
@@ -693,8 +693,22 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     def cad_preview() -> ui.Tag:
         design = cad_design()
         if design is None:
-            return ui.p("Import a CAD document to see its position overview.")
-        return cad_layout_preview(design)
+            return ui.p("Import a CAD document to see its geometry overview.")
+        selected_id = input.cad_component()
+        return cad_layout_preview(design, selected_id or None)
+
+    @reactive.effect
+    @reactive.event(input.cad_preview_select)
+    def _cad_preview_select() -> None:
+        design = cad_design()
+        identifier = input.cad_preview_select()
+        if design is None or not isinstance(identifier, str):
+            return
+        component = next((item for item in design.components if item.id == identifier), None)
+        if component is None:
+            logger.warning("Ignored CAD preview selection for unknown component %r", identifier)
+            return
+        ui.update_select("cad_component", selected=component.id, session=session)
 
     @render.code
     def cad_component_detail() -> str:

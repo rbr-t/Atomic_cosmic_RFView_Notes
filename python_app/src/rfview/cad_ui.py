@@ -210,7 +210,7 @@ def _transformed_bounds(
     )
 
 
-def cad_layout_preview(design: CADDesign) -> ui.Tag:
+def cad_layout_preview(design: CADDesign, selected_id: str | None = None) -> ui.Tag:
     selected = design.components[:MAX_CAD_PREVIEW_COMPONENTS]
     renderable: list[tuple[CADComponent, list[ui.Tag], tuple[float, float, float, float]]] = []
     skipped_dimensions = 0
@@ -288,11 +288,19 @@ def cad_layout_preview(design: CADDesign) -> ui.Tag:
                 "g",
                 ui.tags.title(description),
                 *shapes,
-                class_="cad-layout-component",
-                role="img",
+                class_=(
+                    "cad-layout-component cad-layout-selected"
+                    if component.id == selected_id
+                    else "cad-layout-component"
+                ),
+                role="button",
                 tabindex="0",
                 transform=f"matrix({a:g} {b:g} {c:g} {d:g} {component.x:g} {-component.y:g})",
-                **{"aria-label": description},
+                **{
+                    "aria-label": f"Inspect {description}",
+                    "aria-pressed": "true" if component.id == selected_id else "false",
+                    "data-cad-id": component.id,
+                },
             )
         )
 

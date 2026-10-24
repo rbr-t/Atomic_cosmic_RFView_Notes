@@ -1300,6 +1300,18 @@ Qualification: Chromium selects and inspects different component types,
 verifies unknown parameter retention, and confirms the selected record is
 preserved when a later invalid file is rejected.
 
+### Batch 40 - select CAD components from the preview
+
+Preview glyphs now act as accessible selection controls. Clicking a glyph or
+focusing it and pressing Enter/Space selects that CAD component in the existing
+read-only inspector and marks the selected glyph. The server accepts selection
+only when the ID belongs to the currently imported design; this path does not
+edit or rewrite the component.
+
+Qualification: Chromium selects a tee by clicking its shape and a coupled line
+with the keyboard, checks the inspector and selected state, and verifies the
+current selection remains after a later invalid import.
+
 ## Validation
 
 From the repository root:

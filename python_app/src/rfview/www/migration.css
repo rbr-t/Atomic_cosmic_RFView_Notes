@@ -77,8 +77,16 @@ p { color: var(--rf-secondary); }
 .cad-via-drill { fill: var(--rf-canvas); stroke: var(--rf-border); stroke-width: 0.04; }
 .cad-port-arrow { fill: var(--rf-focus); stroke: var(--rf-focus); stroke-width: 0.04; }
 .cad-layout-preview:focus-visible { outline: 2px solid var(--rf-focus); outline-offset: 3px; }
+.cad-layout-component { cursor: pointer; }
+.cad-layout-component .cad-shape,
+.cad-layout-component .cad-port-marker { transition: stroke 0.15s ease-out, stroke-width 0.15s ease-out; }
+.cad-layout-component:hover .cad-shape,
+.cad-layout-component:hover .cad-port-marker,
 .cad-layout-component:focus-visible .cad-shape,
-.cad-layout-component:focus-visible .cad-port-marker { stroke: var(--rf-text); stroke-width: 0.08; }
+.cad-layout-component:focus-visible .cad-port-marker,
+.cad-layout-selected .cad-shape,
+.cad-layout-selected .cad-port-marker { stroke: var(--rf-text); stroke-width: 0.08; }
+.cad-layout-component:focus-visible { outline: none; }
 table { width: 100%; border-collapse: collapse; margin-block: var(--rf-spacing); }
 th, td { padding: var(--rf-spacing); border: 1px solid var(--rf-border); text-align: left; }
 caption { color: var(--rf-secondary); }

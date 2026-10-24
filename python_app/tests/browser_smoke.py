@@ -550,12 +550,12 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#cad_preview .cad-layout-svg")).to_have_attribute(
             "aria-label", "RF-CAD component geometry in millimetres"
         )
-        marker = page.locator("#cad_preview .cad-layout-component").first
-        expect(marker).to_have_attribute("role", "img")
+        marker = page.locator('#cad_preview [data-cad-id="cmp_7"]')
+        expect(marker).to_have_attribute("role", "button")
         expect(marker).to_have_attribute("tabindex", "0")
         expect(marker).to_have_attribute(
             "aria-label",
-            "Feed; microstrip; layer=metal_top; x=12 mm, y=4 mm, rotation=90 degrees",
+            "Inspect Feed; microstrip; layer=metal_top; x=12 mm, y=4 mm, rotation=90 degrees",
         )
         expect(marker.locator("title")).to_contain_text("x=12 mm, y=4 mm")
         marker.focus()
@@ -578,6 +578,17 @@ def main(url: str, channel: str | None = None) -> None:
             }"""
         )
         assert bounds, "The rotated component footprint should remain within the SVG viewBox."
+        page.locator("#cad_preview [data-cad-id='cmp_9'] rect").first.click()
+        expect(page.locator("#cad_component")).to_have_value("cmp_9")
+        expect(page.locator("#cad_component_detail")).to_contain_text('"type": "tee"')
+        expect(page.locator("#cad_preview [data-cad-id='cmp_9']")).to_have_attribute(
+            "aria-pressed", "true"
+        )
+        keyboard_marker = page.locator("#cad_preview [data-cad-id='cmp_10']")
+        keyboard_marker.focus()
+        keyboard_marker.press("Space")
+        expect(page.locator("#cad_component")).to_have_value("cmp_10")
+        expect(page.locator("#cad_component_detail")).to_contain_text('"type": "coupled"')
         with page.expect_download() as cad_download:
             page.locator("#download_cad").click()
         cad_export_path = Path(temp) / "normalized-cad.json"
@@ -591,8 +602,8 @@ def main(url: str, channel: str | None = None) -> None:
         page.locator("#cad_upload").set_input_files(invalid_cad)
         expect(page.locator("#cad_status")).to_contain_text("RF-CAD import rejected")
         expect(page.locator("#cad_preview .cad-layout-component")).to_have_count(8)
-        expect(page.locator("#cad_component")).to_have_value("cmp_8")
-        expect(page.locator("#cad_component_detail")).to_contain_text('"id": "cmp_8"')
+        expect(page.locator("#cad_component")).to_have_value("cmp_10")
+        expect(page.locator("#cad_component_detail")).to_contain_text('"id": "cmp_10"')
         with page.expect_download() as retained_cad_download:
             page.locator("#download_cad").click()
         retained_cad_download.value.save_as(Path(temp) / "retained-cad.json")
