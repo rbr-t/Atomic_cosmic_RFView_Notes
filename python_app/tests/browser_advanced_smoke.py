@@ -399,12 +399,30 @@ def main(url: str) -> None:
         page.locator("#loadpull_cst_block").select_option("365")
         page.locator("#loadpull_import").click()
         expect(page.locator("#loadpull_status")).to_contain_text("Block 365/365")
+        page.get_by_text("Local device knowledge base", exact=True).click()
+        page.locator("#kb_search").click()
+        expect(page.locator("#kb_status")).to_contain_text("Found 22 matching record(s)")
+        expect(page.locator(".kb-device-card")).to_have_count(22)
+        expect(page.locator("#kb_device_detail")).to_contain_text("catalog_source_sha256")
+        page.locator("#kb_manufacturer").select_option("NXP")
+        page.locator("#kb_frequency_mhz").fill("500")
+        page.locator("#kb_query").fill("MRF1K50H")
+        page.locator("#kb_search").click()
+        expect(page.locator("#kb_status")).to_contain_text("Found 1 matching record(s)")
+        expect(page.locator(".kb-device-card")).to_have_count(1)
+        expect(page.locator(".kb-device-card")).to_contain_text("MRF1K50H")
+        expect(page.locator("#kb_device_detail")).to_contain_text("nxp/devices.json")
+        expect(page.locator("#kb_device_detail")).to_contain_text("datasheet")
+        for width in (375, 768, 1440):
+            page.set_viewport_size({"width": width, "height": 1000})
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
         close_notifications(page)
         assert not errors, errors
         browser.close()
     print(
         "Advanced browser smoke passed: comparison, lifecycle, geometry/history, "
-        "triangles, v1/v2 noise, mixed-mode transforms, annotations, ALPS, SPL and CST workflows."
+        "triangles, v1/v2 noise, mixed-mode transforms, annotations, ALPS, SPL, CST, "
+        "and local KB search."
     )
 
 

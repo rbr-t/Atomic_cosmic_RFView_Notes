@@ -43,6 +43,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
 | Technology guardrails | Typed YAML loading, pure device validation and an explicit selected-transistor advisory |
+| Device knowledge base | Read-only local search of checked-in vendor records with frequency/manufacturer/technology filters and source-file SHA-256 provenance |
 | Qualification | Frozen R numeric references, Python contracts, static checks and browser workflow regression |
 
 The UI offers four tabbed session editors plus simultaneous read-only topology/
@@ -1138,6 +1139,46 @@ revision. The existing baseline and advanced Chromium suites also pass.
 Production identity/RBAC, PostgreSQL deployment, automatic crash-state capture
 and simultaneous editable layouts are not delivered by this slice.
 
+### Batch 33 - local read-only device knowledge-base search
+
+The **Local device knowledge base** panel now searches the checked-in JSON under
+`PA design App/data/kb/`. This is a local catalogue reader, not an AI agent,
+recommendation engine, Chroma integration or crawler. Searches do not access the
+network, include project state, persist queries, or modify vendor records.
+
+- Case-insensitive text search covers the complete validated record, including
+  part number, manufacturer, notes, application, tags and retained vendor fields.
+- Manufacturer and technology filters require exact matches after case-folding.
+  Optional frequency filtering requires the requested MHz value to be within
+  the record's inclusive `[freq_min_mhz, freq_max_mhz]` band. Active/EOL status
+  is shown, not silently used as a filter.
+- Search results are deterministic, capped at 50 cards by the app (200 in the
+  reusable query API). The status reports the total and asks for narrower filters
+  when results are truncated. Select a device to inspect its stored fields,
+  relative vendor-file location and SHA-256 of the complete source file.
+- The reader rejects invalid UTF-8/JSON, duplicate JSON keys or device IDs,
+  non-finite numbers (including JSON exponent overflow), missing required fields,
+  reversed bands, invalid core
+  power/efficiency ranges, symlinks, files over 8 MiB, a KB over 32 MiB and
+  catalogs over 10,000 records. A bad source rejects the search rather than
+  returning a partial catalogue.
+- Source/confidence/provenance fields are presented as recorded. In particular,
+  `from_training` and pilot/auto-seeded records are **not** promoted to datasheet
+  facts, approval, or design recommendations by this view. Device-specific
+  validation and human engineering review remain required.
+
+Qualification: focused tests load all **22 actual records across four vendors**,
+verify file hashes and retained vendor extras, exercise text and exact filters,
+MHz boundaries, sorting/truncation, malformed and hostile JSON, data bounds,
+duplicate IDs and source symlinks. The advanced Chromium suite exercises the
+full-catalog and NXP/frequency/part-number searches at 375/768/1440 px.
+The final full Python suite passes **1,048 tests**, with one platform skip
+because directory symlink creation is not permitted on this Windows account;
+Ruff, strict source mypy, compilation and dependency checks pass.
+This slice intentionally makes no claim that the LLM agents, embeddings/vector
+database, AI prompts, guarded Python ingestion/application workflow, or
+human-reviewed datasheet extraction have migrated.
+
 ## Validation
 
 From the repository root:
@@ -1191,6 +1232,8 @@ software gates and external acceptance gates are distinct:
 | Production multi-user persistence, identity and RBAC | Remaining; local SQLite mode is unauthenticated and single-user only |
 | Remaining synthesis/editor controls and interaction parity | Remaining implementation/acceptance |
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
+| Local checked-in device catalog search | Delivered by batch 33; read-only, filters and source digests |
+| AI agents, vector retrieval and guarded Python ingestion workflow | Remaining; no LLM, Chroma or KB write/apply path is claimed |
 
 1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,
    calibration/wave-convention qualification and richer overlays/interaction.
@@ -1206,7 +1249,9 @@ software gates and external acceptance gates are distinct:
    not full parity.
 3. Extend local project persistence/snapshots/recovery to production PostgreSQL,
    authenticated identity, role-based access and additional project datasets.
-4. Integrate remaining AI agents/KB and the guarded Python ingestion pipeline.
+4. Port the AI agent runtime/individual agents, Chroma retrieval and guarded
+   Python KB ingestion/review/apply workflow; retain provenance and human
+   approval gates. The local catalogue browser in batch 33 is not this work.
 5. Complete and qualify integrated and standalone RF CAD separately.
 6. Convert education/manual/IFX documents and Web Page Knitter to Python-executed
    builds, retaining their interactive assets.

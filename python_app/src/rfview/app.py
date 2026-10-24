@@ -46,6 +46,12 @@ from rfview.domain.transistor import (
     ropt,
     transistor_design_suite,
 )
+from rfview.knowledge_base import (
+    CatalogDevice,
+    DeviceSearch,
+    load_device_catalog,
+    search_devices,
+)
 from rfview.loadpull_ui import MAX_LOADPULL_VIEW_POINTS, loadpull_panel, sweep_choices
 from rfview.project_store import ProjectSnapshot, ProjectStore, SavedProject, default_project_path
 from rfview.services import (
@@ -72,6 +78,7 @@ PYTHON_ROOT = PACKAGE_ROOT.parents[1]
 REPOSITORY_ROOT = PYTHON_ROOT.parent
 CANVAS_ROOT = REPOSITORY_ROOT / "PA design App" / "assets" / "js" / "common"
 D3_ROOT = PYTHON_ROOT / "node_modules" / "d3" / "dist"
+DEVICE_KB_ROOT = REPOSITORY_ROOT / "PA design App" / "data" / "kb"
 GUARDRAILS = read_guardrails(
     REPOSITORY_ROOT / "PA design App" / "config" / "technology_guardrails.yaml"
 )
@@ -123,7 +130,8 @@ app_ui = ui.page_fluid(
         ui.p(
             "Migration preview - optional local single-user project snapshots. "
             "Legacy R application remains unchanged. Production authentication/RBAC, "
-            "remaining RF workflows, AI/KB, CAD and document builds are not ported yet.",
+            "remaining RF workflows, AI agents/KB ingestion, CAD and document builds "
+            "are not ported yet.",
             class_="migration-notice",
         ),
     ),
@@ -463,6 +471,42 @@ app_ui = ui.page_fluid(
             ui.output_ui("full_stage_sizing"),
         ),
         ui.tags.details(
+            ui.tags.summary("Local device knowledge base"),
+            ui.p(
+                "Read-only search of checked-in vendor JSON. Search runs locally; no AI, "
+                "network, project data or KB writes are involved. Source and confidence "
+                "labels are shown as recorded, not independently verified."
+            ),
+            ui.input_text("kb_query", "Search part, notes, tags or use case", ""),
+            ui.input_select(
+                "kb_manufacturer",
+                "Manufacturer",
+                {
+                    "": "All manufacturers",
+                    "Ampleon": "Ampleon",
+                    "Guerrilla RF": "Guerrilla RF",
+                    "NXP": "NXP",
+                    "Qorvo": "Qorvo",
+                },
+            ),
+            ui.input_select(
+                "kb_technology",
+                "Technology",
+                {"": "All technologies", "GaN-SiC": "GaN-SiC", "LDMOS": "LDMOS", "Other": "Other"},
+            ),
+            ui.input_numeric(
+                "kb_frequency_mhz",
+                "Required frequency coverage (MHz; 0 disables)",
+                0,
+                min=0,
+            ),
+            ui.input_action_button("kb_search", "Search local device catalog"),
+            ui.output_ui("kb_status"),
+            ui.output_ui("kb_results"),
+            ui.input_select("kb_device", "Selected device record", {}),
+            ui.output_code("kb_device_detail"),
+        ),
+        ui.tags.details(
             ui.tags.summary("Generic lifetime hypothesis (corrected v2)"),
             ui.p(
                 "Opt-in analytical estimate, not a manufacturer lifetime model. "
@@ -527,10 +571,12 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     network_status = reactive.Value("No Touchstone dataset loaded.")
     loadpull: reactive.Value[LoadPullData | None] = reactive.Value(None)
     loadpull_status_state = reactive.Value("No load-pull dataset loaded.")
+    kb_results_state: reactive.Value[tuple[CatalogDevice, ...]] = reactive.Value(())
+    kb_status_state = reactive.Value("Search to read the checked-in local device catalog.")
     current_project: reactive.Value[SavedProject | None] = reactive.Value(None)
-    pending_project: reactive.Value[
-        tuple[SavedProject, ProjectSnapshot] | None
-    ] = reactive.Value(None)
+    pending_project: reactive.Value[tuple[SavedProject, ProjectSnapshot] | None] = reactive.Value(
+        None
+    )
     restoring_project: reactive.Value[tuple[int, SavedProject] | None] = reactive.Value(None)
 
     def project_store() -> ProjectStore:
@@ -556,6 +602,96 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             f"{saved.info.name} | head revision {saved.info.revision} | "
             f"loaded/saved snapshot {saved.snapshot_revision}. "
             "Current edits require an explicit save."
+        )
+
+    @render.ui
+    def kb_status() -> ui.Tag:
+        return ui.tags.p(kb_status_state(), role="status", **{"aria-live": "polite"})
+
+    @render.ui
+    def kb_results() -> ui.Tag:
+        items = kb_results_state()
+        if not items:
+            return ui.p("No matching records. Search or change the filters.")
+
+        cards: list[ui.Tag] = []
+        for item in items:
+            record = item.record
+            band = f"{record.freq_min_mhz:g}-{record.freq_max_mhz:g} MHz"
+            power = []
+            if record.pout_w_cw is not None:
+                power.append(f"{record.pout_w_cw:g} W CW")
+            if record.pout_w_pulse is not None:
+                power.append(f"{record.pout_w_pulse:g} W pulse")
+            cards.append(
+                ui.tags.article(
+                    ui.tags.h4(f"{record.part_number} · {record.manufacturer}"),
+                    ui.tags.p(f"{record.technology} · {band}"),
+                    ui.tags.p(" / ".join(power) if power else "No CW/pulse rating recorded."),
+                    ui.tags.p(
+                        f"Source: {record.knowledge_source or 'not recorded'} · "
+                        f"confidence label: {record.knowledge_confidence or 'not recorded'} · "
+                        f"lifecycle: {record.status or 'not recorded'}"
+                    ),
+                    class_="kb-device-card",
+                )
+            )
+        return ui.div(*cards, class_="kb-device-results")
+
+    @render.code
+    def kb_device_detail() -> str:
+        identifier = input.kb_device()
+        for item in kb_results_state():
+            if item.record.device_id == identifier:
+                payload = {
+                    "record": item.record.model_dump(mode="json", exclude_none=True),
+                    "catalog_source_file": item.source_file,
+                    "catalog_source_sha256": item.source_sha256,
+                }
+                return json.dumps(payload, indent=2, ensure_ascii=False, allow_nan=False)
+        return "Search the catalog and select a matching record to inspect its stored fields."
+
+    @reactive.effect
+    @reactive.event(input.kb_search)
+    async def _search_local_device_catalog() -> None:
+        try:
+            raw_frequency = input.kb_frequency_mhz()
+            criteria = DeviceSearch(
+                query=input.kb_query() or "",
+                manufacturer=input.kb_manufacturer() or None,
+                technology=input.kb_technology() or None,
+                frequency_mhz=(
+                    raw_frequency if raw_frequency is not None and raw_frequency > 0 else None
+                ),
+                max_results=50,
+            )
+            catalog = await asyncio.to_thread(load_device_catalog, DEVICE_KB_ROOT)
+            matches = search_devices(catalog, criteria)
+        except (OSError, ValueError, OverflowError, RecursionError) as exc:
+            kb_status_state.set(f"Local device catalog search failed: {exc}")
+            failure(f"Local device catalog search failed: {exc}")
+            return
+
+        kb_results_state.set(matches.items)
+        ui.update_select(
+            "kb_device",
+            choices={
+                item.record.device_id: (
+                    f"{item.record.part_number} — {item.record.manufacturer} "
+                    f"({item.record.technology})"
+                )
+                for item in matches.items
+            },
+            selected=matches.items[0].record.device_id if matches.items else "",
+            session=session,
+        )
+        note = f"Found {matches.total_matches} matching record(s); showing {len(matches.items)}."
+        if matches.truncated:
+            note += " Narrow the search to show other matches."
+        sources = sorted({item.source_file for item in catalog})
+        kb_status_state.set(
+            f"{note} Read-only local sources: {', '.join(sources)}. "
+            "Source/confidence labels are not an engineering qualification."
         )
 
     @reactive.effect
@@ -618,7 +754,8 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
                             toolbar_button("python_confirm_project_load", "Replace workspace"),
                         ),
                         easy_close=True,
-                    ), session=session,
+                    ),
+                    session=session,
                 )
                 return
             if action.action == "confirm_project_load":
@@ -650,14 +787,17 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
                 ui.update_select("architecture", selected=point.architecture, session=session)
                 ui.update_checkbox(
                     "use_canvas_operating_points",
-                    value=point.use_canvas_operating_points, session=session,
+                    value=point.use_canvas_operating_points,
+                    session=session,
                 )
                 current_project.set(None)
                 restoring_project.set((action.request_id, saved))
                 await session.send_custom_message(
                     "pythonLoadWorkspace",
-                    {**snapshot.workspace.model_dump(mode="json", by_alias=True),
-                     "project_request_id": action.request_id},
+                    {
+                        **snapshot.workspace.model_dump(mode="json", by_alias=True),
+                        "project_request_id": action.request_id,
+                    },
                 )
                 return
             if action.action == "create_project":
@@ -1124,7 +1264,10 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         try:
             action = BrowserAction.model_validate_json(json.dumps(input.python_action()))
             if action.action in (
-                "create_project", "save_project", "open_project", "confirm_project_load"
+                "create_project",
+                "save_project",
+                "open_project",
+                "confirm_project_load",
             ):
                 await project_action(action)
                 return

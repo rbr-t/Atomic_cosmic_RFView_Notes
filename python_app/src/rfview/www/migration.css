@@ -61,6 +61,22 @@ caption { color: var(--rf-secondary); }
 pre { white-space: pre-wrap; color: var(--rf-secondary); }
 .sidebar p { font-size: var(--rf-caption-size); }
 #project_status { overflow-wrap: anywhere; }
+.kb-device-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--rf-spacing);
+}
+.kb-device-card {
+  min-width: 0;
+  padding: var(--rf-spacing);
+  border: 1px solid var(--rf-border);
+  border-radius: var(--rf-radius);
+  overflow-wrap: anywhere;
+  background: var(--rf-panel);
+}
+.kb-device-card h4 { color: var(--rf-accent); font-size: var(--rf-heading-size); }
+.kb-device-card p { overflow-wrap: anywhere; }
+.kb-device-results ~ .shiny-input-container { min-width: 0; }
 .main { min-width: 0; }
 .technology-chart { margin: var(--rf-spacing) 0; }
 .technology-chart svg { display: block; width: 100%; min-width: 0; }
