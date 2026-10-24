@@ -480,6 +480,20 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#cad_status")).to_contain_text("1 component(s)")
         expect(page.locator("#cad_summary")).to_contain_text("Relative permittivity")
         expect(page.locator("#cad_summary")).to_contain_text("microstrip components")
+        expect(page.locator("#cad_preview .cad-layout-component")).to_have_count(1)
+        expect(page.locator("#cad_preview .cad-layout-svg")).to_have_attribute(
+            "aria-label", "RF-CAD component positions in millimetres"
+        )
+        marker = page.locator("#cad_preview .cad-layout-component").first
+        expect(marker).to_have_attribute("role", "img")
+        expect(marker).to_have_attribute("tabindex", "0")
+        expect(marker).to_have_attribute(
+            "aria-label",
+            "Feed; microstrip; x=12 mm, y=4 mm, rotation=90 degrees",
+        )
+        expect(marker.locator("title")).to_contain_text("x=12 mm, y=4 mm")
+        marker.focus()
+        expect(marker).to_be_focused()
         with page.expect_download() as cad_download:
             page.locator("#download_cad").click()
         cad_export_path = Path(temp) / "normalized-cad.json"
@@ -492,6 +506,7 @@ def main(url: str, channel: str | None = None) -> None:
         invalid_cad.write_text('{"components":[{"id":"x","type":"bad"}]}', encoding="utf-8")
         page.locator("#cad_upload").set_input_files(invalid_cad)
         expect(page.locator("#cad_status")).to_contain_text("RF-CAD import rejected")
+        expect(page.locator("#cad_preview .cad-layout-component")).to_have_count(1)
         with page.expect_download() as retained_cad_download:
             page.locator("#download_cad").click()
         retained_cad_download.value.save_as(Path(temp) / "retained-cad.json")
@@ -499,6 +514,35 @@ def main(url: str, channel: str | None = None) -> None:
             json.loads((Path(temp) / "retained-cad.json").read_text(encoding="utf-8"))
             == cad_exported
         )
+        many_cad = Path(temp) / "many-components.json"
+        many_cad.write_text(
+            json.dumps(
+                {
+                    "version": "1.0",
+                    "components": [
+                        {
+                            "id": f"cmp_{index}",
+                            "type": "microstrip",
+                            "x": index * 0.1,
+                            "y": 0,
+                            "rotation": 0,
+                            "params": {"W": 0.5, "L": 5},
+                        }
+                        for index in range(251)
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        page.locator("#cad_upload").set_input_files(many_cad)
+        expect(page.locator("#cad_status")).to_contain_text("251 component(s)")
+        expect(page.locator("#cad_preview .cad-layout-component")).to_have_count(250)
+        expect(page.locator("#cad_preview")).to_contain_text("first 250 of 251")
+        with page.expect_download() as bounded_preview_export:
+            page.locator("#download_cad").click()
+        bounded_export_path = Path(temp) / "all-components.json"
+        bounded_preview_export.value.save_as(bounded_export_path)
+        assert len(json.loads(bounded_export_path.read_text(encoding="utf-8"))["components"]) == 251
 
         for width in (375, 768, 1440):
             if width == 375:
@@ -511,6 +555,7 @@ def main(url: str, channel: str | None = None) -> None:
             expect(page.locator("#full_stage_sizing table")).to_be_visible()
             expect(page.locator("#touchstone_view svg").first).to_be_visible()
             expect(page.locator("#touchstone_view .smith-point")).to_have_count(3)
+            expect(page.locator("#cad_preview .cad-layout-svg")).to_be_visible()
             assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"), (
                 f"Page overflows at width {width}"
             )

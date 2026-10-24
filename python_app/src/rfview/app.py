@@ -11,6 +11,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
+from rfview.cad_ui import cad_layout_preview
 from rfview.domain.alps_mdf import ALPS_PLANES, AlpsPlane
 from rfview.domain.cad import CADDesign, serialize_cad_design
 from rfview.domain.component_properties import (
@@ -276,6 +277,13 @@ app_ui = ui.page_fluid(
             ui.input_file("cad_upload", "Upload RF-CAD JSON (max 5 MiB)", accept=[".json"]),
             ui.output_ui("cad_status"),
             ui.output_ui("cad_summary"),
+            ui.h3("Position overview (mm)"),
+            ui.p(
+                "Markers show component origin positions and identifiers only. Footprint "
+                "dimensions, layer stacking, connectivity and fabrication clearances are "
+                "not represented; this is not a DRC view."
+            ),
+            ui.output_ui("cad_preview"),
             ui.output_ui("cad_download_control"),
         ),
         ui.output_ui("summary"),
@@ -678,6 +686,13 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             role="region",
             **{"aria-label": "Imported RF-CAD document summary"},
         )
+
+    @render.ui
+    def cad_preview() -> ui.Tag:
+        design = cad_design()
+        if design is None:
+            return ui.p("Import a CAD document to see its position overview.")
+        return cad_layout_preview(design)
 
     @render.ui
     def cad_download_control() -> ui.Tag:

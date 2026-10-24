@@ -56,6 +56,18 @@ p { color: var(--rf-secondary); }
 .rf-results, table td:not(:first-child), pre { font-family: var(--rf-mono); }
 .table-scroll { overflow: auto; }
 .cad-import-summary { max-width: 100%; }
+.cad-layout-preview {
+  max-width: 100%;
+  overflow: auto;
+  background: var(--rf-canvas);
+  border: 1px solid var(--rf-border);
+  border-radius: var(--rf-radius);
+}
+.cad-layout-svg { display: block; width: 100%; height: clamp(12rem, 40vw, 22rem); min-width: 0; }
+.cad-layout-marker { fill: var(--rf-raised); stroke: var(--rf-accent); stroke-width: 0.45; }
+.cad-layout-via, .cad-layout-port { stroke: var(--rf-focus); }
+.cad-layout-preview:focus-visible { outline: 2px solid var(--rf-focus); outline-offset: 3px; }
+.cad-layout-component:focus-visible .cad-layout-marker { stroke: var(--rf-focus); stroke-width: 1; }
 table { width: 100%; border-collapse: collapse; margin-block: var(--rf-spacing); }
 th, td { padding: var(--rf-spacing); border: 1px solid var(--rf-border); text-align: left; }
 caption { color: var(--rf-secondary); }
