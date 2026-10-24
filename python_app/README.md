@@ -1213,6 +1213,29 @@ Chromium suites pass at their established viewport checks. The full Python
 suite passes **1,055 tests** (one Windows permission skip); Ruff, strict source
 mypy, compilation, dependency and diff checks pass.
 
+### Batch 35 - bounded RF CAD document contract
+
+Adds a Python-side import/export contract for the standalone legacy RF-CAD JSON
+shape, without claiming renderer or engineering-workflow parity.
+
+- Accepts the versioned v1.0 document and legacy bare component arrays;
+  bare arrays normalize to a v1.0 document on export.
+- Validates supported legacy component types, their required positive geometry
+  values, positions, substrate fields, identifiers, duplicate IDs and bounded
+  document/component sizes. Duplicate JSON keys, non-finite values, invalid
+  UTF-8 and unsupported versions are rejected.
+- Preserves unrecognized document, substrate, component and parameter fields.
+  The palette's `ms` spelling is retained as-is; renderer compatibility for
+  that alias is not implied.
+- File access is isolated in the service layer. The domain model remains free
+  of filesystem, UI, database and network dependencies.
+
+Qualification: the focused CAD and domain-contract tests pass, and the full
+Python suite passes **1,095 tests** with one Windows permission skip. Ruff and
+strict source mypy pass. This slice does not wire CAD import/export into the
+Python UI and does not implement layout editing, DRC, routing, substrate
+synthesis, EM analysis or standalone/integrated workflow parity.
+
 ## Validation
 
 From the repository root:
@@ -1268,6 +1291,7 @@ software gates and external acceptance gates are distinct:
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
 | Local checked-in device catalog search | Delivered by batch 33; read-only, filters and source digests |
 | Explicit KB citation attachment to a canvas/project | Delivered by batch 34; provenance-only, never populates the physics model |
+| Strict RF-CAD JSON contract | Delivered by batch 35; bounded domain/service import-export contract only |
 | AI agents, vector retrieval and guarded Python ingestion workflow | Remaining; no LLM, Chroma or KB write/apply path is claimed |
 
 1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,

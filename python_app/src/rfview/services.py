@@ -4,6 +4,7 @@ from pathlib import Path
 import yaml
 
 from rfview.domain.alps_mdf import MAX_ALPS_BYTES, AlpsImport, AlpsPlane, read_alps_lines
+from rfview.domain.cad import MAX_CAD_BYTES, CADDesign, parse_cad_design
 from rfview.domain.guardrails import GuardrailCatalog
 from rfview.domain.loadpull import (
     MAX_LOADPULL_BYTES,
@@ -84,6 +85,19 @@ def read_guardrails(path: Path) -> GuardrailCatalog:
     except yaml.YAMLError as exc:
         raise ValueError(f"Invalid technology guardrail YAML at {path}: {exc}") from exc
     return GuardrailCatalog.model_validate(raw)
+
+
+def read_cad_design(path: Path) -> CADDesign:
+    if path.stat().st_size > MAX_CAD_BYTES:
+        raise ValueError("RF CAD design exceeds the 5 MiB limit")
+    content = path.read_bytes()
+    if len(content) > MAX_CAD_BYTES:
+        raise ValueError("RF CAD design exceeds the 5 MiB limit")
+    try:
+        text = content.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"RF CAD design must be UTF-8 JSON: {exc}") from exc
+    return parse_cad_design(text)
 
 
 def parse_document(text: str) -> LineupDocument:
