@@ -64,10 +64,21 @@ p { color: var(--rf-secondary); }
   border-radius: var(--rf-radius);
 }
 .cad-layout-svg { display: block; width: 100%; height: clamp(12rem, 40vw, 22rem); min-width: 0; }
-.cad-layout-marker { fill: var(--rf-raised); stroke: var(--rf-accent); stroke-width: 0.45; }
-.cad-layout-via, .cad-layout-port { stroke: var(--rf-focus); }
+.cad-shape { stroke-width: 0.04; vector-effect: non-scaling-stroke; }
+.cad-layer-metal-top { fill: var(--rf-accent); stroke: var(--rf-text); }
+.cad-layer-metal-bottom { fill: var(--rf-focus); stroke: var(--rf-text); }
+.cad-port-marker { fill: var(--rf-canvas); stroke: var(--rf-focus); stroke-width: 0.05; }
+.cad-open-end { fill: none; stroke: var(--rf-accent); stroke-width: 0.08; }
+.cad-ground-end { fill: var(--rf-secondary); stroke: var(--rf-secondary); }
+.cad-miter { stroke: var(--rf-canvas); stroke-width: 0.25; }
+.cad-coupled-guide { fill: none; stroke: var(--rf-secondary); stroke-width: 0.035; stroke-dasharray: 0.3 0.2; }
+.cad-via-pad { fill: var(--rf-accent); stroke: var(--rf-secondary); stroke-width: 0.04; }
+.cad-via-barrel { fill: var(--rf-secondary); }
+.cad-via-drill { fill: var(--rf-canvas); stroke: var(--rf-border); stroke-width: 0.04; }
+.cad-port-arrow { fill: var(--rf-focus); stroke: var(--rf-focus); stroke-width: 0.04; }
 .cad-layout-preview:focus-visible { outline: 2px solid var(--rf-focus); outline-offset: 3px; }
-.cad-layout-component:focus-visible .cad-layout-marker { stroke: var(--rf-focus); stroke-width: 1; }
+.cad-layout-component:focus-visible .cad-shape,
+.cad-layout-component:focus-visible .cad-port-marker { stroke: var(--rf-text); stroke-width: 0.08; }
 table { width: 100%; border-collapse: collapse; margin-block: var(--rf-spacing); }
 th, td { padding: var(--rf-spacing); border: 1px solid var(--rf-border); text-align: left; }
 caption { color: var(--rf-secondary); }

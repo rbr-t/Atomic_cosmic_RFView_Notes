@@ -471,29 +471,109 @@ def main(url: str, channel: str | None = None) -> None:
                     "rotation": 90,
                     "layer": "metal_top",
                     "params": {"W": 0.5, "L": 5, "vendor_param": "keep"},
-                }
+                },
+                {
+                    "id": "cmp_8",
+                    "type": "bend90",
+                    "x": 20,
+                    "y": 0,
+                    "rotation": 0,
+                    "params": {"W": 0.5, "L": 5, "miter": True},
+                },
+                {
+                    "id": "cmp_9",
+                    "type": "tee",
+                    "x": 30,
+                    "y": 0,
+                    "rotation": 0,
+                    "params": {"W": 0.5, "L": 5},
+                },
+                {
+                    "id": "cmp_10",
+                    "type": "coupled",
+                    "x": 40,
+                    "y": 0,
+                    "rotation": 0,
+                    "params": {"W": 0.5, "L": 5, "gap": 0.2},
+                },
+                {
+                    "id": "cmp_11",
+                    "type": "via",
+                    "x": 50,
+                    "y": 0,
+                    "rotation": 0,
+                    "params": {"drill": 0.2, "pad": 0.5},
+                },
+                {
+                    "id": "cmp_12",
+                    "type": "port",
+                    "x": 60,
+                    "y": 0,
+                    "rotation": 0,
+                    "params": {"W": 0.5, "portNum": 1},
+                },
+                {
+                    "id": "cmp_13",
+                    "type": "open_stub",
+                    "x": 70,
+                    "y": 0,
+                    "rotation": 0,
+                    "params": {"W": 0.5, "L": 2.5},
+                },
+                {
+                    "id": "cmp_14",
+                    "type": "short_stub",
+                    "x": 80,
+                    "y": 0,
+                    "rotation": 0,
+                    "params": {"W": 0.5, "L": 2.5},
+                },
             ],
             "vendor_document_field": {"retain": True},
         }
         cad_source.write_text(json.dumps(cad_payload), encoding="utf-8")
         page.locator("#cad_upload").set_input_files(cad_source)
-        expect(page.locator("#cad_status")).to_contain_text("1 component(s)")
+        expect(page.locator("#cad_status")).to_contain_text("8 component(s)")
         expect(page.locator("#cad_summary")).to_contain_text("Relative permittivity")
         expect(page.locator("#cad_summary")).to_contain_text("microstrip components")
-        expect(page.locator("#cad_preview .cad-layout-component")).to_have_count(1)
+        expect(page.locator("#cad_preview .cad-layout-component")).to_have_count(8)
+        expect(page.locator("#cad_preview .cad-layer-metal-top")).to_have_count(10)
+        expect(page.locator("#cad_preview .cad-layer-metal-bottom")).to_have_count(1)
+        expect(page.locator("#cad_preview .cad-via-pad")).to_have_count(1)
+        expect(page.locator("#cad_preview .cad-open-end")).to_have_count(1)
+        expect(page.locator("#cad_preview .cad-ground-end")).to_have_count(1)
+        expect(page.locator("#cad_preview .cad-port-arrow")).to_have_count(1)
         expect(page.locator("#cad_preview .cad-layout-svg")).to_have_attribute(
-            "aria-label", "RF-CAD component positions in millimetres"
+            "aria-label", "RF-CAD component geometry in millimetres"
         )
         marker = page.locator("#cad_preview .cad-layout-component").first
         expect(marker).to_have_attribute("role", "img")
         expect(marker).to_have_attribute("tabindex", "0")
         expect(marker).to_have_attribute(
             "aria-label",
-            "Feed; microstrip; x=12 mm, y=4 mm, rotation=90 degrees",
+            "Feed; microstrip; layer=metal_top; x=12 mm, y=4 mm, rotation=90 degrees",
         )
         expect(marker.locator("title")).to_contain_text("x=12 mm, y=4 mm")
         marker.focus()
         expect(marker).to_be_focused()
+        bounds = marker.evaluate(
+            """group => {
+                const box = group.getBBox();
+                const matrix = group.transform.baseVal.consolidate().matrix;
+                const points = [
+                    new DOMPoint(box.x, box.y),
+                    new DOMPoint(box.x + box.width, box.y),
+                    new DOMPoint(box.x, box.y + box.height),
+                    new DOMPoint(box.x + box.width, box.y + box.height)
+                ].map(point => point.matrixTransform(matrix));
+                const view = group.ownerSVGElement.viewBox.baseVal;
+                return points.every(point =>
+                    point.x >= view.x && point.x <= view.x + view.width &&
+                    point.y >= view.y && point.y <= view.y + view.height
+                );
+            }"""
+        )
+        assert bounds, "The rotated component footprint should remain within the SVG viewBox."
         with page.expect_download() as cad_download:
             page.locator("#download_cad").click()
         cad_export_path = Path(temp) / "normalized-cad.json"
@@ -506,7 +586,7 @@ def main(url: str, channel: str | None = None) -> None:
         invalid_cad.write_text('{"components":[{"id":"x","type":"bad"}]}', encoding="utf-8")
         page.locator("#cad_upload").set_input_files(invalid_cad)
         expect(page.locator("#cad_status")).to_contain_text("RF-CAD import rejected")
-        expect(page.locator("#cad_preview .cad-layout-component")).to_have_count(1)
+        expect(page.locator("#cad_preview .cad-layout-component")).to_have_count(8)
         with page.expect_download() as retained_cad_download:
             page.locator("#download_cad").click()
         retained_cad_download.value.save_as(Path(temp) / "retained-cad.json")
@@ -514,6 +594,33 @@ def main(url: str, channel: str | None = None) -> None:
             json.loads((Path(temp) / "retained-cad.json").read_text(encoding="utf-8"))
             == cad_exported
         )
+        oversized_cad = Path(temp) / "oversized-geometry.json"
+        oversized_cad.write_text(
+            json.dumps(
+                {
+                    "version": "1.0",
+                    "components": [
+                        {
+                            "id": "large_via",
+                            "type": "via",
+                            "x": 0,
+                            "y": 0,
+                            "rotation": 0,
+                            "params": {"drill": 0.2, "pad": 3_000_000},
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        page.locator("#cad_upload").set_input_files(oversized_cad)
+        expect(page.locator("#cad_preview")).to_contain_text("No components fit")
+        expect(page.locator("#cad_preview")).to_contain_text("1 component(s) were omitted")
+        with page.expect_download() as oversized_export:
+            page.locator("#download_cad").click()
+        oversized_export_path = Path(temp) / "oversized-geometry-export.json"
+        oversized_export.value.save_as(oversized_export_path)
+        assert len(json.loads(oversized_export_path.read_text(encoding="utf-8"))["components"]) == 1
         many_cad = Path(temp) / "many-components.json"
         many_cad.write_text(
             json.dumps(
@@ -555,7 +662,9 @@ def main(url: str, channel: str | None = None) -> None:
             expect(page.locator("#full_stage_sizing table")).to_be_visible()
             expect(page.locator("#touchstone_view svg").first).to_be_visible()
             expect(page.locator("#touchstone_view .smith-point")).to_have_count(3)
-            expect(page.locator("#cad_preview .cad-layout-svg")).to_be_visible()
+            if width == 375:
+                page.locator("#cad_upload").set_input_files(cad_source)
+                expect(page.locator("#cad_preview .cad-layout-svg")).to_be_visible()
             assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"), (
                 f"Page overflows at width {width}"
             )

@@ -39,7 +39,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Local projects | Single-user SQLite projects, immutable snapshot revisions, optimistic conflict detection and confirmed four-canvas/operating-point recovery |
 | RF network tools | Touchstone 1.x/2.0 for 1-9 ports; full/triangular matrices, explicit mixed-mode transforms, v1/v2 noise table/plot; S/Smith and two-port conversions/stability; source/transformed and converted-family export |
 | Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
-| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, position overview and normalized export; session-only and separate from the PA lineup; no geometry editing |
+| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, read-only dimension-aware overview and normalized export; session-only and separate from the PA lineup; no geometry editing |
 | Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
@@ -1256,20 +1256,34 @@ contract tests remain covered by the full Python suite.
 
 ### Batch 37 - bounded standalone CAD position overview
 
-The imported CAD panel now provides a read-only SVG overview using component
-origin coordinates in millimetres, with IDs and coordinates available on each
-marker. The preview renders at most 250 markers; for larger documents, the UI
-states the limit while normalized JSON export retains every component. The
-source document and coordinates are not modified.
+The imported CAD panel first provided a read-only SVG overview using component
+origin coordinates in millimetres, with IDs and coordinates on each marker.
+That point-only view is superseded by the geometry-aware overview in batch 38.
+The 250-component preview limit and preservation of the complete JSON export
+remain in force.
 
-This is a position overview only: the legacy CAD footprint renderer is not
-ported. Marker size does not represent physical dimensions; layer stacking,
-connectivity, bend/coupler geometry, clearances, DRC and EM are not shown or
-evaluated. It is not suitable for fabrication or engineering sign-off.
+The initial view did not show physical shapes or layer information and was not
+suitable for fabrication or engineering sign-off.
 
-Qualification: Chromium verifies coordinate information in SVG marker titles,
-the 250-marker preview cap and that all 251 components remain in the download.
-Responsive width checks and invalid-upload retention also pass.
+### Batch 38 - dimension-aware standalone CAD glyphs
+
+The read-only SVG view now draws millimetre-sized glyphs for the supported
+microstrip, bend, tee, coupled-line, via, port and stub types, including rotation
+and top/bottom metal-layer styling. Shape extents contribute to the view bounds,
+so rotated parts are framed rather than clipped. Component origins, IDs and key
+parameters remain keyboard-readable. Preview components with degenerate bend
+geometry or individual dimensions above the 1,000,000 mm display bound are
+reported and omitted only from the preview; the complete CAD data remains
+available for normalized JSON export.
+
+The preview follows the legacy drawing primitives and parameter units but is
+not a port of the legacy Konva renderer. It does not validate connectivity,
+fabrication footprints, layer stack-up, DRC, EM or fabrication readiness, and
+must not be used for design sign-off.
+
+Qualification: Chromium verifies all supported component glyph families,
+layer differentiation, rotated geometry bounds, keyboard-readable labels,
+responsive display, size-limit omissions and full-document export retention.
 
 ## Validation
 
@@ -1326,7 +1340,7 @@ software gates and external acceptance gates are distinct:
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
 | Local checked-in device catalog search | Delivered by batch 33; read-only, filters and source digests |
 | Explicit KB citation attachment to a canvas/project | Delivered by batch 34; provenance-only, never populates the physics model |
-| Strict RF-CAD JSON contract, import/export and position overview | Delivered by batches 35-37; separate interchange panel, not CAD editing |
+| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-38; read-only interchange, not CAD editing or DRC |
 | AI agents, vector retrieval and guarded Python ingestion workflow | Remaining; no LLM, Chroma or KB write/apply path is claimed |
 
 1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,
