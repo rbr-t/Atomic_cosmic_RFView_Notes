@@ -55,6 +55,7 @@ p { color: var(--rf-secondary); }
 }
 .rf-results, table td:not(:first-child), pre { font-family: var(--rf-mono); }
 .table-scroll { overflow: auto; }
+.cad-import-summary { max-width: 100%; }
 table { width: 100%; border-collapse: collapse; margin-block: var(--rf-spacing); }
 th, td { padding: var(--rf-spacing); border: 1px solid var(--rf-border); text-align: left; }
 caption { color: var(--rf-secondary); }

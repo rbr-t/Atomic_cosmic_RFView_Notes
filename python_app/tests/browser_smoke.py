@@ -444,6 +444,9 @@ def main(url: str, channel: str | None = None) -> None:
         expect(second.locator("#loadpull_status")).to_contain_text("No load-pull dataset")
         second.locator("#python_canvas_slot").select_option(index=1)
         second.wait_for_function("window.paCanvas.components.length === 0")
+        expect(second.locator("#cad_download_control")).to_contain_text(
+            "Import a valid RF-CAD document"
+        )
         second.close()
 
         malformed = Path(temp) / "invalid.json"
@@ -451,6 +454,51 @@ def main(url: str, channel: str | None = None) -> None:
         page.locator("#load_document").set_input_files(malformed)
         expect(page.locator("#status")).to_contain_text("Load rejected")
         assert page.evaluate("window.paCanvas.components.length") == 4
+
+        # Standalone RF-CAD documents import/export independently from the PA canvas.
+        page.get_by_text("Standalone RF-CAD JSON import / export", exact=True).click()
+        cad_source = Path(temp) / "legacy-cad.json"
+        cad_payload = {
+            "version": "1.0",
+            "substrate": {"h": 0.508, "er": 3.55, "tanD": 0.0027, "t": 0.035},
+            "components": [
+                {
+                    "id": "cmp_7",
+                    "type": "microstrip",
+                    "name": "Feed",
+                    "x": 12,
+                    "y": 4,
+                    "rotation": 90,
+                    "layer": "metal_top",
+                    "params": {"W": 0.5, "L": 5, "vendor_param": "keep"},
+                }
+            ],
+            "vendor_document_field": {"retain": True},
+        }
+        cad_source.write_text(json.dumps(cad_payload), encoding="utf-8")
+        page.locator("#cad_upload").set_input_files(cad_source)
+        expect(page.locator("#cad_status")).to_contain_text("1 component(s)")
+        expect(page.locator("#cad_summary")).to_contain_text("Relative permittivity")
+        expect(page.locator("#cad_summary")).to_contain_text("microstrip components")
+        with page.expect_download() as cad_download:
+            page.locator("#download_cad").click()
+        cad_export_path = Path(temp) / "normalized-cad.json"
+        cad_download.value.save_as(cad_export_path)
+        cad_exported = json.loads(cad_export_path.read_text(encoding="utf-8"))
+        assert cad_exported["vendor_document_field"] == {"retain": True}
+        assert cad_exported["components"][0]["params"]["vendor_param"] == "keep"
+        assert cad_exported["components"][0]["id"] == "cmp_7"
+        invalid_cad = Path(temp) / "invalid-cad.json"
+        invalid_cad.write_text('{"components":[{"id":"x","type":"bad"}]}', encoding="utf-8")
+        page.locator("#cad_upload").set_input_files(invalid_cad)
+        expect(page.locator("#cad_status")).to_contain_text("RF-CAD import rejected")
+        with page.expect_download() as retained_cad_download:
+            page.locator("#download_cad").click()
+        retained_cad_download.value.save_as(Path(temp) / "retained-cad.json")
+        assert (
+            json.loads((Path(temp) / "retained-cad.json").read_text(encoding="utf-8"))
+            == cad_exported
+        )
 
         for width in (375, 768, 1440):
             if width == 375:

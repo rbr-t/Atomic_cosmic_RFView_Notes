@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
 from rfview.domain.alps_mdf import ALPS_PLANES, AlpsPlane
+from rfview.domain.cad import CADDesign, serialize_cad_design
 from rfview.domain.component_properties import (
     ComponentGeometry,
     display_options,
@@ -60,6 +61,7 @@ from rfview.services import (
     example_document,
     operating_point,
     read_alps_mdf,
+    read_cad_design,
     read_document,
     read_guardrails,
     read_loadpull,
@@ -132,8 +134,8 @@ app_ui = ui.page_fluid(
         ui.p(
             "Migration preview - optional local single-user project snapshots. "
             "Legacy R application remains unchanged. Production authentication/RBAC, "
-            "remaining RF workflows, AI agents/KB ingestion, CAD and document builds "
-            "are not ported yet.",
+            "remaining RF workflows, AI agents/KB ingestion, CAD layout editing/DRC, "
+            "and document builds are not ported yet.",
             class_="migration-notice",
         ),
     ),
@@ -264,6 +266,18 @@ app_ui = ui.page_fluid(
             **{"aria-label": "Interactive RF lineup canvas"},
         ),
         ui.output_text("status"),
+        ui.tags.details(
+            ui.tags.summary("Standalone RF-CAD JSON import / export"),
+            ui.p(
+                "Imports and validates the standalone RF-CAD document format, then offers "
+                "normalized JSON export. This is separate from the PA lineup canvas; "
+                "geometry is not rendered or transferred."
+            ),
+            ui.input_file("cad_upload", "Upload RF-CAD JSON (max 5 MiB)", accept=[".json"]),
+            ui.output_ui("cad_status"),
+            ui.output_ui("cad_summary"),
+            ui.output_ui("cad_download_control"),
+        ),
         ui.output_ui("summary"),
         ui.output_ui("stage_table"),
         ui.output_ui("workspace_comparison_view"),
@@ -576,6 +590,9 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     pending_replacement: reactive.Value[CanvasReplacement | None] = reactive.Value(None)
     prepared = reactive.Value(False)
     workspace_export: reactive.Value[str | None] = reactive.Value(None)
+    cad_design: reactive.Value[CADDesign | None] = reactive.Value(None)
+    cad_export: reactive.Value[str | None] = reactive.Value(None)
+    cad_status_state = reactive.Value("No standalone RF-CAD JSON document loaded.")
     network: reactive.Value[TouchstoneData | None] = reactive.Value(None)
     network_status = reactive.Value("No Touchstone dataset loaded.")
     loadpull: reactive.Value[LoadPullData | None] = reactive.Value(None)
@@ -611,6 +628,96 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             f"{saved.info.name} | head revision {saved.info.revision} | "
             f"loaded/saved snapshot {saved.snapshot_revision}. "
             "Current edits require an explicit save."
+        )
+
+    @render.ui
+    def cad_status() -> ui.Tag:
+        return ui.tags.p(cad_status_state(), role="status", **{"aria-live": "polite"})
+
+    @render.ui
+    def cad_summary() -> ui.Tag:
+        design = cad_design()
+        if design is None:
+            return ui.p("Upload a supported standalone RF-CAD document to inspect its summary.")
+        rows = [
+            ui.tags.tr(ui.tags.th("Format version", scope="row"), ui.tags.td(design.version)),
+            ui.tags.tr(
+                ui.tags.th("Components", scope="row"),
+                ui.tags.td(str(len(design.components))),
+            ),
+        ]
+        if design.substrate is not None:
+            for key, label in (
+                ("h", "Substrate height (mm)"),
+                ("er", "Relative permittivity"),
+                ("tanD", "Loss tangent"),
+                ("t", "Metal thickness (mm)"),
+            ):
+                value = getattr(design.substrate, key)
+                if value is not None:
+                    rows.append(
+                        ui.tags.tr(ui.tags.th(label, scope="row"), ui.tags.td(f"{value:g}"))
+                    )
+        counts: dict[str, int] = {}
+        for component in design.components:
+            counts[component.type] = counts.get(component.type, 0) + 1
+        for component_type, count in sorted(counts.items()):
+            rows.append(
+                ui.tags.tr(
+                    ui.tags.th(f"{component_type} components", scope="row"),
+                    ui.tags.td(str(count)),
+                )
+            )
+        return ui.div(
+            ui.tags.table(
+                ui.tags.caption("RF-CAD document summary"),
+                ui.tags.tbody(*rows),
+            ),
+            class_="table-scroll cad-import-summary",
+            tabindex="0",
+            role="region",
+            **{"aria-label": "Imported RF-CAD document summary"},
+        )
+
+    @render.ui
+    def cad_download_control() -> ui.Tag:
+        if cad_export() is None:
+            return ui.p("Import a valid RF-CAD document to enable normalized JSON export.")
+        return ui.div(
+            ui.download_button("download_cad", "Download normalized RF-CAD JSON"),
+            ui.p(
+                "Unknown document properties are retained. This is a normalized JSON "
+                "interchange, not a renderer, DRC or EM-analysis result."
+            ),
+        )
+
+    @render.download_button(filename="rf_cad_design.json", media_type="application/json")
+    def download_cad() -> Iterator[str]:
+        serialized = cad_export()
+        if serialized is None:
+            raise ValueError("No RF-CAD document is available to export")
+        yield serialized
+
+    @reactive.effect
+    @reactive.event(input.cad_upload)
+    async def _cad_upload() -> None:
+        files = input.cad_upload()
+        if not files:
+            return
+        try:
+            design = await asyncio.to_thread(read_cad_design, Path(files[0]["datapath"]))
+            serialized = serialize_cad_design(design)
+        except (OSError, ValueError, ValidationError, RecursionError) as exc:
+            message = f"RF-CAD import rejected: {exc}. Last valid document retained."
+            logger.warning("%s", message)
+            cad_status_state.set(message)
+            ui.notification_show(message, type="error", duration=None, session=session)
+            return
+        cad_design.set(design)
+        cad_export.set(serialized)
+        cad_status_state.set(
+            f"Imported {files[0]['name']}: {len(design.components)} component(s), "
+            "validated for normalized JSON export. Session-only."
         )
 
     @render.ui

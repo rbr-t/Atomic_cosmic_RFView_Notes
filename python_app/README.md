@@ -39,6 +39,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Local projects | Single-user SQLite projects, immutable snapshot revisions, optimistic conflict detection and confirmed four-canvas/operating-point recovery |
 | RF network tools | Touchstone 1.x/2.0 for 1-9 ports; full/triangular matrices, explicit mixed-mode transforms, v1/v2 noise table/plot; S/Smith and two-port conversions/stability; source/transformed and converted-family export |
 | Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
+| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary and normalized export; session-only and separate from the PA lineup; no geometry editing |
 | Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
@@ -1232,9 +1233,28 @@ shape, without claiming renderer or engineering-workflow parity.
 
 Qualification: the focused CAD and domain-contract tests pass, and the full
 Python suite passes **1,095 tests** with one Windows permission skip. Ruff and
-strict source mypy pass. This slice does not wire CAD import/export into the
-Python UI and does not implement layout editing, DRC, routing, substrate
-synthesis, EM analysis or standalone/integrated workflow parity.
+strict source mypy pass. Layout editing, DRC, routing, substrate synthesis, EM
+analysis and standalone/integrated workflow parity remain unimplemented.
+
+### Batch 36 - standalone RF-CAD JSON import/export panel
+
+Adds an isolated RF-CAD interchange panel to the Python app. Users can upload a
+supported CAD JSON file, inspect its format version, component count, substrate
+summary and per-type counts, then download the normalized v1.0 JSON. Unknown
+fields remain in the exported document, and a rejected subsequent upload leaves
+the last valid imported document available for download. The operation is
+session-only.
+
+CAD documents remain separate from the PA lineup canvas and its workspace
+snapshots. This panel does not display component geometry or offer editing,
+renderer compatibility, DRC, routing, substrate synthesis, EM analysis or
+integrated/standalone workflow parity. Those require separate implementation
+and engineering qualification.
+
+Qualification: the Chromium smoke flow uploads and downloads a legacy-shaped
+document, checks substrate/component summaries and unknown-field retention, and
+verifies failed imports preserve the last valid export. The standalone CAD
+contract tests remain covered by the full Python suite.
 
 ## Validation
 
@@ -1291,7 +1311,7 @@ software gates and external acceptance gates are distinct:
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
 | Local checked-in device catalog search | Delivered by batch 33; read-only, filters and source digests |
 | Explicit KB citation attachment to a canvas/project | Delivered by batch 34; provenance-only, never populates the physics model |
-| Strict RF-CAD JSON contract | Delivered by batch 35; bounded domain/service import-export contract only |
+| Strict RF-CAD JSON contract and UI import/export | Delivered by batches 35-36; separate interchange panel, not CAD editing |
 | AI agents, vector retrieval and guarded Python ingestion workflow | Remaining; no LLM, Chroma or KB write/apply path is claimed |
 
 1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,
