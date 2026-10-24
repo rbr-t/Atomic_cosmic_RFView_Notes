@@ -1271,10 +1271,11 @@ The read-only SVG view now draws millimetre-sized glyphs for the supported
 microstrip, bend, tee, coupled-line, via, port and stub types, including rotation
 and top/bottom metal-layer styling. Shape extents contribute to the view bounds,
 so rotated parts are framed rather than clipped. Component origins, IDs and key
-parameters remain keyboard-readable. Preview components with degenerate bend
-geometry or individual dimensions above the 1,000,000 mm display bound are
-reported and omitted only from the preview; the complete CAD data remains
-available for normalized JSON export.
+parameters remain keyboard-readable. The component selector exposes the full
+selected record, including preserved unknown fields and raw params, without
+editing them. Preview components with degenerate bend geometry or individual
+dimensions above the 1,000,000 mm display bound are reported and omitted only
+from the preview; complete CAD data remains available for normalized JSON export.
 
 The preview follows the legacy drawing primitives and parameter units but is
 not a port of the legacy Konva renderer. It does not validate connectivity,
@@ -1284,6 +1285,20 @@ must not be used for design sign-off.
 Qualification: Chromium verifies all supported component glyph families,
 layer differentiation, rotated geometry bounds, keyboard-readable labels,
 responsive display, size-limit omissions and full-document export retention.
+
+### Batch 39 - read-only CAD component inspection
+
+Added a selector for imported components and a JSON property inspector showing
+the selected component's complete stored record, including unknown component
+fields and vendor-specific params. Import selects the first component when
+available; changing the selection updates the inspector without modifying the
+document. Invalid uploads retain the current component selection and details.
+All fields are shown as stored, without inferring units for vendor-specific
+parameters.
+
+Qualification: Chromium selects and inspects different component types,
+verifies unknown parameter retention, and confirms the selected record is
+preserved when a later invalid file is rejected.
 
 ## Validation
 

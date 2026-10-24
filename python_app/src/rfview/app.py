@@ -277,6 +277,8 @@ app_ui = ui.page_fluid(
             ui.input_file("cad_upload", "Upload RF-CAD JSON (max 5 MiB)", accept=[".json"]),
             ui.output_ui("cad_status"),
             ui.output_ui("cad_summary"),
+            ui.input_select("cad_component", "Inspect imported component", {}),
+            ui.output_code("cad_component_detail"),
             ui.h3("Position overview (mm)"),
             ui.p(
                 "Markers show component origin positions and identifiers only. Footprint "
@@ -694,6 +696,25 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             return ui.p("Import a CAD document to see its position overview.")
         return cad_layout_preview(design)
 
+    @render.code
+    def cad_component_detail() -> str:
+        design = cad_design()
+        selected_id = input.cad_component()
+        if design is None or not selected_id:
+            return "Import a CAD document and select a component to inspect its stored fields."
+        component = next(
+            (item for item in design.components if item.id == selected_id),
+            None,
+        )
+        if component is None:
+            return "The selected component is not in the current CAD document."
+        return json.dumps(
+            component.model_dump(mode="json", exclude_none=True),
+            indent=2,
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+
     @render.ui
     def cad_download_control() -> ui.Tag:
         if cad_export() is None:
@@ -730,6 +751,15 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             return
         cad_design.set(design)
         cad_export.set(serialized)
+        ui.update_select(
+            "cad_component",
+            choices={
+                component.id: f"{component.name or component.id} · {component.type}"
+                for component in design.components
+            },
+            selected=design.components[0].id if design.components else "",
+            session=session,
+        )
         cad_status_state.set(
             f"Imported {files[0]['name']}: {len(design.components)} component(s), "
             "validated for normalized JSON export. Session-only."
