@@ -21,7 +21,8 @@ Pop-Location
 
 Open <http://127.0.0.1:3840/>. Stop with Ctrl+C.
 This is an unauthenticated, localhost-only development preview, not a production
-deployment. State is session-only; download JSON to retain work.
+deployment. State starts session-only; use **Save as new project** / **Save new
+snapshot** for explicit local persistence, or download JSON to retain work.
 
 The package intentionally serves the original D3 canvas from the repository and
 D3 from the local npm installation. Installing the Python wheel alone is not a
@@ -35,6 +36,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Supporting calculations | Transistor sizing, matching, propagation/link budget, passive loss, gain/backoff primitives and selected RF tools |
 | Canvas | Retained D3 renderer, all six component types, movement/wiring, validated calculation inputs and design metadata/pose, undo/redo, four session slots, confirmed copy/clear and simultaneous read-only comparison |
 | Documents | Single-lineup JSON preserving IDs/edges/extra fields/operating points; separate four-lineup workspace bundle |
+| Local projects | Single-user SQLite projects, immutable snapshot revisions, optimistic conflict detection and confirmed four-canvas/operating-point recovery |
 | RF network tools | Touchstone 1.x/2.0 for 1-9 ports; full/triangular matrices, explicit mixed-mode transforms, v1/v2 noise table/plot; S/Smith and two-port conversions/stability; source/transformed and converted-family export |
 | Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
 | Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
@@ -46,8 +48,8 @@ standalone deployment. No CDN is needed by the migration adapter.
 The UI offers four tabbed session editors plus simultaneous read-only topology/
 result comparisons. Calculation properties, descriptive metadata and pose are
 editable. Comparison diagrams are simplified, not four simultaneous legacy
-editors. Full legacy property/display/synthesis controls and persistent
-multi-canvas lifecycle remain acceptance gaps.
+editors. Full legacy property/display/synthesis controls, simultaneous editable
+layouts and production multi-user lifecycle/RBAC remain acceptance gaps.
 
 ### Accuracy and legacy assumptions
 
@@ -631,8 +633,9 @@ Operating-point controls are **shared** between slots in this slice. Workspace
 bundles preserve existing per-lineup metadata but do not capture the current
 shared controls, undo history, viewport zoom, RF uploads or calculated results.
 Imported workspaces restart histories and zoom; ongoing session switching
-retains them. There is no server persistence, cross-session recovery,
-simultaneous comparison layout, cross-canvas wiring or canvas deletion.
+retains them. At this batch there was no server persistence or cross-session
+recovery; batch 32 adds explicit local project snapshots. Simultaneous editable
+comparison, cross-canvas wiring and canvas deletion remain outside this slice.
 
 Qualification: **710 passing Python tests**, strict source typing, Ruff and
 JavaScript syntax checks. Chromium workflows exercise the RF views, frequency
@@ -851,8 +854,8 @@ in the confirmation. A target modified after the confirmation was requested
 is rejected by a document comparison rather than overwritten. Same-slot
 copies fail explicitly. Prepared workspace downloads/results/comparisons are
 invalidated after replacement. Download the workspace first when an overwrite
-must be recoverable: this is session lifecycle, not a persistent archive or a
-cross-session restore service.
+must be recoverable. Alternatively, save a local project snapshot before replacement
+(batch 32). Copy/clear itself does not create an automatic recovery point.
 
 ### Batch 25 - design controls and representative-file evidence
 
@@ -1048,7 +1051,7 @@ Python Shiny freezes nested JSON arrays to tuples, which are not Pydantic
 preserves component display arrays/workspace extras without weakening domain
 validation or silently dropping fields.
 
-Current qualification: **973 Python tests**, Ruff, strict source mypy,
+Qualification through batch 31: **973 Python tests**, Ruff, strict source mypy,
 dependency checks and Python compilation. Both Chromium suites
 cover the established flows plus triangular/noise export, mixed-mode reference
 labels/analysis gates, comparison freshness/responsiveness, component creation,
@@ -1065,6 +1068,75 @@ tests, compilation and strict mypy provided local validation
 instead. The legacy R sources remain unchanged. **Workstreams 1-2 are not
 fully complete**: delivered slices do not imply full legacy-editor/file parity
 or device-calibrated engineering acceptance.
+
+### Batch 32 - local projects, immutable snapshots and restart recovery
+
+The **Local projects** sidebar implements the approved single-workstation
+SQLite target, not production authentication or a PostgreSQL substitute.
+No database is opened or created at startup. Saving and listing are explicit.
+
+- **Save as new project** creates a named project with revision 1. Names need not
+  be unique; generated UUIDs identify projects. **Save new snapshot** appends an
+  immutable revision of the attached project. Edits are never autosaved.
+- Every snapshot includes all four documents, the active slot, and the shared
+  input power, backoff, architecture and saved-browser-operating-point switch.
+  Component IDs, connections, geometry, metadata and additional JSON fields
+  retain their existing contracts. Snapshots have a 5 MiB total limit.
+- **Open or recover local project** → **List local projects** lists the 100 most
+  recently saved projects on page 1; the catalogue page control accesses older
+  projects in additional pages of 100. Revision 0 opens the head; any positive existing
+  revision opens that exact snapshot. History is not pruned. The picker is
+  bounded without deleting or hiding older projects permanently.
+- Recovery confirms replacement of all four canvases and operating-point
+  controls. Changes made while the dialog is open, or a project updated by
+  another session during confirmation, reject recovery without replacement.
+  The project attaches only after the browser acknowledges restoration.
+- Loading a historical snapshot does not move the database head backwards.
+  A subsequent save appends a new revision; old payloads/timestamps remain
+  unchanged. Saves compare the last observed head revision transactionally:
+  stale sessions receive an explicit conflict rather than overwriting work.
+- Transactions provide atomic writes; SHA-256 plus schema validation detect
+  damaged payloads on read. Errors are logged/notified without pretending a
+  save/recovery succeeded. A damaged revision does not prevent explicitly
+  opening another intact revision. Checksums detect accidental damage; they
+  are not signatures or protection against a user who can edit the database.
+- Undo history, viewport zoom, selection, uploaded Touchstone/load-pull files,
+  derived results and other calculator/advisory controls are **not** persisted.
+  Recovery clears stale lineup calculations, comparison and prepared downloads;
+  undo/zoom restart. Existing imported RF datasets are unchanged and are not
+  claimed to belong to the recovered project. The legacy manual four-canvas
+  JSON contract remains unchanged and does not capture shared controls.
+
+Default Windows storage is `%LOCALAPPDATA%\RFView\projects.sqlite3`, outside the
+checkout. If `LOCALAPPDATA` is unavailable, the fallback is
+`~\.local\share\RFView\projects.sqlite3`. Override it with an absolute path:
+
+```powershell
+$env:RFVIEW_PROJECT_DB = 'D:\RFView-data\projects.sqlite3'
+.\python_app\.venv\Scripts\python.exe -m shiny run --host 127.0.0.1 --port 3840 python_app\src\rfview\app.py
+```
+
+Keep the preview bound to loopback. All sessions use the same local catalogue;
+there is **no authentication, role enforcement, tenant isolation or encryption**.
+Use OS permissions and a private workstation directory appropriate for RF IP.
+Do not expose this mode as a shared/network service. No RF uploads are persisted
+automatically and no project content is sent to an external service.
+Back up the database only with the app stopped or SQLite's online backup API;
+do not copy a database mid-transaction. Database version mismatches and non-RFView
+databases are rejected rather than adopted, reset or silently replaced.
+
+Qualification: **1,011 passing Python tests** (38 new project-service tests),
+Ruff, strict source mypy, compilation and dependency integrity checks.
+The project service tests cover reconnect/reopen, full four-slot
+round trips, immutable history, recovery append, concurrent writers,
+transaction rollback, stale saves, corrupt payloads/schema versions, invalid
+names/IDs/revisions, size bounds and explicit filesystem failures. A separate
+Chromium check covers explicit saves, conflicts and stale recovery confirmation.
+After stopping and restarting the actual server against the same isolated
+database, it restores the head and historical snapshots and appends a recovery
+revision. The existing baseline and advanced Chromium suites also pass.
+Production identity/RBAC, PostgreSQL deployment, automatic crash-state capture
+and simultaneous editable layouts are not delivered by this slice.
 
 ## Validation
 
@@ -1115,7 +1187,8 @@ software gates and external acceptance gates are distinct:
 | Passive annotation/display edit history | Delivered for fields supported by the retained renderer |
 | Harmonic-specific vendor parsing/analysis and richer RF-data interactions | Remaining implementation/qualification |
 | Simultaneous editable multi-canvas layouts | Remaining implementation; comparison cards are read-only |
-| Persistent workspace save/recovery beyond manual JSON files | Remaining implementation; current slots are session-only |
+| Local persistent workspace save/recovery beyond manual JSON | Delivered by batch 32; explicit snapshots, four slots and operating-point controls |
+| Production multi-user persistence, identity and RBAC | Remaining; local SQLite mode is unauthenticated and single-user only |
 | Remaining synthesis/editor controls and interaction parity | Remaining implementation/acceptance |
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
 
@@ -1126,12 +1199,13 @@ software gates and external acceptance gates are distinct:
    are delivered, not universal vendor or calibration parity.
 2. Complete remaining calculations, engineering-model decisions, legacy
    synthesis/editor controls, simultaneous editable comparison and
-   persistent multi-canvas lifecycle; qualify advanced chart interactions and
+   production multi-canvas lifecycle; qualify advanced chart interactions and
    device-calibrated model assumptions separately. Four session slots,
    read-only simultaneous comparison, confirmed copy/clear, calculation/pose/
    metadata/annotation/display controls and corrected generic gain/lifetime options are delivered,
    not full parity.
-3. Add project persistence, snapshots, state recovery and role-based access.
+3. Extend local project persistence/snapshots/recovery to production PostgreSQL,
+   authenticated identity, role-based access and additional project datasets.
 4. Integrate remaining AI agents/KB and the guarded Python ingestion pipeline.
 5. Complete and qualify integrated and standalone RF CAD separately.
 6. Convert education/manual/IFX documents and Web Page Knitter to Python-executed

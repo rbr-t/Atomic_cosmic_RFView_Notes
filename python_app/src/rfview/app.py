@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Literal
@@ -46,6 +47,7 @@ from rfview.domain.transistor import (
     transistor_design_suite,
 )
 from rfview.loadpull_ui import MAX_LOADPULL_VIEW_POINTS, loadpull_panel, sweep_choices
+from rfview.project_store import ProjectSnapshot, ProjectStore, SavedProject, default_project_path
 from rfview.services import (
     example_document,
     operating_point,
@@ -119,14 +121,37 @@ app_ui = ui.page_fluid(
     ui.tags.header(
         ui.h1("RF PA Design - Python"),
         ui.p(
-            "Migration preview - session-only. Legacy R application remains unchanged. "
-            "Projects/DB, advanced RF workflows, AI/KB, CAD and document builds "
-            "are not ported yet.",
+            "Migration preview - optional local single-user project snapshots. "
+            "Legacy R application remains unchanged. Production authentication/RBAC, "
+            "remaining RF workflows, AI/KB, CAD and document builds are not ported yet.",
             class_="migration-notice",
         ),
     ),
     ui.layout_sidebar(
         ui.sidebar(
+            ui.h2("Local projects"),
+            ui.p(
+                "Single-user only; not authenticated or encrypted. Explicit saves include "
+                "all four canvases and operating-point controls, not uploaded RF datasets."
+            ),
+            ui.input_text("project_name", "New project name", placeholder="Design study"),
+            toolbar_button("python_create_project", "Save as new project"),
+            toolbar_button("python_save_project", "Save new snapshot"),
+            ui.output_text("project_status"),
+            ui.tags.details(
+                ui.tags.summary("Open or recover local project"),
+                ui.input_numeric("project_page", "Catalogue page", 1, min=1, step=1),
+                ui.input_action_button("project_refresh", "List local projects"),
+                ui.input_select("project_choice", "Saved project (100 per page, newest first)", {}),
+                ui.input_numeric(
+                    "project_revision", "Snapshot revision (0 = latest)", 0, min=0, step=1
+                ),
+                toolbar_button("python_open_project", "Open selected snapshot"),
+                ui.p(
+                    "Opening replaces all four canvases after confirmation. Undo/zoom "
+                    "restart; calculations must be refreshed. Older snapshots remain saved."
+                ),
+            ),
             ui.h2("Operating point"),
             ui.input_numeric("input_power_dbm", "Input power (dBm)", 20, min=-100, max=100),
             ui.input_numeric("backoff_db", "Backoff (dB)", 6, min=0, max=60),
@@ -488,7 +513,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     document: reactive.Value[LineupDocument] = reactive.Value(example_document())
     result: reactive.Value[LineupResult | None] = reactive.Value(None)
     status_state = reactive.Value(
-        "Waiting for canvas readiness. No data is persisted on the server."
+        "Waiting for canvas readiness. Nothing is persisted until an explicit project save."
     )
     selected: reactive.Value[int | str | None] = reactive.Value(None)
     last_serialized = reactive.Value("")
@@ -502,6 +527,157 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     network_status = reactive.Value("No Touchstone dataset loaded.")
     loadpull: reactive.Value[LoadPullData | None] = reactive.Value(None)
     loadpull_status_state = reactive.Value("No load-pull dataset loaded.")
+    current_project: reactive.Value[SavedProject | None] = reactive.Value(None)
+    pending_project: reactive.Value[
+        tuple[SavedProject, ProjectSnapshot] | None
+    ] = reactive.Value(None)
+    restoring_project: reactive.Value[tuple[int, SavedProject] | None] = reactive.Value(None)
+
+    def project_store() -> ProjectStore:
+        return ProjectStore(default_project_path())
+
+    async def refresh_projects() -> None:
+        value = input.project_page()
+        if value is None or value < 1 or int(value) != value:
+            raise ValueError("Catalogue page must be an integer >= 1")
+        projects = await asyncio.to_thread(project_store().list_projects, page=int(value))
+        ui.update_select(
+            "project_choice",
+            choices={item.id: f"{item.name} (revision {item.revision})" for item in projects},
+            session=session,
+        )
+
+    @render.text
+    def project_status() -> str:
+        saved = current_project()
+        if saved is None:
+            return "No local project attached. Unsaved browser session."
+        return (
+            f"{saved.info.name} | head revision {saved.info.revision} | "
+            f"loaded/saved snapshot {saved.snapshot_revision}. "
+            "Current edits require an explicit save."
+        )
+
+    @reactive.effect
+    @reactive.event(input.project_refresh)
+    async def _refresh_projects() -> None:
+        try:
+            await refresh_projects()
+        except (ValueError, OverflowError, OSError, sqlite3.Error) as exc:
+            failure(f"Project listing failed: {exc}")
+
+    @reactive.effect
+    @reactive.event(input.python_project_loaded)
+    def _project_loaded() -> None:
+        restoring = restoring_project()
+        if restoring is None or input.python_project_loaded() != restoring[0]:
+            failure("Unexpected project recovery acknowledgement; project not attached")
+            return
+        saved = restoring[1]
+        current_project.set(saved)
+        restoring_project.set(None)
+        status_state.set(
+            f"Recovered {saved.info.name}, snapshot {saved.snapshot_revision}. "
+            "Recalculate before using results; save creates a new revision."
+        )
+
+    async def project_action(action: BrowserAction) -> None:
+        try:
+            if restoring_project() is not None:
+                raise ValueError("Project recovery is still awaiting the browser acknowledgement")
+            if action.workspace is None:
+                raise ValueError("Project operation requires all four canvas snapshots")
+            snapshot = ProjectSnapshot(
+                workspace=action.workspace,
+                operating_point=OperatingPoint(
+                    input_power_dbm=input.input_power_dbm(),
+                    backoff_db=input.backoff_db(),
+                    architecture=input.architecture(),
+                    use_canvas_operating_points=input.use_canvas_operating_points(),
+                ),
+            )
+            if action.action == "open_project":
+                value = input.project_revision()
+                if value is None or value < 0 or int(value) != value:
+                    raise ValueError("Snapshot revision must be an integer >= 0")
+                saved = await asyncio.to_thread(
+                    project_store().load, input.project_choice(), int(value) or None
+                )
+                pending_project.set((saved, snapshot))
+                ui.modal_show(
+                    ui.modal(
+                        ui.p(
+                            f"Open {saved.info.name}, snapshot {saved.snapshot_revision}? "
+                            "All four current canvases and operating-point controls will be "
+                            "replaced. Unsaved edits, undo history and zoom will be lost. "
+                            "Imported RF datasets are not changed or restored."
+                        ),
+                        title="Confirm project recovery",
+                        footer=ui.TagList(
+                            ui.modal_button("Cancel"),
+                            toolbar_button("python_confirm_project_load", "Replace workspace"),
+                        ),
+                        easy_close=True,
+                    ), session=session,
+                )
+                return
+            if action.action == "confirm_project_load":
+                pending = pending_project()
+                pending_project.set(None)
+                ui.modal_remove(session=session)
+                if pending is None:
+                    raise ValueError("Request project recovery again")
+                saved, expected = pending
+                if snapshot != expected:
+                    raise ValueError("Workspace changed after recovery confirmation; request again")
+                latest = await asyncio.to_thread(
+                    project_store().load, saved.info.id, saved.snapshot_revision
+                )
+                if latest.info.revision != saved.info.revision:
+                    raise ValueError("Project changed during confirmation; request recovery again")
+                saved = latest
+                snapshot = saved.snapshot
+                result.set(None)
+                prepared.set(False)
+                comparison.set(None)
+                workspace_export.set(None)
+                pending_replacement.set(None)
+                document.set(snapshot.workspace.canvases[snapshot.workspace.active])
+                selected.set(None)
+                point = snapshot.operating_point
+                ui.update_numeric("input_power_dbm", value=point.input_power_dbm, session=session)
+                ui.update_numeric("backoff_db", value=point.backoff_db, session=session)
+                ui.update_select("architecture", selected=point.architecture, session=session)
+                ui.update_checkbox(
+                    "use_canvas_operating_points",
+                    value=point.use_canvas_operating_points, session=session,
+                )
+                current_project.set(None)
+                restoring_project.set((action.request_id, saved))
+                await session.send_custom_message(
+                    "pythonLoadWorkspace",
+                    {**snapshot.workspace.model_dump(mode="json", by_alias=True),
+                     "project_request_id": action.request_id},
+                )
+                return
+            if action.action == "create_project":
+                saved = await asyncio.to_thread(
+                    project_store().create, input.project_name(), snapshot
+                )
+            else:
+                current = current_project()
+                if current is None:
+                    raise ValueError("Open a local project or save as a new project first")
+                saved = await asyncio.to_thread(
+                    project_store().save, current.info.id, current.info.revision, snapshot
+                )
+            current_project.set(saved)
+            status_state.set(
+                f"Saved {saved.info.name}, immutable snapshot {saved.snapshot_revision}. "
+                "Subsequent edits are not saved automatically."
+            )
+        except (ValueError, OverflowError, OSError, sqlite3.Error) as exc:
+            failure(f"Project operation failed: {exc}")
 
     @reactive.effect
     @reactive.event(input.loadpull_import)
@@ -910,6 +1086,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     @reactive.effect
     @reactive.event(input.python_canvas_error)
     def _canvas_error() -> None:
+        restoring_project.set(None)
         failure(f"Canvas error: {input.python_canvas_error()}")
 
     @reactive.effect
@@ -946,6 +1123,11 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     async def _action() -> None:
         try:
             action = BrowserAction.model_validate_json(json.dumps(input.python_action()))
+            if action.action in (
+                "create_project", "save_project", "open_project", "confirm_project_load"
+            ):
+                await project_action(action)
+                return
             document.set(action.document)
             last_serialized.set(serialize_document(action.document))
             if action.action in ("clone_slot", "clear_slot"):

@@ -60,6 +60,7 @@ th, td { padding: var(--rf-spacing); border: 1px solid var(--rf-border); text-al
 caption { color: var(--rf-secondary); }
 pre { white-space: pre-wrap; color: var(--rf-secondary); }
 .sidebar p { font-size: var(--rf-caption-size); }
+#project_status { overflow-wrap: anywhere; }
 .main { min-width: 0; }
 .technology-chart { margin: var(--rf-spacing) 0; }
 .technology-chart svg { display: block; width: 100%; min-width: 0; }

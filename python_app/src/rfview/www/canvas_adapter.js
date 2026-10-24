@@ -94,7 +94,9 @@
     lastRequest = ++requestId;
     Shiny.setInputValue("python_action", {
       action: name, document: snapshot(), request_id: lastRequest,
-      workspace: ["workspace_snapshot", "compare_workspace", "clone_slot", "clear_slot"].includes(name) ? workspaceSnapshot() : null,
+      workspace: ["workspace_snapshot", "compare_workspace", "clone_slot", "clear_slot",
+        "create_project", "save_project", "open_project", "confirm_project_load"
+      ].includes(name) ? workspaceSnapshot() : null,
       target_slot: name === "clone_slot" ? document.getElementById("python_copy_slot").value : null
     }, { priority: "event" });
     return current;
@@ -161,6 +163,9 @@
           document.getElementById("python_canvas_slot").dispatchEvent(new Event("change", { bubbles: true }));
           restore(slots[activeSlot].document);
           canvas().svg.call(canvas().zoom.transform, d3.zoomIdentity);
+          if (data.project_request_id !== undefined) {
+            Shiny.setInputValue("python_project_loaded", data.project_request_id, { priority: "event" });
+          }
         } catch (error) { reportError(error); }
       });
       Shiny.addCustomMessageHandler("pythonReplaceSlot", data => {
@@ -226,6 +231,10 @@
         case "python_compare": action("compare_workspace"); break;
         case "python_copy_canvas": action("clone_slot"); break;
         case "python_clear_canvas": action("clear_slot"); break;
+        case "python_create_project": action("create_project"); break;
+        case "python_save_project": action("save_project"); break;
+        case "python_open_project": action("open_project"); break;
+        case "python_confirm_project_load": action("confirm_project_load"); break;
         case "python_add": {
           const type = document.getElementById("python_component_type").value;
           if (!["transistor", "matching", "splitter", "combiner", "offset_line", "termination"].includes(type)) {
