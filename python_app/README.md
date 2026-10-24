@@ -1172,12 +1172,46 @@ verify file hashes and retained vendor extras, exercise text and exact filters,
 MHz boundaries, sorting/truncation, malformed and hostile JSON, data bounds,
 duplicate IDs and source symlinks. The advanced Chromium suite exercises the
 full-catalog and NXP/frequency/part-number searches at 375/768/1440 px.
-The final full Python suite passes **1,048 tests**, with one platform skip
-because directory symlink creation is not permitted on this Windows account;
-Ruff, strict source mypy, compilation and dependency checks pass.
+At the end of batch 33 the full Python suite passed **1,048 tests**, with one
+platform skip because directory symlink creation is not permitted on this
+Windows account; Ruff, strict source mypy, compilation and dependency checks
+pass.
 This slice intentionally makes no claim that the LLM agents, embeddings/vector
 database, AI prompts, guarded Python ingestion/application workflow, or
 human-reviewed datasheet extraction have migrated.
+
+### Batch 34 - attach a catalog citation to a transistor
+
+The new **Attach / replace selected transistor reference** action connects the
+local device catalog to canvas and explicitly saved project work without
+conflating a literature record with an RF device model.
+
+- Search for and select a local catalog record, then select a transistor on the
+  active canvas and explicitly attach it. A non-transistor selection or a
+  catalog item outside the current search results is rejected.
+- The component stores a version-independent JSON reference under
+  `properties.kb_device_reference`: identity/vendor/technology, rated frequency
+  band, recorded source/confidence/status, optional HTTPS datasheet URL, source
+  file path and catalog-file SHA-256. Unknown properties, units and source
+  records are not copied wholesale into the design.
+- The canvas property panel displays it separately as provenance. The ordinary
+  component undo/redo history governs attachment changes. Existing references
+  are replaced only by the explicit attach/replace action.
+- The attachment does not set, infer or change gain, efficiency, output power,
+  supply, Ropt, load-pull contours, technology model, guardrail assumptions or
+  any other calculation field. It is a citation link, not a validated or
+  calibrated transistor model.
+- Explicit local-project snapshots retain the reference with its transistor.
+  The test reopens the saved snapshot, validates the retained record, and
+  checks that the pre-existing calculation property remains unchanged.
+
+Qualification: the advanced browser suite selects an NXP catalog entry and a
+transistor, checks its provenance panel, verifies the gain property is
+unchanged, and exercises undo/redo. Unit tests reject unsafe URLs and escaping
+source paths and verify project snapshot durability. Both baseline and advanced
+Chromium suites pass at their established viewport checks. The full Python
+suite passes **1,055 tests** (one Windows permission skip); Ruff, strict source
+mypy, compilation, dependency and diff checks pass.
 
 ## Validation
 
@@ -1233,6 +1267,7 @@ software gates and external acceptance gates are distinct:
 | Remaining synthesis/editor controls and interaction parity | Remaining implementation/acceptance |
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
 | Local checked-in device catalog search | Delivered by batch 33; read-only, filters and source digests |
+| Explicit KB citation attachment to a canvas/project | Delivered by batch 34; provenance-only, never populates the physics model |
 | AI agents, vector retrieval and guarded Python ingestion workflow | Remaining; no LLM, Chroma or KB write/apply path is claimed |
 
 1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,

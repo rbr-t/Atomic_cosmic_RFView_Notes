@@ -87,7 +87,11 @@ def main(url: str) -> None:
         page.wait_for_function("window.paCanvas.components.length === 4")
 
         # Geometry/metadata edits must retain saved operating points and be undoable.
-        page.locator('.component[data-id="20"] polygon').click(position={"x": 5, "y": 20})
+        page.evaluate(
+            """() => document.querySelector('.component[data-id="20"]')
+                .dispatchEvent(new MouseEvent('click', {bubbles:true}))"""
+        )
+        page.wait_for_function("window.paCanvas.selectedComponent === 20")
         page.get_by_text("Design metadata and geometry", exact=True).click()
         expect(page.locator("#design_component_id")).to_have_value("20")
         original = page.evaluate(
@@ -413,6 +417,37 @@ def main(url: str) -> None:
         expect(page.locator(".kb-device-card")).to_contain_text("MRF1K50H")
         expect(page.locator("#kb_device_detail")).to_contain_text("nxp/devices.json")
         expect(page.locator("#kb_device_detail")).to_contain_text("datasheet")
+        page.evaluate(
+            """() => document.querySelector('.component[data-id="20"]')
+                .dispatchEvent(new MouseEvent('click', {bubbles:true}))"""
+        )
+        page.wait_for_function("window.paCanvas.selectedComponent === 20")
+        expect(page.locator("#edit_component_id")).to_have_value("20")
+        original_gain = page.evaluate(
+            "window.paCanvas.components.find(c=>c.id===20).properties.gain"
+        )
+        page.locator("#attach_kb_reference").click()
+        page.wait_for_function(
+            "window.paCanvas.components.find(c=>c.id===20)"
+            ".properties.kb_device_reference?.device_id === 'nxp_MRF1K50H'"
+        )
+        expect(page.locator("#selected_properties")).to_contain_text(
+            "Attached catalog reference (provenance only)"
+        )
+        expect(page.locator("#selected_properties")).to_contain_text("nxp/devices.json")
+        assert (
+            page.evaluate("window.paCanvas.components.find(c=>c.id===20).properties.gain")
+            == original_gain
+        )
+        page.locator("#python_undo").click()
+        page.wait_for_function(
+            "!window.paCanvas.components.find(c=>c.id===20).properties.kb_device_reference"
+        )
+        page.locator("#python_redo").click()
+        page.wait_for_function(
+            "window.paCanvas.components.find(c=>c.id===20)"
+            ".properties.kb_device_reference?.device_id === 'nxp_MRF1K50H'"
+        )
         for width in (375, 768, 1440):
             page.set_viewport_size({"width": width, "height": 1000})
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
@@ -422,7 +457,7 @@ def main(url: str) -> None:
     print(
         "Advanced browser smoke passed: comparison, lifecycle, geometry/history, "
         "triangles, v1/v2 noise, mixed-mode transforms, annotations, ALPS, SPL, CST, "
-        "and local KB search."
+        "local KB search and project-preserving transistor references."
     )
 
 

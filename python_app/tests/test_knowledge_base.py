@@ -7,13 +7,18 @@ import pytest
 from pydantic import ValidationError
 
 import rfview.knowledge_base as knowledge_base
+from rfview.domain.models import CanvasWorkspace, OperatingPoint
 from rfview.knowledge_base import (
     MAX_KB_FILE_BYTES,
     DeviceRecord,
+    DeviceReference,
     DeviceSearch,
+    device_reference,
     load_device_catalog,
     search_devices,
 )
+from rfview.project_store import ProjectSnapshot, ProjectStore
+from rfview.services import example_document
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEVICE_KB_ROOT = REPOSITORY_ROOT / "PA design App" / "data" / "kb"
@@ -75,6 +80,71 @@ def test_reads_all_checked_in_records_with_digest_and_extra_fields() -> None:
     assert ampleon.record.application
     source_bytes = (DEVICE_KB_ROOT / ampleon.source_file).read_bytes()
     assert ampleon.source_sha256 == hashlib.sha256(source_bytes).hexdigest()
+
+
+def test_reference_attachment_captures_source_provenance_without_calculation_fields() -> None:
+    item = next(
+        device
+        for device in load_device_catalog(DEVICE_KB_ROOT)
+        if device.record.device_id == "nxp_MRF1K50H"
+    )
+    reference = device_reference(item)
+    assert reference.device_id == "nxp_MRF1K50H"
+    assert reference.datasheet_url == item.record.datasheet_url
+    assert reference.catalog_source_file == "nxp/devices.json"
+    assert reference.catalog_source_sha256 == item.source_sha256
+    assert "gain_db" not in reference.model_dump()
+    assert "pout_w_cw" not in reference.model_dump()
+    assert DeviceReference.model_validate_json(reference.model_dump_json()) == reference
+
+
+def test_attached_reference_survives_explicit_project_snapshot(tmp_path: Path) -> None:
+    item = next(
+        device
+        for device in load_device_catalog(DEVICE_KB_ROOT)
+        if device.record.device_id == "nxp_MRF1K50H"
+    )
+    reference = device_reference(item)
+    canvases = {str(slot): example_document() for slot in range(1, 5)}
+    target = next(
+        component for component in canvases["1"].components if component.type == "transistor"
+    )
+    target.properties["kb_device_reference"] = reference.model_dump(mode="json", exclude_none=True)
+    project = ProjectSnapshot(
+        workspace=CanvasWorkspace(active="1", canvases=canvases),
+        operating_point=OperatingPoint(),
+    )
+    store = ProjectStore(tmp_path / "projects.sqlite3")
+    saved = store.create("device-reference", project)
+    restored = store.load(saved.info.id)
+    recovered = next(
+        component
+        for component in restored.snapshot.workspace.canvases["1"].components
+        if component.type == "transistor"
+    )
+    assert recovered.type == "transistor"
+    assert DeviceReference.model_validate(recovered.properties["kb_device_reference"]) == reference
+    assert recovered.properties["gain"] == target.properties["gain"]
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"datasheet_url": "javascript:alert(1)"},
+        {"datasheet_url": "https://user:pass@vendor.example/file.pdf"},
+        {"datasheet_url": "//vendor.example/file.pdf"},
+        {"catalog_source_file": "../devices.json"},
+        {"catalog_source_sha256": "not-a-hash"},
+    ],
+)
+def test_attached_reference_rejects_unsafe_or_unverifiable_provenance(
+    payload: dict[str, object],
+) -> None:
+    catalog_device = load_device_catalog(DEVICE_KB_ROOT)[0]
+    reference = device_reference(catalog_device).model_dump()
+    reference.update(payload)
+    with pytest.raises(ValidationError):
+        DeviceReference.model_validate(reference)
 
 
 def test_search_text_and_exact_manufacturer_technology_filters_and_frequency_edges(

@@ -48,7 +48,9 @@ from rfview.domain.transistor import (
 )
 from rfview.knowledge_base import (
     CatalogDevice,
+    DeviceReference,
     DeviceSearch,
+    device_reference,
     load_device_catalog,
     search_devices,
 )
@@ -505,6 +507,13 @@ app_ui = ui.page_fluid(
             ui.output_ui("kb_results"),
             ui.input_select("kb_device", "Selected device record", {}),
             ui.output_code("kb_device_detail"),
+            ui.input_action_button(
+                "attach_kb_reference", "Attach / replace selected transistor reference"
+            ),
+            ui.p(
+                "Replaces any existing catalog reference. Attaches provenance metadata only; "
+                "does not change calculation properties, datasheet assumptions or the device model."
+            ),
         ),
         ui.tags.details(
             ui.tags.summary("Generic lifetime hypothesis (corrected v2)"),
@@ -692,6 +701,43 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         kb_status_state.set(
             f"{note} Read-only local sources: {', '.join(sources)}. "
             "Source/confidence labels are not an engineering qualification."
+        )
+
+    @reactive.effect
+    @reactive.event(input.attach_kb_reference)
+    async def _attach_kb_reference() -> None:
+        component = next(
+            (item for item in document().components if str(item.id) == str(selected())), None
+        )
+        item = next(
+            (
+                record
+                for record in kb_results_state()
+                if record.record.device_id == input.kb_device()
+            ),
+            None,
+        )
+        try:
+            if component is None or component.type != "transistor":
+                raise ValueError("Select a transistor on the active canvas first")
+            if item is None:
+                raise ValueError("Search and select a device record from the local catalog first")
+            reference = device_reference(item)
+        except (ValueError, ValidationError) as exc:
+            failure(f"Device reference attachment rejected: {exc}")
+            return
+        await session.send_custom_message(
+            "pythonEditComponent",
+            {
+                "id": component.id,
+                "properties": {
+                    "kb_device_reference": reference.model_dump(mode="json", exclude_none=True)
+                },
+            },
+        )
+        status_state.set(
+            f"Attached KB provenance for {reference.manufacturer} {reference.part_number}; "
+            "lineup calculation properties were not changed."
         )
 
     @reactive.effect
@@ -1515,8 +1561,40 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             return ui.p(f"Component properties rejected: {exc}", role="alert")
         if component.type == "termination":
             return ui.p("Termination: no editable calculation inputs in the legacy model.")
+        reference_panel: ui.Tag | None = None
+        raw_reference = component.properties.get("kb_device_reference")
+        if raw_reference is not None:
+            try:
+                reference = DeviceReference.model_validate(raw_reference)
+                reference_panel = ui.tags.section(
+                    ui.tags.h4("Attached catalog reference (provenance only)"),
+                    ui.tags.p(
+                        f"{reference.manufacturer} {reference.part_number} — "
+                        f"{reference.technology}, {reference.freq_min_mhz:g}-"
+                        f"{reference.freq_max_mhz:g} MHz"
+                    ),
+                    ui.tags.p(
+                        f"Recorded source: {reference.knowledge_source or 'not recorded'}; "
+                        "confidence: "
+                        f"{reference.knowledge_confidence or 'not recorded'}; "
+                        f"catalog file: {reference.catalog_source_file}; "
+                        f"SHA-256: {reference.catalog_source_sha256}"
+                    ),
+                    ui.tags.p(
+                        reference.datasheet_url or "No datasheet URL recorded.",
+                        class_="kb-reference-url",
+                    ),
+                    class_="kb-device-reference",
+                )
+            except ValidationError as exc:
+                logger.warning("Attached KB reference rejected: %s", exc)
+                reference_panel = ui.p(
+                    "Attached device-reference metadata is invalid; preserved without use.",
+                    role="alert",
+                )
         return ui.div(
             ui.p(f"Type: {component.type}. Only calculation inputs listed below are edited."),
+            reference_panel,
             ui.input_text(
                 "edit_component_id",
                 "Editing component ID (must match selection)",

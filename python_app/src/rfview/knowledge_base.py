@@ -7,6 +7,7 @@ import json
 import math
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
@@ -58,6 +59,43 @@ class CatalogDevice(BaseModel):
     source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
+class DeviceReference(BaseModel):
+    """Provenance-only attachment; not a source of lineup calculation values."""
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    device_id: NonEmptyString
+    part_number: NonEmptyString
+    manufacturer: NonEmptyString
+    technology: NonEmptyString
+    freq_min_mhz: float = Field(ge=0, strict=True)
+    freq_max_mhz: float = Field(ge=0, strict=True)
+    knowledge_source: str | None = Field(default=None, max_length=120)
+    knowledge_confidence: str | None = Field(default=None, max_length=120)
+    status: str | None = Field(default=None, max_length=120)
+    datasheet_url: str | None = Field(default=None, max_length=2048)
+    catalog_source_file: str = Field(pattern=r"^[A-Za-z0-9_.-]+/devices\.json$")
+    catalog_source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def validate_reference(self) -> DeviceReference:
+        vendor = self.catalog_source_file.split("/", maxsplit=1)[0]
+        if vendor in (".", ".."):
+            raise ValueError("Catalog source path must remain within one vendor directory")
+        if self.freq_max_mhz < self.freq_min_mhz:
+            raise ValueError("Maximum frequency must not be below minimum frequency")
+        if self.datasheet_url is not None:
+            parsed = urlsplit(self.datasheet_url)
+            if (
+                parsed.scheme != "https"
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+            ):
+                raise ValueError("Device reference URL must be an absolute HTTPS URL")
+        return self
+
+
 class DeviceSearch(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
@@ -72,6 +110,24 @@ class SearchResults(BaseModel):
     items: tuple[CatalogDevice, ...]
     total_matches: int = Field(ge=0)
     truncated: bool
+
+
+def device_reference(item: CatalogDevice) -> DeviceReference:
+    """Return an immutable, explicitly attached provenance record."""
+    return DeviceReference(
+        device_id=item.record.device_id,
+        part_number=item.record.part_number,
+        manufacturer=item.record.manufacturer,
+        technology=item.record.technology,
+        freq_min_mhz=item.record.freq_min_mhz,
+        freq_max_mhz=item.record.freq_max_mhz,
+        knowledge_source=item.record.knowledge_source,
+        knowledge_confidence=item.record.knowledge_confidence,
+        status=item.record.status,
+        datasheet_url=item.record.datasheet_url,
+        catalog_source_file=item.source_file,
+        catalog_source_sha256=item.source_sha256,
+    )
 
 
 def _reject_constant(value: str) -> None:
