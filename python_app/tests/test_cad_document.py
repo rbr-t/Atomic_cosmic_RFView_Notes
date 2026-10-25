@@ -15,6 +15,7 @@ from rfview.domain.cad import (
     parse_cad_design,
     serialize_cad_design,
     update_cad_dimensions,
+    update_cad_option,
     update_cad_placement,
 )
 from rfview.services import read_cad_design
@@ -463,3 +464,86 @@ def test_cad_history_distinguishes_json_boolean_from_numeric_vendor_values() -> 
     assert changed.undo_count == 1
     assert parse_cad_design(changed.current_text).components[0].params["vendor_flag"] == 1
     assert parse_cad_design(changed.undo().current_text).components[0].params["vendor_flag"] is True
+
+
+@pytest.mark.parametrize(
+    ("identifier", "key", "value"),
+    [
+        ("cmp_2", "miter", False),
+        ("cmp_2", "miter", True),
+        ("cmp_2", "miter", None),
+        ("cmp_6", "portNum", 17),
+        ("cmp_6", "portNum", 2**53 + 1),
+        ("cmp_6", "portNum", None),
+    ],
+)
+def test_cad_options_preserve_unrelated_data_and_support_history(
+    identifier: str,
+    key: str,
+    value: JsonValue,
+) -> None:
+    design = parse_cad_design(json.dumps(legacy_document()))
+    before = design.model_dump(mode="json")
+    updated = update_cad_option(design, identifier, value)
+    expected = json.loads(json.dumps(before))
+    params = next(item["params"] for item in expected["components"] if item["id"] == identifier)
+    if value is None:
+        params.pop(key, None)
+    else:
+        params[key] = value
+    assert updated.model_dump(mode="json") == expected
+    assert design.model_dump(mode="json") == before
+    assert parse_cad_design(serialize_cad_design(updated)) == updated
+    history = CADHistory.from_design(design)
+    recorded = history.record(updated)
+    if expected != before:
+        assert recorded.undo().current_text == history.current_text
+        assert recorded.undo().redo() == recorded
+    else:
+        assert recorded is history
+
+
+@pytest.mark.parametrize(
+    ("identifier", "value"),
+    [
+        ("cmp_1", True),
+        ("cmp_3", None),
+        ("missing", False),
+        ("cmp_2", 1),
+        ("cmp_2", "false"),
+        ("cmp_2", {}),
+        ("cmp_6", True),
+        ("cmp_6", 0),
+        ("cmp_6", -1),
+        ("cmp_6", 1.0),
+        ("cmp_6", "2"),
+        ("cmp_6", float("nan")),
+    ],
+)
+def test_invalid_cad_options_leave_source_unchanged(identifier: str, value: JsonValue) -> None:
+    design = parse_cad_design(json.dumps(legacy_document()))
+    before = serialize_cad_design(design)
+    with pytest.raises(ValueError):
+        update_cad_option(design, identifier, value)
+    assert serialize_cad_design(design) == before
+
+
+def test_unsetting_absent_option_is_noop_and_preserves_vendor_params() -> None:
+    design = parse_cad_design(json.dumps(legacy_document()))
+    design.components[1].params.pop("miter")
+    design.components[1].params["vendor"] = {"values": [None, 5, True]}
+    history = CADHistory.from_design(design)
+    updated = update_cad_option(design, "cmp_2", None)
+    assert history.record(updated) is history
+    updated.components[1].params["vendor"] = "changed"
+    assert design.components[1].params["vendor"] == {"values": [None, 5, True]}
+
+
+@pytest.mark.parametrize("miter", [None, True, False])
+def test_preview_miter_matches_legacy_explicit_false_semantics(miter: bool | None) -> None:
+    from rfview.cad_ui import cad_layout_preview
+
+    design = parse_cad_design(json.dumps(legacy_document()))
+    design.components[1].params["miter"] = miter
+    preview = str(cad_layout_preview(design))
+    assert ('class="cad-miter"' in preview) is (miter is not False)

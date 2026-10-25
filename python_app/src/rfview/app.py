@@ -19,6 +19,7 @@ from rfview.domain.cad import (
     cad_dimensions,
     parse_cad_design,
     update_cad_dimensions,
+    update_cad_option,
     update_cad_placement,
 )
 from rfview.domain.component_properties import (
@@ -289,7 +290,7 @@ app_ui = ui.page_fluid(
             ui.output_code("cad_component_detail"),
             ui.output_ui("cad_placement_controls"),
             ui.p(
-                "Placement and dimension edits have separate Apply buttons. Applying either "
+                "Placement, dimension and option edits have separate Apply buttons. Applying any "
                 "resets all unapplied fields, as does changing selection or importing a document. "
                 "Download JSON to retain applied edits; CAD is not "
                 "included in local project snapshots. CAD undo/redo restores applied edits, "
@@ -758,6 +759,30 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         )
         if component is None:
             return ui.p("Select an imported CAD component to edit its placement.")
+        option_controls: list[ui.Tag] = []
+        if component.type == "bend90":
+            miter = component.params.get("miter")
+            option_controls = [
+                ui.h3("Bend option"),
+                ui.input_select(
+                    "cad_option_miter",
+                    "Bend miter",
+                    {"unset": "Legacy default (enabled)", "true": "Enabled", "false": "Disabled"},
+                    selected="unset" if miter is None else "true" if miter else "false",
+                ),
+                ui.input_action_button("cad_apply_option", "Apply CAD option"),
+            ]
+        elif component.type == "port":
+            number = component.params.get("portNum")
+            option_controls = [
+                ui.h3("Port option"),
+                ui.input_text(
+                    "cad_option_port",
+                    "Port number (1-1000 decimal digits; positive; blank removes number)",
+                    str(number) if number is not None else "",
+                ),
+                ui.input_action_button("cad_apply_option", "Apply CAD option"),
+            ]
         return ui.div(
             ui.h3("Component placement"),
             ui.p(f"Editing component: {component.id}"),
@@ -775,7 +800,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             ui.h3("Component dimensions"),
             ui.p(
                 "Positive lengths in millimetres; no impedance synthesis or DRC. "
-                "Vendor parameters, bend miter and port number are preserved, not edited here."
+                "Vendor parameters are retained; bend and port options have separate controls."
             ),
             *[
                 ui.input_numeric(
@@ -793,6 +818,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
                 for key, value in cad_dimensions(component).items()
             ],
             ui.input_action_button("cad_apply_dimensions", "Apply CAD dimensions"),
+            *option_controls,
         )
 
     def _cad_edit_target() -> tuple[CADDesign, str]:
@@ -921,6 +947,37 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             _commit_cad_edit(updated, identifier, "dimensions")
         except (ValueError, OverflowError, RecursionError) as exc:
             message = f"RF-CAD dimensions rejected: {exc}. Last valid document retained."
+            logger.warning("%s", message)
+            cad_status_state.set(message)
+            ui.notification_show(message, type="error", duration=None, session=session)
+
+    @reactive.effect
+    @reactive.event(input.cad_apply_option)
+    def _cad_apply_option() -> None:
+        try:
+            design, identifier = _cad_edit_target()
+            component = next((item for item in design.components if item.id == identifier), None)
+            if component is None:
+                raise ValueError("Selected component is not in the current CAD document")
+            if component.type == "bend90":
+                choice = input.cad_option_miter()
+                if choice not in ("unset", "true", "false"):
+                    raise ValueError("Select a supported bend miter option")
+                updated = update_cad_option(
+                    design, identifier, None if choice == "unset" else choice == "true"
+                )
+            elif component.type == "port":
+                number = input.cad_option_port().strip()
+                if number and (
+                    len(number) > 1000 or not number.isascii() or not number.isdecimal()
+                ):
+                    raise ValueError("Port number must contain 1-1000 decimal digits, or be blank")
+                updated = update_cad_option(design, identifier, int(number) if number else None)
+            else:
+                raise ValueError("Only bends and ports have editable CAD options")
+            _commit_cad_edit(updated, identifier, "option")
+        except (ValueError, OverflowError, RecursionError) as exc:
+            message = f"RF-CAD option rejected: {exc}. Last valid document retained."
             logger.warning("%s", message)
             cad_status_state.set(message)
             ui.notification_show(message, type="error", duration=None, session=session)

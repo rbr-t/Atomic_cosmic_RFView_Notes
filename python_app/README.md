@@ -39,7 +39,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Local projects | Single-user SQLite projects, immutable snapshot revisions, optimistic conflict detection and confirmed four-canvas/operating-point recovery |
 | RF network tools | Touchstone 1.x/2.0 for 1-9 ports; full/triangular matrices, explicit mixed-mode transforms, v1/v2 noise table/plot; S/Smith and two-port conversions/stability; source/transformed and converted-family export |
 | Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
-| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, selectable dimension-aware overview, explicit name/placement/layer/dimension edits, bounded undo/redo and normalized export; session-only and separate from the PA lineup |
+| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, selectable dimension-aware overview, explicit placement/dimension/miter/port-number edits, bounded undo/redo and normalized export; session-only and separate from the PA lineup |
 | Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
@@ -1369,7 +1369,7 @@ This is direct dimension editing, not impedance synthesis or engineering
 qualification. Positive but physically inconsistent dimensions (for example, a
 via drill larger than its pad) are not certified by this contract. Existing
 preview omission notices still apply to oversized/degenerate shapes. There is
-no parameter editing for arbitrary vendor keys, miter or port numbering yet;
+no parameter editing for arbitrary vendor keys; miter/port editing follows in batch 44.
 CAD persistence, creation/deletion, drag workflows and DRC remain
 separate work. CAD remains session-only; download JSON to retain edits.
 
@@ -1407,6 +1407,42 @@ CAD data and history remain session-only and outside local project snapshots.
 JSON download retains the chosen document state, not the undo/redo history.
 This does not add CAD creation/deletion, drag interaction, engineering synthesis,
 DRC or fabrication qualification. The legacy R app remains unchanged/unarchived.
+
+### Batch 44 - bend miter and port-number options
+
+Selected bends and ports now expose **Apply CAD option** beside their placement
+and dimension controls. Bends support explicit enabled/disabled miter or the
+legacy enabled default. Selecting the default removes the `miter` key. The
+overview now follows the legacy explicit-false rule even for imported `null`:
+only `false` suppresses the miter marker. This fixes a preview mismatch without
+rewriting imported data.
+
+Ports accept positive decimal integers, or blank to remove `portNum`. The editor
+accepts up to 1,000 ASCII digits and uses a text input and Python integer parsing,
+so numbers above the JavaScript safe-integer range are not rounded by this path.
+Scientific notation, fractions, signs, non-ASCII digits and zero are rejected.
+Surrounding whitespace is trimmed. This precision guarantee applies to the Python
+editor/export, not to downstream JavaScript CAD importers. Port uniqueness,
+connectivity and physical port validity are not checked.
+
+The pure updater permits only `miter` on bends and `portNum` on ports and rejects
+incorrect types rather than coercing them. Unset removes the key (including an
+explicit imported `null`); it does not store a replacement default. Unknown
+params, dimensions, substrate and other components are preserved. Options share
+the existing revision guard, export-size validation and bounded history. Apply,
+undo/redo, selection changes and valid imports reset all unapplied fields.
+
+Qualification: domain tests cover valid values, unsupported types/targets,
+removal/no-op behavior, immutability, round trips and history, plus missing/null
+legacy miter semantics. Chromium checks miter marker removal/restoration,
+default removal, exact large-integer port values and accessible preview labels,
+invalid input and stale-form rejection, option undo/redo, download/reimport and
+PA lineup/result isolation.
+
+No CAD persistence, creation/deletion, drag interaction, synthesis or DRC is
+added here. CAD remains session-only; download JSON to retain a chosen state.
+Concurrent-use/performance qualification remains open. Legacy R remains
+unchanged and unarchived.
 
 ## Validation
 
@@ -1463,7 +1499,7 @@ software gates and external acceptance gates are distinct:
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
 | Local checked-in device catalog search | Delivered by batch 33; read-only, filters and source digests |
 | Explicit KB citation attachment to a canvas/project | Delivered by batch 34; provenance-only, never populates the physics model |
-| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-43; selection, placement/name/layer/dimension edits and bounded undo/redo, not full CAD editing or DRC |
+| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-44; placement/dimension/miter/port-number edits and bounded undo/redo, not full CAD editing or DRC |
 | AI agents, vector retrieval and guarded Python ingestion workflow | Remaining; no LLM, Chroma or KB write/apply path is claimed |
 
 1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,

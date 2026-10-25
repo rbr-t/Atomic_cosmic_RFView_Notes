@@ -259,6 +259,30 @@ def _update_cad_component(
     return CADDesign.model_validate(updated)
 
 
+def update_cad_option(design: CADDesign, component_id: str, value: JsonValue) -> CADDesign:
+    component = next((item for item in design.components if item.id == component_id), None)
+    if component is None:
+        raise ValueError("Selected component is not in the current CAD document")
+    if component.type == "bend90":
+        key = "miter"
+        if value is not None and not isinstance(value, bool):
+            raise ValueError("CAD bend miter must be Boolean or unset")
+    elif component.type == "port":
+        key = "portNum"
+        if value is not None and (
+            isinstance(value, bool) or not isinstance(value, int) or value < 1
+        ):
+            raise ValueError("CAD port number must be a positive integer or unset")
+    else:
+        raise ValueError("Only bends and ports have editable CAD options")
+    params = dict(component.params)
+    if value is None:
+        params.pop(key, None)
+    else:
+        params[key] = value
+    return _update_cad_component(design, component_id, {"params": params})
+
+
 @dataclass(frozen=True)
 class CADHistory:
     _states: tuple[str, ...]

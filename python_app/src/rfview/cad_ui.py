@@ -94,7 +94,7 @@ def _component_shapes(
             _port(0, 0),
             _port(length - width / 2, -arm),
         ]
-        if params.get("miter", True):
+        if params.get("miter") is not False:
             shapes.append(
                 ui.Tag(
                     "path",

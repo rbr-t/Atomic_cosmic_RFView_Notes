@@ -827,6 +827,78 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#cad_dim_L")).to_have_value("10.0")
         expect(page.locator("#cad_dim_gap")).to_have_value("0.4")
         oversized_cad = Path(temp) / "oversized-geometry.json"
+        expect(page.locator("#cad_apply_option")).to_have_count(0)
+        page.locator("#cad_component").select_option("cmp_8")
+        expect(page.locator("#cad_option_miter")).to_have_value("true")
+        page.locator("#cad_option_miter").select_option("false")
+        page.locator("#cad_apply_option.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text("Applied option for cmp_8")
+        expect(page.locator("#cad_preview .cad-miter")).to_have_count(0)
+        expect(page.locator("#cad_component_detail")).to_contain_text('"miter": false')
+        page.locator("#cad_undo.shiny-bound-input").click()
+        expect(page.locator("#cad_option_miter")).to_have_value("true")
+        expect(page.locator("#cad_preview .cad-miter")).to_have_count(1)
+        page.locator("#cad_redo.shiny-bound-input").click()
+        expect(page.locator("#cad_option_miter")).to_have_value("false")
+        page.locator("#cad_option_miter").select_option("unset")
+        page.locator("#cad_apply_option.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text("Applied option for cmp_8")
+        expect(page.locator("#cad_component_detail")).not_to_contain_text('"miter"')
+        expect(page.locator("#cad_preview .cad-miter")).to_have_count(1)
+        page.locator("#cad_component").select_option("cmp_12")
+        expect(page.locator("#cad_option_port")).to_have_value("1")
+        expect(page.locator("#cad_option_miter")).to_have_count(0)
+        option_revision = page.locator("#cad_edit_revision").input_value()
+        exact_port = "9007199254740993"
+        page.locator("#cad_option_port").fill(exact_port)
+        page.locator("#cad_apply_option.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text("Applied option for cmp_12")
+        expect(page.locator("#cad_option_port")).to_have_value(exact_port)
+        expect(page.locator("#cad_component_detail")).to_contain_text(f'"portNum": {exact_port}')
+        expect(page.locator("#cad_preview [data-cad-id='cmp_12']")).to_have_attribute(
+            "aria-label", re.compile(f"port number {exact_port}")
+        )
+        for invalid_port in ("0", "-1", "1.5", "1e3", "abc", "1" * 1001):
+            page.locator("#cad_option_port").fill(invalid_port)
+            page.locator("#cad_apply_option.shiny-bound-input").click()
+            expect(page.locator("#cad_status")).to_contain_text("RF-CAD option rejected")
+            expect(page.locator("#cad_component_detail")).to_contain_text(
+                f'"portNum": {exact_port}'
+            )
+        page.locator("#cad_option_port").fill("")
+        page.locator("#cad_apply_option.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text("Applied option for cmp_12")
+        expect(page.locator("#cad_component_detail")).not_to_contain_text('"portNum"')
+        expect(page.locator("#cad_preview [data-cad-id='cmp_12']")).not_to_have_attribute(
+            "aria-label", re.compile("port number")
+        )
+        page.locator("#cad_undo.shiny-bound-input").click()
+        expect(page.locator("#cad_option_port")).to_have_value(exact_port)
+        page.evaluate(
+            """revision => Shiny.setInputValue(
+                'cad_edit_revision', revision, {priority: 'event'}
+            )""",
+            option_revision,
+        )
+        page.locator("#cad_apply_option.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text("Select the component again")
+        expect(page.locator("#cad_option_port")).to_have_value(exact_port)
+        with page.expect_download() as option_download:
+            page.locator("#download_cad").click()
+        option_path = Path(temp) / "options-cad.json"
+        option_download.value.save_as(option_path)
+        expected_options = json.loads(json.dumps(cad_exported))
+        expected_options["components"][1]["params"].pop("miter")
+        expected_options["components"][5]["params"]["portNum"] = int(exact_port)
+        assert json.loads(option_path.read_text(encoding="utf-8")) == expected_options
+        page.locator("#cad_upload").set_input_files(option_path)
+        expect(page.locator("#cad_status")).to_contain_text("Imported options-cad.json")
+        page.locator("#cad_component").select_option("cmp_12")
+        expect(page.locator("#cad_option_port")).to_have_value(exact_port)
+        page.locator("#cad_component").select_option("cmp_8")
+        expect(page.locator("#cad_option_miter")).to_have_value("unset")
+        assert page.evaluate("JSON.stringify(window.paCanvas.components)") == lineup_before_cad
+        expect(page.locator("#summary")).to_have_text(lineup_summary_before_cad)
         oversized_cad.write_text(
             json.dumps(
                 {
