@@ -220,6 +220,7 @@ def test_domain_has_no_ui_storage_or_network_imports() -> None:
         "__future__",
         "collections",
         "csv",
+        "dataclasses",
         "json",
         "math",
         "re",

@@ -4,10 +4,13 @@ from pathlib import Path
 import pytest
 from pydantic import JsonValue, ValidationError
 
+from rfview.domain import cad
 from rfview.domain.cad import (
     MAX_CAD_BYTES,
+    MAX_CAD_HISTORY_STATES,
     CADComponent,
     CADDesign,
+    CADHistory,
     cad_dimensions,
     parse_cad_design,
     serialize_cad_design,
@@ -348,3 +351,115 @@ def test_dimension_edit_rejects_unknown_target() -> None:
     design = parse_cad_design(json.dumps(legacy_document()))
     with pytest.raises(ValueError, match="not in the current"):
         update_cad_dimensions(design, "missing", {"W": 0.7})
+
+
+def test_cad_history_restores_placement_dimensions_and_vendor_data() -> None:
+    original = parse_cad_design(json.dumps(legacy_document()))
+    placed = update_cad_placement(
+        original, "cmp_1", name="Moved", x=4, y=6, rotation=90, layer="metal_bot"
+    )
+    resized = update_cad_dimensions(placed, "cmp_2", {"W": 0.75})
+    initial = CADHistory.from_design(original)
+    history = initial.record(placed).record(resized)
+    assert (history.undo_count, history.redo_count) == (2, 0)
+    undone = history.undo()
+    assert undone.current_text == serialize_cad_design(placed)
+    assert (undone.undo_count, undone.redo_count) == (1, 1)
+    assert undone.undo().current_text == serialize_cad_design(original)
+    assert undone.redo() == history
+    assert initial.current_text == serialize_cad_design(original)
+    assert initial.undo_count == 0
+    restored = parse_cad_design(history.current_text)
+    restored.components[0].params["vendor_param"] = "modified after restore"
+    resized.components[0].params["vendor_param"] = "modified after record"
+    assert parse_cad_design(history.current_text).components[0].params["vendor_param"] == "x"
+    assert parse_cad_design(initial.current_text).components[0].params["vendor_param"] == "x"
+
+
+def test_cad_history_branching_noop_and_rejected_edits() -> None:
+    original = parse_cad_design(json.dumps(legacy_document()))
+    resized = update_cad_dimensions(original, "cmp_1", {"L": 8})
+    history = CADHistory.from_design(original).record(resized).undo()
+    assert history.record(original) is history
+    assert history.record(update_cad_dimensions(original, "cmp_1", {"L": 5.0})) is history
+    with pytest.raises(ValueError):
+        history.record(update_cad_dimensions(original, "cmp_1", {"L": -1}))
+    assert history.redo().current_text == serialize_cad_design(resized)
+    branched = history.record(update_cad_dimensions(original, "cmp_1", {"L": 10}))
+    assert branched.redo_count == 0
+    assert branched.undo().current_text == serialize_cad_design(original)
+    with pytest.raises(ValueError, match="No CAD edit"):
+        branched.redo()
+    with pytest.raises(ValueError, match="No CAD edit"):
+        branched.undo().undo()
+
+
+def test_cad_history_rejects_invalid_or_oversized_documents() -> None:
+    original = parse_cad_design(json.dumps(legacy_document()))
+    history = CADHistory.from_design(original)
+    original.components[0].params["W"] = -1
+    with pytest.raises(ValueError):
+        history.record(original)
+    assert history.undo_count == 0
+    oversized = parse_cad_design(json.dumps(legacy_document()))
+    oversized.components[0].params["vendor"] = "x" * MAX_CAD_BYTES
+    with pytest.raises(ValueError, match="5 MiB"):
+        history.record(oversized)
+    with pytest.raises(ValueError):
+        CADHistory.from_design(oversized)
+    assert history.redo_count == 0
+
+
+def test_cad_history_caps_retained_state_count_and_can_traverse_remaining_states() -> None:
+    original = parse_cad_design(json.dumps(legacy_document()))
+    history = CADHistory.from_design(original)
+    for length in range(1, MAX_CAD_HISTORY_STATES + 3):
+        history = history.record(update_cad_dimensions(original, "cmp_1", {"L": length}))
+    assert history.undo_count == MAX_CAD_HISTORY_STATES - 1
+    latest = history.current_text
+    for _ in range(MAX_CAD_HISTORY_STATES - 1):
+        history = history.undo()
+    assert parse_cad_design(history.current_text).components[0].params["L"] == 3
+    assert history.redo_count == MAX_CAD_HISTORY_STATES - 1
+    for _ in range(MAX_CAD_HISTORY_STATES - 1):
+        history = history.redo()
+    assert history.current_text == latest
+
+
+def test_cad_history_caps_utf8_bytes_including_current_and_redo(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    design = parse_cad_design(json.dumps(legacy_document()))
+    design.components[0].params["vendor"] = "\u03bb" * 100
+    serialized = serialize_cad_design(design)
+    byte_limit = 2 * len(serialized.encode("utf-8"))
+    monkeypatch.setattr(cad, "MAX_CAD_HISTORY_BYTES", byte_limit)
+    history = CADHistory.from_design(design)
+    for length in (6, 7, 8):
+        history = history.record(update_cad_dimensions(design, "cmp_1", {"L": length}))
+    assert history.size_bytes <= byte_limit
+    assert history.undo_count == 1
+    assert history.size_bytes == len(history.current_text.encode("utf-8")) + len(
+        history.undo().current_text.encode("utf-8")
+    )
+    assert history.undo().size_bytes == history.size_bytes
+    assert parse_cad_design(history.undo().current_text).components[0].params["L"] == 7
+
+
+def test_cad_history_imported_empty_design_has_no_undo_or_redo() -> None:
+    history = CADHistory.from_design(CADDesign())
+    assert (history.undo_count, history.redo_count) == (0, 0)
+    for action in (history.undo, history.redo):
+        with pytest.raises(ValueError, match="No CAD edit"):
+            action()
+
+
+def test_cad_history_distinguishes_json_boolean_from_numeric_vendor_values() -> None:
+    design = parse_cad_design(json.dumps(legacy_document()))
+    design.components[0].params["vendor_flag"] = True
+    history = CADHistory.from_design(design)
+    design.components[0].params["vendor_flag"] = 1
+    changed = history.record(design)
+    assert changed.undo_count == 1
+    assert parse_cad_design(changed.current_text).components[0].params["vendor_flag"] == 1
+    assert parse_cad_design(changed.undo().current_text).components[0].params["vendor_flag"] is True

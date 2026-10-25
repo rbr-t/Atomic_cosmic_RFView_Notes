@@ -39,7 +39,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Local projects | Single-user SQLite projects, immutable snapshot revisions, optimistic conflict detection and confirmed four-canvas/operating-point recovery |
 | RF network tools | Touchstone 1.x/2.0 for 1-9 ports; full/triangular matrices, explicit mixed-mode transforms, v1/v2 noise table/plot; S/Smith and two-port conversions/stability; source/transformed and converted-family export |
 | Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
-| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, selectable dimension-aware overview, explicit name/placement/layer/dimension edits and normalized export; session-only and separate from the PA lineup |
+| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, selectable dimension-aware overview, explicit name/placement/layer/dimension edits, bounded undo/redo and normalized export; session-only and separate from the PA lineup |
 | Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
@@ -1370,8 +1370,43 @@ qualification. Positive but physically inconsistent dimensions (for example, a
 via drill larger than its pad) are not certified by this contract. Existing
 preview omission notices still apply to oversized/degenerate shapes. There is
 no parameter editing for arbitrary vendor keys, miter or port numbering yet;
-CAD undo/redo, persistence, creation/deletion, drag workflows and DRC remain
+CAD persistence, creation/deletion, drag workflows and DRC remain
 separate work. CAD remains session-only; download JSON to retain edits.
+
+### Batch 43 - bounded CAD edit undo/redo
+
+**Undo CAD edit** and **Redo CAD edit** restore accepted placement and dimension
+changes across the imported document, independently of PA lineup histories.
+The preview, inspector, form values, selector labels and normalized download
+are restored together. The current component selection is retained when valid;
+selection changes and unapplied fields are not history entries. Restoring any
+state resets unapplied fields and advances the form revision, so old forms
+cannot apply over restored data.
+
+History stores immutable normalized JSON snapshots, not mutable component
+references. Each session retains at most **20 document states**, including the
+current and redo states, and **20 MiB of total UTF-8 snapshot payload**. The
+oldest states are discarded when a new edit reaches either limit. These are
+payload bounds, not a process-memory or performance guarantee.
+
+A new accepted edit after undo clears redo; a no-op Apply does not consume a
+history step or clear redo. Dimension edits retain existing numeric representations
+when the value is unchanged (for example, `5` versus `5.0`). Invalid edits/imports
+leave both the document and history intact. A valid import starts a new history,
+even when its contents match the current export. Buttons are disabled when the
+corresponding operation is unavailable, and history counts/limits are visible.
+
+Qualification: domain tests verify restoration, snapshot isolation, branching,
+no-ops, invalid/oversized documents, empty-history errors, exact state-count
+limits, UTF-8 payload eviction and vendor Boolean/numeric preservation. Chromium
+undoes/redoes all nine placement/dimension edits, verifies actual SVG geometry,
+form/export restoration, stale-form rejection, no-op redo retention, branching,
+invalid-import retention, valid-import reset and session/PA lineup isolation.
+
+CAD data and history remain session-only and outside local project snapshots.
+JSON download retains the chosen document state, not the undo/redo history.
+This does not add CAD creation/deletion, drag interaction, engineering synthesis,
+DRC or fabrication qualification. The legacy R app remains unchanged/unarchived.
 
 ## Validation
 
@@ -1428,7 +1463,7 @@ software gates and external acceptance gates are distinct:
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
 | Local checked-in device catalog search | Delivered by batch 33; read-only, filters and source digests |
 | Explicit KB citation attachment to a canvas/project | Delivered by batch 34; provenance-only, never populates the physics model |
-| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-42; selection and explicit placement/name/layer/dimension edits, not full CAD editing or DRC |
+| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-43; selection, placement/name/layer/dimension edits and bounded undo/redo, not full CAD editing or DRC |
 | AI agents, vector retrieval and guarded Python ingestion workflow | Remaining; no LLM, Chroma or KB write/apply path is claimed |
 
 1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,

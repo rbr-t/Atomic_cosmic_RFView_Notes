@@ -459,6 +459,8 @@ def main(url: str, channel: str | None = None) -> None:
         lineup_before_cad = page.evaluate("JSON.stringify(window.paCanvas.components)")
         lineup_summary_before_cad = page.locator("#summary").inner_text()
         page.get_by_text("Standalone RF-CAD JSON import / export", exact=True).click()
+        expect(page.locator("#cad_undo")).to_be_disabled()
+        expect(page.locator("#cad_redo")).to_be_disabled()
         cad_source = Path(temp) / "legacy-cad.json"
         cad_payload = {
             "version": "1.0",
@@ -540,6 +542,13 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#cad_summary")).to_contain_text("microstrip components")
         expect(page.locator("#cad_component")).to_have_value("cmp_7")
         expect(page.locator("#cad_component_detail")).to_contain_text('"vendor_param": "keep"')
+        expect(page.locator("#cad_undo")).to_be_disabled()
+        expect(page.locator("#cad_redo")).to_be_disabled()
+        with page.expect_download() as initial_cad_download:
+            page.locator("#download_cad").click()
+        initial_cad_path = Path(temp) / "initial-cad.json"
+        initial_cad_download.value.save_as(initial_cad_path)
+        initial_cad_exported = json.loads(initial_cad_path.read_text(encoding="utf-8"))
         page.locator("#cad_component").select_option("cmp_8")
         expect(page.locator("#cad_component_detail")).to_contain_text('"type": "bend90"')
         expect(page.locator("#cad_preview .cad-layout-component")).to_have_count(8)
@@ -600,7 +609,7 @@ def main(url: str, channel: str | None = None) -> None:
         page.locator("#cad_edit_rotation").fill("90")
         page.locator("#cad_edit_layer").fill("metal_bot")
         page.locator("#cad_dim_gap").fill("0.9")
-        page.locator("#cad_apply_placement").click()
+        page.locator("#cad_apply_placement.shiny-bound-input").click()
         expect(page.locator("#cad_status")).to_contain_text("Applied placement for cmp_10")
         expect(page.locator("#cad_component_detail")).to_contain_text('"x": -12.5')
         expect(page.locator("#cad_component_detail")).to_contain_text('"y": 6.75')
@@ -614,7 +623,7 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#cad_dim_gap")).to_have_value("0.2")
         # Reject both invalid geometry and a form bound to an older document revision.
         page.locator("#cad_edit_x").fill("1000001")
-        page.locator("#cad_apply_placement").click()
+        page.locator("#cad_apply_placement.shiny-bound-input").click()
         expect(page.locator("#cad_status")).to_contain_text("RF-CAD placement rejected")
         expect(page.locator("#cad_component_detail")).to_contain_text('"x": -12.5')
         page.locator("#cad_edit_x").fill("-12.5")
@@ -624,7 +633,7 @@ def main(url: str, channel: str | None = None) -> None:
             )""",
             old_revision,
         )
-        page.locator("#cad_apply_placement").click()
+        page.locator("#cad_apply_placement.shiny-bound-input").click()
         expect(page.locator("#cad_status")).to_contain_text("Select the component again")
         page.locator("#cad_component").select_option("cmp_9")
         expect(page.locator("#cad_edit_id")).to_have_value("cmp_9")
@@ -657,7 +666,7 @@ def main(url: str, channel: str | None = None) -> None:
                 value = params[key] * 2
                 params[key] = value
                 page.locator(f"#cad_dim_{key}").fill(str(value))
-            page.locator("#cad_apply_dimensions").click()
+            page.locator("#cad_apply_dimensions.shiny-bound-input").click()
             expect(page.locator("#cad_status")).to_contain_text(
                 f"Applied dimensions for {identifier}"
             )
@@ -676,7 +685,7 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#cad_edit_id")).to_have_value("cmp_10")
         for rejected in ("0", "-0.1", ""):
             page.locator("#cad_dim_gap").fill(rejected)
-            page.locator("#cad_apply_dimensions").click()
+            page.locator("#cad_apply_dimensions.shiny-bound-input").click()
             expect(page.locator("#cad_status")).to_contain_text("RF-CAD dimensions rejected")
             expect(page.locator("#cad_component_detail")).to_contain_text('"gap": 0.4')
         page.locator("#cad_dim_gap").fill("0.4")
@@ -686,7 +695,7 @@ def main(url: str, channel: str | None = None) -> None:
             )""",
             dimension_revision,
         )
-        page.locator("#cad_apply_dimensions").click()
+        page.locator("#cad_apply_dimensions.shiny-bound-input").click()
         expect(page.locator("#cad_status")).to_contain_text("Select the component again")
         page.locator("#cad_component").select_option("cmp_7")
         expect(page.locator("#cad_edit_id")).to_have_value("cmp_7")
@@ -710,6 +719,64 @@ def main(url: str, channel: str | None = None) -> None:
         assert cad_exported["components"][3]["layer"] == "metal_bot"
         for exported in cad_exported["components"]:
             assert exported["params"] == expected_params[exported["id"]]
+        expect(page.locator("#cad_history_controls")).to_contain_text("9 undo / 0 redo")
+        expect(page.locator("#cad_redo")).to_be_disabled()
+        revision_before_undo = page.locator("#cad_edit_revision").input_value()
+        page.locator("#cad_edit_name").fill("Unapplied history draft")
+        for count in range(8, -1, -1):
+            page.locator("#cad_undo.shiny-bound-input").click()
+            expect(page.locator("#cad_history_controls")).to_contain_text(
+                f"{count} undo / {9 - count} redo"
+            )
+        expect(page.locator("#cad_undo")).to_be_disabled()
+        expect(page.locator("#cad_component")).to_have_value("cmp_10")
+        expect(page.locator("#cad_edit_name")).to_have_value("")
+        expect(page.locator("#cad_edit_x")).to_have_value("40.0")
+        expect(page.locator("#cad_dim_gap")).to_have_value("0.2")
+        expect(page.locator("#cad_preview [data-cad-id='cmp_7'] rect").first).to_have_attribute(
+            "width", "5.0"
+        )
+        with page.expect_download() as undone_download:
+            page.locator("#download_cad").click()
+        undone_path = Path(temp) / "undone-cad.json"
+        undone_download.value.save_as(undone_path)
+        assert json.loads(undone_path.read_text(encoding="utf-8")) == initial_cad_exported
+        page.evaluate(
+            """revision => Shiny.setInputValue(
+                'cad_edit_revision', revision, {priority: 'event'}
+            )""",
+            revision_before_undo,
+        )
+        page.locator("#cad_apply_dimensions.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text("Select the component again")
+        expect(page.locator("#cad_history_controls")).to_contain_text("0 undo / 9 redo")
+        page.locator("#cad_component").select_option("cmp_9")
+        expect(page.locator("#cad_edit_id")).to_have_value("cmp_9")
+        page.locator("#cad_component").select_option("cmp_10")
+        expect(page.locator("#cad_edit_id")).to_have_value("cmp_10")
+        # Applying identical dimensions must not consume redo, including 5 versus 5.0.
+        page.locator("#cad_apply_dimensions.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text("Applied dimensions for cmp_10")
+        expect(page.locator("#cad_history_controls")).to_contain_text("0 undo / 9 redo")
+        for count in range(1, 10):
+            page.locator("#cad_redo.shiny-bound-input").click()
+            expect(page.locator("#cad_history_controls")).to_contain_text(
+                f"{count} undo / {9 - count} redo"
+            )
+        expect(page.locator("#cad_redo")).to_be_disabled()
+        expect(page.locator("#cad_edit_name")).to_have_value("Moved coupled line")
+        expect(page.locator("#cad_edit_x")).to_have_value("-12.5")
+        expect(page.locator("#cad_dim_gap")).to_have_value("0.4")
+        with page.expect_download() as redone_download:
+            page.locator("#download_cad").click()
+        redone_path = Path(temp) / "redone-cad.json"
+        redone_download.value.save_as(redone_path)
+        assert json.loads(redone_path.read_text(encoding="utf-8")) == cad_exported
+        assert page.evaluate("JSON.stringify(window.paCanvas.components)") == lineup_before_cad
+        expect(page.locator("#summary")).to_have_text(lineup_summary_before_cad)
+        # An invalid import must retain redo as well as the current document.
+        page.locator("#cad_undo.shiny-bound-input").click()
+        expect(page.locator("#cad_history_controls")).to_contain_text("8 undo / 1 redo")
         invalid_cad = Path(temp) / "invalid-cad.json"
         invalid_cad.write_text('{"components":[{"id":"x","type":"bad"}]}', encoding="utf-8")
         page.locator("#cad_upload").set_input_files(invalid_cad)
@@ -717,6 +784,9 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#cad_preview .cad-layout-component")).to_have_count(8)
         expect(page.locator("#cad_component")).to_have_value("cmp_10")
         expect(page.locator("#cad_component_detail")).to_contain_text('"id": "cmp_10"')
+        expect(page.locator("#cad_history_controls")).to_contain_text("8 undo / 1 redo")
+        page.locator("#cad_redo.shiny-bound-input").click()
+        expect(page.locator("#cad_history_controls")).to_contain_text("9 undo / 0 redo")
         with page.expect_download() as retained_cad_download:
             page.locator("#download_cad").click()
         retained_cad_download.value.save_as(Path(temp) / "retained-cad.json")
@@ -724,8 +794,29 @@ def main(url: str, channel: str | None = None) -> None:
             json.loads((Path(temp) / "retained-cad.json").read_text(encoding="utf-8"))
             == cad_exported
         )
+        page.locator("#cad_undo.shiny-bound-input").click()
+        expect(page.locator("#cad_history_controls")).to_contain_text("8 undo / 1 redo")
+        expect(page.locator("#cad_dim_gap")).to_have_value("0.4")
+        page.locator("#cad_dim_gap").fill("0.6")
+        page.locator("#cad_apply_dimensions.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text("Applied dimensions for cmp_10")
+        expect(page.locator("#cad_history_controls")).to_contain_text("9 undo / 0 redo")
+        expect(page.locator("#cad_redo")).to_be_disabled()
+        page.locator("#cad_undo.shiny-bound-input").click()
+        expect(page.locator("#cad_dim_gap")).to_have_value("0.4")
+        isolated_cad = context.new_page()
+        isolated_cad.goto(url)
+        isolated_cad.wait_for_function("window.paCanvas?.components.length === 4")
+        isolated_cad.get_by_text("Standalone RF-CAD JSON import / export", exact=True).click()
+        expect(isolated_cad.locator("#cad_undo")).to_be_disabled()
+        expect(isolated_cad.locator("#cad_redo")).to_be_disabled()
+        expect(isolated_cad.locator("#cad_status")).to_contain_text("No standalone")
+        isolated_cad.close()
         page.locator("#cad_upload").set_input_files(cad_export_path)
         expect(page.locator("#cad_status")).to_contain_text("Imported normalized-cad.json")
+        expect(page.locator("#cad_undo")).to_be_disabled()
+        expect(page.locator("#cad_redo")).to_be_disabled()
+        expect(page.locator("#cad_history_controls")).to_contain_text("0 undo / 0 redo")
         page.locator("#cad_component").select_option("cmp_10")
         expect(page.locator("#cad_edit_name")).to_have_value("Moved coupled line")
         expect(page.locator("#cad_edit_x")).to_have_value("-12.5")

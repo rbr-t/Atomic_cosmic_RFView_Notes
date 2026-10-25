@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import re
+from dataclasses import dataclass
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -36,6 +37,8 @@ CADId = Annotated[
 MAX_CAD_BYTES = 5 * 1024 * 1024
 MAX_CAD_COMPONENTS = 10_000
 MAX_CAD_POSITION_MM = 1_000_000
+MAX_CAD_HISTORY_STATES = 20
+MAX_CAD_HISTORY_BYTES = 20 * 1024 * 1024
 _SAFE_ID = re.compile(r"^[^\x00-\x1f\x7f]+$")
 
 _DIMENSION_FIELDS: dict[CADComponentType, tuple[str, ...]] = {
@@ -228,7 +231,16 @@ def update_cad_dimensions(
         raise ValueError("Selected component is not in the current CAD document")
     if not dimensions or not dimensions.keys() <= cad_dimensions(component).keys():
         raise ValueError("Only dimension fields supported by the selected CAD type can be edited")
-    return _update_cad_component(design, component_id, {"params": component.params | dimensions})
+    unchanged_numbers = {
+        key: component.params[key]
+        for key, value in dimensions.items()
+        if not isinstance(value, bool)
+        and isinstance(value, (int, float))
+        and value == component.params[key]
+    }
+    return _update_cad_component(
+        design, component_id, {"params": component.params | dimensions | unchanged_numbers}
+    )
 
 
 def _update_cad_component(
@@ -245,3 +257,50 @@ def _update_cad_component(
         components.append(data)
     updated["components"] = components
     return CADDesign.model_validate(updated)
+
+
+@dataclass(frozen=True)
+class CADHistory:
+    _states: tuple[str, ...]
+    _index: int
+
+    @classmethod
+    def from_design(cls, design: CADDesign) -> CADHistory:
+        return cls((serialize_cad_design(design),), 0)
+
+    @property
+    def current_text(self) -> str:
+        return self._states[self._index]
+
+    @property
+    def undo_count(self) -> int:
+        return self._index
+
+    @property
+    def redo_count(self) -> int:
+        return len(self._states) - self._index - 1
+
+    @property
+    def size_bytes(self) -> int:
+        return sum(len(text.encode("utf-8")) for text in self._states)
+
+    def record(self, design: CADDesign) -> CADHistory:
+        text = serialize_cad_design(design)
+        if text == self.current_text:
+            return self
+        states = self._states[: self._index + 1] + (text,)
+        size = sum(len(state.encode("utf-8")) for state in states)
+        while len(states) > MAX_CAD_HISTORY_STATES or size > MAX_CAD_HISTORY_BYTES:
+            size -= len(states[0].encode("utf-8"))
+            states = states[1:]
+        return CADHistory(states, len(states) - 1)
+
+    def undo(self) -> CADHistory:
+        if self.undo_count == 0:
+            raise ValueError("No CAD edit is available to undo")
+        return CADHistory(self._states, self._index - 1)
+
+    def redo(self) -> CADHistory:
+        if self.redo_count == 0:
+            raise ValueError("No CAD edit is available to redo")
+        return CADHistory(self._states, self._index + 1)

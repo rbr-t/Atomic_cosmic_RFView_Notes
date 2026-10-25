@@ -15,8 +15,9 @@ from rfview.cad_ui import cad_layout_preview
 from rfview.domain.alps_mdf import ALPS_PLANES, AlpsPlane
 from rfview.domain.cad import (
     CADDesign,
+    CADHistory,
     cad_dimensions,
-    serialize_cad_design,
+    parse_cad_design,
     update_cad_dimensions,
     update_cad_placement,
 )
@@ -282,6 +283,7 @@ app_ui = ui.page_fluid(
             ),
             ui.input_file("cad_upload", "Upload RF-CAD JSON (max 5 MiB)", accept=[".json"]),
             ui.output_ui("cad_status"),
+            ui.output_ui("cad_history_controls"),
             ui.output_ui("cad_summary"),
             ui.input_select("cad_component", "Inspect imported component", {}),
             ui.output_code("cad_component_detail"),
@@ -290,7 +292,8 @@ app_ui = ui.page_fluid(
                 "Placement and dimension edits have separate Apply buttons. Applying either "
                 "resets all unapplied fields, as does changing selection or importing a document. "
                 "Download JSON to retain applied edits; CAD is not "
-                "included in local project snapshots. No CAD undo/redo is available yet."
+                "included in local project snapshots. CAD undo/redo restores applied edits, "
+                "not selection or unapplied fields. A valid import starts new CAD history."
             ),
             ui.h3("Position overview (mm)"),
             ui.p(
@@ -616,6 +619,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     cad_design: reactive.Value[CADDesign | None] = reactive.Value(None)
     cad_export: reactive.Value[str | None] = reactive.Value(None)
     cad_revision = reactive.Value(0)
+    cad_history: reactive.Value[CADHistory | None] = reactive.Value(None)
     cad_status_state = reactive.Value("No standalone RF-CAD JSON document loaded.")
     network: reactive.Value[TouchstoneData | None] = reactive.Value(None)
     network_status = reactive.Value("No Touchstone dataset loaded.")
@@ -803,23 +807,81 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             raise ValueError("Select the component again before applying CAD edits")
         return design, identifier
 
-    def _commit_cad_edit(updated: CADDesign, identifier: str, kind: str) -> None:
-        serialized = serialize_cad_design(updated)
-        cad_design.set(updated)
-        cad_export.set(serialized)
+    @render.ui
+    def cad_history_controls() -> ui.Tag:
+        history = cad_history()
+        undo_count = history.undo_count if history is not None else 0
+        redo_count = history.redo_count if history is not None else 0
+        return ui.div(
+            ui.div(
+                ui.input_action_button("cad_undo", "Undo CAD edit", disabled=undo_count == 0),
+                ui.input_action_button("cad_redo", "Redo CAD edit", disabled=redo_count == 0),
+                class_="migration-toolbar",
+            ),
+            ui.p(
+                f"CAD history: {undo_count} undo / {redo_count} redo. "
+                "Keeps up to 20 document states / 20 MiB of UTF-8 JSON per session; "
+                "oldest states are discarded at the limit.",
+                role="status",
+                **{"aria-live": "polite"},
+            ),
+        )
+
+    def _restore_cad_state(history: CADHistory, identifier: str) -> None:
+        restored = parse_cad_design(history.current_text)
+        identifiers = {item.id for item in restored.components}
+        if identifier not in identifiers:
+            identifier = restored.components[0].id if restored.components else ""
+        cad_design.set(restored)
+        cad_export.set(history.current_text)
+        cad_history.set(history)
         cad_revision.set(cad_revision() + 1)
         ui.update_select(
             "cad_component",
             choices={
-                item.id: f"{item.name or item.id} · {item.type}" for item in updated.components
+                item.id: f"{item.name or item.id} · {item.type}" for item in restored.components
             },
             selected=identifier,
             session=session,
         )
+
+    def _commit_cad_edit(updated: CADDesign, identifier: str, kind: str) -> None:
+        history = cad_history()
+        if history is None:
+            raise ValueError("Import a CAD document before editing")
+        _restore_cad_state(history.record(updated), identifier)
         cad_status_state.set(
             f"Applied {kind} for {identifier}. Download CAD JSON to retain edits. "
             "No DRC or fabrication validation performed."
         )
+
+    def _move_cad_history(direction: Literal["undo", "redo"]) -> None:
+        try:
+            history = cad_history()
+            if history is None:
+                raise ValueError("Import a CAD document before using history")
+            moved = history.undo() if direction == "undo" else history.redo()
+            _restore_cad_state(moved, input.cad_component() or "")
+        except (ValueError, OverflowError, RecursionError) as exc:
+            message = f"RF-CAD {direction} rejected: {exc}. Last valid document retained."
+            logger.warning("%s", message)
+            cad_status_state.set(message)
+            ui.notification_show(message, type="error", duration=None, session=session)
+            return
+        cad_status_state.set(
+            f"CAD {direction} restored the document. Unapplied fields reset. "
+            "Download CAD JSON to retain this state. No DRC or fabrication validation performed."
+        )
+
+    @reactive.effect
+    @reactive.event(input.cad_undo)
+    def _cad_undo() -> None:
+        _move_cad_history("undo")
+
+    @reactive.effect
+    @reactive.event(input.cad_redo)
+    def _cad_redo() -> None:
+        _move_cad_history("redo")
 
     @reactive.effect
     @reactive.event(input.cad_apply_placement)
@@ -890,25 +952,14 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             return
         try:
             design = await asyncio.to_thread(read_cad_design, Path(files[0]["datapath"]))
-            serialized = serialize_cad_design(design)
+            history = CADHistory.from_design(design)
         except (OSError, ValueError, ValidationError, RecursionError) as exc:
             message = f"RF-CAD import rejected: {exc}. Last valid document retained."
             logger.warning("%s", message)
             cad_status_state.set(message)
             ui.notification_show(message, type="error", duration=None, session=session)
             return
-        cad_design.set(design)
-        cad_export.set(serialized)
-        cad_revision.set(cad_revision() + 1)
-        ui.update_select(
-            "cad_component",
-            choices={
-                component.id: f"{component.name or component.id} · {component.type}"
-                for component in design.components
-            },
-            selected=design.components[0].id if design.components else "",
-            session=session,
-        )
+        _restore_cad_state(history, design.components[0].id if design.components else "")
         cad_status_state.set(
             f"Imported {files[0]['name']}: {len(design.components)} component(s), "
             "validated for normalized JSON export. Session-only."
