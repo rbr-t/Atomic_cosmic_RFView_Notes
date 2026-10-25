@@ -195,3 +195,26 @@ def serialize_cad_design(design: CADDesign) -> str:
     if len(text.encode("utf-8")) > MAX_CAD_BYTES:
         raise ValueError("RF CAD design exceeds the 5 MiB limit")
     return text
+
+
+def update_cad_placement(
+    design: CADDesign,
+    component_id: str,
+    *,
+    name: str,
+    x: float,
+    y: float,
+    rotation: float,
+    layer: str,
+) -> CADDesign:
+    if not any(component.id == component_id for component in design.components):
+        raise ValueError("Selected component is not in the current CAD document")
+    updated = design.model_dump(mode="json")
+    components = []
+    for component in design.components:
+        data = component.model_dump(mode="json")
+        if component.id == component_id:
+            data.update(name=name, x=x, y=y, rotation=rotation, layer=layer)
+        components.append(data)
+    updated["components"] = components
+    return CADDesign.model_validate(updated)

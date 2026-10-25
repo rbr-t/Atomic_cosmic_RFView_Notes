@@ -456,6 +456,8 @@ def main(url: str, channel: str | None = None) -> None:
         assert page.evaluate("window.paCanvas.components.length") == 4
 
         # Standalone RF-CAD documents import/export independently from the PA canvas.
+        lineup_before_cad = page.evaluate("JSON.stringify(window.paCanvas.components)")
+        lineup_summary_before_cad = page.locator("#summary").inner_text()
         page.get_by_text("Standalone RF-CAD JSON import / export", exact=True).click()
         cad_source = Path(temp) / "legacy-cad.json"
         cad_payload = {
@@ -589,6 +591,46 @@ def main(url: str, channel: str | None = None) -> None:
         keyboard_marker.press("Space")
         expect(page.locator("#cad_component")).to_have_value("cmp_10")
         expect(page.locator("#cad_component_detail")).to_contain_text('"type": "coupled"')
+        expect(page.locator("#cad_edit_id")).to_have_value("cmp_10")
+        old_revision = page.locator("#cad_edit_revision").input_value()
+        original_transform = keyboard_marker.get_attribute("transform")
+        page.locator("#cad_edit_name").fill("Moved coupled line")
+        page.locator("#cad_edit_x").fill("-12.5")
+        page.locator("#cad_edit_y").fill("6.75")
+        page.locator("#cad_edit_rotation").fill("90")
+        page.locator("#cad_edit_layer").fill("metal_bot")
+        page.locator("#cad_apply_placement").click()
+        expect(page.locator("#cad_status")).to_contain_text("Applied placement for cmp_10")
+        expect(page.locator("#cad_component_detail")).to_contain_text('"x": -12.5')
+        expect(page.locator("#cad_component_detail")).to_contain_text('"y": 6.75')
+        expect(page.locator("#cad_component_detail")).to_contain_text('"rotation": 90.0')
+        expect(page.locator("#cad_component_detail")).to_contain_text('"layer": "metal_bot"')
+        expect(page.locator("#cad_component option:checked")).to_have_text(
+            "Moved coupled line · coupled"
+        )
+        expect(keyboard_marker).not_to_have_attribute("transform", original_transform or "")
+        expect(page.locator("#cad_edit_revision")).not_to_have_value(old_revision)
+        # Reject both invalid geometry and a form bound to an older document revision.
+        page.locator("#cad_edit_x").fill("1000001")
+        page.locator("#cad_apply_placement").click()
+        expect(page.locator("#cad_status")).to_contain_text("RF-CAD placement rejected")
+        expect(page.locator("#cad_component_detail")).to_contain_text('"x": -12.5')
+        page.locator("#cad_edit_x").fill("-12.5")
+        page.evaluate(
+            """revision => Shiny.setInputValue(
+                'cad_edit_revision', revision, {priority: 'event'}
+            )""",
+            old_revision,
+        )
+        page.locator("#cad_apply_placement").click()
+        expect(page.locator("#cad_status")).to_contain_text("Select the component again")
+        page.locator("#cad_component").select_option("cmp_9")
+        expect(page.locator("#cad_edit_id")).to_have_value("cmp_9")
+        page.locator("#cad_component").select_option("cmp_10")
+        expect(page.locator("#cad_edit_id")).to_have_value("cmp_10")
+        expect(page.locator("#cad_edit_name")).to_have_value("Moved coupled line")
+        assert page.evaluate("JSON.stringify(window.paCanvas.components)") == lineup_before_cad
+        expect(page.locator("#summary")).to_have_text(lineup_summary_before_cad)
         with page.expect_download() as cad_download:
             page.locator("#download_cad").click()
         cad_export_path = Path(temp) / "normalized-cad.json"
@@ -597,6 +639,11 @@ def main(url: str, channel: str | None = None) -> None:
         assert cad_exported["vendor_document_field"] == {"retain": True}
         assert cad_exported["components"][0]["params"]["vendor_param"] == "keep"
         assert cad_exported["components"][0]["id"] == "cmp_7"
+        assert cad_exported["components"][3]["name"] == "Moved coupled line"
+        assert cad_exported["components"][3]["x"] == -12.5
+        assert cad_exported["components"][3]["y"] == 6.75
+        assert cad_exported["components"][3]["rotation"] == 90
+        assert cad_exported["components"][3]["layer"] == "metal_bot"
         invalid_cad = Path(temp) / "invalid-cad.json"
         invalid_cad.write_text('{"components":[{"id":"x","type":"bad"}]}', encoding="utf-8")
         page.locator("#cad_upload").set_input_files(invalid_cad)
@@ -611,6 +658,14 @@ def main(url: str, channel: str | None = None) -> None:
             json.loads((Path(temp) / "retained-cad.json").read_text(encoding="utf-8"))
             == cad_exported
         )
+        page.locator("#cad_upload").set_input_files(cad_export_path)
+        expect(page.locator("#cad_status")).to_contain_text("Imported normalized-cad.json")
+        page.locator("#cad_component").select_option("cmp_10")
+        expect(page.locator("#cad_edit_name")).to_have_value("Moved coupled line")
+        expect(page.locator("#cad_edit_x")).to_have_value("-12.5")
+        expect(page.locator("#cad_edit_y")).to_have_value("6.75")
+        expect(page.locator("#cad_edit_rotation")).to_have_value("90.0")
+        expect(page.locator("#cad_edit_layer")).to_have_value("metal_bot")
         oversized_cad = Path(temp) / "oversized-geometry.json"
         oversized_cad.write_text(
             json.dumps(

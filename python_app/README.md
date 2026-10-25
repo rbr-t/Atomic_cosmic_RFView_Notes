@@ -39,7 +39,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Local projects | Single-user SQLite projects, immutable snapshot revisions, optimistic conflict detection and confirmed four-canvas/operating-point recovery |
 | RF network tools | Touchstone 1.x/2.0 for 1-9 ports; full/triangular matrices, explicit mixed-mode transforms, v1/v2 noise table/plot; S/Smith and two-port conversions/stability; source/transformed and converted-family export |
 | Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
-| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, read-only dimension-aware overview and normalized export; session-only and separate from the PA lineup; no geometry editing |
+| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, selectable dimension-aware overview, explicit name/placement/layer edits and normalized export; session-only and separate from the PA lineup |
 | Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
@@ -1312,6 +1312,33 @@ Qualification: Chromium selects a tee by clicking its shape and a coupled line
 with the keyboard, checks the inspector and selected state, and verifies the
 current selection remains after a later invalid import.
 
+### Batch 41 - explicit CAD placement and metadata edits
+
+The selected imported CAD component now has an explicit **Apply CAD placement**
+form for its name, X/Y origin (mm), rotation (degrees) and layer identifier.
+Applying an edit revalidates the complete document and its export size before
+replacing the session state. The inspector, preview, selector label and normalized
+JSON download reflect the accepted edit. IDs, types, params, vendor extensions,
+substrate and unrelated components are preserved; the pure update helper does
+not mutate the source document.
+
+Forms are bound to the selected component and document revision. Stale forms,
+nonfinite/out-of-range numbers and oversized text are rejected with visible
+feedback and leave the last valid document/export intact. Selection or valid
+import changes reset unapplied form fields. Layer identifiers remain legacy
+strings; editing them does not validate a physical stack-up.
+
+This is limited placement editing, not drag editing, component creation/deletion,
+parameter synthesis, undo/redo, connectivity checking, DRC or EM qualification.
+CAD data is still separate from PA lineup/project snapshots. Download the JSON
+to retain applied edits and reimport it to continue later. The legacy R app is
+unchanged and remains unarchived.
+
+Qualification: pure-domain tests cover immutability, untouched-field preservation,
+round-trip export and rejected targets/values. Chromium exercises Apply, updated
+preview/inspector/labels, stale-revision and invalid-coordinate rejection,
+download/reimport, failed-upload retention and PA lineup isolation.
+
 ## Validation
 
 From the repository root:
@@ -1367,7 +1394,7 @@ software gates and external acceptance gates are distinct:
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
 | Local checked-in device catalog search | Delivered by batch 33; read-only, filters and source digests |
 | Explicit KB citation attachment to a canvas/project | Delivered by batch 34; provenance-only, never populates the physics model |
-| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-38; read-only interchange, not CAD editing or DRC |
+| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-41; selection and explicit placement/name/layer edits, not full CAD editing or DRC |
 | AI agents, vector retrieval and guarded Python ingestion workflow | Remaining; no LLM, Chroma or KB write/apply path is claimed |
 
 1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,

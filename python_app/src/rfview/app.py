@@ -13,7 +13,7 @@ from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
 from rfview.cad_ui import cad_layout_preview
 from rfview.domain.alps_mdf import ALPS_PLANES, AlpsPlane
-from rfview.domain.cad import CADDesign, serialize_cad_design
+from rfview.domain.cad import CADDesign, serialize_cad_design, update_cad_placement
 from rfview.domain.component_properties import (
     ComponentGeometry,
     display_options,
@@ -271,14 +271,20 @@ app_ui = ui.page_fluid(
         ui.tags.details(
             ui.tags.summary("Standalone RF-CAD JSON import / export"),
             ui.p(
-                "Import, inspect and export standalone RF-CAD JSON. This read-only view is "
-                "separate from the PA lineup canvas and does not edit or transfer geometry."
+                "Import, inspect and explicitly edit component placement in standalone "
+                "RF-CAD JSON. CAD data stays separate from the PA lineup canvas."
             ),
             ui.input_file("cad_upload", "Upload RF-CAD JSON (max 5 MiB)", accept=[".json"]),
             ui.output_ui("cad_status"),
             ui.output_ui("cad_summary"),
             ui.input_select("cad_component", "Inspect imported component", {}),
             ui.output_code("cad_component_detail"),
+            ui.output_ui("cad_placement_controls"),
+            ui.p(
+                "Placement edits require Apply. Unapplied fields are discarded when "
+                "selection changes. Download JSON to retain applied edits; CAD is not "
+                "included in local project snapshots. No CAD undo/redo is available yet."
+            ),
             ui.h3("Position overview (mm)"),
             ui.p(
                 "Geometry-shaped glyphs follow supported legacy drawing parameters. "
@@ -602,6 +608,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
     workspace_export: reactive.Value[str | None] = reactive.Value(None)
     cad_design: reactive.Value[CADDesign | None] = reactive.Value(None)
     cad_export: reactive.Value[str | None] = reactive.Value(None)
+    cad_revision = reactive.Value(0)
     cad_status_state = reactive.Value("No standalone RF-CAD JSON document loaded.")
     network: reactive.Value[TouchstoneData | None] = reactive.Value(None)
     network_status = reactive.Value("No Touchstone dataset loaded.")
@@ -730,6 +737,78 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         )
 
     @render.ui
+    def cad_placement_controls() -> ui.Tag:
+        design = cad_design()
+        identifier = input.cad_component()
+        component = (
+            next((item for item in design.components if item.id == identifier), None)
+            if design is not None
+            else None
+        )
+        if component is None:
+            return ui.p("Select an imported CAD component to edit its placement.")
+        return ui.div(
+            ui.h3("Component placement"),
+            ui.p(f"Editing component: {component.id}"),
+            ui.div(
+                ui.input_text("cad_edit_id", "Placement form component ID", component.id),
+                ui.input_text("cad_edit_revision", "CAD document revision", str(cad_revision())),
+                style="display: none;",
+            ),
+            ui.input_text("cad_edit_name", "CAD component name", component.name),
+            ui.input_numeric("cad_edit_x", "CAD origin X (mm)", component.x),
+            ui.input_numeric("cad_edit_y", "CAD origin Y (mm)", component.y),
+            ui.input_numeric("cad_edit_rotation", "CAD rotation (degrees)", component.rotation),
+            ui.input_text("cad_edit_layer", "CAD layer identifier", component.layer),
+            ui.input_action_button("cad_apply_placement", "Apply CAD placement"),
+        )
+
+    @reactive.effect
+    @reactive.event(input.cad_apply_placement)
+    def _cad_apply_placement() -> None:
+        try:
+            design = cad_design()
+            identifier = input.cad_component()
+            if (
+                design is None
+                or not identifier
+                or input.cad_edit_id() != identifier
+                or input.cad_edit_revision() != str(cad_revision())
+            ):
+                raise ValueError("Select the component again before applying placement")
+            updated = update_cad_placement(
+                design,
+                identifier,
+                name=input.cad_edit_name(),
+                x=input.cad_edit_x(),
+                y=input.cad_edit_y(),
+                rotation=input.cad_edit_rotation(),
+                layer=input.cad_edit_layer(),
+            )
+            serialized = serialize_cad_design(updated)
+        except (ValueError, OverflowError, RecursionError) as exc:
+            message = f"RF-CAD placement rejected: {exc}. Last valid document retained."
+            logger.warning("%s", message)
+            cad_status_state.set(message)
+            ui.notification_show(message, type="error", duration=None, session=session)
+            return
+        cad_design.set(updated)
+        cad_export.set(serialized)
+        cad_revision.set(cad_revision() + 1)
+        ui.update_select(
+            "cad_component",
+            choices={
+                item.id: f"{item.name or item.id} · {item.type}" for item in updated.components
+            },
+            selected=identifier,
+            session=session,
+        )
+        cad_status_state.set(
+            f"Applied placement for {identifier}. Download CAD JSON to retain edits. "
+            "No DRC or fabrication validation performed."
+        )
+
+    @render.ui
     def cad_download_control() -> ui.Tag:
         if cad_export() is None:
             return ui.p("Import a valid RF-CAD document to enable normalized JSON export.")
@@ -765,6 +844,7 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             return
         cad_design.set(design)
         cad_export.set(serialized)
+        cad_revision.set(cad_revision() + 1)
         ui.update_select(
             "cad_component",
             choices={

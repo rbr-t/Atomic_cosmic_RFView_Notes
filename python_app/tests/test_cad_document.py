@@ -10,6 +10,7 @@ from rfview.domain.cad import (
     CADDesign,
     parse_cad_design,
     serialize_cad_design,
+    update_cad_placement,
 )
 from rfview.services import read_cad_design
 
@@ -234,3 +235,54 @@ def test_file_reader_parses_and_preserves_legacy_design(tmp_path: Path) -> None:
     assert len(parsed.components) == 8
     assert parsed.substrate is not None
     assert parsed.substrate.er == 3.55
+
+
+def test_placement_edit_is_pure_and_preserves_other_fields() -> None:
+    design = parse_cad_design(json.dumps(legacy_document()))
+    original = design.model_dump(mode="json")
+    updated = update_cad_placement(
+        design, "cmp_1", name="Moved feed", x=-12.5, y=6.75, rotation=90, layer="metal_bot"
+    )
+    assert design.model_dump(mode="json") == original
+    expected = json.loads(json.dumps(original))
+    expected["components"][0].update(
+        name="Moved feed", x=-12.5, y=6.75, rotation=90, layer="metal_bot"
+    )
+    assert updated.model_dump(mode="json") == expected
+    assert parse_cad_design(serialize_cad_design(updated)) == updated
+    updated.components[1].params["W"] = 10
+    assert design.components[1].params["W"] == 0.6
+
+
+@pytest.mark.parametrize(
+    ("x", "y", "rotation"),
+    [
+        (1_000_001, 0, 0),
+        (0, -1_000_001, 0),
+        (float("nan"), 0, 0),
+        (0, float("inf"), 0),
+        (0, 0, 360_001),
+        (0, 0, float("inf")),
+        (True, 0, 0),
+    ],
+)
+def test_invalid_placement_edit_retains_source(x: float, y: float, rotation: float) -> None:
+    design = parse_cad_design(json.dumps(legacy_document()))
+    original = design.model_dump(mode="json")
+    with pytest.raises(ValueError):
+        update_cad_placement(
+            design, "cmp_1", name="Rejected", x=x, y=y, rotation=rotation, layer="metal_top"
+        )
+    assert design.model_dump(mode="json") == original
+
+
+def test_placement_edit_rejects_missing_component_and_oversized_text() -> None:
+    design = parse_cad_design(json.dumps(legacy_document()))
+    with pytest.raises(ValueError, match="not in the current"):
+        update_cad_placement(design, "absent", name="", x=0, y=0, rotation=0, layer="metal_top")
+    with pytest.raises(ValueError):
+        update_cad_placement(
+            design, "cmp_1", name="x" * 201, x=0, y=0, rotation=0, layer="metal_top"
+        )
+    with pytest.raises(ValueError):
+        update_cad_placement(design, "cmp_1", name="", x=0, y=0, rotation=0, layer="x" * 101)
