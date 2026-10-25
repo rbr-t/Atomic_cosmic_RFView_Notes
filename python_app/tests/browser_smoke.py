@@ -955,6 +955,37 @@ def main(url: str, channel: str | None = None) -> None:
         bounded_preview_export.value.save_as(bounded_export_path)
         assert len(json.loads(bounded_export_path.read_text(encoding="utf-8"))["components"]) == 251
 
+        single_cad = Path(temp) / "single-component.json"
+        single_cad.write_text(
+            json.dumps(
+                {
+                    "version": "1.0",
+                    "components": [
+                        {
+                            "id": "remove_me",
+                            "type": "microstrip",
+                            "x": 0,
+                            "y": 0,
+                            "rotation": 0,
+                            "params": {"W": 0.5, "L": 5},
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        page.locator("#cad_upload").set_input_files(single_cad)
+        expect(page.locator("#cad_component")).to_have_value("remove_me")
+        page.locator("#cad_delete_component.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text("Applied deletion for remove_me")
+        expect(page.locator("#cad_component option")).to_have_count(0)
+        expect(page.locator("#cad_history_controls")).to_contain_text("1 undo / 0 redo")
+        page.locator("#cad_undo.shiny-bound-input").click()
+        expect(page.locator("#cad_component")).to_have_value("remove_me")
+        expect(page.locator("#cad_component_detail")).to_contain_text('"id": "remove_me"')
+        page.locator("#cad_redo.shiny-bound-input").click()
+        expect(page.locator("#cad_component option")).to_have_count(0)
+
         for width in (375, 768, 1440):
             if width == 375:
                 page.get_by_text("Technology charts and summary", exact=True).click()

@@ -18,6 +18,7 @@ from rfview.domain.cad import (
     CADHistory,
     cad_dimensions,
     parse_cad_design,
+    remove_cad_component,
     update_cad_dimensions,
     update_cad_option,
     update_cad_placement,
@@ -819,6 +820,8 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             ],
             ui.input_action_button("cad_apply_dimensions", "Apply CAD dimensions"),
             *option_controls,
+            ui.input_action_button("cad_delete_component", "Delete selected CAD component"),
+            ui.p("Deletion is reversible with Undo CAD edit."),
         )
 
     def _cad_edit_target() -> tuple[CADDesign, str]:
@@ -978,6 +981,19 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             _commit_cad_edit(updated, identifier, "option")
         except (ValueError, OverflowError, RecursionError) as exc:
             message = f"RF-CAD option rejected: {exc}. Last valid document retained."
+            logger.warning("%s", message)
+            cad_status_state.set(message)
+            ui.notification_show(message, type="error", duration=None, session=session)
+
+    @reactive.effect
+    @reactive.event(input.cad_delete_component)
+    def _cad_delete_component() -> None:
+        try:
+            design, identifier = _cad_edit_target()
+            updated = remove_cad_component(design, identifier)
+            _commit_cad_edit(updated, identifier, "deletion")
+        except (ValueError, OverflowError, RecursionError) as exc:
+            message = f"RF-CAD deletion rejected: {exc}. Last valid document retained."
             logger.warning("%s", message)
             cad_status_state.set(message)
             ui.notification_show(message, type="error", duration=None, session=session)

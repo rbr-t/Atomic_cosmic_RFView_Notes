@@ -39,7 +39,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Local projects | Single-user SQLite projects, immutable snapshot revisions, optimistic conflict detection and confirmed four-canvas/operating-point recovery |
 | RF network tools | Touchstone 1.x/2.0 for 1-9 ports; full/triangular matrices, explicit mixed-mode transforms, v1/v2 noise table/plot; S/Smith and two-port conversions/stability; source/transformed and converted-family export |
 | Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
-| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, selectable dimension-aware overview, explicit placement/dimension/miter/port-number edits, bounded undo/redo and normalized export; session-only and separate from the PA lineup |
+| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, selectable dimension-aware overview, explicit placement/dimension/miter/port-number edits, selected-component deletion, bounded undo/redo and normalized export; session-only and separate from the PA lineup |
 | Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
@@ -1444,6 +1444,25 @@ added here. CAD remains session-only; download JSON to retain a chosen state.
 Concurrent-use/performance qualification remains open. Legacy R remains
 unchanged and unarchived.
 
+### Batch 45 - selected CAD component deletion
+
+The standalone CAD editor can now remove the selected imported component.
+Deletion uses the existing selection-and-revision guard, validates the complete
+resulting document and export size, and records the change in bounded CAD
+history. Undo restores a deleted component, including its original fields and
+order; redo removes it again. Deleting the final component leaves a valid empty
+document. Missing/stale selections are rejected without changing the current
+document or export. The PA lineup and unrelated CAD records remain unchanged.
+
+This remains session-only editing; download normalized JSON to retain the
+modified document. It does not add component creation, CAD drag interaction,
+connectivity checks, synthesis, DRC or fabrication qualification.
+
+Qualification: pure-domain tests verify immutability, preservation of substrate
+and vendor fields, empty-document behavior, missing-ID rejection and history
+restoration. Chromium removes the sole component, checks the empty selector,
+and exercises undo/redo.
+
 ## Validation
 
 From the repository root:
@@ -1499,7 +1518,7 @@ software gates and external acceptance gates are distinct:
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
 | Local checked-in device catalog search | Delivered by batch 33; read-only, filters and source digests |
 | Explicit KB citation attachment to a canvas/project | Delivered by batch 34; provenance-only, never populates the physics model |
-| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-44; placement/dimension/miter/port-number edits and bounded undo/redo, not full CAD editing or DRC |
+| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-45; placement/dimension/miter/port-number edits, selected-component deletion and bounded undo/redo, not full CAD editing or DRC |
 | AI agents, vector retrieval and guarded Python ingestion workflow | Remaining; no LLM, Chroma or KB write/apply path is claimed |
 
 1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,

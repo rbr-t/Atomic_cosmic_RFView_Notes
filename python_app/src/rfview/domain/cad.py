@@ -283,6 +283,18 @@ def update_cad_option(design: CADDesign, component_id: str, value: JsonValue) ->
     return _update_cad_component(design, component_id, {"params": params})
 
 
+def remove_cad_component(design: CADDesign, component_id: str) -> CADDesign:
+    if not any(component.id == component_id for component in design.components):
+        raise ValueError("Selected component is not in the current CAD document")
+    updated = design.model_dump(mode="json")
+    updated["components"] = [
+        component.model_dump(mode="json")
+        for component in design.components
+        if component.id != component_id
+    ]
+    return CADDesign.model_validate(updated)
+
+
 @dataclass(frozen=True)
 class CADHistory:
     _states: tuple[str, ...]

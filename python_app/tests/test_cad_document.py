@@ -13,6 +13,7 @@ from rfview.domain.cad import (
     CADHistory,
     cad_dimensions,
     parse_cad_design,
+    remove_cad_component,
     serialize_cad_design,
     update_cad_dimensions,
     update_cad_option,
@@ -537,6 +538,61 @@ def test_unsetting_absent_option_is_noop_and_preserves_vendor_params() -> None:
     assert history.record(updated) is history
     updated.components[1].params["vendor"] = "changed"
     assert design.components[1].params["vendor"] == {"values": [None, 5, True]}
+
+
+def test_component_removal_preserves_other_document_data_and_source() -> None:
+    source = parse_cad_design(json.dumps(legacy_document()))
+    original = serialize_cad_design(source)
+
+    removed = remove_cad_component(source, "cmp_3")
+
+    assert [item.id for item in removed.components] == [
+        "cmp_1",
+        "cmp_2",
+        "cmp_4",
+        "cmp_5",
+        "cmp_6",
+        "cmp_7",
+        "cmp_8",
+    ]
+    assert removed.substrate == source.substrate
+    assert removed.model_extra == source.model_extra
+    assert removed.components[0].model_extra == source.components[0].model_extra
+    assert serialize_cad_design(source) == original
+    assert "cmp_3" not in serialize_cad_design(removed)
+
+
+def test_component_removal_supports_empty_document_and_rejects_missing_id() -> None:
+    source = parse_cad_design(
+        json.dumps({"components": [component("only", "port", {"W": 0.5})]})
+    )
+    history = CADHistory.from_design(source)
+    removed = remove_cad_component(source, "only")
+
+    assert removed.components == []
+    assert parse_cad_design(history.record(removed).current_text).components == []
+    with pytest.raises(ValueError, match="not in the current CAD document"):
+        remove_cad_component(source, "missing")
+    assert [item.id for item in source.components] == ["only"]
+
+
+def test_component_removal_is_restored_by_cad_history() -> None:
+    source = parse_cad_design(json.dumps(legacy_document()))
+    history = CADHistory.from_design(source)
+    removed = remove_cad_component(source, "cmp_1")
+    recorded = history.record(removed)
+
+    assert [item.id for item in parse_cad_design(recorded.current_text).components] == [
+        "cmp_2",
+        "cmp_3",
+        "cmp_4",
+        "cmp_5",
+        "cmp_6",
+        "cmp_7",
+        "cmp_8",
+    ]
+    restored = parse_cad_design(recorded.undo().current_text)
+    assert [item.id for item in restored.components] == [f"cmp_{index}" for index in range(1, 9)]
 
 
 @pytest.mark.parametrize("miter", [None, True, False])
