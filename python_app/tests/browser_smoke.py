@@ -599,6 +599,7 @@ def main(url: str, channel: str | None = None) -> None:
         page.locator("#cad_edit_y").fill("6.75")
         page.locator("#cad_edit_rotation").fill("90")
         page.locator("#cad_edit_layer").fill("metal_bot")
+        page.locator("#cad_dim_gap").fill("0.9")
         page.locator("#cad_apply_placement").click()
         expect(page.locator("#cad_status")).to_contain_text("Applied placement for cmp_10")
         expect(page.locator("#cad_component_detail")).to_contain_text('"x": -12.5')
@@ -610,6 +611,7 @@ def main(url: str, channel: str | None = None) -> None:
         )
         expect(keyboard_marker).not_to_have_attribute("transform", original_transform or "")
         expect(page.locator("#cad_edit_revision")).not_to_have_value(old_revision)
+        expect(page.locator("#cad_dim_gap")).to_have_value("0.2")
         # Reject both invalid geometry and a form bound to an older document revision.
         page.locator("#cad_edit_x").fill("1000001")
         page.locator("#cad_apply_placement").click()
@@ -631,6 +633,67 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#cad_edit_name")).to_have_value("Moved coupled line")
         assert page.evaluate("JSON.stringify(window.paCanvas.components)") == lineup_before_cad
         expect(page.locator("#summary")).to_have_text(lineup_summary_before_cad)
+        dimension_revision = page.locator("#cad_edit_revision").input_value()
+        dimension_keys = [
+            ("W", "L"),
+            ("W", "L"),
+            ("W", "L"),
+            ("W", "L", "gap"),
+            ("drill", "pad"),
+            ("W",),
+            ("W", "L"),
+            ("W", "L"),
+        ]
+        expected_params = {}
+        for source, keys in zip(cad_payload["components"], dimension_keys, strict=True):
+            identifier = source["id"]
+            page.locator("#cad_component").select_option(identifier)
+            expect(page.locator("#cad_edit_id")).to_have_value(identifier)
+            expect(page.locator("input[id^='cad_dim_']")).to_have_count(len(keys))
+            if identifier == "cmp_7":
+                page.locator("#cad_edit_name").fill("Unapplied placement name")
+            params = dict(source["params"])
+            for key in keys:
+                value = params[key] * 2
+                params[key] = value
+                page.locator(f"#cad_dim_{key}").fill(str(value))
+            page.locator("#cad_apply_dimensions").click()
+            expect(page.locator("#cad_status")).to_contain_text(
+                f"Applied dimensions for {identifier}"
+            )
+            if identifier == "cmp_7":
+                expect(page.locator("#cad_edit_name")).to_have_value("Feed")
+            for key in keys:
+                expect(page.locator(f"#cad_dim_{key}")).to_have_value(str(float(params[key])))
+            expected_params[identifier] = params
+        expect(page.locator("#cad_preview [data-cad-id='cmp_7'] rect").first).to_have_attribute(
+            "width", "10.0"
+        )
+        expect(page.locator("#cad_preview [data-cad-id='cmp_11'] .cad-via-pad")).to_have_attribute(
+            "r", "0.5"
+        )
+        page.locator("#cad_component").select_option("cmp_10")
+        expect(page.locator("#cad_edit_id")).to_have_value("cmp_10")
+        for rejected in ("0", "-0.1", ""):
+            page.locator("#cad_dim_gap").fill(rejected)
+            page.locator("#cad_apply_dimensions").click()
+            expect(page.locator("#cad_status")).to_contain_text("RF-CAD dimensions rejected")
+            expect(page.locator("#cad_component_detail")).to_contain_text('"gap": 0.4')
+        page.locator("#cad_dim_gap").fill("0.4")
+        page.evaluate(
+            """revision => Shiny.setInputValue(
+                'cad_edit_revision', revision, {priority: 'event'}
+            )""",
+            dimension_revision,
+        )
+        page.locator("#cad_apply_dimensions").click()
+        expect(page.locator("#cad_status")).to_contain_text("Select the component again")
+        page.locator("#cad_component").select_option("cmp_7")
+        expect(page.locator("#cad_edit_id")).to_have_value("cmp_7")
+        page.locator("#cad_component").select_option("cmp_10")
+        expect(page.locator("#cad_edit_id")).to_have_value("cmp_10")
+        assert page.evaluate("JSON.stringify(window.paCanvas.components)") == lineup_before_cad
+        expect(page.locator("#summary")).to_have_text(lineup_summary_before_cad)
         with page.expect_download() as cad_download:
             page.locator("#download_cad").click()
         cad_export_path = Path(temp) / "normalized-cad.json"
@@ -639,11 +702,14 @@ def main(url: str, channel: str | None = None) -> None:
         assert cad_exported["vendor_document_field"] == {"retain": True}
         assert cad_exported["components"][0]["params"]["vendor_param"] == "keep"
         assert cad_exported["components"][0]["id"] == "cmp_7"
+        assert cad_exported["components"][0]["name"] == "Feed"
         assert cad_exported["components"][3]["name"] == "Moved coupled line"
         assert cad_exported["components"][3]["x"] == -12.5
         assert cad_exported["components"][3]["y"] == 6.75
         assert cad_exported["components"][3]["rotation"] == 90
         assert cad_exported["components"][3]["layer"] == "metal_bot"
+        for exported in cad_exported["components"]:
+            assert exported["params"] == expected_params[exported["id"]]
         invalid_cad = Path(temp) / "invalid-cad.json"
         invalid_cad.write_text('{"components":[{"id":"x","type":"bad"}]}', encoding="utf-8")
         page.locator("#cad_upload").set_input_files(invalid_cad)
@@ -666,6 +732,9 @@ def main(url: str, channel: str | None = None) -> None:
         expect(page.locator("#cad_edit_y")).to_have_value("6.75")
         expect(page.locator("#cad_edit_rotation")).to_have_value("90.0")
         expect(page.locator("#cad_edit_layer")).to_have_value("metal_bot")
+        expect(page.locator("#cad_dim_W")).to_have_value("1.0")
+        expect(page.locator("#cad_dim_L")).to_have_value("10.0")
+        expect(page.locator("#cad_dim_gap")).to_have_value("0.4")
         oversized_cad = Path(temp) / "oversized-geometry.json"
         oversized_cad.write_text(
             json.dumps(

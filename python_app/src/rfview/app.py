@@ -13,7 +13,13 @@ from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
 from rfview.cad_ui import cad_layout_preview
 from rfview.domain.alps_mdf import ALPS_PLANES, AlpsPlane
-from rfview.domain.cad import CADDesign, serialize_cad_design, update_cad_placement
+from rfview.domain.cad import (
+    CADDesign,
+    cad_dimensions,
+    serialize_cad_design,
+    update_cad_dimensions,
+    update_cad_placement,
+)
 from rfview.domain.component_properties import (
     ComponentGeometry,
     display_options,
@@ -271,8 +277,8 @@ app_ui = ui.page_fluid(
         ui.tags.details(
             ui.tags.summary("Standalone RF-CAD JSON import / export"),
             ui.p(
-                "Import, inspect and explicitly edit component placement in standalone "
-                "RF-CAD JSON. CAD data stays separate from the PA lineup canvas."
+                "Import, inspect and explicitly edit component placement and dimensions "
+                "in standalone RF-CAD JSON. CAD data stays separate from the PA lineup canvas."
             ),
             ui.input_file("cad_upload", "Upload RF-CAD JSON (max 5 MiB)", accept=[".json"]),
             ui.output_ui("cad_status"),
@@ -281,8 +287,9 @@ app_ui = ui.page_fluid(
             ui.output_code("cad_component_detail"),
             ui.output_ui("cad_placement_controls"),
             ui.p(
-                "Placement edits require Apply. Unapplied fields are discarded when "
-                "selection changes. Download JSON to retain applied edits; CAD is not "
+                "Placement and dimension edits have separate Apply buttons. Applying either "
+                "resets all unapplied fields, as does changing selection or importing a document. "
+                "Download JSON to retain applied edits; CAD is not "
                 "included in local project snapshots. No CAD undo/redo is available yet."
             ),
             ui.h3("Position overview (mm)"),
@@ -761,37 +768,43 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             ui.input_numeric("cad_edit_rotation", "CAD rotation (degrees)", component.rotation),
             ui.input_text("cad_edit_layer", "CAD layer identifier", component.layer),
             ui.input_action_button("cad_apply_placement", "Apply CAD placement"),
+            ui.h3("Component dimensions"),
+            ui.p(
+                "Positive lengths in millimetres; no impedance synthesis or DRC. "
+                "Vendor parameters, bend miter and port number are preserved, not edited here."
+            ),
+            *[
+                ui.input_numeric(
+                    f"cad_dim_{key}",
+                    {
+                        "W": "Trace width W (mm)",
+                        "L": "Length L (mm)",
+                        "gap": "Coupled trace gap (mm)",
+                        "drill": "Via drill diameter (mm)",
+                        "pad": "Via pad diameter (mm)",
+                    }[key],
+                    value,
+                    min=0,
+                )
+                for key, value in cad_dimensions(component).items()
+            ],
+            ui.input_action_button("cad_apply_dimensions", "Apply CAD dimensions"),
         )
 
-    @reactive.effect
-    @reactive.event(input.cad_apply_placement)
-    def _cad_apply_placement() -> None:
-        try:
-            design = cad_design()
-            identifier = input.cad_component()
-            if (
-                design is None
-                or not identifier
-                or input.cad_edit_id() != identifier
-                or input.cad_edit_revision() != str(cad_revision())
-            ):
-                raise ValueError("Select the component again before applying placement")
-            updated = update_cad_placement(
-                design,
-                identifier,
-                name=input.cad_edit_name(),
-                x=input.cad_edit_x(),
-                y=input.cad_edit_y(),
-                rotation=input.cad_edit_rotation(),
-                layer=input.cad_edit_layer(),
-            )
-            serialized = serialize_cad_design(updated)
-        except (ValueError, OverflowError, RecursionError) as exc:
-            message = f"RF-CAD placement rejected: {exc}. Last valid document retained."
-            logger.warning("%s", message)
-            cad_status_state.set(message)
-            ui.notification_show(message, type="error", duration=None, session=session)
-            return
+    def _cad_edit_target() -> tuple[CADDesign, str]:
+        design = cad_design()
+        identifier = input.cad_component()
+        if (
+            design is None
+            or not identifier
+            or input.cad_edit_id() != identifier
+            or input.cad_edit_revision() != str(cad_revision())
+        ):
+            raise ValueError("Select the component again before applying CAD edits")
+        return design, identifier
+
+    def _commit_cad_edit(updated: CADDesign, identifier: str, kind: str) -> None:
+        serialized = serialize_cad_design(updated)
         cad_design.set(updated)
         cad_export.set(serialized)
         cad_revision.set(cad_revision() + 1)
@@ -804,9 +817,51 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             session=session,
         )
         cad_status_state.set(
-            f"Applied placement for {identifier}. Download CAD JSON to retain edits. "
+            f"Applied {kind} for {identifier}. Download CAD JSON to retain edits. "
             "No DRC or fabrication validation performed."
         )
+
+    @reactive.effect
+    @reactive.event(input.cad_apply_placement)
+    def _cad_apply_placement() -> None:
+        try:
+            design, identifier = _cad_edit_target()
+            updated = update_cad_placement(
+                design,
+                identifier,
+                name=input.cad_edit_name(),
+                x=input.cad_edit_x(),
+                y=input.cad_edit_y(),
+                rotation=input.cad_edit_rotation(),
+                layer=input.cad_edit_layer(),
+            )
+            _commit_cad_edit(updated, identifier, "placement")
+        except (ValueError, OverflowError, RecursionError) as exc:
+            message = f"RF-CAD placement rejected: {exc}. Last valid document retained."
+            logger.warning("%s", message)
+            cad_status_state.set(message)
+            ui.notification_show(message, type="error", duration=None, session=session)
+            return
+
+    @reactive.effect
+    @reactive.event(input.cad_apply_dimensions)
+    def _cad_apply_dimensions() -> None:
+        try:
+            design, identifier = _cad_edit_target()
+            component = next((item for item in design.components if item.id == identifier), None)
+            if component is None:
+                raise ValueError("Selected component is not in the current CAD document")
+            updated = update_cad_dimensions(
+                design,
+                identifier,
+                {key: input[f"cad_dim_{key}"]() for key in cad_dimensions(component)},
+            )
+            _commit_cad_edit(updated, identifier, "dimensions")
+        except (ValueError, OverflowError, RecursionError) as exc:
+            message = f"RF-CAD dimensions rejected: {exc}. Last valid document retained."
+            logger.warning("%s", message)
+            cad_status_state.set(message)
+            ui.notification_show(message, type="error", duration=None, session=session)
 
     @render.ui
     def cad_download_control() -> ui.Tag:

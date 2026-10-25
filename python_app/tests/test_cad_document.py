@@ -2,14 +2,16 @@ import json
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from rfview.domain.cad import (
     MAX_CAD_BYTES,
     CADComponent,
     CADDesign,
+    cad_dimensions,
     parse_cad_design,
     serialize_cad_design,
+    update_cad_dimensions,
     update_cad_placement,
 )
 from rfview.services import read_cad_design
@@ -286,3 +288,63 @@ def test_placement_edit_rejects_missing_component_and_oversized_text() -> None:
         )
     with pytest.raises(ValueError):
         update_cad_placement(design, "cmp_1", name="", x=0, y=0, rotation=0, layer="x" * 101)
+
+
+@pytest.mark.parametrize("index", range(8))
+def test_dimension_edit_for_each_type_preserves_all_other_data(index: int) -> None:
+    design = parse_cad_design(json.dumps(legacy_document()))
+    before = design.model_dump(mode="json")
+    selected = design.components[index]
+    changes: dict[str, JsonValue] = {
+        key: value * 1.5 for key, value in cad_dimensions(selected).items()
+    }
+    updated = update_cad_dimensions(design, selected.id, changes)
+    expected = json.loads(json.dumps(before))
+    expected["components"][index]["params"].update(changes)
+    assert updated.model_dump(mode="json") == expected
+    assert design.model_dump(mode="json") == before
+    assert parse_cad_design(serialize_cad_design(updated)) == updated
+    updated.components[0].params["vendor_param"] = "Changed only in new document"
+    assert design.components[0].params["vendor_param"] == "x"
+
+
+def test_dimension_edit_preserves_palette_alias_and_supports_partial_updates() -> None:
+    design = parse_cad_design(json.dumps([component("alias", "ms", {"W": 0.5, "L": 5})]))
+    updated = update_cad_dimensions(design, "alias", {"W": 0.75})
+    assert updated.components[0].type == "ms"
+    assert cad_dimensions(updated.components[0]) == {"W": 0.75, "L": 5}
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {},
+        {"vendor_param": "overwrite"},
+        {"W": 0.7, "gap": 0.2},
+        {"W": 0},
+        {"L": -1},
+        {"W": None},
+        {"L": "4"},
+        {"W": True},
+        {"W": float("nan")},
+        {"W": float("inf")},
+        {"W": [1]},
+        {"miter": False},
+        {"portNum": 2},
+        {"type": "via"},
+    ],
+)
+def test_dimension_edit_rejects_invalid_values_or_unsupported_fields(
+    changes: dict[str, JsonValue],
+) -> None:
+    design = parse_cad_design(json.dumps(legacy_document()))
+    before = serialize_cad_design(design)
+    with pytest.raises(ValueError):
+        update_cad_dimensions(design, "cmp_1", changes)
+    assert serialize_cad_design(design) == before
+
+
+def test_dimension_edit_rejects_unknown_target() -> None:
+    design = parse_cad_design(json.dumps(legacy_document()))
+    with pytest.raises(ValueError, match="not in the current"):
+        update_cad_dimensions(design, "missing", {"W": 0.7})

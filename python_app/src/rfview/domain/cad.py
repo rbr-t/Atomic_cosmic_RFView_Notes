@@ -38,6 +38,18 @@ MAX_CAD_COMPONENTS = 10_000
 MAX_CAD_POSITION_MM = 1_000_000
 _SAFE_ID = re.compile(r"^[^\x00-\x1f\x7f]+$")
 
+_DIMENSION_FIELDS: dict[CADComponentType, tuple[str, ...]] = {
+    "microstrip": ("W", "L"),
+    "ms": ("W", "L"),
+    "bend90": ("W", "L"),
+    "tee": ("W", "L"),
+    "coupled": ("W", "L", "gap"),
+    "via": ("drill", "pad"),
+    "port": ("W",),
+    "open_stub": ("W", "L"),
+    "short_stub": ("W", "L"),
+}
+
 
 class CADSubstrate(BaseModel):
     model_config = ConfigDict(extra="allow", allow_inf_nan=False)
@@ -83,18 +95,7 @@ class CADComponent(BaseModel):
 
     @model_validator(mode="after")
     def validate_geometry_parameters(self) -> CADComponent:
-        positive = {
-            "microstrip": ("W", "L"),
-            "ms": ("W", "L"),
-            "bend90": ("W", "L"),
-            "tee": ("W", "L"),
-            "coupled": ("W", "L", "gap"),
-            "via": ("drill", "pad"),
-            "port": ("W",),
-            "open_stub": ("W", "L"),
-            "short_stub": ("W", "L"),
-        }[self.type]
-        for key in positive:
+        for key in _DIMENSION_FIELDS[self.type]:
             value = self.params.get(key)
             if value is None:
                 raise ValueError(f"CAD parameter {key} is required for {self.type}")
@@ -207,6 +208,32 @@ def update_cad_placement(
     rotation: float,
     layer: str,
 ) -> CADDesign:
+    return _update_cad_component(
+        design, component_id, dict(name=name, x=x, y=y, rotation=rotation, layer=layer)
+    )
+
+
+def cad_dimensions(component: CADComponent) -> dict[str, float]:
+    return {
+        key: _numeric(component.params.get(key), f"parameter {key}")
+        for key in _DIMENSION_FIELDS[component.type]
+    }
+
+
+def update_cad_dimensions(
+    design: CADDesign, component_id: str, dimensions: dict[str, JsonValue]
+) -> CADDesign:
+    component = next((item for item in design.components if item.id == component_id), None)
+    if component is None:
+        raise ValueError("Selected component is not in the current CAD document")
+    if not dimensions or not dimensions.keys() <= cad_dimensions(component).keys():
+        raise ValueError("Only dimension fields supported by the selected CAD type can be edited")
+    return _update_cad_component(design, component_id, {"params": component.params | dimensions})
+
+
+def _update_cad_component(
+    design: CADDesign, component_id: str, changes: dict[str, JsonValue]
+) -> CADDesign:
     if not any(component.id == component_id for component in design.components):
         raise ValueError("Selected component is not in the current CAD document")
     updated = design.model_dump(mode="json")
@@ -214,7 +241,7 @@ def update_cad_placement(
     for component in design.components:
         data = component.model_dump(mode="json")
         if component.id == component_id:
-            data.update(name=name, x=x, y=y, rotation=rotation, layer=layer)
+            data.update(changes)
         components.append(data)
     updated["components"] = components
     return CADDesign.model_validate(updated)

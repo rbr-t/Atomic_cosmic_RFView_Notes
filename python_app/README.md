@@ -39,7 +39,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Local projects | Single-user SQLite projects, immutable snapshot revisions, optimistic conflict detection and confirmed four-canvas/operating-point recovery |
 | RF network tools | Touchstone 1.x/2.0 for 1-9 ports; full/triangular matrices, explicit mixed-mode transforms, v1/v2 noise table/plot; S/Smith and two-port conversions/stability; source/transformed and converted-family export |
 | Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
-| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, selectable dimension-aware overview, explicit name/placement/layer edits and normalized export; session-only and separate from the PA lineup |
+| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, selectable dimension-aware overview, explicit name/placement/layer/dimension edits and normalized export; session-only and separate from the PA lineup |
 | Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
@@ -1339,6 +1339,40 @@ round-trip export and rejected targets/values. Chromium exercises Apply, updated
 preview/inspector/labels, stale-revision and invalid-coordinate rejection,
 download/reimport, failed-upload retention and PA lineup isolation.
 
+### Batch 42 - supported CAD dimension editing
+
+The selected component now exposes **Apply CAD dimensions** separately from
+placement. Controls follow the legacy parameter meanings: trace width `W` and
+length `L` for microstrip (including the `ms` alias), bends, tees and stubs;
+`W`, `L` and `gap` for coupled lines; `drill` and `pad` diameters for vias;
+and `W` for ports. All lengths are in millimetres.
+
+One shared field definition drives required-dimension validation and the editor.
+The pure update function permits only dimension keys belonging to the selected
+type, revalidates the full document and returns an independent document. Unknown
+vendor params, optional bend `miter`/port `portNum`, component metadata, substrate
+and other records are preserved. Numeric strings, Boolean values, missing,
+nonpositive and nonfinite dimensions are rejected rather than coerced.
+
+The UI uses the same component/revision guard and validate-before-commit export
+path as placement edits. Accepted dimensions refresh the geometry overview,
+inspector and JSON export; rejected values or stale forms retain the last valid
+state. Applying either form resets all unapplied fields in both forms.
+
+Qualification: domain tests cover all nine type keys, partial updates, deep-copy
+isolation, preservation, round trips and rejected fields/values. Chromium edits
+dimensions for every rendered family, checks actual SVG dimensions, rejects
+zero/negative/blank values and stale revisions, verifies exported params and
+reimported controls, and checks isolation from PA lineup/results.
+
+This is direct dimension editing, not impedance synthesis or engineering
+qualification. Positive but physically inconsistent dimensions (for example, a
+via drill larger than its pad) are not certified by this contract. Existing
+preview omission notices still apply to oversized/degenerate shapes. There is
+no parameter editing for arbitrary vendor keys, miter or port numbering yet;
+CAD undo/redo, persistence, creation/deletion, drag workflows and DRC remain
+separate work. CAD remains session-only; download JSON to retain edits.
+
 ## Validation
 
 From the repository root:
@@ -1394,7 +1428,7 @@ software gates and external acceptance gates are distinct:
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
 | Local checked-in device catalog search | Delivered by batch 33; read-only, filters and source digests |
 | Explicit KB citation attachment to a canvas/project | Delivered by batch 34; provenance-only, never populates the physics model |
-| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-41; selection and explicit placement/name/layer edits, not full CAD editing or DRC |
+| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-42; selection and explicit placement/name/layer/dimension edits, not full CAD editing or DRC |
 | AI agents, vector retrieval and guarded Python ingestion workflow | Remaining; no LLM, Chroma or KB write/apply path is claimed |
 
 1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,
