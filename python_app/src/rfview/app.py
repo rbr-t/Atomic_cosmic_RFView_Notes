@@ -17,6 +17,7 @@ from rfview.domain.cad import (
     CADDesign,
     CADHistory,
     cad_dimensions,
+    duplicate_cad_component,
     parse_cad_design,
     remove_cad_component,
     update_cad_dimensions,
@@ -820,6 +821,8 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             ],
             ui.input_action_button("cad_apply_dimensions", "Apply CAD dimensions"),
             *option_controls,
+            ui.input_action_button("cad_duplicate_component", "Duplicate selected CAD component"),
+            ui.p("The copy keeps the original position; use placement controls to move it."),
             ui.input_action_button("cad_delete_component", "Delete selected CAD component"),
             ui.p("Deletion is reversible with Undo CAD edit."),
         )
@@ -994,6 +997,23 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             _commit_cad_edit(updated, identifier, "deletion")
         except (ValueError, OverflowError, RecursionError) as exc:
             message = f"RF-CAD deletion rejected: {exc}. Last valid document retained."
+            logger.warning("%s", message)
+            cad_status_state.set(message)
+            ui.notification_show(message, type="error", duration=None, session=session)
+
+    @reactive.effect
+    @reactive.event(input.cad_duplicate_component)
+    def _cad_duplicate_component() -> None:
+        try:
+            design, identifier = _cad_edit_target()
+            updated = duplicate_cad_component(design, identifier)
+            original_ids = {component.id for component in design.components}
+            duplicate = next(
+                component for component in updated.components if component.id not in original_ids
+            )
+            _commit_cad_edit(updated, duplicate.id, "duplication")
+        except (ValueError, OverflowError, RecursionError) as exc:
+            message = f"RF-CAD duplication rejected: {exc}. Last valid document retained."
             logger.warning("%s", message)
             cad_status_state.set(message)
             ui.notification_show(message, type="error", duration=None, session=session)

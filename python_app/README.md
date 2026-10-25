@@ -39,7 +39,7 @@ standalone deployment. No CDN is needed by the migration adapter.
 | Local projects | Single-user SQLite projects, immutable snapshot revisions, optimistic conflict detection and confirmed four-canvas/operating-point recovery |
 | RF network tools | Touchstone 1.x/2.0 for 1-9 ports; full/triangular matrices, explicit mixed-mode transforms, v1/v2 noise table/plot; S/Smith and two-port conversions/stability; source/transformed and converted-family export |
 | Load-pull | Eight explicit ASCII adapters, normalized measurements/JSON export, sweep selection, measured Gamma plots and piecewise-linear contour estimates |
-| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, selectable dimension-aware overview, explicit placement/dimension/miter/port-number edits, selected-component deletion, bounded undo/redo and normalized export; session-only and separate from the PA lineup |
+| Standalone RF-CAD interchange | Bounded JSON v1.0 import, document summary, selectable dimension-aware overview, explicit placement/dimension/miter/port-number edits, component duplication/deletion, bounded undo/redo and normalized export; session-only and separate from the PA lineup |
 | Corrected model options | Explicit conventional power gain v2 and generic Arrhenius/constant-hazard lifetime v2, separate from legacy-compatible lineup results |
 | Validation | Explicit malformed/cyclic/unsupported graph errors; finite numeric validation; 5 MiB JSON limit |
 | Isolation | Independent reactive document and result state per browser session |
@@ -1463,6 +1463,27 @@ and vendor fields, empty-document behavior, missing-ID rejection and history
 restoration. Chromium removes the sole component, checks the empty selector,
 and exercises undo/redo.
 
+### Batch 46 - duplicate an imported CAD component
+
+The selected imported component can now be duplicated as a first bounded
+component-creation operation. The duplicate retains its placement, geometry,
+options, vendor parameters and other component fields, and receives an
+automatically generated unique ID (with collision and 100-character handling).
+The copy is selected immediately; adjust its placement with the existing
+placement controls. Duplication revalidates the complete document and export
+size and enters bounded undo/redo history. Missing/stale selections and
+documents at component/size limits are rejected without changing current state.
+
+This duplicates an existing component only; it does not create a component
+from an arbitrary type/parameter form, move components on the preview, check
+connectivity, synthesize dimensions, or perform DRC/fabrication qualification.
+Changes remain session-only; download normalized JSON to retain them.
+
+Qualification: pure-domain tests verify field preservation, source immutability,
+unique/truncated IDs, missing-ID rejection and undo/redo. Chromium duplicates a
+vendor-extended component, checks selection and history, then exercises undo
+and redo.
+
 ## Validation
 
 From the repository root:
@@ -1518,7 +1539,7 @@ software gates and external acceptance gates are distinct:
 | Device-calibrated model accuracy and wave-convention/calibration sign-off | External engineering evidence and RF-owner acceptance required |
 | Local checked-in device catalog search | Delivered by batch 33; read-only, filters and source digests |
 | Explicit KB citation attachment to a canvas/project | Delivered by batch 34; provenance-only, never populates the physics model |
-| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-45; placement/dimension/miter/port-number edits, selected-component deletion and bounded undo/redo, not full CAD editing or DRC |
+| Strict RF-CAD JSON contract, import/export and dimension-aware overview | Delivered by batches 35-46; placement/dimension/miter/port-number edits, component duplication/deletion and bounded undo/redo, not full CAD editing or DRC |
 | AI agents, vector retrieval and guarded Python ingestion workflow | Remaining; no LLM, Chroma or KB write/apply path is claimed |
 
 1. Complete remaining RF-data acceptance: harmonic-specific vendor workflows,

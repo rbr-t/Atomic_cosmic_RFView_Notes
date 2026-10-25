@@ -12,6 +12,7 @@ from rfview.domain.cad import (
     CADDesign,
     CADHistory,
     cad_dimensions,
+    duplicate_cad_component,
     parse_cad_design,
     remove_cad_component,
     serialize_cad_design,
@@ -593,6 +594,59 @@ def test_component_removal_is_restored_by_cad_history() -> None:
     ]
     restored = parse_cad_design(recorded.undo().current_text)
     assert [item.id for item in restored.components] == [f"cmp_{index}" for index in range(1, 9)]
+
+
+def test_component_duplication_preserves_data_and_generates_unique_id() -> None:
+    source = parse_cad_design(json.dumps(legacy_document()))
+    before = serialize_cad_design(source)
+
+    duplicated = duplicate_cad_component(source, "cmp_1")
+
+    assert [item.id for item in duplicated.components] == [
+        "cmp_1",
+        "cmp_2",
+        "cmp_3",
+        "cmp_4",
+        "cmp_5",
+        "cmp_6",
+        "cmp_7",
+        "cmp_8",
+        "cmp_1_copy",
+    ]
+    expected_copy = source.components[0].model_dump(mode="json") | {"id": "cmp_1_copy"}
+    assert duplicated.components[-1].model_dump(mode="json") == expected_copy
+    assert duplicated.components[-1].x == source.components[0].x
+    assert duplicated.components[-1].model_extra == source.components[0].model_extra
+    assert serialize_cad_design(source) == before
+
+    copied_again = duplicate_cad_component(duplicated, "cmp_1")
+    assert copied_again.components[-1].id == "cmp_1_copy_2"
+
+
+def test_component_duplication_rejects_missing_id_and_respects_id_length() -> None:
+    identifier = "c" * 100
+    source = parse_cad_design(
+        json.dumps({"components": [component(identifier, "port", {"W": 0.5})]})
+    )
+
+    duplicated = duplicate_cad_component(source, identifier)
+
+    assert len(duplicated.components[-1].id) == 100
+    assert duplicated.components[-1].id.endswith("_copy")
+    with pytest.raises(ValueError, match="not in the current CAD document"):
+        duplicate_cad_component(source, "missing")
+    assert len(source.components) == 1
+
+
+def test_component_duplication_is_reversible_with_cad_history() -> None:
+    source = parse_cad_design(json.dumps(legacy_document()))
+    history = CADHistory.from_design(source)
+    duplicated = duplicate_cad_component(source, "cmp_1")
+    recorded = history.record(duplicated)
+
+    undone = recorded.undo()
+    assert undone.current_text == history.current_text
+    assert parse_cad_design(undone.redo().current_text) == duplicated
 
 
 @pytest.mark.parametrize("miter", [None, True, False])

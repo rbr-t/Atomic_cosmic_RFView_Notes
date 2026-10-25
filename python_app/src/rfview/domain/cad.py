@@ -295,6 +295,25 @@ def remove_cad_component(design: CADDesign, component_id: str) -> CADDesign:
     return CADDesign.model_validate(updated)
 
 
+def duplicate_cad_component(design: CADDesign, component_id: str) -> CADDesign:
+    component = next((item for item in design.components if item.id == component_id), None)
+    if component is None:
+        raise ValueError("Selected component is not in the current CAD document")
+    existing_ids = {item.id for item in design.components}
+    for copy_number in range(1, len(existing_ids) + 2):
+        suffix = "_copy" if copy_number == 1 else f"_copy_{copy_number}"
+        candidate_id = f"{component_id[: 100 - len(suffix)]}{suffix}"
+        if candidate_id not in existing_ids:
+            break
+    else:
+        raise ValueError("Could not create a unique CAD component identifier")
+    updated = design.model_dump(mode="json")
+    duplicate = component.model_dump(mode="json")
+    duplicate["id"] = candidate_id
+    updated["components"] = [*updated["components"], duplicate]
+    return CADDesign.model_validate(updated)
+
+
 @dataclass(frozen=True)
 class CADHistory:
     _states: tuple[str, ...]

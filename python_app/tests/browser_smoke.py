@@ -986,6 +986,45 @@ def main(url: str, channel: str | None = None) -> None:
         page.locator("#cad_redo.shiny-bound-input").click()
         expect(page.locator("#cad_component option")).to_have_count(0)
 
+        duplicate_cad = Path(temp) / "duplicate-component.json"
+        duplicate_cad.write_text(
+            json.dumps(
+                {
+                    "version": "1.0",
+                    "components": [
+                        {
+                            "id": "copy_source",
+                            "type": "microstrip",
+                            "name": "Copy source",
+                            "x": 2,
+                            "y": 3,
+                            "rotation": 15,
+                            "layer": "metal_top",
+                            "params": {"W": 0.5, "L": 5, "vendor_param": "retain"},
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        page.locator("#cad_upload").set_input_files(duplicate_cad)
+        page.locator("#cad_duplicate_component.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text(
+            "Applied duplication for copy_source_copy"
+        )
+        expect(page.locator("#cad_component")).to_have_value("copy_source_copy")
+        expect(page.locator("#cad_component option")).to_have_count(2)
+        expect(page.locator("#cad_component_detail")).to_contain_text('"vendor_param": "retain"')
+        page.locator("#cad_undo.shiny-bound-input").click()
+        expect(page.locator("#cad_component option")).to_have_count(1)
+        page.locator("#cad_redo.shiny-bound-input").click()
+        expect(page.locator("#cad_component")).to_have_value("copy_source")
+        expect(page.locator("#cad_component option")).to_have_count(2)
+        page.locator("#cad_component").select_option("copy_source_copy")
+        page.locator("#cad_duplicate_component.shiny-bound-input").click()
+        expect(page.locator("#cad_component")).to_have_value("copy_source_copy_copy")
+        expect(page.locator("#cad_component option")).to_have_count(3)
+
         for width in (375, 768, 1440):
             if width == 375:
                 page.get_by_text("Technology charts and summary", exact=True).click()
