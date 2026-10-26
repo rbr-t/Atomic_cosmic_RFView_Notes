@@ -14,9 +14,12 @@ from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 from rfview.cad_ui import cad_layout_preview
 from rfview.domain.alps_mdf import ALPS_PLANES, AlpsPlane
 from rfview.domain.cad import (
+    CAD_COMPONENT_TYPES,
     CADDesign,
     CADHistory,
+    cad_dimension_fields,
     cad_dimensions,
+    create_cad_component,
     duplicate_cad_component,
     parse_cad_design,
     remove_cad_component,
@@ -288,6 +291,25 @@ app_ui = ui.page_fluid(
             ui.output_ui("cad_status"),
             ui.output_ui("cad_history_controls"),
             ui.output_ui("cad_summary"),
+            ui.h3("Create CAD component"),
+            ui.p(
+                "Enter each required dimension explicitly. New components start at the "
+                "specified position; no RF dimensions or placement are inferred."
+            ),
+            ui.input_select(
+                "cad_new_type",
+                "New component type",
+                {str(kind): str(kind) for kind in CAD_COMPONENT_TYPES},
+                selected="microstrip",
+            ),
+            ui.input_text("cad_new_id", "New component ID (blank generates one)", ""),
+            ui.input_text("cad_new_name", "New component name", ""),
+            ui.input_numeric("cad_new_x", "New component origin X (mm)", 0),
+            ui.input_numeric("cad_new_y", "New component origin Y (mm)", 0),
+            ui.input_numeric("cad_new_rotation", "New component rotation (degrees)", 0),
+            ui.input_text("cad_new_layer", "New component layer", "metal_top"),
+            ui.output_ui("cad_creation_dimensions"),
+            ui.input_action_button("cad_create_component", "Create CAD component"),
             ui.input_select("cad_component", "Inspect imported component", {}),
             ui.output_code("cad_component_detail"),
             ui.output_ui("cad_placement_controls"),
@@ -711,6 +733,31 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
         )
 
     @render.ui
+    def cad_creation_dimensions() -> ui.Tag:
+        raw_type = input.cad_new_type()
+        component_type = next(
+            (kind for kind in CAD_COMPONENT_TYPES if kind == raw_type),
+            CAD_COMPONENT_TYPES[0],
+        )
+        return ui.div(
+            *[
+                ui.input_numeric(
+                    f"cad_new_dim_{key}",
+                    {
+                        "W": "Trace width W (mm)",
+                        "L": "Length L (mm)",
+                        "gap": "Coupled trace gap (mm)",
+                        "drill": "Via drill diameter (mm)",
+                        "pad": "Via pad diameter (mm)",
+                    }[key],
+                    0,
+                    min=0,
+                )
+                for key in cad_dimension_fields(component_type)
+            ]
+        )
+
+    @render.ui
     def cad_preview() -> ui.Tag:
         design = cad_design()
         if design is None:
@@ -997,6 +1044,50 @@ def server(input: Inputs, output: Outputs, session: Session) -> None:
             _commit_cad_edit(updated, identifier, "deletion")
         except (ValueError, OverflowError, RecursionError) as exc:
             message = f"RF-CAD deletion rejected: {exc}. Last valid document retained."
+            logger.warning("%s", message)
+            cad_status_state.set(message)
+            ui.notification_show(message, type="error", duration=None, session=session)
+
+    @reactive.effect
+    @reactive.event(input.cad_create_component)
+    def _cad_create_component() -> None:
+        try:
+            design = cad_design()
+            history = cad_history()
+            if design is None or history is None:
+                raise ValueError("Import a CAD document before creating a component")
+            raw_type = input.cad_new_type()
+            component_type = next(
+                (kind for kind in CAD_COMPONENT_TYPES if kind == raw_type),
+                None,
+            )
+            if component_type is None:
+                raise ValueError("Select a supported CAD component type")
+            identifier = input.cad_new_id().strip()
+            if not identifier:
+                existing_ids = {component.id for component in design.components}
+                for number in range(1, len(existing_ids) + 2):
+                    candidate = f"component_{number}"
+                    if candidate not in existing_ids:
+                        identifier = candidate
+                        break
+            updated = create_cad_component(
+                design,
+                component_id=identifier,
+                component_type=component_type,
+                name=input.cad_new_name(),
+                x=input.cad_new_x(),
+                y=input.cad_new_y(),
+                rotation=input.cad_new_rotation(),
+                layer=input.cad_new_layer(),
+                dimensions={
+                    key: input[f"cad_new_dim_{key}"]()
+                    for key in cad_dimension_fields(component_type)
+                },
+            )
+            _commit_cad_edit(updated, identifier, "creation")
+        except (ValueError, OverflowError, RecursionError) as exc:
+            message = f"RF-CAD creation rejected: {exc}. Last valid document retained."
             logger.warning("%s", message)
             cad_status_state.set(message)
             ui.notification_show(message, type="error", duration=None, session=session)

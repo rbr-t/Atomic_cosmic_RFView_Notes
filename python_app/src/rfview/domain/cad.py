@@ -29,6 +29,17 @@ CADComponentType = Literal[
     "open_stub",
     "short_stub",
 ]
+CAD_COMPONENT_TYPES: tuple[CADComponentType, ...] = (
+    "microstrip",
+    "ms",
+    "bend90",
+    "tee",
+    "coupled",
+    "via",
+    "port",
+    "open_stub",
+    "short_stub",
+)
 
 CADId = Annotated[
     str,
@@ -221,6 +232,50 @@ def cad_dimensions(component: CADComponent) -> dict[str, float]:
         key: _numeric(component.params.get(key), f"parameter {key}")
         for key in _DIMENSION_FIELDS[component.type]
     }
+
+
+def cad_dimension_fields(component_type: CADComponentType) -> tuple[str, ...]:
+    try:
+        return _DIMENSION_FIELDS[component_type]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported CAD component type: {component_type}") from exc
+
+
+def create_cad_component(
+    design: CADDesign,
+    *,
+    component_id: str,
+    component_type: CADComponentType,
+    name: str,
+    x: float,
+    y: float,
+    rotation: float,
+    layer: str,
+    dimensions: dict[str, JsonValue],
+) -> CADDesign:
+    if any(component.id == component_id for component in design.components):
+        raise ValueError("CAD component identifier already exists in the current document")
+    required_dimensions = set(cad_dimension_fields(component_type))
+    if set(dimensions) != required_dimensions:
+        raise ValueError("Provide exactly the required dimensions for the selected CAD type")
+    component = CADComponent.model_validate(
+        {
+            "id": component_id,
+            "type": component_type,
+            "name": name,
+            "x": x,
+            "y": y,
+            "rotation": rotation,
+            "layer": layer,
+            "params": dimensions,
+        }
+    )
+    updated = design.model_dump(mode="json")
+    updated["components"] = [
+        *updated["components"],
+        component.model_dump(mode="json"),
+    ]
+    return CADDesign.model_validate(updated)
 
 
 def update_cad_dimensions(

@@ -6,12 +6,15 @@ from pydantic import JsonValue, ValidationError
 
 from rfview.domain import cad
 from rfview.domain.cad import (
+    CAD_COMPONENT_TYPES,
     MAX_CAD_BYTES,
     MAX_CAD_HISTORY_STATES,
     CADComponent,
     CADDesign,
     CADHistory,
+    cad_dimension_fields,
     cad_dimensions,
+    create_cad_component,
     duplicate_cad_component,
     parse_cad_design,
     remove_cad_component,
@@ -647,6 +650,94 @@ def test_component_duplication_is_reversible_with_cad_history() -> None:
     undone = recorded.undo()
     assert undone.current_text == history.current_text
     assert parse_cad_design(undone.redo().current_text) == duplicated
+
+
+def test_component_creation_supports_each_known_type_without_mutating_source() -> None:
+    source = parse_cad_design(json.dumps(legacy_document()))
+    original = serialize_cad_design(source)
+
+    for index, component_type in enumerate(CAD_COMPONENT_TYPES):
+        dimensions = {key: 0.5 for key in cad_dimension_fields(component_type)}
+        updated = create_cad_component(
+            source,
+            component_id=f"new_{index}",
+            component_type=component_type,
+            name=f"New {component_type}",
+            x=10,
+            y=-2,
+            rotation=90,
+            layer="metal_bot",
+            dimensions=dimensions,
+        )
+        created = updated.components[-1]
+
+        assert created.type == component_type
+        assert created.params == dimensions
+        assert (created.x, created.y, created.rotation, created.layer) == (
+            10,
+            -2,
+            90,
+            "metal_bot",
+        )
+        assert len(updated.components) == len(source.components) + 1
+        assert serialize_cad_design(source) == original
+
+
+def test_component_creation_rejects_invalid_ids_dimensions_and_duplicate_ids() -> None:
+    source = parse_cad_design(json.dumps(legacy_document()))
+    create = {
+        "component_type": "coupled",
+        "name": "New coupled line",
+        "x": 0,
+        "y": 0,
+        "rotation": 0,
+        "layer": "metal_top",
+    }
+    with pytest.raises(ValueError, match="exactly the required dimensions"):
+        create_cad_component(source, component_id="new_1", dimensions={"W": 0.5}, **create)
+    with pytest.raises(ValueError, match="exactly the required dimensions"):
+        create_cad_component(
+            source,
+            component_id="new_1",
+            dimensions={"W": 0.5, "L": 2, "gap": 0.2, "vendor": 1},
+            **create,
+        )
+    with pytest.raises(ValueError):
+        create_cad_component(
+            source,
+            component_id="cmp_1",
+            dimensions={"W": 0.5, "L": 2, "gap": 0.2},
+            **create,
+        )
+    with pytest.raises(ValueError):
+        create_cad_component(
+            source,
+            component_id="new_1",
+            dimensions={"W": 0.5, "L": 2, "gap": 0},
+            **create,
+        )
+    assert len(source.components) == 8
+
+
+def test_component_creation_is_reversible_with_cad_history() -> None:
+    source = parse_cad_design(json.dumps(legacy_document()))
+    history = CADHistory.from_design(source)
+    created = create_cad_component(
+        source,
+        component_id="new_port",
+        component_type="port",
+        name="Output",
+        x=12,
+        y=0,
+        rotation=0,
+        layer="metal_top",
+        dimensions={"W": 0.5},
+    )
+    recorded = history.record(created)
+
+    undone = recorded.undo()
+    assert undone.current_text == history.current_text
+    assert parse_cad_design(undone.redo().current_text) == created
 
 
 @pytest.mark.parametrize("miter", [None, True, False])

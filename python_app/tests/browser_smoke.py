@@ -1024,6 +1024,23 @@ def main(url: str, channel: str | None = None) -> None:
         page.locator("#cad_duplicate_component.shiny-bound-input").click()
         expect(page.locator("#cad_component")).to_have_value("copy_source_copy_copy")
         expect(page.locator("#cad_component option")).to_have_count(3)
+        page.locator("#cad_new_type").select_option("coupled")
+        expect(page.locator("#cad_new_dim_gap")).to_be_visible()
+        page.locator("#cad_new_dim_W").fill("0.3")
+        page.locator("#cad_new_dim_L").fill("4")
+        page.locator("#cad_create_component.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text(
+            "CAD parameter gap must be finite and greater than zero"
+        )
+        expect(page.locator("#cad_component option")).to_have_count(3)
+        page.locator("#cad_new_dim_gap").fill("0.15")
+        page.locator("#cad_create_component.shiny-bound-input").click()
+        expect(page.locator("#cad_status")).to_contain_text(
+            "Applied creation for component_1"
+        )
+        expect(page.locator("#cad_component")).to_have_value("component_1")
+        expect(page.locator("#cad_component option")).to_have_count(4)
+        expect(page.locator("#cad_component_detail")).to_contain_text('"gap": 0.15')
 
         for width in (375, 768, 1440):
             if width == 375:
